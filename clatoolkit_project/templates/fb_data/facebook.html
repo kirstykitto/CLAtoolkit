@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+</head>
+<body>
+    <h2>Facebook Data Integration</h2>
+    <a href="register/">Register for Data Integration</a>
+    <br />
+    -------------
+    <form>
+        {% csrf_token %}
+        <label for="group_id">Group ID</label>
+            <input type="text" name="group_id" value="285873894923511" />
+    </form>
+    <a href="login/285873894923511">Submit Gather Request</a>
+</body>
+</html>
