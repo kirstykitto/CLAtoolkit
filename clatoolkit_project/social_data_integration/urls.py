@@ -17,4 +17,5 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
     url(r'^fb_data/', include('fb_data.urls')),
+                       url(r'^tw_data/', include('tw_data.urls')),
 )

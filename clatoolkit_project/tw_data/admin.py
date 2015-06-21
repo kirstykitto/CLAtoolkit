@@ -11,8 +11,10 @@ class UserProfileInline(admin.StackedInline):
     can_delete = False
     verbose_name_plural = 'data integration user'
 
+
 class UserAdmin(UserAdmin):
-    inlines = (UserProfileInline, )
+    inlines = (UserProfileInline,)
+
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)

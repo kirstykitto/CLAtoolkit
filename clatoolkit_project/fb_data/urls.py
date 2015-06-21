@@ -1,9 +1,8 @@
 # example/simple/urls.py
 
-from django.conf.urls import patterns, url, include
-from django.contrib import admin
+from django.conf.urls import patterns, url
 
-import views
+from fb_data import views
 
 urlpatterns = patterns('',
     url(r'^$', views.home, name='home'),

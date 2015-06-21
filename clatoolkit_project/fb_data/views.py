@@ -1,16 +1,17 @@
 # example/simple/views.py
 from __future__ import absolute_import
+
 from django.http import HttpResponse
 from django.shortcuts import render, render_to_response
 from authomatic import Authomatic
 from authomatic.adapters import DjangoAdapter
 from authomatic.providers import oauth2
+
+from django.template import RequestContext
+
 from fb_data.tasks import *
 from .forms import FacebookGatherForm
-from fb_data.models import UserProfile
-from django.template import RequestContext
 from fb_data.forms import UserForm, UserProfileForm
-
 
 CONFIG = {
     # Auth information for Facebook App
@@ -27,7 +28,6 @@ CONFIG = {
 authomatic = Authomatic(CONFIG, 'lamksdlkm213213kl5n521234lkn4231')
 
 def home(request):
-
     form = FacebookGatherForm()
     return render(request, 'fb_data/facebook.html', {'form': form})
 
@@ -146,7 +146,7 @@ def register(request):
 
     # Render the template depending on the context.
     return render_to_response(
-            'fb_data/register.html',
+        'fb_data/register.html',
             {'user_form': user_form, 'profile_form': profile_form, 'registered': registered},
             context)
 

@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
 from celery import shared_task
-
 from celery.utils.log import get_task_logger
 
-from fb_data.models import User, UserProfile
+from fb_data.models import UserProfile
 
 logger = get_task_logger(__name__)
 
@@ -110,9 +109,9 @@ def send_data_to_lrs(data, paging, html_response):
 def construct_tincan_statement(data, type, email):
     """
     Format tincan statement for sending to LRS
-    :param data:
-    :param type:
-    :param email:
+    :param data: API data
+    :param type: Type of statement (post, comment, like)
+    :param email: Email of sender
     :return:
     """
     if type == 'post':
