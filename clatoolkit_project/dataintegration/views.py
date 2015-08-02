@@ -15,19 +15,20 @@ from dataintegration.forms import UserForm, UserProfileForm
 import json
 from pprint import pprint
 
+# Todo set facebook config from database
 CONFIG = {
     # Auth information for Facebook App
     'fb': {
         'class_': oauth2.Facebook,
 
-        'consumer_key': '1409411262719592',
-        'consumer_secret': '8fbbb8f44a8b3e68302e2d8fb7a5ecf3',
+        'consumer_key': '',
+        'consumer_secret': '',
 
         'scope': ['user_about_me', 'email', 'user_groups'],
     },
 }
 
-authomatic = Authomatic(CONFIG, 'lamksdlkm213213kl5n521234lkn4231')
+authomatic = Authomatic(CONFIG, '')
 
 def home(request):
     form = FacebookGatherForm()
@@ -81,39 +82,15 @@ def login(request, group_id):
 
                     # Access user's protected resource.
                     access_response = result.provider.access(url)
-                    #print access_response
-                    #print access_response.data.get('data')
-                    #fb_json = json.loads(access_response.data.get('data'))
-                    #pprint(access_response.data.get('data'))
+
                     fb_feed = access_response.data.get('data')
                     paging = access_response.data.get('paging')
-                    #pprint(paging)
-                    #pprint(fb_json)
+
                     t = LearningRecord.objects.filter(platform='Facebook').delete()
                     injest_facebook(fb_feed, paging, "cla101")
-                    #injest_twitter("#clatest", "cla101")
-                    html_response.write('....Check console')
-                    '''
-                    if access_response.status == 200:
-                        # Parse response.
-                        data = access_response.data.get('data')
-                        paging = access_response.data.get('paging')
-                        error = access_response.data.get('error')
-                        if error:
-                            html_response.write(u'Error: {0}!'.format(error))
-                        elif data:
-                            #result = send_data_to_lrs.delay(data, paging, html_response)
-                            send_data_to_lrs(data, paging, html_response)
-                            #print result.id
-                            #html_response.write('<p>Data is being collected from the Facebook Page with an ID of ' + group_id + '</p>')
-                            #html_response.write('<p>View your task status <a href="http://localhost:5555/'
-                            #                    'task/'+result.id+'">here.</a></p>')
-                            html_response.write('<p>Data was collected from the Facebook Page with an ID of ' + group_id + '</p>')
 
-                    else:
-                        html_response.write('Unknown error<br />')
-                        html_response.write(u'Status: {0}'.format(html_response.status))
-                    '''
+                    html_response.write('....Check console')
+
     else:
         html_response.write('Auth Returned no Response.')
 
