@@ -1,0 +1,44 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block heading %}{{title}}{% endblock %}
+
+{% block body %}
+{% for unit in units %}
+  <div class="row">
+    <div class="col-lg-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+              {{unit.code}}: {{unit.name}} ({{unit.semester}})
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+<p>
+All Platforms [<a href="/dashboard/?course_code={{unit.code}}&platform=all">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=all">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=all">Social Network Analysis</a>]
+<br/>
+Twitter Hashtags: {{unit.twitter_hashtags}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Twitter">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Twitter">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Twitter">Social Network Analysis</a>] | <a href="/dataintegration/refreshtwitter/">Refresh Imported Data</a>
+<br/>
+Facebook Groups: {{unit.facebook_groups}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Facebook">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Facebook">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Facebook">Social Network Analysis</a>] | <a href="/dataintegration/login/{{unit.facebook_groups}}">Refresh Imported Data</a>
+</p>
+            </div>
+            <!-- /.panel-body -->
+      </div>
+      <!-- /.panel -->
+  </div>
+  <!-- /.col-lg-12 -->
+</div>
+<!-- /.row -->
+{% endfor %}
+{% endblock %}
+
+{% block js_block %}
+{% autoescape off %}
+<script>
+$(function() {
+
+});
+</script>
+{% endautoescape %}
+{% endblock %}

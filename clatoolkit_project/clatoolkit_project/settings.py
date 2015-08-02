@@ -20,7 +20,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '7502z0(dgf9p7ssr3uw2&68#pyg8b!*^_wp712=41=69gt!t=t'
+SECRET_KEY = 'h#e+%d+4j&8x%t%ej65jj6l*d7gq^cyfd7l_213-n_q%ej&nhx'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -37,6 +37,9 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'clatoolkit',
+    'dataintegration',
+    'dashboard'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -52,12 +55,10 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = 'clatoolkit_project.urls'
 
-TEMPLATE_PATH = os.path.join(BASE_DIR, 'templates')
-
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [TEMPLATE_PATH],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -78,11 +79,14 @@ WSGI_APPLICATION = 'clatoolkit_project.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'clatoolkitdb',
+        'USER': 'username',
+        'PASSWORD': 'password',
+        'HOST': 'localhost',
+        'PORT': '5432',
 }
-
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
@@ -101,7 +105,23 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
+# web accessible folder
+STATIC_ROOT = BASE_DIR #os.path.join(BASE_DIR, 'static')
+
+# URL prefix for static files.
 STATIC_URL = '/static/'
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'static')
-MEDIA_URL = '/static/'
+STATIC_PATH = os.path.join(BASE_DIR,'static')
+
+# Additional locations of static files
+STATICFILES_DIRS = (
+    # location of your application, should not be public web accessible
+    STATIC_PATH,
+)
+
+# List of finder classes that know how to find static files in
+# various locations.
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+)

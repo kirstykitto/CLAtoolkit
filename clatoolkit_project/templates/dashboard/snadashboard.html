@@ -1,0 +1,174 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block heading %}{{title}}{% endblock %}
+
+{% block body %}
+<div class="row">
+    <div class="col-lg-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Activity Timeseries
+                <div class="pull-right">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+                            Actions
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu pull-right" role="menu">
+                            <li><a href="#">Action</a>
+                            </li>
+                            <li><a href="#">Another action</a>
+                            </li>
+                            <li><a href="#">Something else here</a>
+                            </li>
+                            <li class="divider"></li>
+                            <li><a href="#">Separated link</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="pageview_chart"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-8 -->
+</div>
+<!-- /.row -->
+<div class="row">
+    <div class="col-lg-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> SNA Explorer
+                <div class="pull-right">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+                            Actions
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu pull-right" role="menu">
+                            <li><a href="#">Action</a>
+                            </li>
+                            <li><a href="#">Another action</a>
+                            </li>
+                            <li><a href="#">Something else here</a>
+                            </li>
+                            <li class="divider"></li>
+                            <li><a href="#">Separated link</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="mynetwork" style="height: 500px;"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-6 -->
+</div>
+<!-- /.row -->
+{% endblock %}
+
+{% block js_block %}
+{% autoescape off %}
+<script src="{% static 'js/vis.js'%}"></script>
+<script>
+$(function() {
+  // Create Activity Chart
+  $('#pageview_chart').highcharts('StockChart', {
+
+      rangeSelector : {
+          selected : 1
+      },
+
+      tooltip: {
+          style: {
+              width: '200px'
+          },
+          valueDecimals: 0
+      },
+
+      yAxis : {
+          min: 0,
+          title : {
+              text : 'Activity'
+          }
+      },
+      legend: {
+          enabled: true
+      },
+
+      series : [{
+          name : 'Posts',
+          data : [{{ posts_timeline }}],
+          id : 'dataseries'
+      },{
+          name : 'Shares',
+          data : [{{ shares_timeline }}],
+          id : 'dataseries1'
+      },{
+          name : 'Likes',
+          data : [{{ likes_timeline }}],
+          id : 'dataseries2'
+      },{
+          name : 'Comments',
+          data : [{{ comments_timeline }}],
+          id : 'dataseries2'
+      }]
+  });
+
+      // create a network
+      var container = document.getElementById('mynetwork');
+      var data = {{sna_json}};
+      var options = {
+          nodes: {
+              shape: 'dot',
+              size: 16
+          },
+          physics: {
+              forceAtlas2Based: {
+                  gravitationalConstant: -26,
+                  centralGravity: 0.005,
+                  springLength: 230,
+                  springConstant: 0.18
+              },
+              maxVelocity: 146,
+              solver: 'forceAtlas2Based',
+              timestep: 0.35,
+              stabilization: {iterations:300}
+          }
+      };
+      var network = new vis.Network(container, data, options);
+});
+
+
+</script>
+{% endautoescape %}
+{% endblock %}
+<!--
+<div class="col-lg-4">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <i class="fa fa-bell fa-fw"></i> Metrics
+        </div>
+
+        <div class="panel-body">
+
+        </div>
+
+    </div>
+  
+
+</div>
+-->

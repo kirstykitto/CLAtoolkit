@@ -1,0 +1,168 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block heading %}{{title}}{% endblock %}
+
+{% block body %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Activity Timeseries
+                <div class="pull-right">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+                            Actions
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu pull-right" role="menu">
+                            <li><a href="#">Action</a>
+                            </li>
+                            <li><a href="#">Another action</a>
+                            </li>
+                            <li><a href="#">Something else here</a>
+                            </li>
+                            <li class="divider"></li>
+                            <li><a href="#">Separated link</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="pageview_chart"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-8 -->
+    <div class="col-lg-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bell fa-fw"></i> Tag Cloud
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+              <div id="tag_container" style="width: 550px; height: 350px;"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+
+    </div>
+    <!-- /.col-lg-4 -->
+</div>
+<!-- /.row -->
+<div class="row">
+    <div class="col-lg-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Topic Model Explorer
+                <div class="pull-right">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+                            Actions
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu pull-right" role="menu">
+                            <li><a href="#">Action</a>
+                            </li>
+                            <li><a href="#">Another action</a>
+                            </li>
+                            <li><a href="#">Something else here</a>
+                            </li>
+                            <li class="divider"></li>
+                            <li><a href="#">Separated link</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+              <iframe width="100%" height="700px" src="/dashboard/pyldavis/?platform={{platform}}&course_code={{course_code}}"> </iframe>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-6 -->
+</div>
+<!-- /.row -->
+{% endblock %}
+
+{% block js_block %}
+{% autoescape off %}
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script src="https://cdn.rawgit.com/bmabey/pyLDAvis/master/pyLDAvis/js/ldavis.v1.0.0.js"></script>
+<script src="http://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.js"></script>
+<script>
+
+
+$(function() {
+
+  var words = [{{tags|safe}}];
+  //$('#tag_container').jQCloud(words);
+
+  $("#tag_container").jQCloud(words, {
+  width: 300,
+  height: 200,
+  shape: 'rectangular'
+  });
+});
+
+$(document).ready(function(){
+
+  // Create Activity Chart
+  $('#pageview_chart').highcharts('StockChart', {
+
+      rangeSelector : {
+          selected : 1
+      },
+
+      tooltip: {
+          style: {
+              width: '200px'
+          },
+          valueDecimals: 0
+      },
+
+      yAxis : {
+          min: 0,
+          title : {
+              text : 'Activity'
+          }
+      },
+      legend: {
+          enabled: true
+      },
+
+      series : [{
+          name : 'Posts',
+          data : [{{ posts_timeline }}],
+          id : 'dataseries'
+      },{
+          name : 'Shares',
+          data : [{{ shares_timeline }}],
+          id : 'dataseries1'
+      },{
+          name : 'Likes',
+          data : [{{ likes_timeline }}],
+          id : 'dataseries2'
+      },{
+          name : 'Comments',
+          data : [{{ comments_timeline }}],
+          id : 'dataseries2'
+      }]
+  });
+
+});
+</script>
+{% endautoescape %}
+{% endblock %}

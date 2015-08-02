@@ -1,0 +1,355 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block heading %}{{title}}{% endblock %}
+
+{% block body %}
+{% if show_allplatforms_widgets == True %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Platform Timeseries
+                <div class="pull-right">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+                            Actions
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu pull-right" role="menu">
+                            <li><a href="#">Action</a>
+                            </li>
+                            <li><a href="#">Another action</a>
+                            </li>
+                            <li><a href="#">Something else here</a>
+                            </li>
+                            <li class="divider"></li>
+                            <li><a href="#">Separated link</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="platform_pageview_chart"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-8 -->
+    <div class="col-lg-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bell fa-fw"></i> Platform Total Activity
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                  <div id="platform_activity_pie"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+
+    </div>
+    <!-- /.col-lg-4 -->
+</div>
+<!-- /.row -->
+{% endif %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Activity Timeseries
+                <div class="pull-right">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+                            Actions
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu pull-right" role="menu">
+                            <li><a href="#">Action</a>
+                            </li>
+                            <li><a href="#">Another action</a>
+                            </li>
+                            <li><a href="#">Something else here</a>
+                            </li>
+                            <li class="divider"></li>
+                            <li><a href="#">Separated link</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="pageview_chart"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-8 -->
+    <div class="col-lg-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bell fa-fw"></i> Total Activity
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                  <div id="activity_pie"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+
+    </div>
+    <!-- /.col-lg-4 -->
+</div>
+<!-- /.row -->
+<div class="row">
+    <div class="col-lg-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Active Members
+                <div class="pull-right">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+                            Actions
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu pull-right" role="menu">
+                            <li><a href="#">Action</a>
+                            </li>
+                            <li><a href="#">Another action</a>
+                            </li>
+                            <li><a href="#">Something else here</a>
+                            </li>
+                            <li class="divider"></li>
+                            <li><a href="#">Separated link</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+              <div class="dataTable_wrapper">
+                  <table class="table table-striped table-bordered table-hover" id="dataTables-activemembers">
+                      <thead>
+                          <tr>
+                              <th>Name</th>
+                              <th>Posts</th>
+                              <th>Likes(s)</th>
+                              <th>Shares</th>
+                              <th>Comments</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          {{activememberstable|safe}}
+                      </tbody>
+                  </table>
+              </div>
+              <!-- /.table-responsive -->
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-6 -->
+</row>
+
+<div class="row">
+        <div class="col-lg-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <i class="fa fa-bell fa-fw"></i> Popular Content
+                </div>
+                <!-- /.panel-heading -->
+                <div class="panel-body">
+                  <div class="dataTable_wrapper">
+                      <table class="table table-striped table-bordered table-hover" id="dataTables-topcontent">
+                          <thead>
+                              <tr>
+                                  <th>Name</th>
+                                  <th>Title</th>
+                                  <th>Posted On</th>
+                                  <th>Likes</th>
+                                  <th>Shares</th>
+                                  <th>Comments</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                            {{topcontenttable|safe}}
+                          </tbody>
+                      </table>
+                  </div>
+                  <!-- /.table-responsive -->
+                </div>
+                <!-- /.panel-body -->
+            </div>
+            <!-- /.panel -->
+
+        </div>
+        <!-- /.col-lg-12 -->
+</div>
+<!-- /.row -->
+{% endblock %}
+
+{% block js_block %}
+{% autoescape off %}
+<script>
+$(function() {
+  $('#dataTables-activemembers').DataTable({responsive: true});
+  $('#dataTables-topcontent').DataTable({responsive: true});
+
+  // Create Platform Activity Chart
+  $('#platform_pageview_chart').highcharts('StockChart', {
+
+      rangeSelector : {
+          selected : 1
+      },
+
+      tooltip: {
+          style: {
+              width: '200px'
+          },
+          valueDecimals: 0
+      },
+
+      yAxis : {
+          min: 0,
+          title : {
+              text : 'Activity'
+          }
+      },
+      legend: {
+          enabled: true
+      },
+
+      series : [{
+          name : 'Twitter',
+          data : [{{ twitter_timeline }}],
+          id : 'dataseries'
+      },{
+          name : 'Facebook',
+          data : [{{ facebook_timeline }}],
+          id : 'dataseries1'
+      }]
+  });
+
+  // Create Activity Chart
+  $('#pageview_chart').highcharts('StockChart', {
+
+      rangeSelector : {
+          selected : 1
+      },
+
+      tooltip: {
+          style: {
+              width: '200px'
+          },
+          valueDecimals: 0
+      },
+
+      yAxis : {
+          min: 0,
+          title : {
+              text : 'Activity'
+          }
+      },
+      legend: {
+          enabled: true
+      },
+
+      series : [{
+          name : 'Posts',
+          data : [{{ posts_timeline }}],
+          id : 'dataseries'
+      },{
+          name : 'Shares',
+          data : [{{ shares_timeline }}],
+          id : 'dataseries1'
+      },{
+          name : 'Likes',
+          data : [{{ likes_timeline }}],
+          id : 'dataseries2'
+      },{
+          name : 'Comments',
+          data : [{{ comments_timeline }}],
+          id : 'dataseries2'
+      }]
+  });
+
+  // Create the Platform Activity Pie Chart
+  $('#platform_activity_pie').highcharts({
+      chart: {
+          plotBackgroundColor: null,
+          plotBorderWidth: null,
+          plotShadow: false
+      },
+      title: {
+          text: ' '
+      },
+      tooltip: {
+          pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+      },
+      plotOptions: {
+          pie: {
+              allowPointSelect: true,
+              cursor: 'pointer',
+              dataLabels: {
+                  enabled: true,
+                  format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                  style: {
+                      color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                  }
+              }
+          }
+      },
+      series: [{
+          type: 'pie',
+          name: 'Platform Activity',
+          data: [{{platformactivity_pie_series|safe}}]
+      }]
+  });
+  // Create the Activity Pie Chart
+  $('#activity_pie').highcharts({
+      chart: {
+          plotBackgroundColor: null,
+          plotBorderWidth: null,
+          plotShadow: false
+      },
+      title: {
+          text: ' '
+      },
+      tooltip: {
+          pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+      },
+      plotOptions: {
+          pie: {
+              allowPointSelect: true,
+              cursor: 'pointer',
+              dataLabels: {
+                  enabled: true,
+                  format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                  style: {
+                      color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                  }
+              }
+          }
+      },
+      series: [{
+          type: 'pie',
+          name: 'Platform Activity',
+          data: [{{activity_pie_series|safe}}]
+      }]
+  });
+
+});
+</script>
+{% endautoescape %}
+{% endblock %}
