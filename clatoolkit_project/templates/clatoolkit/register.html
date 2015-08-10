@@ -27,13 +27,38 @@
               By registering you give consent for us to make use of your educational data (both in the learning record store, and when examining your assessment outcomes for this unit). Even upon doing this, you can chose which social media accounts you will link up to this account, and your social media data will only be harvested for those accounts.
             </p>
             {# Figure out how to display IDs on register page #}
-            <a href="/dataintegration/get_social" target="_blank">Get your Social Media IDs (opens in new tab)</a>
-            <form id="user_form" method="post" action="/clatoolkit/register/" enctype="multipart/form-data">
+            <form role="form" id="user_form" method="post" action="/clatoolkit/register/" enctype="multipart/form-data">
 
                 {% csrf_token %}
 
-                {{ user_form.as_p }}
-                {{ profile_form.as_p }}
+                {{ user_form.non_field_errors }}
+                {{ profile_form.non_field_errors }}
+                <div class="form-group">
+                  <p class="help-block">{{ user_form.username.errors }}</p>
+                  <label for="id_username">Username:</label>
+                  {{ user_form.username }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ user_form.email.errors }}</p>
+                  <label for="id_email">Email:</label>
+                  {{ user_form.email }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ user_form.password.errors }}</p>
+                  <label for="id_password">Password:</label>
+                  {{ user_form.password }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.twitter_id.errors }}</p>
+                  <label for="id_twitter_id">Twitter Username:</label>
+                  {{ profile_form.twitter_id }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.fb_id.errors }}</p>
+                  <label for="id_fb_id">Facebook ID:</label>
+                  {{ profile_form.fb_id }}
+                  <a href="/dataintegration/get_social" target="_blank">Get your Social Media IDs (opens in new tab)</a>
+                </div>
                 <p>
                 By clicking the register button below, you are indicating that you:
                 <ul>
