@@ -4,5 +4,5 @@ from django.contrib import admin
 import views
 
 urlpatterns = patterns('',
-    url(r'^$', views.userlogin, name='userlogin'),
+    url(r'^register/$', views.register, name='register'),
 )

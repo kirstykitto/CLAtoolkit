@@ -13,11 +13,10 @@ from twython import Twython
 def injest_twitter(sent_hashtag, course_code):
 
     # Setup Twitter API Keys
-    # Todo lookup from config table in database
-    app_key = ""
-    app_secret = ""
-    oauth_token = ""
-    oauth_token_secret = ""
+    app_key = "barKrgroD3LcyHRwehvaiv1Zu"
+    app_secret = "v6awGTCTP6wNJNhMPzmUzuIi1bAfNuoFOuPq1LXoCNjyqOIUki"
+    oauth_token = "1851621-4eTSnqZehoeVBWqUxGERiPKjnTsVEFaJ77MnTWKRfo"
+    oauth_token_secret = "4ZoEKJ9hnbviCuFtfGq2hBdCsfuX6eyqvvkbFGEeytE0U"
 
     twitter = Twython(app_key, app_secret, oauth_token, oauth_token_secret)
 
@@ -31,11 +30,11 @@ def injest_twitter(sent_hashtag, course_code):
         try:
             if count==0:
                 print "count 0"
-                results = twitter.search(q="#clatoolkit",count=2)
+                results = twitter.search(q="#CLAtoolkit",count=100, result_type='mixed')
             else:
                 print "count +"
-                results = twitter.search(q="#clatoolkit",count=2,max_id=next_max_id)
-
+                results = twitter.search(q="#CLAtoolkit",count=100,max_id=next_max_id, result_type='mixed')
+            print results
             insert_twitter_lrs(results['statuses'], course_code)
 
             if 'next_results' not in results['search_metadata']:
@@ -54,8 +53,10 @@ def injest_twitter(sent_hashtag, course_code):
 def insert_twitter_lrs(statuses, course_code):
     platform = "Twitter"
     platform_url = "http://www.twitter.com/"
+    #print statuses
     for tweet in statuses:
         message = tweet['text']
+        #print message
         timestamp = dateutil.parser.parse(tweet['created_at'])
         username = tweet['user']['screen_name']
         fullname = tweet['user']['name']

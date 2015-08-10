@@ -1,0 +1,221 @@
+{% extends "clatoolkit/base_clatoolkit.html" %}
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block heading %}Enabling connected learning via open source analytics in social media (QUT Ethics Approval Number: 1500000398){% endblock %}
+
+{% block body %}
+{% if registered %}
+ <strong>Thank you for registering!</strong>
+ <a href="/">Return to the homepage.</a><br />
+{% else %}
+<p class="lead">
+  You are invited to participate in this project because you are enrolled in a subject where you undertake learning activities using social media.
+</p>
+<p class="lead">
+  Agreeing to participate will lead to the creation of an account in a learning record store for you. You will then associate various social media accounts with that account (as your instructor suggests and you choose). This will allow for data to be gathered from your participation in learning activities using social media that you undertake in your class. You will then be able to see data and reports about your own engagement in the learning activities. This will give you information on your learning that you can use to gain a greater self-awareness of your learning.
+</p>
+<div class="row">
+  <div class="col-lg-6">
+      <div class="panel panel-info">
+          <div class="panel-heading">
+              Register
+          </div>
+          <div class="panel-body">
+            <p>
+              By registering you give consent for us to make use of your educational data (both in the learning record store, and when examining your assessment outcomes for this unit). Even upon doing this, you can chose which social media accounts you will link up to this account, and your social media data will only be harvested for those accounts.
+            </p>
+            {# Figure out how to display IDs on register page #}
+            <a href="/dataintegration/get_social" target="_blank">Get your Social Media IDs (opens in new tab)</a>
+            <form id="user_form" method="post" action="/clatoolkit/register/" enctype="multipart/form-data">
+
+                {% csrf_token %}
+
+                {{ user_form.as_p }}
+                {{ profile_form.as_p }}
+                <p>
+                By clicking the register button below, you are indicating that you:
+                <ul>
+                  <li>Have read and understood the information document regarding this project.</li>
+                  <li>Have had any questions answered to your satisfaction.</li>
+                  <li>Understand that if you have any additional questions you can contact the research team.</li>
+                  <li>Understand that you are free to withdraw at any time without comment or penalty.</li>
+                  <li>Understand that you can contact the Research Ethics Unit on 07 3138 5123 or email ethicscontact@qut.edu.au if you have concerns about the ethical conduct of the project.</li>
+                  <li>Agree to participate in the project.</li>
+                </ul>
+                </p>
+                <button type="submit" class="btn btn-primary btn-lg btn-block">Register</button>
+            </form>
+          </div>
+      </div>
+  </div>
+  <!-- /.col-lg-6 -->
+    <div class="col-lg-6">
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <div class="panel-group" id="accordion">
+                  <div class="panel panel-default">
+                      <div class="panel-heading">
+                          <h4 class="panel-title">
+                              <a data-toggle="collapse" data-parent="#accordion" href="#collapseZero">Description</a>
+                          </h4>
+                      </div>
+                      <div id="collapseZero" class="panel-collapse collapse in">
+                          <div class="panel-body">
+                            <p>
+                              This project is being undertaken as part of a project for the Office for Learning and Teaching.
+                            </p>
+                            <p>
+                              The purpose of this project is to design and evaluate new tools that will give you access to data and reports that describe your engagement in learning activities using social media.
+                            </p>
+                            <p>
+                              Your participation in this project is entirely voluntary. If you do agree to participate you can withdraw from the project without comment or penalty, which would simply require that you disassociate your social media account from your learning record store account using a web form that provides this functionality.
+                            </p>
+                            <p>
+                              Your decision to participate or not participate will in no way impact upon your current or future relationship with QUT, UniSA, UTS, or UniSyd.
+                            </p>
+                          </div>
+                      </div>
+                  </div>
+                  <div class="panel panel-default">
+                      <div class="panel-heading">
+                          <h4 class="panel-title">
+                              <a data-toggle="collapse" data-parent="#accordion" href="#collapseTwo">Expected Benefits</a>
+                          </h4>
+                      </div>
+                      <div id="collapseTwo" class="panel-collapse collapse">
+                          <div class="panel-body">
+                              It is expected that this project will benefit you directly by providing you information on your learning that you can use for greater self-awareness about your learning. This may help you to achieve better grades, and long term learning outcomes throughout your studies. The project will generally benefit the higher education sector in understanding the experience of students using tools that describe engagement in learning activities using social media.
+                          </div>
+                      </div>
+                  </div>
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion" href="#collapseOne">Additional Participation</a>
+                            </h4>
+                        </div>
+                        <div id="collapseOne" class="panel-collapse collapse">
+                            <div class="panel-body">
+                              <p>
+                                We may also invite you to participate in:
+                                <ol>
+                                  <li>A questionnaire (which will involve a separate informed consent process).</li>
+                                  <li>A focus group that will take approximately 40 minutes to find out how you used the information provided in your learning record store and its associated reports. The focus group will be conducted either face-to-face on campus, or via web conference. Questions will include:
+                                    <ul>
+                                      <li>What information did you find useful?</li>
+                                      <li>What information would you have liked to see?</li>
+                                      <li>How did the information that was reported to you affect your learning?</li>
+                                      <li>How did you change your behaviour in response to the information you saw?</li>
+                                    </ul>
+                                  </li>
+                                </ol>
+                              </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion" href="#collapseThree">Risks</a>
+                            </h4>
+                        </div>
+                        <div id="collapseThree" class="panel-collapse collapse">
+                            <div class="panel-body">
+                              There are no risks beyond normal day-to-day living associated with your participation in this project if you treat your class mates with respect and dignity while using the tools that this project provides. You may find yourself somewhat embarrassed if you do not do so, but we do not anticipate anything worse than that.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion" href="#collapseFour">Privacy and Confidentiality</a>
+                            </h4>
+                        </div>
+                        <div id="collapseFour" class="panel-collapse collapse">
+                            <div class="panel-body">
+                              <p>
+                                All comments and responses will be treated confidentially unless required by law.
+                              </p>
+                              <p>
+                                The data in the learning record store will be seen by you, your teacher, the research team and technical staff. Other students will NOT be able to see your data.
+                              </p>
+                              <p>
+                                The focus group recordings will be transcribed and de-identified.  The recordings will then be destroyed.  The research team will have access to the transcriptions.
+                              </p>
+                              <p>
+                                The project is funded by the Commonwealth Office of Teaching and Learning who will own all materials and data it generates. Your data will be treated according to Australian data standards, which means that it will not be released into the public domain in an identifiable form, and that it will be stored in a secure store.
+                              </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion" href="#collapseFive">Questions/Further Information</a>
+                            </h4>
+                        </div>
+                        <div id="collapseFive" class="panel-collapse collapse">
+                            <div class="panel-body">
+                              <p>
+                                If have any questions or require further information please contact one of the researchers listed below.
+                              </p>
+                              <p>
+                                Dr Kirsty Kitto	Project Leader	kirsty.kitto@qut.edu.au
+                                <br/>
+                                Dr Mandy Lupton	Project Team	mandy.lupton@qut.edu.au
+                              </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion" href="#collapseSeven">Concerns/Complaints Regarding the Conduct of the Project</a>
+                            </h4>
+                        </div>
+                        <div id="collapseSeven" class="panel-collapse collapse">
+                            <div class="panel-body">
+                              <p>
+                                QUT is committed to research integrity and the ethical conduct of research projects.  However, if you do have any concerns or complaints about the ethical conduct of the project you may contact the QUT Research Ethics Unit on 07 3138 5123 or email ethicscontact@qut.edu.au. The QUT Research Ethics Unit is not connected with the research project and can facilitate a resolution to your concern in an impartial manner.
+                              </p>
+                              <p>
+                                Thank you for helping with this research project.  Please keep this sheet for your information.
+                              </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion" href="#collapseSix">Research Team Contacts</a>
+                            </h4>
+                        </div>
+                        <div id="collapseSix" class="panel-collapse collapse">
+                            <div class="panel-body">
+                              <p>
+                                Dr Kirsty Kitto	Project Leader	kirsty.kitto@qut.edu.au
+                                <br/>
+                                Dr Mandy Lupton	Project Team	mandy.lupton@qut.edu.au
+                              </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- .panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-6 -->
+</div>
+<!-- /.row -->
+{% endif %}
+{% endblock %}
+
+{% block js_block %}
+{% autoescape off %}
+
+{% endautoescape %}
+{% endblock %}

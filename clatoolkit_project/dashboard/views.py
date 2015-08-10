@@ -11,8 +11,9 @@ from django.contrib.auth import logout
 def myunits(request):
     context = RequestContext(request)
     units = UnitOffering.objects.all()
+    show_dashboardnav = False
 
-    context_dict = {'title': "My Units", 'units': units}
+    context_dict = {'title': "My Units", 'units': units, 'show_dashboardnav':show_dashboardnav}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
 
@@ -22,6 +23,9 @@ def dashboard(request):
 
     course_code = request.GET.get('course_code')
     platform = request.GET.get('platform')
+
+    title = "Activity Dashboard: %s (Platform: %s)" % (course_code, platform)
+    show_dashboardnav = True
 
     posts_timeline = get_timeseries('created', platform, course_code)
     shares_timeline = get_timeseries('shared', platform, course_code)
@@ -69,7 +73,7 @@ def dashboard(request):
 
     topcontenttable = get_top_content_table(platform, course_code)
 
-    context_dict = {'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'show_allplatforms_widgets': show_allplatforms_widgets, 'platformactivity_pie_series': platformactivity_pie_series,  'title': "Activity Dashboard", 'activememberstable': activememberstable, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'show_allplatforms_widgets': show_allplatforms_widgets, 'platformactivity_pie_series': platformactivity_pie_series,  'title': title, 'activememberstable': activememberstable, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
 
     return render_to_response('dashboard/dashboard.html', context_dict, context)
 
@@ -80,6 +84,9 @@ def cadashboard(request):
     course_code = request.GET.get('course_code')
     platform = request.GET.get('platform')
 
+    title = "Content Analysis Dashboard: %s (Platform: %s)" % (course_code, platform)
+    show_dashboardnav = True
+
     posts_timeline = get_timeseries('created', platform, course_code)
     shares_timeline = get_timeseries('shared', platform, course_code)
     likes_timeline = get_timeseries('liked', platform, course_code)
@@ -89,7 +96,7 @@ def cadashboard(request):
 
     tags = get_wordcloud(platform, course_code)
 
-    context_dict = {'title': "Content Analysis Dashboard", 'course_code':course_code, 'platform':platform, 'tags': tags, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'tags': tags, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
     return render_to_response('dashboard/cadashboard.html', context_dict, context)
 
 @login_required
@@ -99,6 +106,9 @@ def snadashboard(request):
     course_code = request.GET.get('course_code')
     platform = request.GET.get('platform')
 
+    title = "SNA Dashboard: %s (Platform: %s)" % (course_code, platform)
+    show_dashboardnav = True
+
     posts_timeline = get_timeseries('created', platform, course_code)
     shares_timeline = get_timeseries('shared', platform, course_code)
     likes_timeline = get_timeseries('liked', platform, course_code)
@@ -106,7 +116,7 @@ def snadashboard(request):
 
     sna_json = sna_buildjson(platform, course_code)
 
-    context_dict = {'title': "Social Network Analysis Dashboard", 'sna_json': sna_json, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    context_dict = {'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform, 'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
 
     return render_to_response('dashboard/snadashboard.html', context_dict, context)
 
@@ -149,6 +159,9 @@ def studentdashboard(request):
         platform = request.GET.get('platform')
         username = request.GET.get('username')
 
+    title = "Student Dashboard: %s, %s (Platform: %s)" % (course_code, username, platform)
+    show_dashboardnav = True
+
     posts_timeline = get_timeseries('created', platform, course_code, username=username)
     shares_timeline = get_timeseries('shared', platform, course_code, username=username)
     likes_timeline = get_timeseries('liked', platform, course_code, username=username)
@@ -177,6 +190,6 @@ def studentdashboard(request):
 
     #reflections = DashboardReflection.objects.filter(platform='Twitter').order_by('id')
     reflections = DashboardReflection.objects.all()
-    context_dict = {'title': "Student Dashboard", 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
 
     return render_to_response('dashboard/studentdashboard.html', context_dict, context)

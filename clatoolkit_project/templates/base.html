@@ -2,14 +2,13 @@
 <html lang="en">
 {% load static %}
 <head>
-
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Connected Learning Dashboard - {% block title %}Title to go here!{% endblock %}</title>
+    <title>Connected Learning Toolkit - {% block title %}Title to go here!{% endblock %}</title>
 
     <!-- Bootstrap Core CSS -->
     <link href="{% static 'bower_components/bootstrap/dist/css/bootstrap.min.css'%}" rel="stylesheet">
@@ -49,9 +48,9 @@
     <![endif]-->
 
     <style>
-#page-wrapper {
-  margin: 0 0 0 0px;
-}
+      #page-wrapper {
+        margin: 0 0 0 0px;
+      }
     </style>
 
 </head>
@@ -68,25 +67,28 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="/dashboard/">Connected Learning Analytics Toolkit</a>
+                {% block homelink %}
+                <a class="navbar-brand" href="/">Connected Learning Analytics Toolkit</a>
+                {% endblock %}
             </div>
             <!-- /.navbar-header -->
 
             <ul class="nav navbar-top-links navbar-right">
-              <!--
+              {% block pagetopnav %}
+              <li><a href="/dashboard/myunits"><i class="fa fa-dashboard fa-fw"></i> My Units</a></li>
               <li class="dropdown">
                   <a class="dropdown-toggle" data-toggle="dropdown" href="#">
                       <i class="fa fa-dashboard fa-fw"></i> Dashboards <i class="fa fa-caret-down"></i>
                   </a>
                   <ul class="dropdown-menu dropdown-user">
-                      <li><a href="/dashboard/"><i class="fa fa-dashboard fa-fw"></i> Activity</a></li>
-                      <li><a href="/dashboard/ca_dashboard/"><i class="fa fa-dashboard fa-fw"></i> Content Analysis</a></li>
-                      <li><a href="/dashboard/sna_dashboard/"><i class="fa fa-dashboard fa-fw"></i> Social Network Analysis</a></li>
+                      <li><a href="/dashboard/?course_code={{course_code}}&platform="><i class="fa fa-dashboard fa-fw"></i> Activity</a></li>
+                      <li><a href="/dashboard/ca_dashboard/?course_code={{course_code}}&platform="><i class="fa fa-dashboard fa-fw"></i> Content Analysis</a></li>
+                      <li><a href="/dashboard/sna_dashboard/?course_code={{course_code}}&platform="><i class="fa fa-dashboard fa-fw"></i> Social Network Analysis</a></li>
                   </ul>
-
               </li>
-            -->
               <!-- /.dropdown -->
+              {% endblock %}
+              {% block userprofilenav %}
                 <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">
                         <i class="fa fa-user fa-fw"></i>  <i class="fa fa-caret-down"></i>
@@ -101,6 +103,7 @@
                     <!-- /.dropdown-user -->
                 </li>
                 <!-- /.dropdown -->
+              {% endblock %}
             </ul>
             <!-- /.navbar-top-links -->
         </nav>
@@ -665,11 +668,6 @@
     <!-- DataTables JavaScript -->
     <script src="{% static 'bower_components/datatables/media/js/jquery.dataTables.min.js'%}"></script>
     <script src="{% static 'bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.min.js'%}"></script>
-
-    <!-- Morris Charts JavaScript
-    <script src="{% static 'bower_components/raphael/raphael-min.js'%}"></script>
-    <script src="{% static 'bower_components/morrisjs/morris.min.js'%}"></script>
-    -->
 
     <!-- Highcharts and Highstock JavaScript -->
     <script src="http://code.highcharts.com/stock/highstock.js"></script>
