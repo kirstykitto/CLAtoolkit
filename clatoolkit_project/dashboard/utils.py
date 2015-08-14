@@ -297,7 +297,7 @@ def CalculateWeights(arrValues, weightsCount):
 '''
 
 def get_wordcloud(platform, course_code, username=None):
-    document = None
+    documents = None
     if username is not None:
         documents = remove_stopwords(get_allcontent_byplatform(platform, course_code, username=username))
     else:
@@ -316,15 +316,18 @@ def get_wordcloud(platform, course_code, username=None):
     vocab = [dictionary[id] for id in xrange(N)]
     freqs = [term_freqs_dict[id] for id in xrange(N)]
 
-    #tag_sizes = CalculateWeights(freqs, 5)
-    #print tag_sizes
-    #term_freqs = zip(vocab,tag_sizes)
     term_freqs = zip(vocab,freqs)
-    #print term_freqs
     word_tags = []
+
     for term_freq_pair in term_freqs:
+        print "term_freq_pair", term_freq_pair
         if ((not term_freq_pair[0].startswith('http')) or (term_freq_pair[0]=='-')):
-            word_tags.append('{text: "%s", weight: %d},' % (term_freq_pair[0], term_freq_pair[1]))
+            weight = 0
+            if type(term_freq_pair[1]) is tuple:
+                weight = int(term_freq_pair[1][1])
+            else:
+                weight = int(term_freq_pair[1])
+            word_tags.append('{text: "%s", weight: %d},' % (term_freq_pair[0], weight))
             #word_tags.append('<li class="tag%d"><a href="#">%s</a></li>' % (term_freq_pair[1], term_freq_pair[0]))
     return ''.join(word_tags)
 
