@@ -12,6 +12,8 @@ from clatoolkit.forms import UserForm, UserProfileForm
 
 from django.template import RequestContext
 
+from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord
+
 # from fb_data.models import
 
 def userlogin(request):
@@ -30,7 +32,7 @@ def userlogin(request):
                 # If the account is valid and active, we can log the user in.
                 # We'll send the user back to the homepage.
                 login(request, user)
-                print "sending to myunits"
+                #print "sending to myunits"
                 return HttpResponseRedirect('/dashboard/myunits/')
             else:
                 # An inactive account was used - no logging in!
@@ -58,6 +60,7 @@ def register(request):
 
     # If it's a HTTP POST, we're interested in processing form data.
     if request.method == 'POST':
+        #print request.POST
         # Attempt to grab information from the raw form information.
         # Note that we make use of both UserForm and UserProfileForm.
         user_form = UserForm(data=request.POST)
@@ -71,6 +74,11 @@ def register(request):
             # Now we hash the password with the set_password method.
             # Once hashed, we can update the user object.
             user.set_password(user.password)
+
+            # Assign units to user
+            for unit in user_form.cleaned_data['units']:
+                user.usersinunitoffering.add(unit)
+
             user.save()
 
             # Now sort out the UserProfile instance.
@@ -78,6 +86,7 @@ def register(request):
             # This delays saving the model until we're ready to avoid integrity problems.
             profile = profile_form.save(commit=False)
             profile.user = user
+            profile.role = "Student"
 
             # Now we save the UserProfile model instance.
             profile.save()
@@ -97,9 +106,8 @@ def register(request):
         user_form = UserForm()
         profile_form = UserProfileForm()
 
-
     # Render the template depending on the context.
     return render_to_response(
         'clatoolkit/register.html',
-            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered},
+            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered,},
             context)

@@ -1,22 +1,51 @@
 from django.shortcuts import render
 from django.shortcuts import render_to_response
 from django.template import RequestContext
+from django.http import HttpResponse
 from django.db import connection
 from utils import *
 from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
+from functools import wraps
+
+def check_access(required_roles=None):
+    def decorator(view):
+        @wraps(view)
+        def wrapper(request, *args, **kwargs):
+            # Check that user has correct role
+            role = request.user.userprofile.role
+            correct_role = False
+            if role in required_roles:
+                correct_role = True
+
+            if correct_role:
+                course_code = request.GET.get('course_code')
+                # Check that user is a member of the course
+                unit = UnitOffering.objects.filter(code=course_code, users=request.user.id)
+                if (len(unit) != 0):
+                    return view(request, *args, **kwargs)
+                else:
+                    return HttpResponse('Access Denied - Not assigned to unit.')
+            else:
+                return HttpResponse('Access Denied - Incorrect Role.')
+        return wrapper
+    return decorator
 
 @login_required
 def myunits(request):
     context = RequestContext(request)
-    units = UnitOffering.objects.all()
+    # Only get units that the user is assigned to to
+    units = UnitOffering.objects.filter(users=request.user)
+    role = request.user.userprofile.role
+
     show_dashboardnav = False
 
-    context_dict = {'title': "My Units", 'units': units, 'show_dashboardnav':show_dashboardnav}
+    context_dict = {'title': "My Units", 'units': units, 'show_dashboardnav':show_dashboardnav, 'role': role}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
 
+@check_access(required_roles=['Staff'])
 @login_required
 def dashboard(request):
     context = RequestContext(request)
@@ -77,6 +106,7 @@ def dashboard(request):
 
     return render_to_response('dashboard/dashboard.html', context_dict, context)
 
+@check_access(required_roles=['Staff'])
 @login_required
 def cadashboard(request):
     context = RequestContext(request)
@@ -99,6 +129,7 @@ def cadashboard(request):
     context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'tags': tags, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
     return render_to_response('dashboard/cadashboard.html', context_dict, context)
 
+@check_access(required_roles=['Staff'])
 @login_required
 def snadashboard(request):
     context = RequestContext(request)
@@ -120,6 +151,7 @@ def snadashboard(request):
 
     return render_to_response('dashboard/snadashboard.html', context_dict, context)
 
+@check_access(required_roles=['Staff'])
 @login_required
 def pyldavis(request):
     context = RequestContext(request)
@@ -135,6 +167,7 @@ def pyldavis(request):
 
     return render_to_response('dashboard/pyldavis.html', context_dict, context)
 
+@check_access(required_roles=['Staff','Student'])
 @login_required
 def studentdashboard(request):
     context = RequestContext(request)
@@ -179,16 +212,12 @@ def studentdashboard(request):
     for row in result:
         activity_pie_series = activity_pie_series + "['%s',  %s]," % (row[0],row[1])
 
-    #active members table
-    #activememberstable = get_active_members_table(platform, course_code)
-
     topcontenttable = get_top_content_table(platform, course_code, username=username)
 
     sna_json = sna_buildjson(platform, course_code, username=username)
 
     tags = get_wordcloud(platform, course_code, username=username)
 
-    #reflections = DashboardReflection.objects.filter(platform='Twitter').order_by('id')
     reflections = DashboardReflection.objects.all()
     context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
 

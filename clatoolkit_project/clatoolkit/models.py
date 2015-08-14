@@ -7,17 +7,29 @@ class UserProfile(models.Model):
     Custom user for data integration, uses Django's User class.
     '''
     user = models.OneToOneField(User)
+
+    # Simple role as an alternative to django groups and permissions
+    STAFF = 'Staff'
+    STUDENT = 'Student'
+    ROLETYPE_OPTIONS = (
+        (STAFF, STAFF),
+        (STUDENT, STUDENT)
+    )
+    role = models.CharField(max_length=100, choices=ROLETYPE_OPTIONS, default=STUDENT)
+
     # LRS Integration - to send users data to personal LRS
-    ll_endpoint = models.CharField(max_length=60)
-    ll_username = models.CharField(max_length=60)
-    ll_password = models.CharField(max_length=60)
+    #ll_endpoint = models.CharField(max_length=60)
+    #ll_username = models.CharField(max_length=60)
+    #ll_password = models.CharField(max_length=60)
+
     # Facebook Integration - users facebook id is required
     fb_id = models.CharField(max_length=30)
+
     # Twitter Integration - users Twitter handle (username) is required
     twitter_id = models.CharField(max_length=30)
+
     # Google Integration - users Google xxx is required for Youtube, etc...
     # Todo - Add Google API user credential requirements below
-
 
 class LearningRecord(models.Model):
     xapi = JsonField()

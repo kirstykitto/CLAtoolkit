@@ -15,6 +15,7 @@
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
+{% if role == "Staff" %}
 <p>
 All Platforms [<a href="/dashboard/?course_code={{unit.code}}&platform=all">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=all">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=all">Social Network Analysis</a>]
 <br/>
@@ -22,6 +23,11 @@ Twitter Hashtags: {{unit.twitter_hashtags}} [<a href="/dashboard/?course_code={{
 <br/>
 Facebook Groups: {{unit.facebook_groups}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Facebook">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Facebook">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Facebook">Social Network Analysis</a>] | <a href="/dataintegration/login/{{unit.facebook_groups}}">Refresh Imported Data</a>
 </p>
+{% else %}
+<p>
+<a href="/student_dashboard/?course_code={{unit.code}}&platform=all">My Social Media Dashboard</a>
+<br/>
+{% endif %}
             </div>
             <!-- /.panel-body -->
       </div>

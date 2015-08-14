@@ -11,7 +11,7 @@ from django.template import RequestContext
 
 from dataintegration.tasks import *
 from .forms import FacebookGatherForm
-from dataintegration.forms import UserForm, UserProfileForm
+#from dataintegration.forms import UserForm, UserProfileForm
 import json
 from pprint import pprint
 
@@ -119,6 +119,7 @@ def login(request, group_id):
 
     return html_response
 
+'''
 def register(request):
     # Like before, get the request's context.
     context = RequestContext(request)
@@ -174,7 +175,7 @@ def register(request):
         'dataintegration/register.html',
             {'user_form': user_form, 'profile_form': profile_form, 'registered': registered},
             context)
-
+'''
 def get_social_media_id(request):
     '''
     Gets users social media IDs for use in signup for information integration.
@@ -207,7 +208,7 @@ def get_social_media_id(request):
                 result.user.update()
 
             # Welcome the user.
-            html_response.write(u'<p>Hi {0}</p>'.format(result.user.name))
+            # html_response.write(u'<p>Hi {0}</p>'.format(result.user.name))
             html_response.write(u'<h2>Your Facebook id is: {0}</h2>'.format(result.user.id))
     else:
         html_response.write('Auth Returned no Response.')
