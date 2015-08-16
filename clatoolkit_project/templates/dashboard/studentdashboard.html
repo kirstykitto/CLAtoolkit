@@ -6,6 +6,40 @@
 {% block heading %}{{title}}{% endblock %}
 
 {% block body %}
+{% if show_allplatforms_widgets == True %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> My Activity by Social Media Platform
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="platform_pageview_chart"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-8 -->
+    <div class="col-lg-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bell fa-fw"></i> Platform Total Activity
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                  <div id="platform_activity_pie"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+
+    </div>
+    <!-- /.col-lg-4 -->
+</div>
+<!-- /.row -->
+{% endif %}
 <div class="row">
     <div class="col-lg-8">
         <div class="panel panel-default">
@@ -164,7 +198,40 @@
 <script src="http://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.js"></script>
 <script>
 $(function() {
+  // Create Platform Activity Chart
+  $('#platform_pageview_chart').highcharts('StockChart', {
 
+      rangeSelector : {
+          selected : 1
+      },
+
+      tooltip: {
+          style: {
+              width: '200px'
+          },
+          valueDecimals: 0
+      },
+
+      yAxis : {
+          min: 0,
+          title : {
+              text : 'Activity'
+          }
+      },
+      legend: {
+          enabled: true
+      },
+
+      series : [{
+          name : 'Twitter',
+          data : [{{ twitter_timeline }}],
+          id : 'dataseries'
+      },{
+          name : 'Facebook',
+          data : [{{ facebook_timeline }}],
+          id : 'dataseries1'
+      }]
+  });
 
   // Create Activity Chart
   $('#pageview_chart').highcharts('StockChart', {
@@ -209,6 +276,39 @@ $(function() {
       }]
   });
   $('#dataTables-topcontent').DataTable({responsive: true});
+
+  // Create the Platform Activity Pie Chart
+  $('#platform_activity_pie').highcharts({
+      chart: {
+          plotBackgroundColor: null,
+          plotBorderWidth: null,
+          plotShadow: false
+      },
+      title: {
+          text: ' '
+      },
+      tooltip: {
+          pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+      },
+      plotOptions: {
+          pie: {
+              allowPointSelect: true,
+              cursor: 'pointer',
+              dataLabels: {
+                  enabled: true,
+                  format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                  style: {
+                      color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                  }
+              }
+          }
+      },
+      series: [{
+          type: 'pie',
+          name: 'Platform Activity',
+          data: [{{platformactivity_pie_series|safe}}]
+      }]
+  });
 
     // Create the Activity Pie Chart
     $('#activity_pie').highcharts({

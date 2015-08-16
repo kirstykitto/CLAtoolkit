@@ -212,6 +212,30 @@ def studentdashboard(request):
     for row in result:
         activity_pie_series = activity_pie_series + "['%s',  %s]," % (row[0],row[1])
 
+    show_allplatforms_widgets = False
+    twitter_timeline = ""
+    facebook_timeline = ""
+
+    platformclause = ""
+    if platform != "all":
+        platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
+    else:
+        twitter_timeline = get_timeseries_byplatform("Twitter", course_code, username)
+        facebook_timeline = get_timeseries_byplatform("Facebook", course_code, username)
+        show_allplatforms_widgets = True
+
+    cursor = connection.cursor()
+    cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'context'->>'platform' as platform, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
+                        FROM clatoolkit_learningrecord
+                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
+                        GROUP BY clatoolkit_learningrecord.xapi->'context'->>'platform';
+                    """ % (course_code, username))
+    result = cursor.fetchall()
+
+    platformactivity_pie_series = ""
+    for row in result:
+        platformactivity_pie_series = platformactivity_pie_series + "['%s',  %s]," % (row[0],row[1])
+
     topcontenttable = get_top_content_table(platform, course_code, username=username)
 
     sna_json = sna_buildjson(platform, course_code, username=username)
@@ -219,6 +243,6 @@ def studentdashboard(request):
     tags = get_wordcloud(platform, course_code, username=username)
 
     reflections = DashboardReflection.objects.all()
-    context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
 
     return render_to_response('dashboard/studentdashboard.html', context_dict, context)
