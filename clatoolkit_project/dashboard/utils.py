@@ -7,6 +7,28 @@ import json
 import funcy as fp
 from pprint import pprint
 #from dateutil.parser import parse
+from django.contrib.auth.models import User
+from clatoolkit.models import UserProfile, UnitOffering, DashboardReflection, LearningRecord
+from django.db.models import Q
+
+def get_uid_fromsmid(username, platform):
+    userprofile = None
+    if platform == "Twitter":
+        userprofile = UserProfile.objects.filter(twitter_id=username)
+    elif platform == "Facebook":
+        userprofile = UserProfile.objects.filter(fb_id=username)
+    else:
+        #platform must be = all
+        userprofile = UserProfile.objects.filter(Q(twitter_id=username) | Q(fb_id=username))
+
+    id = userprofile[0].user.id
+    return id
+
+def get_smids_fromuid(uid):
+    user = User.objects.get(pk=uid)
+    twitter_id = user.userprofile.twitter_id
+    fb_id = user.userprofile.fb_id
+    return twitter_id, fb_id
 
 def get_timeseries(sm_verb, sm_platform, course_code, username=None):
     # more info on postgres timeseries
@@ -18,7 +40,8 @@ def get_timeseries(sm_verb, sm_platform, course_code, username=None):
 
     userclause = ""
     if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
+        sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+        userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
 
     cursor = connection.cursor()
     cursor.execute("""
@@ -53,7 +76,8 @@ def get_timeseries_byplatform(sm_platform, course_code, username=None):
 
     userclause = ""
     if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
+        sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+        userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
 
     cursor = connection.cursor()
     cursor.execute("""
@@ -92,7 +116,7 @@ def get_active_members_table(platform, course_code):
 
     cursor = connection.cursor()
     cursor.execute("""
-        select distinct clatoolkit_learningrecord.xapi->'actor'->'account'->>'name'
+        SELECT distinct clatoolkit_learningrecord.xapi->'actor'->'account'->>'name', clatoolkit_learningrecord.xapi->'context'->>'platform'
         FROM clatoolkit_learningrecord
         WHERE clatoolkit_learningrecord.course_code='%s' %s
     """ % (course_code, platformclause))
@@ -110,7 +134,7 @@ def get_active_members_table(platform, course_code):
                 username = tmp_user_dict[int(username)]
             else:
                 username = username
-        table_html = '<tr><td><a href="/dashboard/student_dashboard?course_code=%s&platform=%s&username=%s">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (course_code, platform, row[0], username, noposts, nolikes, noshares, nocomments)
+        table_html = '<tr><td><a href="/dashboard/student_dashboard?course_code=%s&platform=%s&username=%s">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (course_code, platform, row[0], username, noposts, nolikes, noshares, nocomments, row[1])
         table.append(table_html)
     table_str = ''.join(table)
     return table_str
@@ -139,11 +163,12 @@ def get_top_content_table(platform, course_code, username=None):
 
     userclause = ""
     if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
+        sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+        userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
 
     cursor = connection.cursor()
     cursor.execute("""
-    select distinct clatoolkit_learningrecord.xapi->'object'->>'id', clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.xapi->'actor'->'account'->>'name', clatoolkit_learningrecord.xapi->>'timestamp'
+    SELECT distinct clatoolkit_learningrecord.xapi->'object'->>'id', clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.xapi->'actor'->'account'->>'name', clatoolkit_learningrecord.xapi->>'timestamp', clatoolkit_learningrecord.xapi->'context'->>'platform'
     FROM clatoolkit_learningrecord
     WHERE clatoolkit_learningrecord.course_code='%s' %s %s
     """ % (course_code, userclause, platformclause))
@@ -163,7 +188,7 @@ def get_top_content_table(platform, course_code, username=None):
         noshares = contentcount_byverb(id, "shared", platform, course_code)
         nocomments = contentcount_byverb(id, "commented", platform, course_code)
         posted_on = row[3]
-        table_html = "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (username, post, posted_on, nolikes, noshares, nocomments)
+        table_html = "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (username, post, posted_on, nolikes, noshares, nocomments, row[4])
         table.append(table_html)
     table_str = ''.join(table)
     return table_str
@@ -176,7 +201,8 @@ def contentcount_byverb(id, verb, platform, course_code, username=None):
 
     userclause = ""
     if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
+        sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+        userclause = " AND clatoolkit_learningrecord.username IN %s" % (sm_usernames_str)
 
     cursor = connection.cursor()
     sql = ""
@@ -210,7 +236,8 @@ def get_allcontent_byplatform(platform, course_code, username=None):
 
     userclause = ""
     if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
+        sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+        userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
 
     cursor = connection.cursor()
     cursor.execute("""
@@ -339,7 +366,8 @@ def get_nodes_byplatform(platform, course_code, username=None):
 
     userclause = ""
     if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
+        sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+        userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
 
     sql = """
             SELECT distinct clatoolkit_learningrecord.xapi->'actor'->'account'->>'name'
@@ -365,7 +393,9 @@ def get_relationships_byplatform(platform, course_code, username=None):
     count = 1
     userclause = ""
     if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
+        sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+        userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
+
     nodes_in_sna_dict = {}
     #first get @mentions
     #and add edge based on @mention

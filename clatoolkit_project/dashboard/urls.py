@@ -10,5 +10,6 @@ urlpatterns = patterns('',
     url(r'^ca_dashboard/$', views.cadashboard, name='cadashboard'),
     url(r'^sna_dashboard/$', views.snadashboard, name='snadashboard'),
     url(r'^student_dashboard/$', views.studentdashboard, name='studentdashboard'),
+    url(r'^mydashboard/$', views.mydashboard, name='mydashboard'),
     url(r'^pyldavis/$', views.pyldavis, name='pyldavis')
 )

@@ -20,8 +20,8 @@ CONFIG = {
     'fb': {
         'class_': oauth2.Facebook,
 
-        'consumer_key': '1409411262719592',
-        'consumer_secret': '8fbbb8f44a8b3e68302e2d8fb7a5ecf3',
+        'consumer_key': '',
+        'consumer_secret': '',
 
         'scope': ['user_about_me', 'email', 'user_groups'],
     },
@@ -36,7 +36,12 @@ def home(request):
 def refreshtwitter(request):
     html_response = HttpResponse()
     t = LearningRecord.objects.filter(platform='Twitter').delete()
-    injest_twitter("#clatest", "cla101")
+
+    course_code = request.GET.get('course_code')
+    hastags = request.GET.get('hashtags')
+    tags = hastags.split(',')
+    for tag in tags:
+        injest_twitter(tag, course_code)
     html_response.write('Twitter Refreshed.')
     return html_response
 
@@ -193,7 +198,7 @@ def get_social_media_id(request):
     # Don't write anything to the response if there is no result!
     if result:
         # If there is result, the login procedure is over and we can write to response.
-        html_response.write('<a href="..">Home</a>')
+        #html_response.write('<a href="..">Home</a>')
 
         if result.error:
             # Login procedure finished with an error.

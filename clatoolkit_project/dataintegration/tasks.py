@@ -12,11 +12,13 @@ from twython import Twython
 
 def injest_twitter(sent_hashtag, course_code):
 
+    #print "sent_hashtag:", sent_hashtag
+
     # Setup Twitter API Keys
-    app_key = "barKrgroD3LcyHRwehvaiv1Zu"
-    app_secret = "v6awGTCTP6wNJNhMPzmUzuIi1bAfNuoFOuPq1LXoCNjyqOIUki"
-    oauth_token = "1851621-4eTSnqZehoeVBWqUxGERiPKjnTsVEFaJ77MnTWKRfo"
-    oauth_token_secret = "4ZoEKJ9hnbviCuFtfGq2hBdCsfuX6eyqvvkbFGEeytE0U"
+    app_key = ""
+    app_secret = ""
+    oauth_token = ""
+    oauth_token_secret = ""
 
     twitter = Twython(app_key, app_secret, oauth_token, oauth_token_secret)
 
@@ -30,10 +32,10 @@ def injest_twitter(sent_hashtag, course_code):
         try:
             if count==0:
                 print "count 0"
-                results = twitter.search(q="#CLAtoolkit",count=100, result_type='mixed')
+                results = twitter.search(q=sent_hashtag,count=100, result_type='mixed')
             else:
                 print "count +"
-                results = twitter.search(q="#CLAtoolkit",count=100,max_id=next_max_id, result_type='mixed')
+                results = twitter.search(q=sent_hashtag,count=100,max_id=next_max_id, result_type='mixed')
             print results
             insert_twitter_lrs(results['statuses'], course_code)
 
@@ -177,9 +179,9 @@ def get_userdetails_twitter(screen_name):
 
     if usr is not None:
         usr_dict['email'] = usr.user.email
-        usr_dict['lrs_endpoint'] = usr.ll_endpoint
-        usr_dict['lrs_username'] = usr.ll_username
-        usr_dict['lrs_password'] = usr.ll_password
+        #usr_dict['lrs_endpoint'] = usr.ll_endpoint
+        #usr_dict['lrs_username'] = usr.ll_username
+        #usr_dict['lrs_password'] = usr.ll_password
     else:
         tmp_user_dict = {'aneesha':'aneesha.bakharia@qut.edu.au','dannmallet':'dg.mallet@qut.edu.au', 'LuptonMandy': 'mandy.lupton@qut.edu.au', 'AndrewResearch':'andrew.gibson@qut.edu.au', 'KirstyKitto': 'kirsty.kitto@qut.edu.au' , 'skdevitt': 'kate.devitt@qut.edu.au' }
         if screen_name in tmp_user_dict:
@@ -210,9 +212,9 @@ def get_userdetails(fb_id):
 
     if usr is not None:
         usr_dict['email'] = usr.user.email
-        usr_dict['lrs_endpoint'] = usr.ll_endpoint
-        usr_dict['lrs_username'] = usr.ll_username
-        usr_dict['lrs_password'] = usr.ll_password
+        #usr_dict['lrs_endpoint'] = usr.ll_endpoint
+        #usr_dict['lrs_username'] = usr.ll_username
+        #usr_dict['lrs_password'] = usr.ll_password
     else:
         tmp_user_dict = {10152850610457657:'kate.devitt@qut.edu.au',10153944872937892:'aneesha.bakharia@qut.edu.au', 10153189868088612: 'mandy.lupton@qut.edu.au', 856974831053214:'andrew.gibson@qut.edu.au'}
         if fb_id in tmp_user_dict:

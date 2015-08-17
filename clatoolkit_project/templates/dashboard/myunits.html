@@ -19,7 +19,7 @@
 <p>
 All Platforms [<a href="/dashboard/?course_code={{unit.code}}&platform=all">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=all">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=all">Social Network Analysis</a>]
 <br/>
-Twitter Hashtags: {{unit.twitter_hashtags}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Twitter">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Twitter">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Twitter">Social Network Analysis</a>] | <a href="/dataintegration/refreshtwitter/">Refresh Imported Data</a>
+Twitter Hashtags: {{unit.twitter_hashtags}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Twitter">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Twitter">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Twitter">Social Network Analysis</a>] | <a href="/dataintegration/refreshtwitter/?course_code={{unit.code}}&hashtags={{unit.twitter_hashtags|urlencode}}">Refresh Imported Data</a>
 <br/>
 Facebook Groups: {{unit.facebook_groups}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Facebook">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Facebook">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Facebook">Social Network Analysis</a>] | <a href="/dataintegration/login/{{unit.facebook_groups}}">Refresh Imported Data</a>
 </p>
