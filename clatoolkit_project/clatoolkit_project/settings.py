@@ -80,9 +80,9 @@ WSGI_APPLICATION = 'clatoolkit_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'cladb2',
-        'USER': 'aneesha',
-        'PASSWORD': 'TrustNo1',
+        'NAME': '',
+        'USER': '',
+        'PASSWORD': '',
         'HOST': 'localhost',
         'PORT': '5432',
 }
