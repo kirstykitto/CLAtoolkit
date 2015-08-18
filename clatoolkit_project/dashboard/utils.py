@@ -24,6 +24,22 @@ def get_uid_fromsmid(username, platform):
     id = userprofile[0].user.id
     return id
 
+def get_username_fromsmid(sm_id, platform):
+    userprofile = None
+    if platform == "Twitter":
+        userprofile = UserProfile.objects.filter(twitter_id=sm_id)
+    elif platform == "Facebook":
+        userprofile = UserProfile.objects.filter(fb_id=sm_id)
+    else:
+        #platform must be = all
+        userprofile = UserProfile.objects.filter(Q(twitter_id=sm_id) | Q(fb_id=sm_id))
+
+    if len(userprofile)>0:
+        username = userprofile[0].user.username
+    else:
+        username = None
+    return username
+
 def get_smids_fromuid(uid):
     user = User.objects.get(pk=uid)
     twitter_id = user.userprofile.twitter_id
@@ -123,7 +139,10 @@ def get_active_members_table(platform, course_code):
     result = cursor.fetchall()
     table = []
     for row in result:
-        username = row[0] #parse(row[0])
+        sm_userid = row[0]
+        username = get_username_fromsmid(sm_userid, platform)
+        if username is None:
+            username = sm_userid
         noposts = get_verbuse_byuser(username, "created", platform, course_code)
         nolikes = get_verbuse_byuser(username, "liked", platform, course_code)
         noshares = get_verbuse_byuser(username, "shared", platform, course_code)
@@ -176,7 +195,10 @@ def get_top_content_table(platform, course_code, username=None):
     table = []
     for row in result:
         id = row[0]
-        username = row[2]
+        sm_userid = row[2]
+        username = get_username_fromsmid(sm_userid, platform)
+        if username is None:
+            username = sm_userid
         if platform=="Facebook":
             tmp_user_dict = {10152850610457657:'Kate Devitt',10153944872937892:'Aneesha Bakharia', 10153189868088612: 'Mandy Lupton', 856974831053214:'Andrew Gibson', 10153422068636322:"Sheona Thomson", 940421519354393:"Nicolas Suzor", 420172324832758:"Dann Mallet"}
             if int(username) in tmp_user_dict:
