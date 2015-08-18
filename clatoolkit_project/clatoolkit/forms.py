@@ -14,8 +14,8 @@ class UserForm(forms.ModelForm):
         fields = ('username', 'email', 'password', 'units')
 
 class UserProfileForm(forms.ModelForm):
-    fb_id = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
-    twitter_id = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    fb_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    twitter_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     class Meta:
         model = UserProfile
         fields = ('fb_id', 'twitter_id')

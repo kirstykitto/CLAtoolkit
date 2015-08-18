@@ -413,7 +413,7 @@ def get_relationships_byplatform(platform, course_code, username=None):
     for row in result:
         #print row[1]
         dict = row[1] #json.loads(row[1])
-        #print row[2]
+        #print row[0]
         # get @mention
         #"{"definition": {"type": "http://id.tincanapi.com/activitytype/tag", "name": {"en-US": "@sbuckshum"}}, "id": "http://id.tincanapi.com/activity/tags/tincan", "objectType": "Activity"}"
         tag = dict["definition"]["name"]["en-US"]
@@ -442,7 +442,7 @@ def get_relationships_byplatform(platform, course_code, username=None):
     result = cursor.fetchall()
 
     for row in result:
-        dict = row[1]
+        #dict = row[1]
         #print row[2]
         #print "---S"
         #pprint(dict)
@@ -474,8 +474,6 @@ def get_relationships_byplatform(platform, course_code, username=None):
                 if to_node not in nodes_in_sna_dict:
                     nodes_in_sna_dict[to_node] = count
                     count += 1
-    #print edge_dict
-    #print nodes_in_sna_dict
     return edge_dict, nodes_in_sna_dict
 
 def sna_buildjson(platform, course_code, username=None):
@@ -495,8 +493,9 @@ def sna_buildjson(platform, course_code, username=None):
     json_str_list = []
 
     if username is not None:
-        node_dict = nodes_in_sna_dict
-    #print node_dict
+        if len(nodes_in_sna_dict)<0:
+            node_dict = nodes_in_sna_dict
+
     # Build node json
     json_str_list.append("{nodes: [")
     for node in node_dict:

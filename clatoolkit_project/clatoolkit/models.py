@@ -23,10 +23,10 @@ class UserProfile(models.Model):
     #ll_password = models.CharField(max_length=60)
 
     # Facebook Integration - users facebook id is required
-    fb_id = models.CharField(max_length=30)
+    fb_id = models.CharField(max_length=30, blank=True)
 
     # Twitter Integration - users Twitter handle (username) is required
-    twitter_id = models.CharField(max_length=30)
+    twitter_id = models.CharField(max_length=30, blank=True)
 
     # Google Integration - users Google xxx is required for Youtube, etc...
     # Todo - Add Google API user credential requirements below

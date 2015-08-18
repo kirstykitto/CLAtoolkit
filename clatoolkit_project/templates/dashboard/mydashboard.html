@@ -5,6 +5,12 @@
 
 {% block heading %}{{title}}{% endblock %}
 
+{% block pagetopnav %}
+{% if show_dashboardnav == True %}
+<li><a href="/dashboard/myunits"><i class="fa fa-dashboard fa-fw"></i> My Units</a></li>
+{% endif %}
+{% endblock %}
+
 {% block body %}
 {% if show_allplatforms_widgets == True %}
 <div class="row">
@@ -122,6 +128,7 @@
                                   <th>Likes</th>
                                   <th>Shares</th>
                                   <th>Comments</th>
+                                  <th>Platform</th>
                               </tr>
                           </thead>
                           <tbody>
@@ -156,7 +163,7 @@
                     </p>
                     <hr/>
                     {% endfor %}
-                    <form method="post" action="/dashboard/student_dashboard/">
+                    <form method="post" action="/dashboard/mydashboard/">
                       {% csrf_token %}
                       <input type="hidden" name="course_code" value="{{course_code}}" />
                       <input type="hidden" name="platform" value="{{platform}}" />

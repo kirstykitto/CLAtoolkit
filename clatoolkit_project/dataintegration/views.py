@@ -14,6 +14,7 @@ from .forms import FacebookGatherForm
 #from dataintegration.forms import UserForm, UserProfileForm
 import json
 from pprint import pprint
+from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord
 
 CONFIG = {
     # Auth information for Facebook App
@@ -27,7 +28,7 @@ CONFIG = {
     },
 }
 
-authomatic = Authomatic(CONFIG, 'lamksdlkm213213kl5n521234lkn4231')
+authomatic = Authomatic(CONFIG, '')
 
 def home(request):
     form = FacebookGatherForm()
@@ -35,10 +36,12 @@ def home(request):
 
 def refreshtwitter(request):
     html_response = HttpResponse()
-    t = LearningRecord.objects.filter(platform='Twitter').delete()
 
     course_code = request.GET.get('course_code')
     hastags = request.GET.get('hashtags')
+
+    t = LearningRecord.objects.filter(platform='Twitter',course_code=course_code).delete()
+
     tags = hastags.split(',')
     for tag in tags:
         injest_twitter(tag, course_code)
@@ -82,8 +85,11 @@ def login(request, group_id):
                 # Each provider has it's specific API.
                 if result.provider.name == 'fb':
                     # Construct Facebook group Graph API call
-                    url = 'https://graph.facebook.com/'+group_id+'/feed'
+                    #group_id = request.GET.get('group_id')
 
+                    url = 'https://graph.facebook.com/'+group_id+'/feed'
+                    unit_offering = UnitOffering.objects.filter(facebook_groups=group_id) #request.GET.get('course_code')
+                    course_code = unit_offering[0].code
                     # Access user's protected resource.
                     access_response = result.provider.access(url)
                     #print access_response
@@ -94,10 +100,10 @@ def login(request, group_id):
                     paging = access_response.data.get('paging')
                     #pprint(paging)
                     #pprint(fb_json)
-                    t = LearningRecord.objects.filter(platform='Facebook').delete()
-                    injest_facebook(fb_feed, paging, "cla101")
+                    t = LearningRecord.objects.filter(platform='Facebook',course_code=course_code).delete()
+                    injest_facebook(fb_feed, paging, course_code)
                     #injest_twitter("#clatest", "cla101")
-                    html_response.write('....Check console')
+                    html_response.write('Updating Facebook for ' + course_code)
                     '''
                     if access_response.status == 200:
                         # Parse response.

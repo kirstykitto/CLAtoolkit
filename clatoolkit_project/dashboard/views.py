@@ -20,7 +20,10 @@ def check_access(required_roles=None):
                 correct_role = True
 
             if correct_role:
-                course_code = request.GET.get('course_code')
+                if request.method == 'POST':
+                    course_code = request.POST['course_code']
+                else:
+                    course_code = request.GET.get('course_code')
                 # Check that user is a member of the course
                 unit = UnitOffering.objects.filter(code=course_code, users=request.user.id)
                 if (len(unit) != 0):
@@ -186,7 +189,7 @@ def studentdashboard(request):
     print 'sm_usernames', sm_usernames
     sm_usernames_str = ','.join("'{0}'".format(x) for x in sm_usernames)
 
-    title = "Student Dashboard: %s, %s (Platform: %s)" % (course_code, sm_usernames_str, platform)
+    title = "Student Dashboard: %s, (Twitter: %s, Facebook: %s)" % (course_code, twitter_id, fb_id)
     show_dashboardnav = True
 
     posts_timeline = get_timeseries('created', platform, course_code, username=sm_usernames)
@@ -197,9 +200,9 @@ def studentdashboard(request):
     cursor = connection.cursor()
     cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
                         FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'  AND clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username IN (%s)
+                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username IN (%s)
                         GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
-                    """ % (platform, course_code, sm_usernames_str))
+                    """ % (course_code, sm_usernames_str))
     result = cursor.fetchall()
 
     activity_pie_series = ""
@@ -214,8 +217,8 @@ def studentdashboard(request):
     if platform != "all":
         platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
     else:
-        twitter_timeline = get_timeseries_byplatform("Twitter", course_code, twitter_id)
-        facebook_timeline = get_timeseries_byplatform("Facebook", course_code, fb_id)
+        twitter_timeline = get_timeseries_byplatform("Twitter", course_code, [twitter_id])
+        facebook_timeline = get_timeseries_byplatform("Facebook", course_code, [fb_id])
         show_allplatforms_widgets = True
 
     cursor = connection.cursor()
@@ -247,7 +250,7 @@ def mydashboard(request):
 
     course_code = None
     platform = None
-    username = request.user.name
+    username = request.user.username
     uid = request.user.id
 
     if request.method == 'POST':
@@ -270,7 +273,7 @@ def mydashboard(request):
     sm_usernames = [twitter_id, fb_id]
     sm_usernames_str = ','.join("'{0}'".format(x) for x in sm_usernames)
 
-    title = "Student Dashboard: %s, %s (Platform: %s)" % (course_code, username, platform)
+    title = "Student Dashboard: %s, %s" % (course_code, username)
     show_dashboardnav = True
 
     posts_timeline = get_timeseries('created', platform, course_code, username=sm_usernames)
@@ -281,9 +284,9 @@ def mydashboard(request):
     cursor = connection.cursor()
     cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
                         FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'  AND clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username IN (%s)
+                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username IN (%s)
                         GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
-                    """ % (platform, course_code, sm_usernames_str))
+                    """ % (course_code, sm_usernames_str))
     result = cursor.fetchall()
 
     activity_pie_series = ""
@@ -298,8 +301,8 @@ def mydashboard(request):
     if platform != "all":
         platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
     else:
-        twitter_timeline = get_timeseries_byplatform("Twitter", course_code, twitter_id)
-        facebook_timeline = get_timeseries_byplatform("Facebook", course_code, fb_id)
+        twitter_timeline = get_timeseries_byplatform("Twitter", course_code, [twitter_id])
+        facebook_timeline = get_timeseries_byplatform("Facebook", course_code, [fb_id])
         show_allplatforms_widgets = True
 
     cursor = connection.cursor()
