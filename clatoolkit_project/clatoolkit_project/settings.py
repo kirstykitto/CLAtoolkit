@@ -127,3 +127,5 @@ STATICFILES_FINDERS = (
 )
 
 AUTH_PROFILE_MODULE = "account.userprofile"
+
+GA_TRACKING_ID = '' # Googla Analytics Tracking Code
