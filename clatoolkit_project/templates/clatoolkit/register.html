@@ -65,6 +65,11 @@
                     <a href="/dataintegration/get_social" target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
                   </p>
                 </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.forum_id.errors }}</p>
+                  <label for="id_forum_id">Forum Username:</label> (Only required for IFN616 Students.)<br />
+                  {{ profile_form.forum_id }}
+                </div>
                 <p>
                 By clicking the register button below, you are indicating that you:
                 <ul>

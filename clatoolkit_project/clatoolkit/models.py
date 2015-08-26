@@ -28,6 +28,9 @@ class UserProfile(models.Model):
     # Twitter Integration - users Twitter handle (username) is required
     twitter_id = models.CharField(max_length=30, blank=True)
 
+    # Forum Scraping - users Forum handle (username) is required
+    forum_id = models.CharField(max_length=500, blank=True)
+
     # Google Integration - users Google xxx is required for Youtube, etc...
     # Todo - Add Google API user credential requirements below
 
@@ -53,7 +56,15 @@ class UnitOffering(models.Model):
     google_groups = models.TextField(blank=False)
 
     # Facebook Unit Integration Requirements
-    facebook_groups = models.TextField(blank=False)
+    facebook_groups = models.TextField(blank=True)
+
+    # Unit External Forums
+    forum_urls = models.TextField(blank=True)
+
+    # LRS Integration - to send users data to unit LRS
+    ll_endpoint = models.CharField(max_length=60, blank=True)
+    ll_username = models.CharField(max_length=60, blank=True)
+    ll_password = models.CharField(max_length=60, blank=True)
 
     def __unicode__(self):
         return self.code + " " + self.name
