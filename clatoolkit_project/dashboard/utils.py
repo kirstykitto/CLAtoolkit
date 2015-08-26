@@ -143,10 +143,10 @@ def get_active_members_table(platform, course_code):
         username = get_username_fromsmid(sm_userid, platform)
         if username is None:
             username = sm_userid
-        noposts = get_verbuse_byuser(username, "created", platform, course_code)
-        nolikes = get_verbuse_byuser(username, "liked", platform, course_code)
-        noshares = get_verbuse_byuser(username, "shared", platform, course_code)
-        nocomments = get_verbuse_byuser(username, "commented", platform, course_code)
+        noposts = get_verbuse_byuser(sm_userid, "created", platform, course_code)
+        nolikes = get_verbuse_byuser(sm_userid, "liked", platform, course_code)
+        noshares = get_verbuse_byuser(sm_userid, "shared", platform, course_code)
+        nocomments = get_verbuse_byuser(sm_userid, "commented", platform, course_code)
         if platform=="Facebook":
             tmp_user_dict = {10152850610457657:'Kate Devitt',10153944872937892:'Aneesha Bakharia', 10153189868088612: 'Mandy Lupton', 856974831053214:'Andrew Gibson', 10153422068636322:"Sheona Thomson", 940421519354393:"Nicolas Suzor", 420172324832758:"Dann Mallet"}
             if int(username) in tmp_user_dict:
@@ -170,6 +170,12 @@ def get_verbuse_byuser(username, verb, platform, course_code):
         FROM clatoolkit_learningrecord
         WHERE clatoolkit_learningrecord.xapi->'actor'->'account'->>'name'='%s' AND clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US'='%s' AND clatoolkit_learningrecord.course_code='%s' %s
     """ % (username, verb, course_code, platformclause))
+    tmp = """
+        select count(clatoolkit_learningrecord.xapi->'actor'->'account'->>'name')
+        FROM clatoolkit_learningrecord
+        WHERE clatoolkit_learningrecord.xapi->'actor'->'account'->>'name'='%s' AND clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US'='%s' AND clatoolkit_learningrecord.course_code='%s' %s
+    """ % (username, verb, course_code, platformclause)
+    print tmp
     result = cursor.fetchone()
     count = result[0]
     return count
@@ -423,7 +429,7 @@ def get_relationships_byplatform(platform, course_code, username=None):
     #and add edge based on @mention
     #This query gets #hashtags as well and needs to be refined
     sql = """
-            SELECT clatoolkit_learningrecord.xapi->'actor'->'account'->>'name', obj
+            SELECT clatoolkit_learningrecord.xapi->'actor'->'account'->>'name', clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US', obj
             FROM   clatoolkit_learningrecord, json_array_elements(clatoolkit_learningrecord.xapi->'context'->'contextActivities'->'other') obj
             WHERE  clatoolkit_learningrecord.course_code='%s' %s %s
           """ % (course_code, platformclause, userclause)
@@ -432,9 +438,12 @@ def get_relationships_byplatform(platform, course_code, username=None):
     #print username, sql
     result = cursor.fetchall()
     edge_dict = defaultdict(int)
+    mention_dict = defaultdict(int)
+    comment_dict = defaultdict(int)
+    share_dict = defaultdict(int)
     for row in result:
         #print row[1]
-        dict = row[1] #json.loads(row[1])
+        dict = row[2] #json.loads(row[1])
         #print row[0]
         # get @mention
         #"{"definition": {"type": "http://id.tincanapi.com/activitytype/tag", "name": {"en-US": "@sbuckshum"}}, "id": "http://id.tincanapi.com/activity/tags/tincan", "objectType": "Activity"}"
@@ -444,6 +453,7 @@ def get_relationships_byplatform(platform, course_code, username=None):
             to_node = tag[1:] #remove @symbol
             edgekey = "%s__%s" % (from_node,to_node)
             edge_dict[edgekey] += 1
+            mention_dict[edgekey] += 1
             if from_node not in nodes_in_sna_dict:
                 nodes_in_sna_dict[from_node] = count
                 count += 1
@@ -453,7 +463,7 @@ def get_relationships_byplatform(platform, course_code, username=None):
 
     #get all statements with a parentid
     sql = """
-            SELECT clatoolkit_learningrecord.xapi->'actor'->'account'->>'name', obj, clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US'
+            SELECT clatoolkit_learningrecord.xapi->'actor'->'account'->>'name', obj, clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US'
             FROM clatoolkit_learningrecord, json_array_elements(clatoolkit_learningrecord.xapi->'context'->'contextActivities'->'parent') obj
             WHERE clatoolkit_learningrecord.course_code='%s' %s %s
           """ % (course_code, platformclause, userclause)
@@ -489,6 +499,10 @@ def get_relationships_byplatform(platform, course_code, username=None):
                     #print tmp_user_dict[int(from_node)], tmp_user_dict[int(to_node)]
                 #print edgekey
                 edge_dict[edgekey] += 1
+                if row[3]=="shared":
+                    share_dict[edgekey] += 1
+                elif row[3]=="commented":
+                    comment_dict[edgekey] += 1
                 #print from_node, from_node
                 if from_node not in nodes_in_sna_dict:
                     nodes_in_sna_dict[from_node] = count
@@ -496,7 +510,7 @@ def get_relationships_byplatform(platform, course_code, username=None):
                 if to_node not in nodes_in_sna_dict:
                     nodes_in_sna_dict[to_node] = count
                     count += 1
-    return edge_dict, nodes_in_sna_dict
+    return edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict
 
 def sna_buildjson(platform, course_code, username=None):
     #print username
@@ -505,10 +519,10 @@ def sna_buildjson(platform, course_code, username=None):
     nodes_in_sna_dict = None
     if username is not None:
         node_dict = get_nodes_byplatform(platform, course_code, username=username)
-        edge_dict, nodes_in_sna_dict = get_relationships_byplatform(platform, course_code, username=username)
+        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username)
     else:
         node_dict = get_nodes_byplatform(platform, course_code)
-        edge_dict, nodes_in_sna_dict = get_relationships_byplatform(platform, course_code)
+        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code)
     #pprint(node_dict)
 
     #pprint(edge_dict)
@@ -535,12 +549,14 @@ def sna_buildjson(platform, course_code, username=None):
     json_str_list.append("],")
 
     # Build edge json
-
+    dict_types = {'mention': mention_dict, 'share': share_dict, 'comment': comment_dict}
+    relationship_type_colours = {'mention': 'black', 'share': 'green', 'comment': 'red'}
     json_str_list.append("edges: [")
-    for edge_str in edge_dict:
-        edgefrom, edgeto = edge_str.split('__')
-        if edgefrom in node_dict and edgeto in node_dict:
-            json_str_list.append('{"from": %s, "to": %s, arrows:"to"},' % (node_dict[edgefrom], node_dict[edgeto]))
-    json_str_list.append("]}")
 
+    for relationshiptype in dict_types:
+        for edge_str in dict_types[relationshiptype]:
+            edgefrom, edgeto = edge_str.split('__')
+            if edgefrom in node_dict and edgeto in node_dict:
+                json_str_list.append('{"from": %s, "to": %s, "arrows":"to", "label":"%s", "color":"%s" },' % (node_dict[edgefrom], node_dict[edgeto], relationshiptype, relationship_type_colours[relationshiptype]))
+    json_str_list.append("]};")
     return ''.join(json_str_list)
