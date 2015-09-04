@@ -36,7 +36,7 @@ def injest_twitter(sent_hashtag, course_code):
             else:
                 print "count +"
                 results = twitter.search(q=sent_hashtag,count=100,max_id=next_max_id, result_type='mixed')
-            print results
+            #print results
             insert_twitter_lrs(results['statuses'], course_code)
 
             if 'next_results' not in results['search_metadata']:
@@ -58,9 +58,10 @@ def insert_twitter_lrs(statuses, course_code):
     #print statuses
     for tweet in statuses:
         message = tweet['text']
-        #print message
+
         timestamp = dateutil.parser.parse(tweet['created_at'])
         username = tweet['user']['screen_name']
+        print username, message
         fullname = tweet['user']['name']
         post_id = platform_url + username + '/status/' + str(tweet['id'])
         retweeted = False
@@ -159,7 +160,7 @@ def insert_facebook_lrs(fb_feed, course_code):
 
 def twitterusername_exists(screen_name):
     tw_id_exists = False
-    if UserProfile.objects.filter(twitter_id=screen_name).count() > 0:
+    if UserProfile.objects.filter(twitter_id__iexact=screen_name).count() > 0:
         tw_id_exists = True
 
     if tw_id_exists == False:
@@ -167,13 +168,13 @@ def twitterusername_exists(screen_name):
         if screen_name in tmp_user_dict:
             tw_id_exists = True
         else:
-            tw_id_exists = True
+            tw_id_exists = False
     return tw_id_exists
 
 def get_userdetails_twitter(screen_name):
     usr_dict = {'screen_name':screen_name}
     try:
-        usr = UserProfile.objects.filter(twitter_id=screen_name).get()
+        usr = UserProfile.objects.filter(twitter_id__iexact=screen_name).get()
     except UserProfile.DoesNotExist:
         usr = None
 
@@ -192,7 +193,7 @@ def get_userdetails_twitter(screen_name):
 
 def fbid_exists(fb_id):
     fb_id_exists = False
-    if UserProfile.objects.filter(fb_id=fb_id).count() > 0:
+    if UserProfile.objects.filter(fb_id__iexact=fb_id).count() > 0:
         fb_id_exists = True
 
     if fb_id_exists == False:
@@ -200,13 +201,13 @@ def fbid_exists(fb_id):
         if fb_id in tmp_user_dict:
             fb_id_exists = True
         else:
-            fb_id_exists = True
+            fb_id_exists = False
     return fb_id_exists
 
 def get_userdetails(fb_id):
     usr_dict = {'fb_id':fb_id}
     try:
-        usr = UserProfile.objects.filter(fb_id=fb_id).get()
+        usr = UserProfile.objects.filter(fb_id__iexact=fb_id).get()
     except UserProfile.DoesNotExist:
         usr = None
 

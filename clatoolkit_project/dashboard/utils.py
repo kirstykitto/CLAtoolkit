@@ -523,14 +523,16 @@ def sna_buildjson(platform, course_code, username=None):
     else:
         node_dict = get_nodes_byplatform(platform, course_code)
         edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code)
-    #pprint(node_dict)
 
-    #pprint(edge_dict)
     json_str_list = []
 
-    if username is not None:
-        if len(nodes_in_sna_dict)<0:
-            node_dict = nodes_in_sna_dict
+    #if username is not None:
+    if len(nodes_in_sna_dict)>0:
+        node_dict = nodes_in_sna_dict
+
+    pprint(node_dict)
+    #pprint(nodes_in_sna_dict)
+    pprint(edge_dict)
 
     # Build node json
     json_str_list.append("{nodes: [")
@@ -560,3 +562,228 @@ def sna_buildjson(platform, course_code, username=None):
                 json_str_list.append('{"from": %s, "to": %s, "arrows":"to", "label":"%s", "color":"%s" },' % (node_dict[edgefrom], node_dict[edgeto], relationshiptype, relationship_type_colours[relationshiptype]))
     json_str_list.append("]};")
     return ''.join(json_str_list)
+
+def get_LDAVis_JSON_IFN600(corpus, num_topics):
+    #print "get_LDAVis_JSON"
+    shark = [
+    "It does not look like any animal I've ever seen but I could be wrong.",
+    "The person in the image is an animal",
+    "It looks as if it could plausibly be something real.",
+    "I've never seen a creature like this before, so I'd doubt if it's a real image",
+    "The image seems real and looks like something I would see on an educational TV channel.",
+    "it is from a museum, so it seems to be trustworthy",
+    "IT'S A AQUATIC ANIMAL. WE CANNOT TRUST AN ANIMAL",
+    "Looks like an actual photo",
+    "It's a very ugly sea creature, but I see nothing to trust or distrust in the image itself.",
+    "all wild animals are untrustworthy. Also look at his teeth. He acts on instinct alone.",
+    "looks fake",
+    "That thing looks like it would bite me at any chance it has and it has a gnarly set of teeth.",
+    "The image looks like raw footage.",
+    "Its a picture of some sort of fish or eel, I suppose its trustworthy enough, but I wouldn't want to run into that thing in a dark coral reef",
+    "Looks like natural",
+    "It is make a fear to me so i am very trustworthy about the image.",
+    "It may or may not be an accurate representation of this sea creature",
+    "There are many odd creatures in the sea.",
+    "it doesn't look like anything I have seen before, but there are many things in the ocean we have not seen yet and now it is easier to photograph them",
+    "The teeth and pose look aggressive.",
+    "The blue background feels calming.",
+    "I've never identified an animal as trustworthy or not",
+    "it looks scary",
+    "It looks dangerous and unstable.",
+    "Can't tell, it looks like a gentle animal.",
+    "It does not look like an actual creature, may be photo shopped.",
+    "It's a fish. I don't particularly trust nor distrust them.",
+    "Can you trust something that looks like it is about to eat you?",
+    "I don't know what it is...so I definitely can't trust it.",
+    "IT LOOKS LIKE IT IS READY TO EAT YOU",
+    "It looks like it could eat me",
+    "It's a fish. I don't really find it trusty or untrustworthy.",
+    "The overall look of this fish is something you cannot trust. It has a threatening demeanor to it.",
+    "Not exactly trusting this or not. I'm not exactly 100% sure what I'm looking at, and I feel that the fish is pretty mean.",
+    "This image looks faked as I have never seen a creature like this in my life.",
+    "It's a wild animal, it would stupid to trust it.",
+    "The image appears to be photo shopped and alerted from the original picture.",
+    "This creature looks like it escaped from the depths of hell.  It seems unpredictable and possibly hungry.  I don't think I could read it's true intentions.",
+    "Not pretty good. the nature of this animal looks very cruel",
+    "This may be a real creature, but it looks like it should be a lot deeper then it is. I would imagine it would be near the floor and not a few feet from the surface.",
+    "Sharp teeth, large size, predatory look",
+    "Dangerous looking shark fish thing.",
+    "Whatever it is, it looks like it's fixing to come at me.",
+    "I don't know what this image is, It doesn't look like a real creature, It looks edited somehow.",
+    "It is just an animal trying to swim and live their life. I think it is innocent and trustworthy",
+    "no idea what that is but looks fake",
+    "Looks mean, about to attack.",
+    "This thing would probably et me.",
+    "This creature looks quite dangerous, has a mean expression in its face and his jaw contains many very sharp-looking teeth.",
+    "Harmful creature",
+    "This looks like a fake fish. First of all, I've never seen anything like it. Second, the eyes in the face look deliberately faky. What is all that fur at the end of the tail -- this would weigh down the animal. The teeth do not look useful for eating anything.",
+    "Nothing wrong with this picture to me.",
+    "Open mouth with teeth is scary",
+    "Head doesn't seem to go with body",
+    "I don't trust that sea creature because he could take a bit out of me anytime it feels like it.",
+    "It looks like it could hurt you.",
+    "The animal looks like he is just living his live floating on.",
+    "It's a picture of a fish, not sure how a fish can be trustworthy if they act on instinct",
+    "This looks like something that may be a photoshopped creation.",
+    "The creature represented in the image doesn't seem like any thing I have seen before and too me looks almost completely fake.",
+    "Its look very cruelly",
+    "It looks like it is going to attack something, so I wouldn't trust that it wouldn't hurt me.",
+    "It's just a picture of an animal, there's nothing to not trust.",
+    "it is very untrustworthy but is ?",
+    "It is a wild animal that doesn't understand trust.",
+    "I'm unsure if this is an actual fish, it looks pretty unusual, but it does look real.",
+    "That thing looks like its out for blood.",
+    "Very aggressive animal, and will always look to attack. It is on the fighting mode.",
+    "It's from a museum too",
+    "very nice",
+    "That thing is scary and looks dangerous.  I've never seen one before and I definitely wouldn't trust it if I did.",
+    "What the hell is that thing??? Kill it, Kill it with fire!!! All joking aside, that is very strange and kind of frightening.",
+    "It looks like artwork rather than a photo",
+    "It's an animal that looks like it wants to eat me.",
+    "just an animal in his own habitat.",
+    "its a living being",
+    "It's an animal. No animal is to be 'trusted'.",
+    "It appears to be doctored based on the outline of the image of the animal against the background.",
+    "The picture looks unreal.",
+    "I don't know anything about this.",
+    "I don't trust that because of the look that it is given and the sharp teeth.",
+    "It looks like a still from a documentary, or a photograph taken underwater with a quality camera.",
+    "This doesn't look like a real creature, looks like it was photoshopped",
+    "Looks like he wants to eat me",
+    "Uncertain about their reaction may be attackable",
+    "That thing doesn't look real"]
+
+    putin = [
+    "It looks like a normal picture of Putin.",
+    "The person seems to be genuine",
+    "External influence has led me to believe the content of this photo is untrustworthy.",
+    "This is Vladimir Putin, a world leader I associate with dishonesty and distrust, who works to his own agenda and doesn't worry about other people.",
+    "The image is somewhat trustworthy because I think the image is mostly accurate, but it also seems like the person who took the photo was trying to make the man seem shifty or shady.",
+    "the person pictured is not trustworthy at all.",
+    "HE HAS A WARM LOOK AND LOOKS LIKE HE KNEW ABOUT MANY THINGS . SO I THINK HE IS TRUSTWORTHY",
+    "Not looking at the camera",
+    "The eyes are narrowed and looking away from the camera, and the mouth is twisted in a smirk.  The entire expression is that of someone who just put something over on someone else.",
+    "He seems to be well dressed and does not have a hardened look on his face. He seem to take good care of himself.",
+    "eyes look decieving",
+    "Not sure I could trust anybody who was affiliated with the KGB or any mafia.",
+    "It looks like the person it is supposed to be. Although, the image has been altered for some reason.",
+    "I wouldn't trust the person, but the photo is fine",
+    "I saw this man before",
+    "He is look like a gentile man.",
+    "It is a mostly accurate representation of the person (Putin)",
+    "This is how he usually looks.",
+    "the look is very suspicious and judgmental , therefore I could not really trust this person",
+    "He looks like he's sneering at something.",
+    "Looks extremely suspicious.",
+    "squinty eyes, smirk",
+    "Putin is the hero for us all",
+    "The look is devious and he appears to be judging someone.",
+    "The shifty eyes make me think he cannot be trusted.",
+    "The person in the photo seems to be thinking of something that would be untrustworthy in my mind.",
+    "He looks like he has some shifty eyes. They look sinister.",
+    "That man is a tyrannical dictator!",
+    "I know that this is the Russian leader...so I already had an opinion formed. The look on his face is also very untrustworthy.",
+    "I REALLY COULD NOT SEPARATE WHAT I KNOW ABOUT THIS MAN FROM HIS IMAGE",
+    "It's Putin and we know he can not be trusted to keep his word.",
+    "The face gives off a bit of a 'Sneaky' vibe with underhand intentions. From a glance.",
+    "He looks deceitful, especially with the way he is looking. Not someone you can trust at all. His eyes says it all.",
+    "I find it untrusting due to the nature of the person. I know who he is, and the usual news about him is pretty bad. On his track record he seems to be all about him, and nobody else.",
+    "Looks like a real, unretouched image of the man to me.",
+    "the expression on his face",
+    "The image is untrustworthy due to the person in the image and their facial expression. The expression appears to be don't trust me, I'm willing to do anything evil.",
+    "His eyes are narrowed in a sideways glance.  The guy's whole facial expression comes off as nefarious like he's plotting or judging.",
+    "the expressions in the face makes me feel so",
+    "Nobody would post this image without alternative motive, which makes me question if they are being truthful.",
+    "The narrowing of the eyes, the smirk is almost derisive, the suit and tie, has been my experience after 25 years in corporate most businessmen can't be trusted",
+    "Its Putin!",
+    "It looks like it was taken as he was reacting to something slightly amusing.  No way to tell what it is he's thinking, for real.  It could have been misconstrued as very untrustworthy, but then you'd have to know what was going on around him when he made this face.",
+    "He is looking off to the side, has a half smile, he looks shifty. He is looking down instead of at the camera.",
+    "I do not like when people smirk I feel that they can't be trust and are devious",
+    "he looks like he is scheming something",
+    "The way he is looking to the side makes him look untrustworthy.  He looks somewhat sly.",
+    "Horrible evil person who is causing too many problems.",
+    "This man looks like he's up to no good and has a sneaky-like attitude.",
+    "He is quiet delayed or not so confident in making decisions even in political arena.",
+    "Pretty hard to separate the image from the long-term sleazy planned actions of this no-good-nik, but the smugness of the expression gives away the untrustworthiness. He looks like he just got away with something bad and is enjoying it. The image is trustworthy, the person depicted is not.",
+    "His face seems to express some slyness. I do not like that.",
+    "Just the fact that his eyes are looking sidways",
+    "His smile looks forced",
+    "His smirk doesn't seem to show signs of a trustworthy kind of person. It seems he has plans of mischief.",
+    "He is looking down. To me that seems like he has something to hide.",
+    "The man looks like he is deceiving with a grin on his face.",
+    "It is either Putin, or looks extremely like him, either way he looks like a maniacal man.",
+    "The smug grin looks like 'duper's delight' a sign of lying.",
+    "I feel this photo of Vladimir Putin really captures the sneaky side of him.",
+    "By seeing his watching I judged in that way.",
+    "His face looks like he is doing something that isn't right.  He also is an untrustworthy person in general.",
+    "I'm not sure who the guy is so I have no reason to trust him or not trust him.",
+    "it is very tustworth in by pavate in",
+    "He is the leader of a fascist, socialist government.",
+    "Ignoring the fact of who this is, his expression looks like he's up to something. I don't think it's very trustworthy in the sense that it's really easy to make someone look a certain way if you get a picture of them at the right moment.",
+    "Anyone that worked for the KGB and runs a nation I tend to say are more untrustworthy then trustworthy.",
+    "Eyes are not so informative, that he tries to pose as if he is very friendly. So can be somewhat trustworthy.",
+    "It's from a museum",
+    "it is true",
+    "He looks kind of creepy and has a sly smile on his face like he is up to no good.  His eyes are very shady looking as well.",
+    "First off the way he is looking and that smirk on his face make me uncomfortable and suspicious right away.",
+    "It is an accurate representation of Putin",
+    "Besides the fact that I know it's Putin, he's looking to the side with a smirk.  Not maintaining eye contact.",
+    "his expressions makes him look sneaky.",
+    "because of  the expressions over the face",
+    "I know his history of secrecy and deceit. He cannot be trusted with anything, he is power and money hungry.",
+    "It appears to be an actual photo of Vladimir Putin.",
+    "The eyes look odd.",
+    "He is not a nice man and does many things I disagree with.",
+    "The look this person is giving makes me feel untrustworthy of this person.",
+    "It looks like a photograph, and is therefore an accurate depiction of the person pictured.",
+    "Does not seem to be photoshopped or altered.  Accurate representation",
+    "His glance looks suspicious",
+    "HE IS THE LEADER OF THE NATION AND RULING THE COUNTRY WITH A MAJOR SUPPORT",
+    "Lol because of who is in the picture!"]
+
+    if corpus == 'shark':
+        documents = shark
+    else:
+        documents = putin
+
+    documents = remove_stopwords(documents)
+
+    # Make dictionary
+    dictionary = corpora.Dictionary(documents)
+
+    #Create and save corpus
+    corpus = [dictionary.doc2bow(text) for text in documents]
+
+    #Run LDA
+    model = models.ldamodel.LdaModel(corpus, id2word=dictionary, num_topics=num_topics)
+
+    #print model
+    #for i in range(0, model.num_topics-1):
+        #print i
+        #print model.print_topic(i)
+
+    # We print the topics
+    i = 0
+    for topic in model.show_topics(num_topics=num_topics, formatted=False, num_words=10):
+        #print topic
+
+        i = i + 1
+        print "Topic #" + str(i) + ":",
+        for t in topic:
+            print t[1]
+
+
+        print ""
+
+
+    #tops = sorted(model, reverse=True, key=lambda doc: abs(dict(doc).get(1, 0.0)))
+    #print tops[ : 5]
+
+
+    tmp = pyLDAvis.gensim.prepare(model, corpus, dictionary).to_json()
+    #print "test"
+    #print model
+    #print tmp
+    #tmp = model.show_topics(num_topics=20, num_words=5, log=False, formatted=False)
+
+    return tmp

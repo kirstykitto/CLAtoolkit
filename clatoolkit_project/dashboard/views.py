@@ -39,7 +39,7 @@ def check_access(required_roles=None):
 def myunits(request):
     context = RequestContext(request)
     # Only get units that the user is assigned to to
-    units = UnitOffering.objects.filter(users=request.user)
+    units = UnitOffering.objects.filter(users=request.user, enabled=True)
     role = request.user.userprofile.role
 
     show_dashboardnav = False

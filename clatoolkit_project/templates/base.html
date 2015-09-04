@@ -95,10 +95,9 @@
                         <i class="fa fa-user fa-fw"></i>  <i class="fa fa-caret-down"></i>
                     </a>
                     <ul class="dropdown-menu dropdown-user">
-                        <li><a href="#"><i class="fa fa-user fa-fw"></i> User Profile</a>
-                        </li>
-                        <li class="divider"></li>
-                        <li><a href="login.html"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
+                        {% comment %} <li><a href="#"><i class="fa fa-user fa-fw"></i> User Profile</a></li>
+                        <li class="divider"></li> {% endcomment %}
+                        <li><a href="/logout"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
                         </li>
                     </ul>
                     <!-- /.dropdown-user -->
@@ -684,11 +683,11 @@
       })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
       {% if user.is_authenticated %}
-      //ga('create', '{% settings_value "GA_TRACKING_ID" %}', { 'userId': '{{ request.user.id }}' });
+      ga('create', '{% settings_value "GA_TRACKING_ID" %}', { 'userId': '{{ request.user.id }}' });
       {% else %}
-      //ga('create', '{% settings_value "GA_TRACKING_ID" %}', 'auto');
+      ga('create', '{% settings_value "GA_TRACKING_ID" %}', 'auto');
       {% endif %}
-      //ga('send', 'pageview');
+      ga('send', 'pageview');
     </script>
 
     {% block js_block %}

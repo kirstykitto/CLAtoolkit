@@ -48,12 +48,16 @@ class UnitOffering(models.Model):
     description = models.TextField(blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
     users = models.ManyToManyField(User, related_name='usersinunitoffering')
+    # determines whether unit should be displayed on Register form and on dashboard
+    enabled = models.BooleanField(blank=False, default=False)
+    # determines whether unit should be displayed on EventRegistration Form
+    event = models.BooleanField(blank=False, default=False)
 
     # Twitter Unit Integration Requirements
     twitter_hashtags = models.TextField(blank=False)
 
     # Google Unit Integration Requirements
-    google_groups = models.TextField(blank=False)
+    google_groups = models.TextField(blank=True)
 
     # Facebook Unit Integration Requirements
     facebook_groups = models.TextField(blank=True)

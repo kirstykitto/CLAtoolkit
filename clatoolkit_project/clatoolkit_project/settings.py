@@ -20,7 +20,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'h#e+%d+4j&8x%t%ej65jj6l*d7gq^cyfd7l_213-n_q%ej&nhx'
+SECRET_KEY = ''
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -80,10 +80,10 @@ WSGI_APPLICATION = 'clatoolkit_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'cladb2',
+        'NAME': '',
         'USER': '',
         'PASSWORD': '',
-        'HOST': 'localhost',
+        'HOST': '',
         'PORT': '5432',
 }
 }

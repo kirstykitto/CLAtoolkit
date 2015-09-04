@@ -5,4 +5,5 @@ import views
 
 urlpatterns = patterns('',
     url(r'^register/$', views.register, name='register'),
+    url(r'^eventregistration/$', views.eventregistration, name='eventregistration'),
 )
