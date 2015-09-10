@@ -33,6 +33,8 @@ class UserProfile(models.Model):
 
     # Google Integration - users Google xxx is required for Youtube, etc...
     # Todo - Add Google API user credential requirements below
+    # YouTube 26/08/2015
+    google_account_name = models.CharField(max_length=255, blank=True)
 
 class LearningRecord(models.Model):
     xapi = JsonField()
@@ -40,6 +42,8 @@ class LearningRecord(models.Model):
     platform = models.CharField(max_length=5000, blank=False)
     verb = models.CharField(max_length=5000, blank=False)
     username = models.CharField(max_length=5000, blank=True)
+    platformid = models.CharField(max_length=5000, blank=True)
+    platformparentid = models.CharField(max_length=5000, blank=True)
 
 class UnitOffering(models.Model):
     code = models.CharField(max_length=5000, blank=False)
@@ -64,6 +68,9 @@ class UnitOffering(models.Model):
 
     # Unit External Forums
     forum_urls = models.TextField(blank=True)
+
+    # YouTube 26/08/2015
+    youtube_channelIds = models.TextField(blank=False)
 
     # LRS Integration - to send users data to unit LRS
     ll_endpoint = models.CharField(max_length=60, blank=True)
