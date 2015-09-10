@@ -17,6 +17,7 @@ class UserProfileForm(forms.ModelForm):
     fb_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     twitter_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     forum_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    google_account_name = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     class Meta:
         model = UserProfile
-        fields = ('fb_id', 'twitter_id', 'forum_id')
+        fields = ('fb_id', 'twitter_id', 'forum_id', 'google_account_name')
