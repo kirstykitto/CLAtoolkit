@@ -2,6 +2,7 @@
 <html lang="en">
 {% load static %}
 {% load settings_value %}
+{% load accesslog %}
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -684,8 +685,10 @@
 
       {% if user.is_authenticated %}
       ga('create', '{% settings_value "GA_TRACKING_ID" %}', { 'userId': '{{ request.user.id }}' });
+      {% accesslog request.user.id request.get_full_path  %}
       {% else %}
       ga('create', '{% settings_value "GA_TRACKING_ID" %}', 'auto');
+      {% accesslog 'anon' request.get_full_path  %}
       {% endif %}
       ga('send', 'pageview');
     </script>

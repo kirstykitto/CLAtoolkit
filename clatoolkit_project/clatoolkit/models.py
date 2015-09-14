@@ -11,9 +11,11 @@ class UserProfile(models.Model):
     # Simple role as an alternative to django groups and permissions
     STAFF = 'Staff'
     STUDENT = 'Student'
+    VISITOR = 'Visitor'
     ROLETYPE_OPTIONS = (
         (STAFF, STAFF),
-        (STUDENT, STUDENT)
+        (STUDENT, STUDENT),
+        (VISITOR, VISITOR)
     )
     role = models.CharField(max_length=100, choices=ROLETYPE_OPTIONS, default=STUDENT)
 
@@ -40,6 +42,21 @@ class LearningRecord(models.Model):
     platform = models.CharField(max_length=5000, blank=False)
     verb = models.CharField(max_length=5000, blank=False)
     username = models.CharField(max_length=5000, blank=True)
+    platformid = models.CharField(max_length=5000, blank=True)
+    platformparentid = models.CharField(max_length=5000, blank=True)
+    parentusername = models.CharField(max_length=5000, blank=True)
+    senttolrs = models.CharField(max_length=5000, blank=True)
+
+class CachedContent(models.Model):
+    htmltable = models.TextField(blank=False)
+    course_code = models.CharField(max_length=5000, blank=False)
+    platform = models.CharField(max_length=5000, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class AccessLog(models.Model):
+    url = models.CharField(max_length=10000, blank=False)
+    userid = models.CharField(max_length=5000, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 class UnitOffering(models.Model):
     code = models.CharField(max_length=5000, blank=False)

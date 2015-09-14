@@ -142,6 +142,7 @@
         <!-- /.col-lg-12 -->
 </div>
 <!-- /.row -->
+<!-- {{profiling}} -->
 {% endblock %}
 
 {% block js_block %}
@@ -183,6 +184,10 @@ $(function() {
           name : 'Facebook',
           data : [{{ facebook_timeline }}],
           id : 'dataseries1'
+      },{
+          name : 'Forum',
+          data : [{{ forum_timeline }}],
+          id : 'dataseries2'
       }]
   });
 

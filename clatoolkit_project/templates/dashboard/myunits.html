@@ -22,11 +22,22 @@ All Platforms [<a href="/dashboard/?course_code={{unit.code}}&platform=all">Acti
 Twitter Hashtags: {{unit.twitter_hashtags}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Twitter">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Twitter">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Twitter">Social Network Analysis</a>] | <a href="/dataintegration/refreshtwitter/?course_code={{unit.code}}&hashtags={{unit.twitter_hashtags|urlencode}}">Refresh Imported Data</a>
 <br/>
 Facebook Groups: {{unit.facebook_groups}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Facebook">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Facebook">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Facebook">Social Network Analysis</a>] | <a href="/dataintegration/login/{{unit.facebook_groups}}">Refresh Imported Data</a>
+{% if unit.code == 'IFN614' %}
+<br/>
+Forums: {{unit.forum_urls}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Forum">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Forum">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Forum">Social Network Analysis</a>] | <a href="/dataintegration/refreshforum/?course_code={{unit.code}}&forumurl={{unit.forum_urls|urlencode}}">Refresh Imported Data</a>
+{% endif %}
 </p>
+{% else %}
+{% if shownocontentwarning == True %}
+<div class="alert alert-warning">
+    <strong>Note:</strong> Your social media content has not been imported. Imports are scheduled overnight. Please login and check tomorrow.
+</div>
 {% else %}
 <p>
 <a href="/dashboard/mydashboard?course_code={{unit.code}}&platform=all">My Social Media Dashboard</a>
-<br/>
+</p>
+{% endif %}
+
 {% endif %}
             </div>
             <!-- /.panel-body -->

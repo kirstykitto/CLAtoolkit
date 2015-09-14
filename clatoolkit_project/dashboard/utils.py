@@ -8,43 +8,58 @@ import funcy as fp
 from pprint import pprint
 #from dateutil.parser import parse
 from django.contrib.auth.models import User
-from clatoolkit.models import UserProfile, UnitOffering, DashboardReflection, LearningRecord
+from clatoolkit.models import UserProfile, UnitOffering, DashboardReflection, LearningRecord, CachedContent
 from django.db.models import Q
+from django.utils.html import strip_tags
 
 def get_uid_fromsmid(username, platform):
     userprofile = None
     if platform == "Twitter":
-        userprofile = UserProfile.objects.filter(twitter_id=username)
+        userprofile = UserProfile.objects.filter(twitter_id__iexact=username)
     elif platform == "Facebook":
-        userprofile = UserProfile.objects.filter(fb_id=username)
+        userprofile = UserProfile.objects.filter(fb_id__iexact=username)
+    elif platform == "Forum":
+        userprofile = UserProfile.objects.filter(forum_id__iexact=username)
     else:
         #platform must be = all
-        userprofile = UserProfile.objects.filter(Q(twitter_id=username) | Q(fb_id=username))
+        userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=username) | Q(fb_id__iexact=username) | Q(forum_id__iexact=username))
 
     id = userprofile[0].user.id
     return id
 
 def get_username_fromsmid(sm_id, platform):
+    #print "sm_id", sm_id
     userprofile = None
     if platform == "Twitter":
-        userprofile = UserProfile.objects.filter(twitter_id=sm_id)
+        userprofile = UserProfile.objects.filter(twitter_id__iexact=sm_id)
     elif platform == "Facebook":
-        userprofile = UserProfile.objects.filter(fb_id=sm_id)
+        userprofile = UserProfile.objects.filter(fb_id__iexact=sm_id)
+    elif platform == "Forum":
+            userprofile = UserProfile.objects.filter(forum_id__iexact=sm_id)
     else:
         #platform must be = all
-        userprofile = UserProfile.objects.filter(Q(twitter_id=sm_id) | Q(fb_id=sm_id))
-
+        userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=sm_id) | Q(fb_id__iexact=sm_id) | Q(forum_id__iexact=sm_id))
     if len(userprofile)>0:
         username = userprofile[0].user.username
     else:
-        username = None
+        username = sm_id # user may not be registered but display platform username
     return username
+
+def get_role_fromusername(username, platform):
+    user = User.objects.filter(username=username)
+    role = ""
+    if len(user)>0:
+        role = user[0].userprofile.role
+    else:
+        role = 'Visitor' # user may not be registered but display platform username
+    return role
 
 def get_smids_fromuid(uid):
     user = User.objects.get(pk=uid)
     twitter_id = user.userprofile.twitter_id
     fb_id = user.userprofile.fb_id
-    return twitter_id, fb_id
+    forum_id = user.userprofile.forum_id
+    return twitter_id, fb_id, forum_id
 
 def get_timeseries(sm_verb, sm_platform, course_code, username=None):
     # more info on postgres timeseries
@@ -93,7 +108,7 @@ def get_timeseries_byplatform(sm_platform, course_code, username=None):
     userclause = ""
     if username is not None:
         sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
+        userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s])" % (sm_usernames_str)
 
     cursor = connection.cursor()
     cursor.execute("""
@@ -140,20 +155,16 @@ def get_active_members_table(platform, course_code):
     table = []
     for row in result:
         sm_userid = row[0]
-        username = get_username_fromsmid(sm_userid, platform)
+        sm_platform = row[1]
+        username = get_username_fromsmid(sm_userid, sm_platform)
         if username is None:
             username = sm_userid
-        noposts = get_verbuse_byuser(sm_userid, "created", platform, course_code)
-        nolikes = get_verbuse_byuser(sm_userid, "liked", platform, course_code)
-        noshares = get_verbuse_byuser(sm_userid, "shared", platform, course_code)
-        nocomments = get_verbuse_byuser(sm_userid, "commented", platform, course_code)
-        if platform=="Facebook":
-            tmp_user_dict = {10152850610457657:'Kate Devitt',10153944872937892:'Aneesha Bakharia', 10153189868088612: 'Mandy Lupton', 856974831053214:'Andrew Gibson', 10153422068636322:"Sheona Thomson", 940421519354393:"Nicolas Suzor", 420172324832758:"Dann Mallet"}
-            if int(username) in tmp_user_dict:
-                username = tmp_user_dict[int(username)]
-            else:
-                username = username
-        table_html = '<tr><td><a href="/dashboard/student_dashboard?course_code=%s&platform=%s&username=%s">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (course_code, platform, row[0], username, noposts, nolikes, noshares, nocomments, row[1])
+        noposts = get_verbuse_byuser(sm_userid, "created", sm_platform, course_code)
+        nolikes = get_verbuse_byuser(sm_userid, "liked", sm_platform, course_code)
+        noshares = get_verbuse_byuser(sm_userid, "shared", sm_platform, course_code)
+        nocomments = get_verbuse_byuser(sm_userid, "commented", sm_platform, course_code)
+
+        table_html = '<tr><td><a href="/dashboard/student_dashboard?course_code=%s&platform=%s&username=%s&username_platform=%s">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (course_code, platform, row[0], sm_platform, username, noposts, nolikes, noshares, nocomments, row[1])
         table.append(table_html)
     table_str = ''.join(table)
     return table_str
@@ -170,12 +181,6 @@ def get_verbuse_byuser(username, verb, platform, course_code):
         FROM clatoolkit_learningrecord
         WHERE clatoolkit_learningrecord.xapi->'actor'->'account'->>'name'='%s' AND clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US'='%s' AND clatoolkit_learningrecord.course_code='%s' %s
     """ % (username, verb, course_code, platformclause))
-    tmp = """
-        select count(clatoolkit_learningrecord.xapi->'actor'->'account'->>'name')
-        FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.xapi->'actor'->'account'->>'name'='%s' AND clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US'='%s' AND clatoolkit_learningrecord.course_code='%s' %s
-    """ % (username, verb, course_code, platformclause)
-    print tmp
     result = cursor.fetchone()
     count = result[0]
     return count
@@ -184,7 +189,7 @@ def get_top_content_table(platform, course_code, username=None):
 
     platformclause = ""
     if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
+        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
 
     userclause = ""
     if username is not None:
@@ -192,8 +197,9 @@ def get_top_content_table(platform, course_code, username=None):
         userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
 
     cursor = connection.cursor()
+    # distinct
     cursor.execute("""
-    SELECT distinct clatoolkit_learningrecord.xapi->'object'->>'id', clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.xapi->'actor'->'account'->>'name', clatoolkit_learningrecord.xapi->>'timestamp', clatoolkit_learningrecord.xapi->'context'->>'platform'
+    SELECT clatoolkit_learningrecord.platformid, clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.username, clatoolkit_learningrecord.xapi->>'timestamp', clatoolkit_learningrecord.platform
     FROM clatoolkit_learningrecord
     WHERE clatoolkit_learningrecord.course_code='%s' %s %s
     """ % (course_code, userclause, platformclause))
@@ -205,12 +211,7 @@ def get_top_content_table(platform, course_code, username=None):
         username = get_username_fromsmid(sm_userid, platform)
         if username is None:
             username = sm_userid
-        if platform=="Facebook":
-            tmp_user_dict = {10152850610457657:'Kate Devitt',10153944872937892:'Aneesha Bakharia', 10153189868088612: 'Mandy Lupton', 856974831053214:'Andrew Gibson', 10153422068636322:"Sheona Thomson", 940421519354393:"Nicolas Suzor", 420172324832758:"Dann Mallet"}
-            if int(username) in tmp_user_dict:
-                username = tmp_user_dict[int(username)]
-            else:
-                username = username
+
         post = row[1] #parse(row[0])
         nolikes = contentcount_byverb(id, "liked", platform, course_code)
         noshares = contentcount_byverb(id, "shared", platform, course_code)
@@ -221,11 +222,24 @@ def get_top_content_table(platform, course_code, username=None):
     table_str = ''.join(table)
     return table_str
 
+def get_cached_top_content(platform, course_code):
+    cached_content = None
+    if platform=="all":
+        cached_content = CachedContent.objects.filter(course_code=course_code)
+    else:
+        cached_content = CachedContent.objects.filter(platform=platform,course_code=course_code)
+    #print platform, course_code, cached_content
+    content_output = []
+    for platformcontent in cached_content:
+        content_output.append(platformcontent.htmltable)
+    content_output_str = ''.join(content_output)
+    return content_output_str
+
 def contentcount_byverb(id, verb, platform, course_code, username=None):
 
     platformclause = ""
     if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
+        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
 
     userclause = ""
     if username is not None:
@@ -240,16 +254,16 @@ def contentcount_byverb(id, verb, platform, course_code, username=None):
             SELECT count(*)
             FROM clatoolkit_learningrecord
             WHERE
-            clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US'='%s'
+            clatoolkit_learningrecord.verb='%s'
             AND clatoolkit_learningrecord.course_code='%s' %s %s
-            AND (clatoolkit_learningrecord.xapi->'object'->>'id'='%s' OR
-            clatoolkit_learningrecord.xapi->'context'->'contextActivities'->'parent'->>'id'='%s');
+            AND (clatoolkit_learningrecord.platformid='%s' OR
+            clatoolkit_learningrecord.platformparentid='%s');
         """ % (verb, course_code, platformclause, userclause, id, id)
     else:
         sql = """
         SELECT count(*)
         FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US'='%s' %s %s AND clatoolkit_learningrecord.xapi->'object'->>'id'='%s'
+        WHERE clatoolkit_learningrecord.verb='%s' %s %s AND clatoolkit_learningrecord.platformid='%s'
         """ % (verb, platformclause, userclause, id)
     cursor.execute(sql)
     result = cursor.fetchone()
@@ -260,7 +274,7 @@ def get_allcontent_byplatform(platform, course_code, username=None):
 
     platformclause = ""
     if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
+        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
 
     userclause = ""
     if username is not None:
@@ -277,7 +291,10 @@ def get_allcontent_byplatform(platform, course_code, username=None):
     content_list = []
     for row in result:
         #content_list.append(row[0])
-        content_list.append(row[0].replace('"',''))
+        content = strip_tags(row[0])
+        content = content.replace('"','')
+        content_list.append(content)
+    #print content_list[0]
     return content_list
 
 def loadStopWords(stopWordFile):
@@ -375,7 +392,7 @@ def get_wordcloud(platform, course_code, username=None):
     word_tags = []
 
     for term_freq_pair in term_freqs:
-        print "term_freq_pair", term_freq_pair
+        #print "term_freq_pair", term_freq_pair
         if ((not term_freq_pair[0].startswith('http')) or (term_freq_pair[0]=='-')):
             weight = 0
             if type(term_freq_pair[1]) is tuple:
@@ -390,7 +407,7 @@ def get_nodes_byplatform(platform, course_code, username=None):
 
     platformclause = ""
     if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
+        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
 
     userclause = ""
     if username is not None:
@@ -398,7 +415,7 @@ def get_nodes_byplatform(platform, course_code, username=None):
         userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
 
     sql = """
-            SELECT distinct clatoolkit_learningrecord.xapi->'actor'->'account'->>'name'
+            SELECT distinct clatoolkit_learningrecord.username
             FROM clatoolkit_learningrecord
             WHERE clatoolkit_learningrecord.course_code='%s' %s %s
           """ % (course_code, platformclause, userclause)
@@ -416,7 +433,7 @@ def get_relationships_byplatform(platform, course_code, username=None):
 
     platformclause = ""
     if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
+        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
 
     count = 1
     userclause = ""
@@ -429,7 +446,7 @@ def get_relationships_byplatform(platform, course_code, username=None):
     #and add edge based on @mention
     #This query gets #hashtags as well and needs to be refined
     sql = """
-            SELECT clatoolkit_learningrecord.xapi->'actor'->'account'->>'name', clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US', obj
+            SELECT clatoolkit_learningrecord.username, clatoolkit_learningrecord.verb, obj, clatoolkit_learningrecord.platform
             FROM   clatoolkit_learningrecord, json_array_elements(clatoolkit_learningrecord.xapi->'context'->'contextActivities'->'other') obj
             WHERE  clatoolkit_learningrecord.course_code='%s' %s %s
           """ % (course_code, platformclause, userclause)
@@ -449,8 +466,8 @@ def get_relationships_byplatform(platform, course_code, username=None):
         #"{"definition": {"type": "http://id.tincanapi.com/activitytype/tag", "name": {"en-US": "@sbuckshum"}}, "id": "http://id.tincanapi.com/activity/tags/tincan", "objectType": "Activity"}"
         tag = dict["definition"]["name"]["en-US"]
         if tag.startswith('@'): # hastags are also returned in query and need to be filtered out
-            from_node = row[0]
-            to_node = tag[1:] #remove @symbol
+            from_node = get_username_fromsmid(row[0], row[3])
+            to_node = get_username_fromsmid(tag[1:], row[3]) #remove @symbol
             edgekey = "%s__%s" % (from_node,to_node)
             edge_dict[edgekey] += 1
             mention_dict[edgekey] += 1
@@ -461,55 +478,41 @@ def get_relationships_byplatform(platform, course_code, username=None):
                 nodes_in_sna_dict[to_node] = count
                 count += 1
 
-    #get all statements with a parentid
+    #get all statements with platformparentid
     sql = """
-            SELECT clatoolkit_learningrecord.xapi->'actor'->'account'->>'name', obj, clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US'
-            FROM clatoolkit_learningrecord, json_array_elements(clatoolkit_learningrecord.xapi->'context'->'contextActivities'->'parent') obj
-            WHERE clatoolkit_learningrecord.course_code='%s' %s %s
+            SELECT clatoolkit_learningrecord.username, clatoolkit_learningrecord.verb, clatoolkit_learningrecord.parentusername, clatoolkit_learningrecord.platform, clatoolkit_learningrecord.platformparentid
+            FROM clatoolkit_learningrecord
+            WHERE COALESCE(clatoolkit_learningrecord.platformparentid, '') != '' AND clatoolkit_learningrecord.course_code='%s' %s %s
           """ % (course_code, platformclause, userclause)
 
-    # for each parentid retrieve the agent of the statement
     cursor = connection.cursor()
     cursor.execute(sql)
     result = cursor.fetchall()
-
+    #print sql
     for row in result:
-        #dict = row[1]
-        #print row[2]
-        #print "---S"
-        #pprint(dict)
-        if 'id' in dict:
-            id = dict["id"]
-            #print id
-            agentquery = """
-                            SELECT clatoolkit_learningrecord.xapi->'actor'->'account'->>'name'
-                            FROM clatoolkit_learningrecord
-                            WHERE clatoolkit_learningrecord.xapi->'object'->>'id'='%s' AND clatoolkit_learningrecord.course_code='%s' %s
-                         """ % (id, course_code, platformclause)
-            #print agentquery
-            cursor.execute(agentquery)
-            result2 = cursor.fetchall()
-            for row2 in result2:
-                #print "Found ID: ", row2[0]
-                from_node = row[0]
-                to_node = row2[0]
-                edgekey = "%s__%s" % (from_node,to_node)
-                if platform=="Facebook":
-                    tmp_user_dict = {10152850610457657:'Kate Devitt',10153944872937892:'Aneesha Bakharia', 10153189868088612: 'Mandy Lupton', 856974831053214:'Andrew Gibson', 10153422068636322:"Sheona Thomson", 940421519354393:"Nicolas Suzor", 420172324832758:"Dann Mallet"}
-                    #print tmp_user_dict[int(from_node)], tmp_user_dict[int(to_node)]
-                #print edgekey
-                edge_dict[edgekey] += 1
-                if row[3]=="shared":
-                    share_dict[edgekey] += 1
-                elif row[3]=="commented":
-                    comment_dict[edgekey] += 1
-                #print from_node, from_node
-                if from_node not in nodes_in_sna_dict:
-                    nodes_in_sna_dict[from_node] = count
-                    count += 1
-                if to_node not in nodes_in_sna_dict:
-                    nodes_in_sna_dict[to_node] = count
-                    count += 1
+        #print row
+        platform_username = row[0]
+        verb = row[1]
+        platform_parent_username = row[2]
+        row_platform = row[3] #if platform=all then need to know rows platform
+        display_username = get_username_fromsmid(platform_username, row_platform)
+        display_related_username = get_username_fromsmid(platform_parent_username, row_platform)
+        #print "platform_username", platform_username, "display_username", display_username
+        #print "platform_parent_username", platform_parent_username, "display_related_username", display_related_username
+        from_node = display_username
+        to_node = display_related_username
+        edgekey = "%s__%s" % (from_node,to_node)
+        edge_dict[edgekey] += 1
+        if verb=="shared":
+            share_dict[edgekey] += 1
+        elif verb=="commented":
+            comment_dict[edgekey] += 1
+        if from_node not in nodes_in_sna_dict:
+            nodes_in_sna_dict[from_node] = count
+            count += 1
+        if to_node not in nodes_in_sna_dict:
+            nodes_in_sna_dict[to_node] = count
+            count += 1
     return edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict
 
 def sna_buildjson(platform, course_code, username=None):
@@ -525,35 +528,38 @@ def sna_buildjson(platform, course_code, username=None):
         edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code)
 
     json_str_list = []
-
+    #print node_dict
+    #print nodes_in_sna_dict
     #if username is not None:
     if len(nodes_in_sna_dict)>0:
         node_dict = nodes_in_sna_dict
 
-    pprint(node_dict)
+    #pprint(node_dict)
     #pprint(nodes_in_sna_dict)
-    pprint(edge_dict)
+    #pprint(edge_dict)
+
+    node_type_colours = {'Staff':{'border':'#661A00','fill':'#CC3300'}, 'Student':{'border':'#003D99','fill':'#0066FF'}, 'Visitor':{'border':'black','fill':'white'}}
 
     # Build node json
     json_str_list.append("{nodes: [")
     for node in node_dict:
         #print node
-        username = ""
-        if platform=="Facebook":
-            tmp_user_dict = {10152850610457657:'Kate Devitt',10153944872937892:'Aneesha Bakharia', 10153189868088612: 'Mandy Lupton', 856974831053214:'Andrew Gibson', 10153422068636322:"Sheona Thomson", 940421519354393:"Nicolas Suzor", 420172324832758:"Dann Mallet"}
-            if int(node) in tmp_user_dict:
-                username = tmp_user_dict[int(node)]
-            else:
-                username = node
-        else:
-            username = node
-        json_str_list.append('{id: %d, "label": "%s"},' % (node_dict[node], username))
+        username = node
+        role = get_role_fromusername(node, platform)
+        node_border = node_type_colours[role]['border']
+        node_fill = node_type_colours[role]['fill']
+        json_str_list.append('{id: %d, "label": "%s", "color": {background:"%s", border:"%s"}},' % (node_dict[node], username, node_fill, node_border))
     json_str_list.append("],")
 
     # Build edge json
     dict_types = {'mention': mention_dict, 'share': share_dict, 'comment': comment_dict}
     relationship_type_colours = {'mention': 'black', 'share': 'green', 'comment': 'red'}
+
     json_str_list.append("edges: [")
+
+    #print "mention_dict", mention_dict
+    #print "share_dict", share_dict
+    #print "comment_dict", comment_dict
 
     for relationshiptype in dict_types:
         for edge_str in dict_types[relationshiptype]:
@@ -771,8 +777,6 @@ def get_LDAVis_JSON_IFN600(corpus, num_topics):
         print "Topic #" + str(i) + ":",
         for t in topic:
             print t[1]
-
-
         print ""
 
 

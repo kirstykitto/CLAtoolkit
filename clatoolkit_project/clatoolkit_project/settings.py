@@ -80,7 +80,7 @@ WSGI_APPLICATION = 'clatoolkit_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': '',
+        'NAME': 'cladb',
         'USER': '',
         'PASSWORD': '',
         'HOST': '',
@@ -128,4 +128,4 @@ STATICFILES_FINDERS = (
 
 AUTH_PROFILE_MODULE = "account.userprofile"
 
-GA_TRACKING_ID = '' # Googla Analytics Tracking Code
+GA_TRACKING_ID = ''

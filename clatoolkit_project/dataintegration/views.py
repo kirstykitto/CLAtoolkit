@@ -6,15 +6,13 @@ from django.shortcuts import render, render_to_response
 from authomatic import Authomatic
 from authomatic.adapters import DjangoAdapter
 from authomatic.providers import oauth2
-
+from dashboard.utils import *
 from django.template import RequestContext
-
 from dataintegration.tasks import *
 from .forms import FacebookGatherForm
-#from dataintegration.forms import UserForm, UserProfileForm
 import json
 from pprint import pprint
-from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord
+from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, CachedContent
 
 CONFIG = {
     # Auth information for Facebook App
@@ -40,11 +38,18 @@ def refreshtwitter(request):
     course_code = request.GET.get('course_code')
     hastags = request.GET.get('hashtags')
 
-    t = LearningRecord.objects.filter(platform='Twitter',course_code=course_code).delete()
+    #t = LearningRecord.objects.filter(platform='Twitter',course_code=course_code).delete()
+    #LearningRecord.objects.all().delete()
 
     tags = hastags.split(',')
     for tag in tags:
         injest_twitter(tag, course_code)
+
+    top_content = get_top_content_table("Twitter", course_code)
+    cached_content, created = CachedContent.objects.get_or_create(course_code=course_code, platform="Twitter")
+    cached_content.htmltable = top_content
+    cached_content.save()
+
     html_response.write('Twitter Refreshed.')
     return html_response
 
@@ -100,9 +105,13 @@ def login(request, group_id):
                     paging = access_response.data.get('paging')
                     #pprint(paging)
                     #pprint(fb_json)
-                    t = LearningRecord.objects.filter(platform='Facebook',course_code=course_code).delete()
+                    #t = LearningRecord.objects.filter(platform='Facebook',course_code=course_code).delete()
                     injest_facebook(fb_feed, paging, course_code)
                     #injest_twitter("#clatest", "cla101")
+                    top_content = get_top_content_table("Facebook", course_code)
+                    cached_content, created = CachedContent.objects.get_or_create(course_code=course_code, platform="Facebook")
+                    cached_content.htmltable = top_content
+                    cached_content.save()
                     html_response.write('Updating Facebook for ' + course_code)
                     '''
                     if access_response.status == 200:
@@ -130,63 +139,6 @@ def login(request, group_id):
 
     return html_response
 
-'''
-def register(request):
-    # Like before, get the request's context.
-    context = RequestContext(request)
-
-    # A boolean value for telling the template whether the registration was successful.
-    # Set to False initially. Code changes value to True when registration succeeds.
-    registered = False
-
-    # If it's a HTTP POST, we're interested in processing form data.
-    if request.method == 'POST':
-        # Attempt to grab information from the raw form information.
-        # Note that we make use of both UserForm and UserProfileForm.
-        user_form = UserForm(data=request.POST)
-        profile_form = UserProfileForm(data=request.POST)
-
-        # If the two forms are valid...
-        if user_form.is_valid() and profile_form.is_valid():
-            # Save the user's form data to the database.
-            user = user_form.save()
-
-            # Now we hash the password with the set_password method.
-            # Once hashed, we can update the user object.
-            user.set_password(user.password)
-            user.save()
-
-            # Now sort out the UserProfile instance.
-            # Since we need to set the user attribute ourselves, we set commit=False.
-            # This delays saving the model until we're ready to avoid integrity problems.
-            profile = profile_form.save(commit=False)
-            profile.user = user
-
-            # Now we save the UserProfile model instance.
-            profile.save()
-
-            # Update our variable to tell the template registration was successful.
-            registered = True
-
-        # Invalid form or forms - mistakes or something else?
-        # Print problems to the terminal.
-        # They'll also be shown to the user.
-        else:
-            print user_form.errors, profile_form.errors
-
-    # Not a HTTP POST, so we render our form using two ModelForm instances.
-    # These forms will be blank, ready for user input.
-    else:
-        user_form = UserForm()
-        profile_form = UserProfileForm()
-
-
-    # Render the template depending on the context.
-    return render_to_response(
-        'dataintegration/register.html',
-            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered},
-            context)
-'''
 def get_social_media_id(request):
     '''
     Gets users social media IDs for use in signup for information integration.
@@ -224,4 +176,20 @@ def get_social_media_id(request):
     else:
         html_response.write('Auth Returned no Response.')
 
+    return html_response
+
+def refreshforum(request):
+    html_response = HttpResponse()
+
+    course_code = request.GET.get('course_code')
+    forumurl = request.GET.get('forumurl')
+
+    ingest_forum(forumurl, course_code)
+
+    top_content = get_top_content_table("Forum", course_code)
+    cached_content, created = CachedContent.objects.get_or_create(course_code=course_code, platform="Forum")
+    cached_content.htmltable = top_content
+    cached_content.save()
+
+    html_response.write('Forum Refreshed.')
     return html_response
