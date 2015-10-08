@@ -50,12 +50,15 @@ def myunits(request):
 
     #if student check if the student has imported data
     if role=='Student':
+        username = request.user.username
+        if LearningRecord.objects.filter(username__iexact=username).count() == 0:
+            shownocontentwarning = True
+        '''
         userid = request.user.id
         twitter_id, fb_id, forum_id = get_smids_fromuid(userid)
         if LearningRecord.objects.filter(Q(username__iexact=twitter_id) | Q(username__iexact=fb_id) | Q(username__iexact=forum_id)).count() == 0:
             shownocontentwarning = True
-
-    print shownocontentwarning
+        '''
     context_dict = {'title': "My Units", 'units': units, 'show_dashboardnav':show_dashboardnav, 'shownocontentwarning': shownocontentwarning, 'role': role}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
@@ -120,7 +123,7 @@ def dashboard(request):
 
     #active members table
     profiling = profiling + "| Active Members %s" % (str(datetime.datetime.now()))
-    activememberstable = get_active_members_table(platform, course_code)
+    activememberstable = get_active_members_table(platform, course_code) #get_cached_active_users(platform, course_code)
 
     profiling = profiling + "| Top Content %s" % (str(datetime.datetime.now()))
     topcontenttable = get_cached_top_content(platform, course_code) #get_top_content_table(platform, course_code)
@@ -182,12 +185,16 @@ def pyldavis(request):
     if request.method == 'POST':
         course_code = request.POST['course_code']
         platform = request.POST['platform']
+        start_date = request.POST.get('start_date', None)
+        end_date = request.POST.get('end_date', None)
     else:
         course_code = request.GET.get('course_code')
         platform = request.GET.get('platform')
+        start_date = request.GET.get('start_date', None)
+        end_date = request.GET.get('end_date', None)
 
-    pyLDAVis_json = get_LDAVis_JSON(platform, 5, course_code)
-    context_dict = {'title': "Student Dashboard", 'pyLDAVis_json': pyLDAVis_json}
+    pyLDAVis_json = get_LDAVis_JSON(platform, 5, course_code, start_date=start_date, end_date=end_date)
+    context_dict = {'title': "Topic Model", 'pyLDAVis_json': pyLDAVis_json}
 
     return render_to_response('dashboard/pyldavis.html', context_dict, context)
 
@@ -205,8 +212,8 @@ def studentdashboard(request):
     username = request.GET.get('username')
     username_platform = request.GET.get('username_platform')
 
-    userid = get_uid_fromsmid(username, username_platform)
-    twitter_id, fb_id, forum_id = get_smids_fromuid(userid)
+    #userid = get_smids_fromusername(username)
+    twitter_id, fb_id, forum_id = get_smids_fromusername(username)
     sm_usernames_dict = {'Twitter': twitter_id, 'Facebook': fb_id, 'Forum': forum_id}
     sm_usernames = [twitter_id, fb_id, forum_id]
 
@@ -216,18 +223,18 @@ def studentdashboard(request):
     show_dashboardnav = True
 
     #print "Verb timelines", datetime.datetime.now()
-    posts_timeline = get_timeseries('created', platform, course_code, username=sm_usernames)
-    shares_timeline = get_timeseries('shared', platform, course_code, username=sm_usernames)
-    likes_timeline = get_timeseries('liked', platform, course_code, username=sm_usernames)
-    comments_timeline = get_timeseries('commented', platform, course_code, username=sm_usernames)
+    posts_timeline = get_timeseries('created', platform, course_code, username=username)
+    shares_timeline = get_timeseries('shared', platform, course_code, username=username)
+    likes_timeline = get_timeseries('liked', platform, course_code, username=username)
+    comments_timeline = get_timeseries('commented', platform, course_code, username=username)
 
     #print "Activity by Platform", datetime.datetime.now()
     cursor = connection.cursor()
     cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
                         FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username ILIKE any(array[%s])
+                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
                         GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
-                    """ % (course_code, sm_usernames_str))
+                    """ % (course_code, username))
     result = cursor.fetchall()
 
     activity_pie_series = ""
@@ -244,17 +251,17 @@ def studentdashboard(request):
     if platform != "all":
         platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
     else:
-        twitter_timeline = get_timeseries_byplatform("Twitter", course_code, [twitter_id])
-        facebook_timeline = get_timeseries_byplatform("Facebook", course_code, [fb_id])
-        forum_timeline = get_timeseries_byplatform("Forum", course_code, [forum_id])
+        twitter_timeline = get_timeseries_byplatform("Twitter", course_code, username)
+        facebook_timeline = get_timeseries_byplatform("Facebook", course_code, username)
+        forum_timeline = get_timeseries_byplatform("Forum", course_code, username)
         show_allplatforms_widgets = True
 
     cursor = connection.cursor()
     cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'context'->>'platform' as platform, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
                         FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username ILIKE any(array[%s])
+                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
                         GROUP BY clatoolkit_learningrecord.xapi->'context'->>'platform';
-                    """ % (course_code, sm_usernames_str))
+                    """ % (course_code, username))
     result = cursor.fetchall()
 
     platformactivity_pie_series = ""
@@ -262,13 +269,13 @@ def studentdashboard(request):
         platformactivity_pie_series = platformactivity_pie_series + "['%s',  %s]," % (row[0],row[1])
 
     #print "Top Content", datetime.datetime.now()
-    topcontenttable = get_top_content_table(platform, course_code, username=sm_usernames)
+    topcontenttable = get_top_content_table(platform, course_code, username=username)
 
     #print "SNA", datetime.datetime.now()
-    sna_json = sna_buildjson(platform, course_code, username=sm_usernames)
+    sna_json = sna_buildjson(platform, course_code, username=username)
 
     #print "Word Cloud", datetime.datetime.now()
-    tags = get_wordcloud(platform, course_code, username=sm_usernames)
+    tags = get_wordcloud(platform, course_code, username=username)
 
     context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline':forum_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
 
@@ -307,17 +314,17 @@ def mydashboard(request):
     title = "Student Dashboard: %s, %s" % (course_code, username)
     show_dashboardnav = True
 
-    posts_timeline = get_timeseries('created', platform, course_code, username=sm_usernames)
-    shares_timeline = get_timeseries('shared', platform, course_code, username=sm_usernames)
-    likes_timeline = get_timeseries('liked', platform, course_code, username=sm_usernames)
-    comments_timeline = get_timeseries('commented', platform, course_code, username=sm_usernames)
+    posts_timeline = get_timeseries('created', platform, course_code, username=username)
+    shares_timeline = get_timeseries('shared', platform, course_code, username=username)
+    likes_timeline = get_timeseries('liked', platform, course_code, username=username)
+    comments_timeline = get_timeseries('commented', platform, course_code, username=username)
 
     cursor = connection.cursor()
     cursor.execute("""SELECT clatoolkit_learningrecord.verb as verb, count(clatoolkit_learningrecord.verb) as counts
                         FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username ILIKE any(array[%s])
+                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
                         GROUP BY clatoolkit_learningrecord.verb;
-                    """ % (course_code, sm_usernames_str))
+                    """ % (course_code, username))
     result = cursor.fetchall()
 
     activity_pie_series = ""
@@ -333,55 +340,30 @@ def mydashboard(request):
     if platform != "all":
         platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
     else:
-        twitter_timeline = get_timeseries_byplatform("Twitter", course_code, [twitter_id])
-        facebook_timeline = get_timeseries_byplatform("Facebook", course_code, [fb_id])
-        forum_timeline = get_timeseries_byplatform("Forum", course_code, [forum_id])
+        twitter_timeline = get_timeseries_byplatform("Twitter", course_code, username)
+        facebook_timeline = get_timeseries_byplatform("Facebook", course_code, username)
+        forum_timeline = get_timeseries_byplatform("Forum", course_code, username)
         show_allplatforms_widgets = True
 
     cursor = connection.cursor()
     cursor.execute("""SELECT clatoolkit_learningrecord.platform as platform, count(clatoolkit_learningrecord.verb) as counts
                         FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username ILIKE any(array[%s])
+                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
                         GROUP BY clatoolkit_learningrecord.platform;
-                    """ % (course_code, sm_usernames_str))
+                    """ % (course_code, username))
     result = cursor.fetchall()
 
     platformactivity_pie_series = ""
     for row in result:
         platformactivity_pie_series = platformactivity_pie_series + "['%s',  %s]," % (row[0],row[1])
 
-    topcontenttable = get_top_content_table(platform, course_code, username=sm_usernames)
+    #topcontenttable = get_top_content_table(platform, course_code, username=username)
 
-    sna_json = sna_buildjson(platform, course_code, username=sm_usernames)
+    sna_json = sna_buildjson(platform, course_code, username=username)
 
-    tags = get_wordcloud(platform, course_code, username=sm_usernames)
+    tags = get_wordcloud(platform, course_code, username=username)
 
     reflections = DashboardReflection.objects.filter(username=username)
-    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'forum_timeline': forum_timeline, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'forum_timeline': forum_timeline, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
 
     return render_to_response('dashboard/mydashboard.html', context_dict, context)
-
-def topicmodeling(request):
-    context = RequestContext(request)
-    datasets = ['shark','putin']
-    dataset = "shark"
-    num_topics = 5
-
-    if request.method == 'POST':
-        num_topics = int(request.POST['num_topics'])
-        dataset = request.POST['corpus']
-
-    pyLDAVis_json = get_LDAVis_JSON_IFN600(dataset,num_topics)
-
-    context_dict = {'title': "Topic Modeling", 'pyLDAVis_json': pyLDAVis_json, 'num_topics':num_topics, 'dataset':dataset}
-
-    return render_to_response('dashboard/topicmodeling.html', context_dict, context)
-
-'''
-| Verb Timelines 2015-09-12 22:36:41.408928
-| Platform Timelines 2015-09-12 22:36:41.571214
-| Pies 2015-09-12 22:36:41.701260
-| Active Members 2015-09-12 22:36:41.781525
-| Top Content 2015-09-12 22:36:43.270624
-| End Top Content 2015-09-12 22:36:49.203892
-'''

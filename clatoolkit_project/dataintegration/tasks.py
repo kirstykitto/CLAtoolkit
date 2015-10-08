@@ -13,6 +13,8 @@ from twython import Twython
 import json
 from bs4 import BeautifulSoup
 from urllib2 import urlopen
+from django.db import connection
+from dashboard.utils import *
 
 def injest_twitter(sent_hashtag, course_code):
     get_oldtweets(course_code, sent_hashtag)
@@ -157,7 +159,7 @@ def insert_facebook_lrs(fb_feed, course_code):
 
                     if fbid_exists(like_uid, course_code):
                         usr_dict = get_userdetails(like_uid)
-                        insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url)
+                        insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url, liked_username=from_uid)
 
             if 'comments' in pst:
                 for comment in pst['comments']['data']:
@@ -310,6 +312,8 @@ def get_posts(topic_url):
             post_permalink = post.find("a", "bbp-reply-permalink").attrs['href']
             post_user_link = post.find("a", "bbp-author-avatar").attrs['href']
             post_content = str(post.find("div", "bbp-reply-content"))
+            #post_content = message.decode('utf-8').encode('ascii', 'ignore') #post_content.replace(u"\u2018", "'").replace(u"\u2019", "'").replace(u"\u2013", "-").replace(u"\ud83d", " ").replace(u"\ude09", " ").replace(u"\u00a0l", " ").replace(u"\ud83d", " ").replace(u"\u2026", " ").replace(u"\ude09", " ").replace(u"\u00a0"," ")
+
             #print "post_content_div", post_content
             #post_content = post_content_div.renderContents() #post_content_div.string #post_content_div.find("p").string
             #print "renderContents", post_content.renderContents()
@@ -319,6 +323,7 @@ def get_posts(topic_url):
     return posts
 
 def ingest_forum(url, course_code):
+    url = "http://2015.informationprograms.info/forums/"
     platform = "Forum"
 
     forums  = get_forumlinks(url)
@@ -398,29 +403,112 @@ def insert_post(usr_dict, post_id,message,from_name,from_uid, created_time, cour
         stm = socialmediabuilder.socialmedia_builder(verb='created', platform=platform, account_name=from_uid, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_name, course_code=course_code, tags=tags)
         jsn = ast.literal_eval(stm.to_json())
         stm_json = socialmediabuilder.pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=from_uid, platformid=post_id)
+        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=get_username_fromsmid(from_uid, platform), platformid=post_id, message=message, datetimestamp=created_time)
         lrs.save()
+        for tag in tags:
+            if tag[0]=="@":
+                socialrelationship = SocialRelationship(verb = "mentioned", fromusername=get_username_fromsmid(from_uid,platform), tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
+                socialrelationship.save()
 
-def insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url):
+def insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url, liked_username=None):
     if check_ifnotinlocallrs(course_code, platform, post_id):
-        stm = socialmediabuilder.socialmedia_builder(verb='liked', platform=platform, account_name=like_uid, account_homepage=platform_url, object_type='Note', object_id='post_id', message=message, account_email=usr_dict['email'], user_name=like_name, course_code=course_code)
+        stm = socialmediabuilder.socialmedia_builder(verb='liked', platform=platform, account_name=like_uid, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, account_email=usr_dict['email'], user_name=like_name, course_code=course_code)
         jsn = ast.literal_eval(stm.to_json())
         stm_json = socialmediabuilder.pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='liked', platform=platform, username=like_uid, platformid=post_id)
+        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='liked', platform=platform, username=get_username_fromsmid(like_uid, platform), platformid=post_id, message=message, platformparentid=post_id, parentusername=get_username_fromsmid(liked_username,platform), datetimestamp=created_time)
         lrs.save()
+        socialrelationship = SocialRelationship(verb = "liked", fromusername=get_username_fromsmid(like_uid,platform), tousername=get_username_fromsmid(liked_username,platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
+        socialrelationship.save()
 
 def insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, shared_username=None):
     if check_ifnotinlocallrs(course_code, platform, comment_id):
         stm = socialmediabuilder.socialmedia_builder(verb='commented', platform=platform, account_name=comment_from_uid, account_homepage=platform_url, object_type='Note', object_id=comment_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code )
         jsn = ast.literal_eval(stm.to_json())
         stm_json = socialmediabuilder.pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='commented', platform=platform, username=comment_from_uid, platformid=comment_id, platformparentid=post_id, parentusername=shared_username)
+        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='commented', platform=platform, username=get_username_fromsmid(comment_from_uid, platform), platformid=comment_id, platformparentid=post_id, parentusername=get_username_fromsmid(shared_username,platform), message=comment_message, datetimestamp=comment_created_time)
         lrs.save()
+        socialrelationship = SocialRelationship(verb = "commented", fromusername=get_username_fromsmid(comment_from_uid,platform), tousername=get_username_fromsmid(shared_username,platform), platform=platform, message=comment_message, datetimestamp=comment_created_time, course_code=course_code, platformid=comment_id)
+        socialrelationship.save()
 
 def insert_share(usr_dict, post_id, share_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, tags=[], shared_username=None):
     if check_ifnotinlocallrs(course_code, platform, share_id):
         stm = socialmediabuilder.socialmedia_builder(verb='shared', platform=platform, account_name=comment_from_uid, account_homepage=platform_url, object_type='Note', object_id=share_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code, tags=tags )
         jsn = ast.literal_eval(stm.to_json())
         stm_json = socialmediabuilder.pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='shared', platform=platform, username=comment_from_uid, platformid=share_id, platformparentid=post_id, parentusername=shared_username)
+        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='shared', platform=platform, username=get_username_fromsmid(comment_from_uid, platform), platformid=share_id, platformparentid=post_id, parentusername=get_username_fromsmid(shared_username,platform), message=comment_message, datetimestamp=comment_created_time)
         lrs.save()
+        socialrelationship = SocialRelationship(verb = "shared", fromusername=get_username_fromsmid(comment_from_uid,platform), tousername=get_username_fromsmid(shared_username,platform), platform=platform, message=comment_message, datetimestamp=comment_created_time, course_code=course_code, platformid=share_id)
+        socialrelationship.save()
+
+def updateLRS():
+
+    # for each unit that is enabled
+    units = UnitOffering.objects.filter(enabled=True)
+
+    # get all xapi statements for course
+    for unit in units:
+        ll_endpoint = unit.ll_endpoint
+        ll_username = unit.ll_username
+        ll_password = unit.ll_password
+        unit_code = unit.code
+        #extract xapi data
+        cursor = connection.cursor()
+        cursor.execute("""SELECT clatoolkit_learningrecord.verb, clatoolkit_learningrecord.platform, clatoolkit_learningrecord.username, clatoolkit_learningrecord.platformid, clatoolkit_learningrecord.platformparentid, clatoolkit_learningrecord.parentusername, clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.xapi->>'timestamp', obj
+                          FROM clatoolkit_learningrecord, json_array_elements(clatoolkit_learningrecord.xapi->'context'->'contextActivities'->'other') obj
+                          WHERE clatoolkit_learningrecord.course_code='%s';
+                       """ % (unit_code))
+        result = cursor.fetchall()
+        # submit to LRS
+        for stm in result:
+            #construct xapi statement
+            verb = stm[0]
+            platform = stm[1]
+            platformusername = stm[2]
+            platformid = stm[3]
+            parentid = stm[4]
+            parentusername = stm[5]
+            message = stm[6]
+            timestamp = stm[7]
+            context_dict = stm[8]
+            atmentions = []
+            hashtags = []
+            #print context_dict
+            for item in context_dict:
+                if item == "definition":
+                    context_ref = context_dict[item]["name"]["en-US"]
+                    if context_ref[0] == "@":
+                        atmentions.append(context_ref)
+                    elif context_ref[0] == "#":
+                        hashtags.append(context_ref)
+            # construct statement using socialmediabuilder
+            if platform == "Twitter":
+                message = "Refer to object id to retrieve tweet."
+            #print verb, platform, platformusername, platformid, message, timestamp
+            #print atmentions
+            #print hashtags
+            userdict = {}
+            if platform == "Twitter":
+                usr_dict = get_userdetails_twitter(username)
+            elif platform == "Facebook":
+                usr_dict = get_userdetails(username)
+            elif platform == "Forum":
+                usr_dict = get_userdetails_forum(username)
+
+            lrs_stm = None
+            if verb == "created":
+                lrs_stm = socialmediabuilder.socialmedia_builder(verb='created', platform=platform, account_name=username, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_name, course_code=course_code, tags=tags)
+            elif verb == "liked":
+                lrs_stm = socialmediabuilder.socialmedia_builder(verb='liked', platform=platform, account_name=username, account_homepage=platform_url, object_type='Note', object_id='post_id', message=message, account_email=usr_dict['email'], user_name=like_name, course_code=course_code)
+            elif verb == "commented":
+                lrs_stm = socialmediabuilder.socialmedia_builder(verb='commented', platform=platform, account_name=username, account_homepage=platform_url, object_type='Note', object_id=comment_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code )
+            elif verb == "shared":
+                lrs_stm = socialmediabuilder.socialmedia_builder(verb='shared', platform=platform, account_name=username, account_homepage=platform_url, object_type='Note', object_id=share_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code, tags=tags )
+
+            # send xapi statement to LRS
+
+            # if successful update senttolrs flag
+            '''
+            locallrs = LearningRecord(platformid=post_id)
+            locallrs.senttolrs = True
+            locallrs.save()
+            '''

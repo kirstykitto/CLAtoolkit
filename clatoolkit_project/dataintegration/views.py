@@ -7,12 +7,18 @@ from authomatic import Authomatic
 from authomatic.adapters import DjangoAdapter
 from authomatic.providers import oauth2
 from dashboard.utils import *
+
 from django.template import RequestContext
+
 from dataintegration.tasks import *
 from .forms import FacebookGatherForm
+
 import json
 from pprint import pprint
-from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, CachedContent
+from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent
+from django.db import connection
+import dateutil.parser
+from dashboard.utils import *
 
 CONFIG = {
     # Auth information for Facebook App
@@ -40,14 +46,17 @@ def refreshtwitter(request):
 
     #t = LearningRecord.objects.filter(platform='Twitter',course_code=course_code).delete()
     #LearningRecord.objects.all().delete()
+    #SocialRelationship.objects.all().delete()
 
     tags = hastags.split(',')
     for tag in tags:
         injest_twitter(tag, course_code)
 
     top_content = get_top_content_table("Twitter", course_code)
+    active_content = get_active_members_table("Twitter", course_code)
     cached_content, created = CachedContent.objects.get_or_create(course_code=course_code, platform="Twitter")
     cached_content.htmltable = top_content
+    cached_content.activitytable = active_content
     cached_content.save()
 
     html_response.write('Twitter Refreshed.')
@@ -109,31 +118,13 @@ def login(request, group_id):
                     injest_facebook(fb_feed, paging, course_code)
                     #injest_twitter("#clatest", "cla101")
                     top_content = get_top_content_table("Facebook", course_code)
+                    active_content = get_active_members_table("Facebook", course_code)
                     cached_content, created = CachedContent.objects.get_or_create(course_code=course_code, platform="Facebook")
+                    cached_content.activitytable = active_content
                     cached_content.htmltable = top_content
                     cached_content.save()
                     html_response.write('Updating Facebook for ' + course_code)
-                    '''
-                    if access_response.status == 200:
-                        # Parse response.
-                        data = access_response.data.get('data')
-                        paging = access_response.data.get('paging')
-                        error = access_response.data.get('error')
-                        if error:
-                            html_response.write(u'Error: {0}!'.format(error))
-                        elif data:
-                            #result = send_data_to_lrs.delay(data, paging, html_response)
-                            send_data_to_lrs(data, paging, html_response)
-                            #print result.id
-                            #html_response.write('<p>Data is being collected from the Facebook Page with an ID of ' + group_id + '</p>')
-                            #html_response.write('<p>View your task status <a href="http://localhost:5555/'
-                            #                    'task/'+result.id+'">here.</a></p>')
-                            html_response.write('<p>Data was collected from the Facebook Page with an ID of ' + group_id + '</p>')
 
-                    else:
-                        html_response.write('Unknown error<br />')
-                        html_response.write(u'Status: {0}'.format(html_response.status))
-                    '''
     else:
         html_response.write('Auth Returned no Response.')
 
@@ -184,12 +175,114 @@ def refreshforum(request):
     course_code = request.GET.get('course_code')
     forumurl = request.GET.get('forumurl')
 
+    #t = LearningRecord.objects.filter(platform='Forum').delete()
+
     ingest_forum(forumurl, course_code)
 
     top_content = get_top_content_table("Forum", course_code)
+    active_content = get_active_members_table("Forum", course_code)
     cached_content, created = CachedContent.objects.get_or_create(course_code=course_code, platform="Forum")
     cached_content.htmltable = top_content
+    cached_content.activitytable = active_content
     cached_content.save()
 
     html_response.write('Forum Refreshed.')
+    return html_response
+
+def sendtolrs(request):
+    html_response = HttpResponse()
+
+    updateLRS()
+
+    html_response.write('Statements Sent to LRS.')
+    return html_response
+
+def updatelearningrecords(request):
+    html_response = HttpResponse()
+
+    cursor = connection.cursor()
+    cursor.execute("""
+        SELECT clatoolkit_learningrecord.id, clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.xapi->'timestamp', clatoolkit_learningrecord.username, clatoolkit_learningrecord.parentusername, clatoolkit_learningrecord.platform
+        FROM clatoolkit_learningrecord
+    """)
+    result = cursor.fetchall()
+
+    for row in result:
+        id = row[0]
+        message = row[1]
+        datetimestamp = row[2]
+        platform = row[5]
+        username = row[3] #get_username_fromsmid(row[3], platform)
+        #print "parent smid", row[4]
+        parentusername = "" #get_username_fromsmid(row[4], platform)
+        #print "parent username", parentusername
+        if row[4]=="DennisMitchell":
+            parentusername = ""
+        else:
+            parentusername = row[4]
+        obj = LearningRecord.objects.get(pk=id)
+        obj.message = message
+        obj.username = username
+        obj.parentusername = parentusername
+        obj.datetimestamp = dateutil.parser.parse(datetimestamp)
+        obj.save()
+
+    html_response.write('Local LRS Updated.')
+    return html_response
+
+
+def insertsocialrelationships(request):
+    html_response = HttpResponse()
+
+    # Rebuild Relationships
+    SocialRelationship.objects.filter().delete()
+
+    sql = """
+            SELECT clatoolkit_learningrecord.username, clatoolkit_learningrecord.verb, obj, clatoolkit_learningrecord.platform, clatoolkit_learningrecord.datetimestamp, clatoolkit_learningrecord.message, clatoolkit_learningrecord.course_code, clatoolkit_learningrecord.verb, clatoolkit_learningrecord.platformid
+            FROM   clatoolkit_learningrecord, json_array_elements(clatoolkit_learningrecord.xapi->'context'->'contextActivities'->'other') obj
+          """
+    cursor = connection.cursor()
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    for row in result:
+        #print row
+        dict = row[2]
+        tag = dict["definition"]["name"]["en-US"]
+        if tag.startswith('@'): # hastags are also returned in query and need to be filtered out
+            socialrelationship = SocialRelationship()
+            socialrelationship.fromusername = row[0] #get_username_fromsmid(row[0], row[3])
+            socialrelationship.tousername = get_username_fromsmid(tag[1:], row[3]) #remove @symbol
+            socialrelationship.message = row[5]
+            socialrelationship.datetimestamp = row[4]
+            socialrelationship.platform = row[3]
+            socialrelationship.verb = "mentioned"
+            socialrelationship.platformid = row[8]
+            socialrelationship.course_code = row[6]
+            socialrelationship.save()
+            print row[3]
+
+    #get all statements with platformparentid
+    sql = """
+            SELECT clatoolkit_learningrecord.username, clatoolkit_learningrecord.parentusername, clatoolkit_learningrecord.verb, clatoolkit_learningrecord.platform, clatoolkit_learningrecord.platformid, clatoolkit_learningrecord.message, clatoolkit_learningrecord.datetimestamp, clatoolkit_learningrecord.course_code
+            FROM clatoolkit_learningrecord
+            WHERE COALESCE(clatoolkit_learningrecord.platformparentid, '') != ''
+          """
+
+    cursor = connection.cursor()
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    for row in result:
+
+            socialrelationship = SocialRelationship()
+            socialrelationship.fromusername = row[0] #get_username_fromsmid(row[0], row[3])
+            socialrelationship.tousername = row[1] #get_username_fromsmid(row[1], row[3])
+            socialrelationship.message = row[5]
+            socialrelationship.datetimestamp = row[6]
+            socialrelationship.platform = row[3]
+            socialrelationship.verb = row[2]
+            socialrelationship.platformid = row[4]
+            socialrelationship.course_code = row[7]
+            socialrelationship.save()
+
+    html_response.write('Social Relationships Updated.')
     return html_response

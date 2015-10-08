@@ -45,10 +45,23 @@ class LearningRecord(models.Model):
     platformid = models.CharField(max_length=5000, blank=True)
     platformparentid = models.CharField(max_length=5000, blank=True)
     parentusername = models.CharField(max_length=5000, blank=True)
+    message = models.TextField(blank=True)
+    datetimestamp = models.DateTimeField(blank=True, null=True)
     senttolrs = models.CharField(max_length=5000, blank=True)
+
+class SocialRelationship(models.Model):
+    course_code = models.CharField(max_length=5000, blank=False)
+    platform = models.CharField(max_length=5000, blank=False)
+    verb = models.CharField(max_length=5000, blank=False)
+    fromusername = models.CharField(max_length=5000, blank=True)
+    tousername = models.CharField(max_length=5000, blank=True)
+    platformid = models.CharField(max_length=5000, blank=True)
+    message = models.TextField(blank=False)
+    datetimestamp = models.DateTimeField(blank=True)
 
 class CachedContent(models.Model):
     htmltable = models.TextField(blank=False)
+    activitytable = models.TextField(blank=True)
     course_code = models.CharField(max_length=5000, blank=False)
     platform = models.CharField(max_length=5000, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
