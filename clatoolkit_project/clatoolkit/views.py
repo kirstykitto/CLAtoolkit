@@ -12,11 +12,11 @@ from clatoolkit.forms import UserForm, UserProfileForm
 
 from django.template import RequestContext
 
-from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship
+from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification
 
 from rest_framework import authentication, permissions, viewsets, filters
-from .serializers import LearningRecordSerializer, SocialRelationshipSerializer
-from .forms import LearningRecordFilter, SocialRelationshipFilter
+from .serializers import LearningRecordSerializer, SocialRelationshipSerializer, ClassificationSerializer, UserClassificationSerializer
+from .forms import LearningRecordFilter, SocialRelationshipFilter, ClassificationFilter, UserClassificationFilter
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -214,6 +214,22 @@ class SocialRelationshipViewSet(DefaultsMixin, viewsets.ReadOnlyModelViewSet):
     filter_class = SocialRelationshipFilter
     search_fields = ('message',)
     ordering_fields = ('datetimestamp')
+
+class ClassificationViewSet(DefaultsMixin, viewsets.ReadOnlyModelViewSet):
+    """API endpoint for listing Classifications."""
+
+    queryset = Classification.objects.order_by('created_at')
+    serializer_class = ClassificationSerializer
+    filter_class = ClassificationFilter
+    ordering_fields = ('created_at')
+
+class UserClassificationViewSet(DefaultsMixin, viewsets.ModelViewSet):
+    """API endpoint for listing and inserting user classifications."""
+
+    queryset = UserClassification.objects.order_by('created_at')
+    serializer_class = UserClassificationSerializer
+    filter_class = UserClassificationFilter
+    ordering_fields = ('created_at')
 
 class SNARESTView(DefaultsMixin, APIView):
 

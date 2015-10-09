@@ -11,5 +11,7 @@ urlpatterns = patterns('',
     url(r'^sna_dashboard/$', views.snadashboard, name='snadashboard'),
     url(r'^student_dashboard/$', views.studentdashboard, name='studentdashboard'),
     url(r'^mydashboard/$', views.mydashboard, name='mydashboard'),
-    url(r'^pyldavis/$', views.pyldavis, name='pyldavis')
+    url(r'^pyldavis/$', views.pyldavis, name='pyldavis'),
+    url(r'^topicmodeling/$', views.topicmodeling, name='topicmodeling'),
+    url(r'^myclassifications/$', views.myclassifications, name='myclassifications')
 )

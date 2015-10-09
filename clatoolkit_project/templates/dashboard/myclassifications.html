@@ -1,0 +1,108 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block heading %}{{title}}{% endblock %}
+
+{% block pagetopnav %}
+{% if show_dashboardnav == True %}
+<li><a href="/dashboard/myunits"><i class="fa fa-dashboard fa-fw"></i> My Units</a></li>
+{% endif %}
+{% endblock %}
+
+{% block body %}
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Community of Inquiry Classifications
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+              <div class="well well-lg">
+                <p>
+                  <ul>
+                  {% for classification in classifications %}
+                    <li>{{classification.xapistatement.message}} | {{classification.classification}}</li>
+                  {% endfor %}
+                  </ul>
+                </p>
+              </div>
+                <div class="pull-right"><button id="classifybtn" class="btn btn-primary">Save Classification</button></div>
+                <p>
+                  <div id="postresponse"></div>
+                </p>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-12 -->
+</div>
+<!-- /.row -->
+
+
+{% endblock %}
+
+{% block js_block %}
+{% autoescape off %}
+<script>
+var platform = "{{platform}}";
+var username = "{{username}}";
+var uid = "{{uid}}"
+var csrftoken;
+
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function csrfSafeMethod(method) {
+  // these HTTP methods do not require CSRF protection
+  return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+
+function save_reclassification()
+{
+    console.log("save_reclassification clicked");
+    // make ajax call to save a classification
+    current_classificationid = 2; // This is the id of the currently displayed classification
+    isclassificationcorrect = "true";
+    userreclassification = "Integration"; // Students new classification
+    feedback = "Feedback from the student";
+
+    params = {classification: current_classificationid, username: username, isclassificationcorrect: isclassificationcorrect, userreclassification:userreclassification, feedback:feedback}
+    $.post("/api/userclassification/", params,
+      function(data){
+        $('#postresponse').html("User Classification sent via ajax.");
+      });
+}
+
+$(function() {
+    $('#classifybtn').click(function () {
+      save_reclassification();
+    });
+    csrftoken = getCookie('csrftoken');
+
+    $.ajaxSetup({
+    beforeSend: function(xhr) {
+        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+    }
+    });
+});
+</script>
+{% endautoescape %}
+{% endblock %}

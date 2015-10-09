@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import LearningRecord, SocialRelationship
+from .models import LearningRecord, SocialRelationship, Classification, UserClassification
 
 class LearningRecordSerializer(serializers.ModelSerializer):
     """
@@ -16,3 +16,19 @@ class SocialRelationshipSerializer(serializers.ModelSerializer):
     class Meta:
         model = SocialRelationship
         fields = ('id', 'course_code', 'platform', 'verb', 'fromusername', 'tousername', 'platformid', 'message', 'datetimestamp')
+
+class ClassificationSerializer(serializers.ModelSerializer):
+    """
+    Serializing all the Machine Learning Classifications eg CoI
+    """
+    class Meta:
+        model = Classification
+        fields = ('id', 'xapistatement', 'classification', 'classifier')
+
+class UserClassificationSerializer(serializers.ModelSerializer):
+    """
+    Serializing all the User Reclassifications for the Machine Learning Classifications
+    """
+    class Meta:
+        model = UserClassification
+        fields = ('id', 'classification', 'username', 'isclassificationcorrect', 'userreclassification', 'feedback')

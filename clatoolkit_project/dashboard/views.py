@@ -4,13 +4,13 @@ from django.template import RequestContext
 from django.http import HttpResponse
 from django.db import connection
 from utils import *
-from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord
+from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, Classification
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from functools import wraps
 from django.db.models import Q
 import datetime
-
+#staceysarasvati 
 def check_access(required_roles=None):
     def decorator(view):
         @wraps(view)
@@ -367,3 +367,36 @@ def mydashboard(request):
     context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'forum_timeline': forum_timeline, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
 
     return render_to_response('dashboard/mydashboard.html', context_dict, context)
+
+@check_access(required_roles=['Student'])
+@login_required
+def myclassifications(request):
+    context = RequestContext(request)
+
+    course_code = None
+    platform = None
+    username = request.user.username
+    uid = request.user.id
+
+    course_code = request.GET.get('course_code')
+    platform = request.GET.get('platform')
+
+    classifications = Classification.objects.filter(xapistatement__username=username)
+    context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications }
+    return render_to_response('dashboard/myclassifications.html', context_dict, context)
+
+def topicmodeling(request):
+    context = RequestContext(request)
+    datasets = ['shark','putin']
+    dataset = "shark"
+    num_topics = 5
+
+    if request.method == 'POST':
+        num_topics = int(request.POST['num_topics'])
+        dataset = request.POST['corpus']
+
+    pyLDAVis_json = get_LDAVis_JSON_IFN600(dataset,num_topics)
+
+    context_dict = {'title': "Topic Modeling", 'pyLDAVis_json': pyLDAVis_json, 'num_topics':num_topics, 'dataset':dataset}
+
+    return render_to_response('dashboard/topicmodeling.html', context_dict, context)

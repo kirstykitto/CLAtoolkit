@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 import django_filters
-from clatoolkit.models import UserProfile, UnitOffering, LearningRecord, SocialRelationship
+from clatoolkit.models import UserProfile, UnitOffering, LearningRecord, SocialRelationship, Classification, UserClassification
 
 class UserForm(forms.ModelForm):
     username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
@@ -36,3 +36,15 @@ class SocialRelationshipFilter(django_filters.FilterSet):
     class Meta:
         model = SocialRelationship
         fields = ('id', 'course_code', 'platform', 'verb', 'fromusername', 'tousername', 'platformid', 'message', 'datetimestamp', 'datetimestamp_min', 'datetimestamp_max')
+
+class ClassificationFilter(django_filters.FilterSet):
+
+    class Meta:
+        model = Classification
+        fields = ('id', 'xapistatement', 'classification', 'classifier')
+
+class UserClassificationFilter(django_filters.FilterSet):
+
+    class Meta:
+        model = UserClassification
+        fields = ('id', 'classification', 'username', 'isclassificationcorrect', 'userreclassification', 'feedback')

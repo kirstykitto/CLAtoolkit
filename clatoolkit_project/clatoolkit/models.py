@@ -71,6 +71,20 @@ class AccessLog(models.Model):
     userid = models.CharField(max_length=5000, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+class Classification(models.Model):
+    xapistatement = models.ForeignKey(LearningRecord)
+    classification = models.CharField(max_length=1000, blank=False)
+    classifier = models.CharField(max_length=1000, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class UserClassification(models.Model):
+    classification = models.ForeignKey(Classification)
+    username = models.CharField(max_length=5000, blank=False)
+    isclassificationcorrect = models.BooleanField(blank=False)
+    userreclassification = models.CharField(max_length=1000, blank=False)
+    feedback = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
 class UnitOffering(models.Model):
     code = models.CharField(max_length=5000, blank=False)
     name = models.CharField(max_length=5000, blank=False)

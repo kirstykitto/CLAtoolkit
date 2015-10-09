@@ -6,6 +6,8 @@ import views
 router = DefaultRouter()
 router.register(r'learningrecord', views.LearningRecordViewSet)
 router.register(r'socialrelationship', views.SocialRelationshipViewSet)
+router.register(r'classification', views.ClassificationViewSet)
+router.register(r'userclassification', views.UserClassificationViewSet)
 #router.register(r'sna', views.SNARESTView, base_name="sna")
 
 urlpatterns = patterns('',
