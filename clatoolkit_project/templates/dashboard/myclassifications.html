@@ -48,7 +48,7 @@
                         }
                     </style>
 
-                        <div class="item active">
+                        <div class="item active" id="start_c">
                             <p>View and Classify your learning interactions.</p>
 
                             <div class="btn-group">
@@ -87,6 +87,10 @@
                             </div>
                         </div> <!-- end carousel item -->
                         {% endfor %}
+
+                        <div class="item">
+                            <p>No more interactions to show. Check back next week!</p>
+                        </div>
 
                     </div> <!-- end Slide Wrapper -->
 
@@ -196,6 +200,9 @@ $(document).ready(function(){
 $(function() {
    $('.beginc').click(function(){
        $('.class-buttons').show();
+       var next_div = $('#start_c').next('div .item');
+       next_div.addClass("active");
+       $('#start_c').remove();
    });
 });
 
@@ -211,6 +218,14 @@ $(function() {
       console.log(isClassCorrect);
       console.log(id);
 
+      /*console.log($('.carousel-inner .item:last').hasClass('active'));
+      if ($('.carousel-inner .item:last').hasClass('active')) {
+          console.log("DONE!!!!!!");
+          $('.class-buttons').hide();
+      }*/
+
+
+
       save_reclassification(id, u_classification, isClassCorrect);
     });
     csrftoken = getCookie('csrftoken');
@@ -221,6 +236,23 @@ $(function() {
     }
     });
 });
+
+
+      $('#c_box').bind('slid.bs.carousel', function (e)
+        {
+            var $this = $(this);
+
+            $this.children('.carousel-control').show();
+
+            if ($('.carousel-inner .item:last').hasClass('active'))
+            {
+               //$('#carousel-b').carousel('pause');
+                $this.children('.class-buttons').hide();
+            } else if ($('.carousel-inner .item:first').hasClass('active'))
+            {
+                $this.children('.class-buttons').hide();
+            }
+        });
 </script>
 {% endautoescape %}
 {% endblock %}
