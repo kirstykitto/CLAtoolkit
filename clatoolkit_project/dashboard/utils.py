@@ -14,7 +14,10 @@ from django.utils.html import strip_tags
 import networkx as nx
 import re
 
+
 def classify(course_code, platform):
+    #Calls JAR to extract and classify messages
+    #$ java -cp /dataintegration/MLWrapper/CLAToolKit_JavaMLWrapper-0.1.jar load.from_clatk ./config.json [course_code] [platform]
     os.popen('java', '-cp', '/dataintegration/MLWrapper/CLAToolKit_JavaMLWrapper-0.1.jar', 'load.from_clatk', './config.json', course_code, platform);
 
 def get_uid_fromsmid(username, platform):

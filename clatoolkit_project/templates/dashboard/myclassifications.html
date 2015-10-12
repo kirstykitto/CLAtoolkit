@@ -47,7 +47,7 @@
                             opacity: 0.9;
                         }
                     </style>
-
+                        {% if classifications %}
                         <div class="item active" id="start_c">
                             <p>View and Classify your learning interactions.</p>
 
@@ -57,6 +57,7 @@
 
 
                         </div>
+                        {% endif %}
 
                         <!--Generate carousel items to display classifications-->
 
@@ -88,7 +89,8 @@
                         </div> <!-- end carousel item -->
                         {% endfor %}
 
-                        <div class="item">
+
+                        <div class="item {% if not classifications %}active{% endif %}">
                             <p>No more interactions to show. Check back next week!</p>
                         </div>
 
@@ -193,10 +195,12 @@ function save_reclassification(id, uc, ic)
       });
 }
 
+//Hides carousel control buttons on init for first slide
 $(document).ready(function(){
     $('.class-buttons').hide();
-})
+});
 
+//Once users clicks "begin", show the carousel control buttons
 $(function() {
    $('.beginc').click(function(){
        $('.class-buttons').show();
@@ -206,6 +210,7 @@ $(function() {
    });
 });
 
+//Classification button (carousel control) event
 $(function() {
     $('.classifybtn').click(function () {
       var u_classification = $(this).html(); //User's Classification
@@ -213,18 +218,10 @@ $(function() {
       var isClassCorrect = (u_classification == c_classification) ? "true" : "false"; //if user_classification == classifier_prediction { id = true } else { id = false }
       var id = $('.item.active').find('.classification').attr('data-id'); //Classification DB Id
 
-      console.log(u_classification);
+      /*console.log(u_classification);
       console.log(c_classification);
       console.log(isClassCorrect);
-      console.log(id);
-
-      /*console.log($('.carousel-inner .item:last').hasClass('active'));
-      if ($('.carousel-inner .item:last').hasClass('active')) {
-          console.log("DONE!!!!!!");
-          $('.class-buttons').hide();
-      }*/
-
-
+      console.log(id);*/
 
       save_reclassification(id, u_classification, isClassCorrect);
     });
@@ -237,22 +234,20 @@ $(function() {
     });
 });
 
+//Removes carousel control buttons once user has classified everything
+$('#c_box').bind('slid.bs.carousel', function (e) {
+    var $this = $(this);
 
-      $('#c_box').bind('slid.bs.carousel', function (e)
-        {
-            var $this = $(this);
+    $this.children('.carousel-control').show();
 
-            $this.children('.carousel-control').show();
+    if ($('.carousel-inner .item:last').hasClass('active')) {
+        //$('#carousel-b').carousel('pause');
+        $this.children('.class-buttons').hide();
 
-            if ($('.carousel-inner .item:last').hasClass('active'))
-            {
-               //$('#carousel-b').carousel('pause');
-                $this.children('.class-buttons').hide();
-            } else if ($('.carousel-inner .item:first').hasClass('active'))
-            {
-                $this.children('.class-buttons').hide();
-            }
-        });
+    } else if ($('.carousel-inner .item:first').hasClass('active')) {
+        $this.children('.class-buttons').hide();
+    }
+});
 </script>
 {% endautoescape %}
 {% endblock %}
