@@ -21,19 +21,117 @@
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
-              <div class="well well-lg">
-                <p>
+
+            <!--#c_box .carousel-->
+                <div id="c_box" class="carousel slide" data-ride="carousel" data-interval="false">
+
+                    <!--Indicators NOTE: may be useful later-->
+                    <!--<ol class="carousel-indicators">
+                        <li data-target="#c_box" data-slide-to="0" class="active"></li>
+
+                        % for classification in classifications %}
+                        <li data-target="#c_box" data-slide-to="{ forloop.counter }}"></li>
+                        % endfor %}
+
+                    </ol>-->
+
+                    <!-- Slide wrapper -->
+                    <div class="carousel-inner" role="listbox">
+
+                    <style>
+                        .carousel-inner .item {
+                            min-height: 100px;
+                        }
+
+                        .carousel-control {
+                            opacity: 0.9;
+                        }
+                    </style>
+
+                        <div class="item active">
+                            <p>View and Classify your learning interactions.</p>
+
+                            <div class="btn-group">
+                                <a href="#c_box" class="right btn btn-primary carousel-control beginc" data-slide="next" role="group" style="width: 77px;">Begin</a>
+                            </div>
+
+
+                        </div>
+
+                        <!--Generate carousel items to display classifications-->
+
+                        <!--The Message that was classified-->
+                        {% for classification in classifications %}
+                        <div class="item" style="height: 30%;"> <!-- carousel item -->
+                            <p style="padding: 5%;">"{{ classification.xapistatement.message }}"</p>
+
+
+                            <style>
+                                /*
+                                 * Styling Caption to display the classifier prediction
+                                 */
+                                .carousel-caption {
+                                    top: 0;
+                                    bottom: auto;
+                                    left: 0;
+                                    right: auto;
+                                    margin-top: 0;
+                                    color: #0075b0;
+                                    text-shadow: none;
+                                }
+                            </style>
+
+                            <!-- Classifier prediction displayed as caption-->
+                            <div class="carousel-caption">
+                                Was classified as: <span class="classification" data-id="{{classification.id}}">{{classification.classification}}</span>
+                            </div>
+                        </div> <!-- end carousel item -->
+                        {% endfor %}
+
+                    </div> <!-- end Slide Wrapper -->
+
+                    <!--Controllers/Feedback buttons -->
+                    <div class="bottom btn-group btn-group-justified class-buttons" role="group" style="margin-top: 5px;" aria-label="...">
+
+                        <div class="btn-group" role="group">
+                            <a type="button" class="classifybtn btn btn-sm btn-primary carousel-control" role="button" href="#c_box" data-slide="next" >Triggering</a>
+                        </div>
+
+                        <div class="btn-group" role="group">
+                            <a type="button" class="classifybtn btn btn-sm btn-info carousel-control" role="button" href="#c_box" data-slide="next" >
+                                Exploration
+                            </a>
+                        </div>
+
+                        <div class="btn-group" role="group">
+                            <a type="button" class="classifybtn btn btn-sm btn-success carousel-control" role="button" href="#c_box" data-slide="next" >
+                                Integration
+                            </a>
+                        </div>
+
+                        <div class="btn-group" role="group">
+                            <a type="button" class="classifybtn btn btn-sm btn-warning carousel-control" role="button" href="#c_box" data-slide="next" >
+                                Resolution
+                            </a>
+                        </div>
+
+                        <div class="btn-group" role="group">
+                            <a type="button" class="classifybtn btn btn-sm btn-danger carousel-control" role="button" href="#c_box" data-slide="next" >
+                                Other
+                            </a>
+                        </div>
+                    </div>
+                </div> <!-- end #c_box .carousel -->
+                  <!--<p>
                   <ul>
-                  {% for classification in classifications %}
-                    <li>{{classification.xapistatement.message}} | {{classification.classification}}</li>
-                  {% endfor %}
+
                   </ul>
                 </p>
               </div>
                 <div class="pull-right"><button id="classifybtn" class="btn btn-primary">Save Classification</button></div>
                 <p>
                   <div id="postresponse"></div>
-                </p>
+                </p>-->
             </div>
             <!-- /.panel-body -->
         </div>
@@ -75,13 +173,13 @@ function csrfSafeMethod(method) {
   return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
 }
 
-function save_reclassification()
+function save_reclassification(id, uc, ic)
 {
     console.log("save_reclassification clicked");
     // make ajax call to save a classification
-    current_classificationid = 2; // This is the id of the currently displayed classification
-    isclassificationcorrect = "true";
-    userreclassification = "Integration"; // Students new classification
+    current_classificationid = id; // This is the id of the currently displayed classification
+    isclassificationcorrect = ic;
+    userreclassification = uc; // Students new classification
     feedback = "Feedback from the student";
 
     params = {classification: current_classificationid, username: username, isclassificationcorrect: isclassificationcorrect, userreclassification:userreclassification, feedback:feedback}
@@ -91,9 +189,29 @@ function save_reclassification()
       });
 }
 
+$(document).ready(function(){
+    $('.class-buttons').hide();
+})
+
 $(function() {
-    $('#classifybtn').click(function () {
-      save_reclassification();
+   $('.beginc').click(function(){
+       $('.class-buttons').show();
+   });
+});
+
+$(function() {
+    $('.classifybtn').click(function () {
+      var u_classification = $(this).html(); //User's Classification
+      var c_classification = $('.item.active').find('.classification').html() //Classifier's Prediction
+      var isClassCorrect = (u_classification == c_classification) ? "true" : "false"; //if user_classification == classifier_prediction { id = true } else { id = false }
+      var id = $('.item.active').find('.classification').attr('data-id'); //Classification DB Id
+
+      console.log(u_classification);
+      console.log(c_classification);
+      console.log(isClassCorrect);
+      console.log(id);
+
+      save_reclassification(id, u_classification, isClassCorrect);
     });
     csrftoken = getCookie('csrftoken');
 
