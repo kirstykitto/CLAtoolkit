@@ -18,6 +18,7 @@
         <div class="panel panel-default">
             <div class="panel-heading">
                 <i class="fa fa-bar-chart-o fa-fw"></i> Community of Inquiry Classifications
+                <a href="#" class="pull-right whatisthis" role="button">What is this?</a>
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
@@ -46,6 +47,12 @@
                         .carousel-control {
                             opacity: 0.9;
                         }
+
+                        .highlighted {
+                            /*color: blue;*/
+
+                            background-color: yellow;
+                        }
                     </style>
                         {% if classifications %}
                         <div class="item active" id="start_c">
@@ -64,7 +71,7 @@
                         <!--The Message that was classified-->
                         {% for classification in classifications %}
                         <div class="item" style="height: 30%;"> <!-- carousel item -->
-                            <p style="padding: 5%;">"{{ classification.xapistatement.message }}"</p>
+                            <div class='msgwrapper' style="padding: 5%;" onmouseover="saveFeature(this);">{{ classification.xapistatement.message|removetags:"div"|safe }}</div>
 
 
                             <style>
@@ -77,6 +84,8 @@
                                     left: 0;
                                     right: auto;
                                     margin-top: 0;
+                                    padding-top: 0;
+                                    padding-bottom: 0;
                                     color: #0075b0;
                                     text-shadow: none;
                                 }
@@ -89,8 +98,8 @@
                         </div> <!-- end carousel item -->
                         {% endfor %}
 
-
-                        <div class="item {% if not classifications %}active{% endif %}">
+                        <!-- If there are no classifications to display to the user, make this item active -->
+                        <div class="item{% if not classifications %}active{% endif %}">
                             <p>No more interactions to show. Check back next week!</p>
                         </div>
 
@@ -99,35 +108,42 @@
                     <!--Controllers/Feedback buttons -->
                     <div class="bottom btn-group btn-group-justified class-buttons" role="group" style="margin-top: 5px;" aria-label="...">
 
-                        <div class="btn-group" role="group">
+                        <div class="btn-group trig" role="group">
                             <a type="button" class="classifybtn btn btn-sm btn-primary carousel-control" role="button" href="#c_box" data-slide="next" >Triggering</a>
                         </div>
 
-                        <div class="btn-group" role="group">
+                        <div class="btn-group expl" role="group">
                             <a type="button" class="classifybtn btn btn-sm btn-info carousel-control" role="button" href="#c_box" data-slide="next" >
                                 Exploration
                             </a>
                         </div>
 
-                        <div class="btn-group" role="group">
+                        <div class="btn-group inte" role="group">
                             <a type="button" class="classifybtn btn btn-sm btn-success carousel-control" role="button" href="#c_box" data-slide="next" >
                                 Integration
                             </a>
                         </div>
 
-                        <div class="btn-group" role="group">
+                        <div class="btn-group reso" role="group">
                             <a type="button" class="classifybtn btn btn-sm btn-warning carousel-control" role="button" href="#c_box" data-slide="next" >
                                 Resolution
                             </a>
                         </div>
 
-                        <div class="btn-group" role="group">
+                        <div class="btn-group othe" role="group">
                             <a type="button" class="classifybtn btn btn-sm btn-danger carousel-control" role="button" href="#c_box" data-slide="next" >
                                 Other
                             </a>
                         </div>
                     </div>
                 </div> <!-- end #c_box .carousel -->
+
+                <input class="featuretxt" type="hidden" name="feature" value="nada">
+
+            <!--<span class="hl-warning" style="color: red; font-weight: bold">Don't forget you can highlight
+            text from your interactions that made you believe it belonged to a particular category</span>-->
+
+
                   <!--<p>
                   <ul>
 
@@ -152,11 +168,15 @@
 
 {% block js_block %}
 {% autoescape off %}
+<!-- intro.js -->
+<script src="https://cdn.jsdelivr.net/intro.js/1.1.1/intro.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/intro.js/1.1.1/introjs.min.css">
 <script>
 var platform = "{{platform}}";
 var username = "{{username}}";
 var uid = "{{uid}}"
 var csrftoken;
+var highlighted = false;
 
 function getCookie(name) {
     var cookieValue = null;
@@ -186,7 +206,13 @@ function save_reclassification(id, uc, ic)
     current_classificationid = id; // This is the id of the currently displayed classification
     isclassificationcorrect = ic;
     userreclassification = uc; // Students new classification
-    feedback = "Feedback from the student";
+    feedback = "None";
+
+    if (highlighted) {
+        feedback = $('.featuretxt').val().toString();
+    }
+
+    console.log(feedback);
 
     params = {classification: current_classificationid, username: username, isclassificationcorrect: isclassificationcorrect, userreclassification:userreclassification, feedback:feedback}
     $.post("/api/userclassification/", params,
@@ -195,12 +221,59 @@ function save_reclassification(id, uc, ic)
       });
 }
 
+//Helper JavaScript function - gets user highlighted/selected text
+function getHighlightedText(){
+    var txt;
+
+    if (document.all) {
+        txt = document.selection.createRange().text;
+    } else {
+        txt = document.getSelection();
+    }
+
+    return txt;
+}
+
+//Jquery for text-hightlight/feature select
+function saveFeature(el) {
+    $(el).mouseup(function(){
+
+        var selected = getHighlightedText();
+        var selected_txt = selected.toString();
+
+        if (selected_txt.length != 0) {
+            $('.featuretxt').val(selected_txt);
+
+            var element = $('.highlighted');
+
+            if (element.length){
+                element.contents().unwrap();
+            }
+
+            var span_wrapper = document.createElement('SPAN');
+            span_wrapper.className = "highlighted";
+            span_wrapper.textContent = selected_txt;
+
+            var range = selected.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(span_wrapper);
+            highlighted = true;
+        }
+
+        //console.log($('.featuretxt').val().toString());
+    });
+}
+
+
+
 //Hides carousel control buttons on init for first slide
 $(document).ready(function(){
     $('.class-buttons').hide();
+    //$('.hl-warning').hide();
 });
 
 //Once users clicks "begin", show the carousel control buttons
+//TODO: replace $('#start_c').next() with $('#c_box').children
 $(function() {
    $('.beginc').click(function(){
        $('.class-buttons').show();
@@ -223,6 +296,11 @@ $(function() {
       console.log(isClassCorrect);
       console.log(id);*/
 
+      //console.log(!highlighted);
+      //if (!highlighted) {
+      //    $('.hl-warning').show();
+      //}
+
       save_reclassification(id, u_classification, isClassCorrect);
     });
     csrftoken = getCookie('csrftoken');
@@ -231,6 +309,48 @@ $(function() {
     beforeSend: function(xhr) {
         xhr.setRequestHeader('X-CSRFToken', csrftoken);
     }
+    });
+});
+
+//Intro.js Code/Settings
+$(function() {
+    $('.whatisthis').click(function(){
+        var intro = introJs();
+        intro.setOptions({
+            steps: [
+                {
+                    element: '.class-buttons',
+                    intro: 'This bar contains options for you to Categorise your learning interactions using the CLA ToolKit',
+                    position: 'top'
+                },
+                {
+                    element: '.trig',
+                    intro: 'The triggering phase signals the beginning of a discussion for inquiry.',
+                    position: 'top'
+                },
+                {
+                    element: '.expl',
+                    intro: 'Exploration means you were exploring ideas and concepts by sharing outside information or your own knowledge.',
+                    position: 'top'
+                },
+                {
+                    element: '.inte',
+                    intro: 'The integration phase are messages within a discussion that are integrating ideas to form a solution. These ideas may come from the exploration phase or your own research',
+                    position: 'top'
+                },
+                {
+                    element: '.reso',
+                    intro: 'Resolution messages have formed some sort of conclusion, product or artifact which was built upon in the integration phase.',
+                    position: 'top'
+                },
+                {
+                    element: '.othe',
+                    intro: 'Messages that do not fall into any of the previous categories are marked as "other", examples include banter or social talk, or otherwise off-topic messages',
+                    position: 'top'
+                }
+            ]
+        });
+    intro.start();
     });
 });
 
