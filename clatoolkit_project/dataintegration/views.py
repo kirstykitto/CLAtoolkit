@@ -20,6 +20,54 @@ from django.db import connection
 import dateutil.parser
 from dashboard.utils import *
 
+### YouTube Integration ###
+"""
+from django.shortcuts import render
+from django.http import HttpResponseRedirect
+from oauth2client.client import OAuth2WebServerFlow
+import httplib2
+from apiclient.discovery import build
+"""
+from dataintegration.googleLib import *
+
+courseCode = None
+channelIds = None
+#videoIds = None
+
+
+##############################################
+# Data Extraction for YouTube
+##############################################
+def refreshyoutube(request):
+    global courseCode
+    global channelIds
+    global videoIds
+    courseCode = request.GET.get('course_code')
+    channelIds = request.GET.get('channelIds')
+    #videoIds = request.GET.get('videoIds')
+
+    authUri = FLOW_YOUTUBE.step1_get_authorize_url()
+    #Redirect to REDIRECT_URI
+    return HttpResponseRedirect(authUri)
+
+
+##############################################
+# Callback method from OAuth
+##############################################
+def ytAuthCallback(request):
+    #Authenticate 
+    http = googleAuth(request, FLOW_YOUTUBE)
+    #Store extracted data into LRS
+    ytList = injest_youtube(request, courseCode, channelIds, http)
+
+    vList = ytList[0]
+    vNum = len(vList)
+    commList = ytList[1]
+    commNum = len(commList)
+    context_dict = {"vList": vList, "vNum": vNum, "commList": commList, "commNum": commNum}
+    return render(request, 'dataintegration/ytresult.html', context_dict)
+
+
 CONFIG = {
     # Auth information for Facebook App
     'fb': {
