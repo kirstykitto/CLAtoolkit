@@ -382,7 +382,8 @@ def myclassifications(request):
     platform = request.GET.get('platform')
 
 
-    classifications = Classification.objects.filter(xapistatement__username=username).exclude(id__in = UserClassification.objects.filter(username=username).values_list('id', flat=True))
+    inner_q = UserClassification.objects.all().values_list('classification_id');
+    classifications = Classification.objects.filter(xapistatement__username=username).exclude(id__in = inner_q)
 
     context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications }
     return render_to_response('dashboard/myclassifications.html', context_dict, context)

@@ -71,8 +71,16 @@
                         <!--The Message that was classified-->
                         {% for classification in classifications %}
                         <div class="item" style="height: 30%;"> <!-- carousel item -->
-                            <div id="{{classification.xapistatement.platformid}}" class='msgwrapper' style="padding: 5%;" onmouseover="saveFeature(this);">{{ classification.xapistatement.message|removetags:"div"|safe }}</div>
+                            <div id="{{classification.xapistatement.platformid}}" class='msgwrapper' style="padding: 5%;" onmouseover="saveFeature(this);">
+                                {{ classification.xapistatement.message|removetags:"div"|safe }}
+                                <br />
+                            </div>
 
+                            <div id="freetxt-wrapper">
+                                <textarea id="{{classification.xapistatement.platformid}}" style="width: 100%; height: 25%;">
+                                    Remarks about your interaction (optional).
+                                </textarea>
+                            </div>
 
                             <style>
                                 /*
@@ -99,14 +107,14 @@
                         {% endfor %}
 
                         <!-- If there are no classifications to display to the user, make this item active -->
-                        <div class="item{% if not classifications %}active{% endif %}">
+                        <div id="end-seq" class="item{% if not classifications %}active{% endif %} end">
                             <p>No more interactions to show. Check back next week!</p>
                         </div>
 
                     </div> <!-- end Slide Wrapper -->
 
                     <!--Controllers/Feedback buttons -->
-                    <div class="bottom btn-group btn-group-justified class-buttons" role="group" style="margin-top: 5px;" aria-label="...">
+                    <div class="bottom btn-group btn-group-justified class-buttons" role="group" style="margin-top: 5px; display: none;" aria-label="...">
 
                         <div class="btn-group trig" role="group">
                             <a type="button" class="classifybtn btn btn-sm btn-primary carousel-control" role="button" href="#c_box" data-slide="next" >Triggering</a>
@@ -140,9 +148,14 @@
 
                 <input class="featuretxt" type="hidden" name="feature" value="nada">
 
-                <iframe class="preview" src="" width="100%" height="300" style="margin-top: 1.5em; bottom: 0;">
-                    <p>Where your message came from will show here.</p>
-                </iframe>
+
+                <div class="preview-wrap" style="margin-top: 1.5em; display: none;">
+                    <h4>Preview:</h4>
+                    <iframe class="preview" src="" width="100%" height="300" style="bottom: 0;">
+                        <p>Where your message came from will show here.</p>
+                    </iframe>
+                </div>
+
 
             <!--<span class="hl-warning" style="color: red; font-weight: bold">Don't forget you can highlight
             text from your interactions that made you believe it belonged to a particular category</span>-->
@@ -213,7 +226,12 @@ function save_reclassification(id, uc, ic)
     feedback = "None";
 
     if (highlighted) {
-        feedback = $('.featuretxt').val().toString();
+        try{
+            feedback = $('.featuretxt').val().toString();
+        } catch (e) {
+            console.log(e + ": highlighted");
+        }
+
     }
 
     console.log(feedback);
@@ -270,22 +288,15 @@ function saveFeature(el) {
 
 
 
-//Hides carousel control buttons on init for first slide
-$(document).ready(function(){
-    $('.class-buttons').hide();
-    //$('.hl-warning').hide();
-});
-
-//Once users clicks "begin", show the carousel control buttons
-//TODO: replace $('#start_c').next() with $('#c_box').children
-$(function() {
+//begin function for interface
+/*$(function() {
    $('.beginc').click(function(){
-       $('.class-buttons').show();
-       var next_div = $('#start_c').next('div .item');
-       next_div.addClass("active");
-       $('#start_c').remove();
+       setTimeout(function() {
+        $('#start_c').remove();
+        //console.log('start_c removed');
+    }, 5000);
    });
-});
+});*/
 
 //Classification button (carousel control) event
 $(function() {
@@ -363,15 +374,39 @@ $(function() {
 //Removes carousel control buttons once user has classified everything
 $('#c_box').bind('slid.bs.carousel', function (e) {
     var $this = $(this);
+    var $preview_div = $('.preview-wrap');
 
-    $this.children('.carousel-control').show();
+    $this.children('.class-buttons').show();
+    $preview_div.show();
 
-    console.log($('.carousel-inner').find('.active div').attr('id'));
 
-    var forum_link = $('.carousel-inner').find('.active div').attr('id').toString();
 
-    $('.preview').attr('src', forum_link);
+    //console.log($('.carousel-inner').find('.active div').attr('id'));
+
+    var $end_slide = $('.carousel-inner').find('.end');
+
+
+    console.log("end-slide active? " + $end_slide.hasClass('active'));
+
+    if ($end_slide.hasClass('active')) {
+        $this.children('.class-buttons').hide();
+        $preview_div.hide();
+    }
+
+    try {
+        var forum_link = $('.carousel-inner').find('.active div').attr('id').toString();
+        $('.preview').attr('src', forum_link);
+    } catch (e) {
+        console.log(e + ": forum_link - this is most likely thrown because we've hit the end of messages to display, which shouldnt be an issue");
+    }
+
     //console.log($('.item.active').prop('id'));
+    //console.log("#end-seq: " + $('#end-seq').hasClass('active'));
+    //console.log(".carousel-inner .item:last: " + $('.carousel-inner .item:last').hasClass('active'));
+
+    if ($('#end-seq').hasClass('active')) {
+        $this.children('.class-buttons').hide();
+    }
 
     if ($('.carousel-inner .item:last').hasClass('active')) {
         //$('#carousel-b').carousel('pause');
