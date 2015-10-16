@@ -56,12 +56,43 @@
                     </style>
                         {% if classifications %}
                         <div class="item active" id="start_c">
-                            <p>View and Classify your learning interactions.</p>
+                            <p style="margin-top: 1em;">
+                                <h4>Want to learn about your participation within your learning community?</h4>
+                            </p>
+                            <p>
+                                When you start this activity, you will see one of your posts. We have used machine learning to catgorise your
+                                <a href="">cognitive presence</a> according the <a href="https://coi.athabascau.ca/coi-model/">Community of Inquiry model</a>.
+                            </p>
+                            <p>
+                                However, our machine learning tool is still learning and it could be wrong. We would like you to:
+                                <br />
+                                <ol>
+                                    <li>Think about how your post was classified</li>
+                                    <li>Choose what category you believe your post belongs to</li>
+                                    <li>If you like, you may highlight text from your post that you used in making your decision, or add remarks to the text-box about what helped you come to your conclusion</li>
+                                    <li>You can view your history below</li>
+                                </ol>
+                            </p>
+                            <p>
+                                <h4 style="margin-top: 1em;">What is Cognitive Presence?</h4>
+
+                                Cognitive presence has four phases: Triggering, Exploration, Integration, and Resolution.
+                                <br />
+                                <br />
+                                <b>Triggering Phase</b> initiates discussion about a particular issue/topic for inquiry.
+                                <br />
+                                <b>Exploration Phase</b> posts explore the issue at hand by exchanging knowledge between members of the community.
+                                <br />
+                                <b>Integration Phase</b> interactions build upon the ideas shared and explored in the Exploration phase and begin to construct understanding or a solution about a topic or issue.
+                                <br />
+                                <b>Resolution Phase</b> are messages in a discussion that test the solutions or understanding developed in the Integration phase.
+                                <br />
+                            </p>
+
 
                             <div class="btn-group">
                                 <a href="#c_box" class="right btn btn-primary carousel-control beginc" data-slide="next" role="group" style="width: 77px;">Begin</a>
                             </div>
-
 
                         </div>
                         {% endif %}
@@ -286,8 +317,6 @@ function saveFeature(el) {
     });
 }
 
-
-
 //begin function for interface
 /*$(function() {
    $('.beginc').click(function(){
@@ -305,8 +334,6 @@ $(function() {
       var c_classification = $('.item.active').find('.classification').html() //Classifier's Prediction
       var isClassCorrect = (u_classification == c_classification) ? "true" : "false"; //if user_classification == classifier_prediction { id = true } else { id = false }
       var id = $('.item.active').find('.classification').attr('data-id'); //Classification DB Id
-
-
 
       /*console.log(u_classification);
       console.log(c_classification);
@@ -379,12 +406,9 @@ $('#c_box').bind('slid.bs.carousel', function (e) {
     $this.children('.class-buttons').show();
     $preview_div.show();
 
-
-
     //console.log($('.carousel-inner').find('.active div').attr('id'));
 
     var $end_slide = $('.carousel-inner').find('.end');
-
 
     console.log("end-slide active? " + $end_slide.hasClass('active'));
 
@@ -396,6 +420,19 @@ $('#c_box').bind('slid.bs.carousel', function (e) {
     try {
         var forum_link = $('.carousel-inner').find('.active div').attr('id').toString();
         $('.preview').attr('src', forum_link);
+        //$('.preview').load(forum_link);
+
+
+        var $iframe = $('.preview');
+        /*var iframe_body = iframe.get(0);
+        var iframe_window = iframe_body.contentWindow;
+        var */
+
+        var $contents = $iframe.contents();
+        var $header = $contents.find('#masthead');
+        $header.remove();
+
+
     } catch (e) {
         console.log(e + ": forum_link - this is most likely thrown because we've hit the end of messages to display, which shouldnt be an issue");
     }
@@ -404,6 +441,8 @@ $('#c_box').bind('slid.bs.carousel', function (e) {
     //console.log("#end-seq: " + $('#end-seq').hasClass('active'));
     //console.log(".carousel-inner .item:last: " + $('.carousel-inner .item:last').hasClass('active'));
 
+
+    //TODO: May be redundant. Test and remove if so.
     if ($('#end-seq').hasClass('active')) {
         $this.children('.class-buttons').hide();
     }
