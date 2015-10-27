@@ -33,6 +33,7 @@ from dataintegration.googleLib import *
 courseCode = None
 channelIds = None
 #videoIds = None
+courseId = None
 
 
 ##############################################
@@ -41,10 +42,11 @@ channelIds = None
 def refreshyoutube(request):
     global courseCode
     global channelIds
-    global videoIds
+    global courseId
     courseCode = request.GET.get('course_code')
     channelIds = request.GET.get('channelIds')
     #videoIds = request.GET.get('videoIds')
+    courseId = request.GET.get('course_id')
 
     authUri = FLOW_YOUTUBE.step1_get_authorize_url()
     #Redirect to REDIRECT_URI
@@ -58,7 +60,7 @@ def ytAuthCallback(request):
     #Authenticate 
     http = googleAuth(request, FLOW_YOUTUBE)
     #Store extracted data into LRS
-    ytList = injest_youtube(request, courseCode, channelIds, http)
+    ytList = injest_youtube(request, courseCode, channelIds, http, courseId)
 
     vList = ytList[0]
     vNum = len(vList)
@@ -66,6 +68,7 @@ def ytAuthCallback(request):
     commNum = len(commList)
     context_dict = {"vList": vList, "vNum": vNum, "commList": commList, "commNum": commNum}
     return render(request, 'dataintegration/ytresult.html', context_dict)
+
 
 
 CONFIG = {

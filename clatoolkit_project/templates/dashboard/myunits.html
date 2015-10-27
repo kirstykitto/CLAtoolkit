@@ -31,7 +31,7 @@ Forums: {{unit.forum_urls}} [<a href="/dashboard/?course_code={{unit.code}}&plat
 {% endif %}
 
 <br/>
-YouTube Channels: {{unit.youtube_channelIds}} [<a href="/dashboard/?course_code={{unit.code}}&platform=YouTube">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=YouTube">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=YouTube">Social Network Analysis</a>] | <a href="/dataintegration/refreshyoutube/?course_code={{unit.code}}&channelIds={{unit.youtube_channelIds|urlencode}}">Refresh Imported Data</a>
+YouTube Channels: {{unit.youtube_channelIds}} [<a href="/dashboard/?course_code={{unit.code}}&platform=YouTube">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=YouTube">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=YouTube">Social Network Analysis</a>] | <a href="/dataintegration/refreshyoutube/?course_code={{unit.code}}&channelIds={{unit.youtube_channelIds|urlencode}}&course_id={{unit.id}}">Refresh Imported Data</a>
 
 </p>
 {% else %}
