@@ -6,11 +6,16 @@
 {% block heading %}{{title}}{% endblock %}
 
 {% block body %}
+<div class="alert alert-warning">
+    You can filter the topic model and wordcloud by date. Select the timeframe using the
+    "Activity Timeseries" chart and then click on the "Filter widgets by date selection" button.
+</div>
 <div class="row">
     <div class="col-lg-8">
         <div class="panel panel-default">
             <div class="panel-heading">
                 <i class="fa fa-bar-chart-o fa-fw"></i> Activity Timeseries
+                <div class="pull-right"><button id="datefilter">Filter widgets by date selection</button></div>
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
@@ -24,7 +29,7 @@
     <div class="col-lg-4">
         <div class="panel panel-default">
             <div class="panel-heading">
-                <i class="fa fa-bell fa-fw"></i> Tag Cloud
+                <i class="fa fa-bell fa-fw"></i> Tag Cloud <span id="wordcloudselectedrange"></span>
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
@@ -42,11 +47,11 @@
     <div class="col-lg-12">
         <div class="panel panel-default">
             <div class="panel-heading">
-                <i class="fa fa-bar-chart-o fa-fw"></i> Topic Model Explorer
+                <i class="fa fa-bar-chart-o fa-fw"></i> Topic Model Explorer <span id="topicmodelselectedrange"></span>
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
-              <iframe width="100%" height="700px" src="/dashboard/pyldavis/?platform={{platform}}&course_code={{course_code}}"> </iframe>
+              <iframe id="topicmodel_iframe" width="100%" height="700px" src="/dashboard/pyldavis/?platform={{platform}}&course_code={{course_code}}"> </iframe>
             </div>
             <!-- /.panel-body -->
         </div>
@@ -64,20 +69,42 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 <script src="https://cdn.rawgit.com/bmabey/pyLDAvis/master/pyLDAvis/js/ldavis.v1.0.0.js"></script>
 <script src="http://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.js"></script>
+
 <script>
+var wordcloud_data = {{tags|safe}};
+var platform = "{{platform}}";
 
+function update_data()
+{
+  var chart = $('#pageview_chart').highcharts();
+  var start_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().min);
+  var end_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().max);
+  update_wordcloud(start_date, end_date);
+  update_topicmodel(start_date, end_date);
+}
 
-$(function() {
+function render_wordcloud(tag_freqs)
+{
+  $('#tag_container').jQCloud('update', tag_freqs);
+}
 
-  var words = [{{tags|safe}}];
-  //$('#tag_container').jQCloud(words);
+function update_wordcloud(start_date, end_date)
+{
+  $('#wordcloudselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
+  restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", start_date:start_date, end_date:end_date};
+  $.getJSON("/clatoolkit/wordcloud", restparams,
+    function(data){
+      wordcloud_data = data;
+      render_wordcloud(wordcloud_data);
+    });
+}
 
-  $("#tag_container").jQCloud(words, {
-  width: 300,
-  height: 200,
-  shape: 'rectangular'
-  });
-});
+function update_topicmodel(start_date, end_date)
+{
+  $('#topicmodelselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
+  url = "/dashboard/pyldavis/?platform={{platform}}&course_code={{course_code}}&start_date=" + start_date + "&end_date=" + end_date;
+  $('#topicmodel_iframe').attr("src", url);
+}
 
 $(document).ready(function(){
 
@@ -122,6 +149,16 @@ $(document).ready(function(){
           data : [{{ comments_timeline }}],
           id : 'dataseries2'
       }]
+  });
+
+  $('#datefilter').click(function () {
+    update_data();
+  });
+
+  $("#tag_container").jQCloud(wordcloud_data, {
+    width: 300,
+    height: 200,
+    shape: 'rectangular'
   });
 
 });

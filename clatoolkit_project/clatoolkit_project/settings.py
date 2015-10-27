@@ -20,7 +20,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = ''
+SECRET_KEY = 'zak'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -37,6 +37,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'clatoolkit',
     'dataintegration',
     'dashboard'
@@ -80,7 +81,7 @@ WSGI_APPLICATION = 'clatoolkit_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': '',
+        'NAME': 'new_db',
         'USER': '',
         'PASSWORD': '',
         'HOST': '',
@@ -128,4 +129,4 @@ STATICFILES_FINDERS = (
 
 AUTH_PROFILE_MODULE = "account.userprofile"
 
-GA_TRACKING_ID = '' # Googla Analytics Tracking Code
+GA_TRACKING_ID = ''

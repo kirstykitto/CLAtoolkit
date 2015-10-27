@@ -12,7 +12,18 @@ from clatoolkit.forms import UserForm, UserProfileForm
 
 from django.template import RequestContext
 
-from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord
+from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification
+
+from rest_framework import authentication, permissions, viewsets, filters
+from .serializers import LearningRecordSerializer, SocialRelationshipSerializer, ClassificationSerializer, UserClassificationSerializer
+from .forms import LearningRecordFilter, SocialRelationshipFilter, ClassificationFilter, UserClassificationFilter
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+from dashboard.utils import *
+import json
 
 # from fb_data.models import
 
@@ -164,3 +175,126 @@ def eventregistration(request):
     return render_to_response(
         'clatoolkit/eventregistration.html',
             {'user_form': user_form, 'profile_form': profile_form, 'registered': registered,}, context)
+
+class DefaultsMixin(object):
+    """Default settings for view authentication, permissions,
+    filtering and pagination."""
+
+    authentication_classes = (
+        authentication.SessionAuthentication,
+    )
+
+    permission_classes = (
+        permissions.IsAuthenticated,
+    )
+    paginate_by = 300
+    paginate_by_param = 'page_size'
+    max_paginate_by = 1000
+
+    filter_backends = (
+        filters.SearchFilter,
+        filters.DjangoFilterBackend,
+        filters.OrderingFilter
+    )
+
+class LearningRecordViewSet(DefaultsMixin, viewsets.ReadOnlyModelViewSet):
+    """API endpoint for listing Learning Records."""
+
+    queryset = LearningRecord.objects.order_by('datetimestamp')
+    serializer_class = LearningRecordSerializer
+    filter_class = LearningRecordFilter
+    search_fields = ('message',)
+    ordering_fields = ('datetimestamp')
+
+class SocialRelationshipViewSet(DefaultsMixin, viewsets.ReadOnlyModelViewSet):
+    """API endpoint for listing Social Relationships."""
+
+    queryset = SocialRelationship.objects.order_by('datetimestamp')
+    serializer_class = SocialRelationshipSerializer
+    filter_class = SocialRelationshipFilter
+    search_fields = ('message',)
+    ordering_fields = ('datetimestamp')
+
+class ClassificationViewSet(DefaultsMixin, viewsets.ReadOnlyModelViewSet):
+    """API endpoint for listing Classifications."""
+
+    queryset = Classification.objects.order_by('created_at')
+    serializer_class = ClassificationSerializer
+    filter_class = ClassificationFilter
+    ordering_fields = ('created_at')
+
+class UserClassificationViewSet(DefaultsMixin, viewsets.ModelViewSet):
+    """API endpoint for listing and inserting user classifications."""
+
+    queryset = UserClassification.objects.order_by('created_at')
+    serializer_class = UserClassificationSerializer
+    filter_class = UserClassificationFilter
+    ordering_fields = ('created_at')
+
+class SNARESTView(DefaultsMixin, APIView):
+
+    def get(self, request, *args, **kw):
+
+        course_code = request.GET.get('course_code', None)
+        platform = request.GET.get('platform', None)
+        start_date = request.GET.get('start_date', None)
+        end_date = request.GET.get('end_date', None)
+        username = request.GET.get('username', None)
+
+        # Any URL parameters get passed in **kw
+        #myClass = CalcClass(get_arg1, get_arg2, *args, **kw)
+        #print sna_buildjson(platform, course_code)
+        result = json.loads(sna_buildjson(platform, course_code, username=username, start_date=start_date, end_date=end_date))
+        #{'nodes':["test sna","2nd test"]} #myClass.do_work()
+        response = Response(result, status=status.HTTP_200_OK)
+        return response
+
+class WORDCLOUDView(DefaultsMixin, APIView):
+
+    def get(self, request, *args, **kw):
+
+        course_code = request.GET.get('course_code', None)
+        platform = request.GET.get('platform', None)
+        start_date = request.GET.get('start_date', None)
+        end_date = request.GET.get('end_date', None)
+        username = request.GET.get('username', None)
+
+        result = json.loads(get_wordcloud(platform, course_code, username=username, start_date=start_date, end_date=end_date))
+        response = Response(result, status=status.HTTP_200_OK)
+        return response
+
+class TOPICMODELView(DefaultsMixin, APIView):
+
+    def get(self, request, *args, **kw):
+
+        course_code = request.GET.get('course_code', None)
+        platform = request.GET.get('platform', None)
+        start_date = request.GET.get('start_date', None)
+        end_date = request.GET.get('end_date', None)
+        num_topics = int(request.GET.get('num_topics', None))
+
+        result = json.loads(get_LDAVis_JSON(platform, num_topics, course_code, start_date=start_date, end_date=end_date))
+        response = Response(result, status=status.HTTP_200_OK)
+        return response
+
+class MLCLASSIFY(DefaultsMixin, APIView):
+
+    def get(self, request, *args, **kw):
+
+        course_code = request.GET.get('course_code', None)
+        platform = request.GET.get('platform', None)
+
+        result = classify(course_code,platform)
+        response = Response(result, status=status.HTTP_200_OK)
+        return response
+
+class MLTRAIN(DefaultsMixin, APIView):
+
+    def get(self, request, *args, **kw):
+
+        course_code = request.GET.get('course_code', None)
+        platform = request.GET.get('platform', None)
+
+        result = train(course_code,platform)
+        response = Response(result, status=status.HTTP_200_OK)
+        return response

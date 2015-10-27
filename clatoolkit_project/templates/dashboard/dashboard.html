@@ -142,6 +142,7 @@
         <!-- /.col-lg-12 -->
 </div>
 <!-- /.row -->
+<!-- {{profiling}} -->
 {% endblock %}
 
 {% block js_block %}
@@ -184,9 +185,13 @@ $(function() {
           data : [{{ facebook_timeline }}],
           id : 'dataseries1'
       },{
+          name : 'Forum',
+          data : [{{ forum_timeline }}],
+          id : 'dataseries3'
+      },{
           name : 'YouTube',
           data : [{{ youtube_timeline }}],
-          id : 'dataseries2'
+          id : 'dataseries4'
       }]
   });
 

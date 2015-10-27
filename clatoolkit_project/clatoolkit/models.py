@@ -11,9 +11,11 @@ class UserProfile(models.Model):
     # Simple role as an alternative to django groups and permissions
     STAFF = 'Staff'
     STUDENT = 'Student'
+    VISITOR = 'Visitor'
     ROLETYPE_OPTIONS = (
         (STAFF, STAFF),
-        (STUDENT, STUDENT)
+        (STUDENT, STUDENT),
+        (VISITOR, VISITOR)
     )
     role = models.CharField(max_length=100, choices=ROLETYPE_OPTIONS, default=STUDENT)
 
@@ -44,6 +46,47 @@ class LearningRecord(models.Model):
     username = models.CharField(max_length=5000, blank=True)
     platformid = models.CharField(max_length=5000, blank=True)
     platformparentid = models.CharField(max_length=5000, blank=True)
+    parentusername = models.CharField(max_length=5000, blank=True)
+    message = models.TextField(blank=True)
+    datetimestamp = models.DateTimeField(blank=True, null=True)
+    senttolrs = models.CharField(max_length=5000, blank=True)
+
+class SocialRelationship(models.Model):
+    course_code = models.CharField(max_length=5000, blank=False)
+    platform = models.CharField(max_length=5000, blank=False)
+    verb = models.CharField(max_length=5000, blank=False)
+    fromusername = models.CharField(max_length=5000, blank=True)
+    tousername = models.CharField(max_length=5000, blank=True)
+    platformid = models.CharField(max_length=5000, blank=True)
+    message = models.TextField(blank=False)
+    datetimestamp = models.DateTimeField(blank=True)
+
+class CachedContent(models.Model):
+    htmltable = models.TextField(blank=False)
+    activitytable = models.TextField(blank=True)
+    course_code = models.CharField(max_length=5000, blank=False)
+    platform = models.CharField(max_length=5000, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class AccessLog(models.Model):
+    url = models.CharField(max_length=10000, blank=False)
+    userid = models.CharField(max_length=5000, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class Classification(models.Model):
+    xapistatement = models.ForeignKey(LearningRecord)
+    classification = models.CharField(max_length=1000, blank=False)
+    classifier = models.CharField(max_length=1000, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class UserClassification(models.Model):
+    classification = models.ForeignKey(Classification)
+    username = models.CharField(max_length=5000, blank=False)
+    isclassificationcorrect = models.BooleanField(blank=False)
+    userreclassification = models.CharField(max_length=1000, blank=False)
+    feedback = models.TextField(blank=True)
+    trained = models.BooleanField(blank=False, default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 class UnitOffering(models.Model):
     code = models.CharField(max_length=5000, blank=False)
