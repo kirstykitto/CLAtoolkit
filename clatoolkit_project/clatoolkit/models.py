@@ -85,6 +85,7 @@ class UserClassification(models.Model):
     isclassificationcorrect = models.BooleanField(blank=False)
     userreclassification = models.CharField(max_length=1000, blank=False)
     feedback = models.TextField(blank=True)
+    feature = models.TextField(blank=True)
     trained = models.BooleanField(blank=False, default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -113,7 +114,7 @@ class UnitOffering(models.Model):
     forum_urls = models.TextField(blank=True)
 
     # YouTube 26/08/2015
-    youtube_channelIds = models.TextField(blank=False)
+    youtube_channelIds = models.TextField(blank=True)
 
     # LRS Integration - to send users data to unit LRS
     ll_endpoint = models.CharField(max_length=60, blank=True)

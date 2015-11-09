@@ -61,7 +61,7 @@
                             </p>
                             <p>
                                 When you start this activity, you will see one of your posts. We have used machine learning to catgorise your
-                                <a href="">cognitive presence</a> according the <a href="https://coi.athabascau.ca/coi-model/">Community of Inquiry model</a>.
+                                <a href="">cognitive presence</a> according the <a href="#" onclick="trackOutboundLink();">Community of Inquiry model</a>.
                             </p>
                             <p>
                                 However, our machine learning tool is still learning and it could be wrong. We would like you to:
@@ -108,9 +108,9 @@
                             </div>
 
                             <div id="freetxt-wrapper">
-                                <textarea id="{{classification.xapistatement.platformid}}" style="width: 100%; height: 25%;">
-                                    Remarks about your interaction (optional).
-                                </textarea>
+                                You can highlight the main words or phrases that provide evidence for your reclassification in the text for you post above.
+                              <br />
+                                <textarea id="feedback_{{classification.id}}" style="width: 100%; height: 25%;">Enter feedback about your interaction here (optional).</textarea>
                             </div>
 
                             <style>
@@ -179,7 +179,6 @@
 
                 <input class="featuretxt" type="hidden" name="feature" value="nada">
 
-
                 <div class="preview-wrap" style="margin-top: 1.5em; display: none;">
                     <h4>Preview:</h4>
                     <iframe class="preview" src="" width="100%" height="300" style="bottom: 0;">
@@ -226,6 +225,14 @@ var uid = "{{uid}}"
 var csrftoken;
 var highlighted = false;
 
+function trackOutboundLink()
+{
+  $.get("/clatoolkit/externallinklog", {userid:uid},
+  function(data){
+    $("<a>").attr("href", "https://coi.athabascau.ca/coi-model/").attr("target", "_blank")[0].click();
+  });
+}
+
 function getCookie(name) {
     var cookieValue = null;
     if (document.cookie && document.cookie != '') {
@@ -249,25 +256,24 @@ function csrfSafeMethod(method) {
 
 function save_reclassification(id, uc, ic)
 {
-    console.log("save_reclassification clicked");
+    //console.log("save_reclassification clicked");
     // make ajax call to save a classification
     current_classificationid = id; // This is the id of the currently displayed classification
     isclassificationcorrect = ic;
     userreclassification = uc; // Students new classification
-    feedback = "None";
+    feature = "None";
 
     if (highlighted) {
         try{
-            feedback = $('.featuretxt').val().toString();
+            feature = $('.featuretxt').val().toString();
         } catch (e) {
             console.log(e + ": highlighted");
         }
-
     }
+    feedback = $('#feedback_'+id).val();
+    //console.log(feature);
 
-    console.log(feedback);
-
-    params = {classification: current_classificationid, username: username, isclassificationcorrect: isclassificationcorrect, userreclassification:userreclassification, feedback:feedback}
+    params = {classification: current_classificationid, username: username, isclassificationcorrect: isclassificationcorrect, userreclassification:userreclassification, feedback:feedback, feature:feature}
     $.post("/api/userclassification/", params,
       function(data){
         $('#postresponse').html("User Classification sent via ajax.");

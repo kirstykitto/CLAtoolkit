@@ -16,6 +16,10 @@ class LearningRecordAdmin(admin.ModelAdmin):
     list_display = ('username', 'platform', 'verb', 'course_code', 'platformid')
     search_fields = ('username', 'course_code')
 
+class AccessLogAdmin(admin.ModelAdmin):
+    list_display = ('url', 'userid', 'created_at')
+    search_fields = ('userid','url')
+
 class UnitOfferingAdmin(admin.ModelAdmin):
     filter_horizontal = ('users',)
 
@@ -34,7 +38,7 @@ admin.site.register(LearningRecord, LearningRecordAdmin)
 
 admin.site.register(UnitOffering, UnitOfferingAdmin)
 
-admin.site.register(AccessLog)
+admin.site.register(AccessLog, AccessLogAdmin)
 
 admin.site.register(CachedContent)
 

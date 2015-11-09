@@ -2,12 +2,12 @@
 
   "server": "localhost:5432",
 
-  "db_name": "new_db",
+  "db_name": "cladb2",
 
 
   "db_credentials": {
-    "username": "",
-    "password": ""
+    "username": "aneesha",
+    "password": "TrustNo1"
   },
 
   "model_file": "./NaiveBayes_t1.model"

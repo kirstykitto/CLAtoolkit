@@ -12,7 +12,7 @@ from clatoolkit.forms import UserForm, UserProfileForm
 
 from django.template import RequestContext
 
-from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification
+from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification, AccessLog
 
 from rest_framework import authentication, permissions, viewsets, filters
 from .serializers import LearningRecordSerializer, SocialRelationshipSerializer, ClassificationSerializer, UserClassificationSerializer
@@ -56,7 +56,7 @@ def userlogin(request):
     # The request is not a HTTP POST, so display the login form.
     # This scenario would most likely be a HTTP GET.
     else:
-        print "ordinary get"
+        #print "ordinary get"
         # No context variables to pass to the template system, hence the
         # blank dictionary object...
         return render_to_response('clatoolkit/login.html', {}, context)
@@ -297,4 +297,17 @@ class MLTRAIN(DefaultsMixin, APIView):
 
         result = train(course_code,platform)
         response = Response(result, status=status.HTTP_200_OK)
+        return response
+
+
+class EXTERNALLINKLOGView(DefaultsMixin, APIView):
+
+    def get(self, request, *args, **kw):
+
+        url = "https://coi.athabascau.ca/coi-model/"
+        userid = request.GET.get('userid', None)
+
+        entry = AccessLog(url=url, userid=userid)
+        entry.save()
+        response = Response("Logged External Link Click", status=status.HTTP_200_OK)
         return response

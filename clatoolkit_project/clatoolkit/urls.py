@@ -17,5 +17,6 @@ urlpatterns = patterns('',
     url(r'^wordcloud/$', views.WORDCLOUDView.as_view(), name='wordcloud'),
     url(r'^topicmodel/$', views.TOPICMODELView.as_view(), name='topicmodel'),
     url(r'^classify/$', views.MLCLASSIFY.as_view(), name='classify'),
-    url(r'^train/$', views.MLTRAIN.as_view(), name='train')
+    url(r'^train/$', views.MLTRAIN.as_view(), name='train'),
+    url(r'^externallinklog/$', views.EXTERNALLINKLOGView.as_view(), name='externallinklog'),
 )

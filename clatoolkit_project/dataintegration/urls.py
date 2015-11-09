@@ -11,7 +11,7 @@ urlpatterns = patterns(
     url(r'^refreshforum/$', views.refreshforum, name='refreshforum'),
     url(r'^sendtolrs/$', views.sendtolrs, name='sendtolrs'),
     url(r'^updatelearningrecords/$', views.updatelearningrecords, name='updatelearningrecords'),
-    url(r'^insertsocialrelationships/$', views.insertsocialrelationships, name='insertsocialrelationships')
+    url(r'^insertsocialrelationships/$', views.insertsocialrelationships, name='insertsocialrelationships'),
     url(r'^refreshyoutube/$', views.refreshyoutube, name='refreshyoutube'),
-	url(r'^ytAuthCallback/$', views.ytAuthCallback, name='ytAuthCallback')
+    url(r'^ytAuthCallback/$', views.ytAuthCallback, name='ytAuthCallback')
 )

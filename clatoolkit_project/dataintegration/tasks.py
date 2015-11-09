@@ -16,27 +16,51 @@ from urllib2 import urlopen
 from django.db import connection
 from dashboard.utils import *
 
-
 ### youtube integration ###
 from dataintegration.googleLib import *
 from dataintegration.models import Video, Comment
 import os
+from clatoolkit.models import UnitOffering, UserProfile
 
 
 ##############################################
 # Extract data from YouTube via APIs
 ##############################################
-def injest_youtube(request, course_code, channelIds, http):
+def injest_youtube(request, course_code, channelIds, http, course_id):
+    #print course_code,course_id
+    #ytList = injest_youtubeData(request, course_code, channelIds, http)
 
     loginUserInfo = request.user
-    vList = injest_youtube_like(course_code, http, loginUserInfo)
-    channelCommList = injest_youtube_comment(course_code, channelIds, http, loginUserInfo)
+    #youtube_getpersonalchannel(course_code, http, loginUserInfo)
+    #vList = injest_youtube_like(course_code, http, loginUserInfo)
+    vList = []
+    channelCommList = injest_youtube_comment(course_code, channelIds, http, loginUserInfo, course_id)
+
+    #channelCommList = injest_youtube_comment(course_code, channelIds, http, loginUserInfo, False)
+    # Retrieve all video IDs in registered channels, and then retrieve all user's comments in the videos.
+    #channelIDList = channelIds.split('\r\n')
+    #videoIds = getAllVideoIDsInChannel(channelIDList, http)
+    #videoCommList = injest_youtube_comment(course_code, videoIds, http, loginUserInfo, True)
+    #channelCommList.extend(videoCommList)
 
     ytList = []
     ytList.append(vList)
     ytList.append(channelCommList)
     return ytList
 
+
+#############################################################
+# Get Logged in users personal channel
+#############################################################
+def youtube_getpersonalchannel(course_code, http, loginUserInfo):
+    #print "youtube_getpersonalchannel"
+    service = build('youtube', 'v3', http=http)
+
+    ret = service.channels().list(
+                part = 'contentDetails',
+                mine = True
+                ).execute()
+    print ret
 
 #############################################################
 # Extract "like"d videos from YouTube and insert it into DB
@@ -106,22 +130,25 @@ def injest_youtube_like(course_code, http, loginUserInfo):
     return vList
 
 
-def injest_youtube_comment(course_code, channelIds, http, loginUserInfo):
+def injest_youtube_comment(course_code, channelIds, http, loginUserInfo, course_id):
 
-    channelCommList = injest_youtube_commentById(course_code, channelIds, http, loginUserInfo, False)
+    channelCommList = injest_youtube_commentById(course_code, channelIds, http, loginUserInfo, False, course_id)
+    print "Channel ID comment extraction result: " + str(len(channelCommList))
 
     # Retrieve all video IDs in registered channels, and then retrieve all user's comments in the videos.
     channelIDList = channelIds.split('\r\n')
     videoIds = getAllVideoIDsInChannel(channelIDList, http)
-    videoCommList = injest_youtube_commentById(course_code, videoIds, http, loginUserInfo, True)
+    videoCommList = injest_youtube_commentById(course_code, videoIds, http, loginUserInfo, True, course_id)
     channelCommList.extend(videoCommList)
+    print "Video ID comment extraction result: " + str(len(channelCommList))
     return channelCommList
 
 
 #############################################################
 # Extract commented videos from YouTube and insert it into DB
 #############################################################
-def injest_youtube_commentById(course_code, allIds, http, loginUserInfo, isVideoIdSearch):
+def injest_youtube_commentById(course_code, allIds, http, loginUserInfo, isVideoIdSearch, course_id):
+    print loginUserInfo
     isFirstTime = True
     nextPageToken = ""
     commList = []
@@ -130,6 +157,9 @@ def injest_youtube_commentById(course_code, allIds, http, loginUserInfo, isVideo
         ids = allIds.split(os.linesep)
     else:
         ids = allIds
+
+    #Get all users in the unit(course)
+    usersInUnit = getAllUsersInCourseById(course_code) #course_id
 
     for singleId in ids:
         #Get comments by channel ID
@@ -142,8 +172,9 @@ def injest_youtube_commentById(course_code, allIds, http, loginUserInfo, isVideo
                 nextPageToken = ""
 
             # Retrieve comments from API response
-            tempList = getCommentsFromResponse(ret, course_code,
-                loginUserInfo.username, loginUserInfo.userprofile.google_account_name)
+            #tempList = getCommentsFromResponse(ret, course_code,
+            #    loginUserInfo.username, loginUserInfo.userprofile.google_account_name, course_id)
+            tempList = getCommentsFromResponse(ret, course_code, loginUserInfo.username, usersInUnit)
             commList.extend(tempList)
             isFirstTime = False
 
@@ -151,15 +182,37 @@ def injest_youtube_commentById(course_code, allIds, http, loginUserInfo, isVideo
         isFirstTime = True
         nextPageToken = ""
 
-    usr_dict = {'google_account_name': loginUserInfo.userprofile.google_account_name }
-    usr_dict['email'] = loginUserInfo.email
+    #usr_dict = {'google_account_name': loginUserInfo.userprofile.google_account_name }
+    #usr_dict['email'] = loginUserInfo.email
     for comment in commList:
-        comment_from_name = loginUserInfo.username
+        #usr_dict['email'] = loginUserInfo.email
+        #comment_from_name = loginUserInfo.username
+        print comment
+        userInfo = getUserDetailsByGoogleAccount(comment.authorDispName, usersInUnit)
+        usr_dict = {'googleAcName': userInfo['googleAcName'], 'email': userInfo['email']}
+        """
         insert_comment(usr_dict, comment.parentId, comment.commId,
                         comment.text, loginUserInfo.username, comment_from_name,
                         comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE, comment.commId, "")
+        """
+        insert_comment(usr_dict, comment.parentId, comment.commId,
+                        comment.text, userInfo['googleAcName'], userInfo['username'],
+                        comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE, "-")
 
     return commList
+
+
+
+def getUserDetailsByGoogleAccount(authorName, usersInUnit):
+    userInfo = {'googleAcName': "Unknown User" }
+    userInfo['email'] = "unknown"
+    userInfo['username'] = "Unknown"
+    for user in usersInUnit:
+        if user.userprofile is not None and authorName == user.userprofile.google_account_name:
+            userInfo = {'googleAcName': user.userprofile.google_account_name }
+            userInfo['email'] = user.email
+            userInfo['username'] = user.username
+    return userInfo
 
 
 ##############################################
@@ -206,7 +259,7 @@ def getAllVideoIDsInChannel(channelIds, http):
 
             #Loop to get all items
             for item in searchRet['items']:
-                #print item['id']
+                print item['id']
                 info = item['id']
                 if info.get('videoId'):
                     ret.append(item['id']['videoId'])
@@ -274,7 +327,8 @@ def extractCommentsById(singleId, nextPageToken, isVideoIdSearch, http):
 #############################################################
 # Retrieve comments from YouTube API response
 #############################################################
-def getCommentsFromResponse(apiResponse, course_code, userName, googleAcName):
+#def getCommentsFromResponse(apiResponse, course_code, userName, googleAcName, course_id):
+def getCommentsFromResponse(apiResponse, course_code, userName, usersInUnit):
     commList = []
 
     #When an error occurs
@@ -284,15 +338,18 @@ def getCommentsFromResponse(apiResponse, course_code, userName, googleAcName):
     #Loop to get all items
     for item in apiResponse['items']:
         #Check if the comment is already in DB
+        print item
         records = LearningRecord.objects.filter(
             platform = STR_PLATFORM_NAME_YOUTUBE, course_code = course_code,
-            platformid = item['id'], username = userName, verb = "commented")
+            platformid = item['id'], verb = "commented")
         if(len(records) > 0):
             continue
 
         author = item['snippet']['topLevelComment']['snippet']['authorDisplayName']
+        print author
         # Check if the author of the comment is the same as the login user's google account name.
-        if author == googleAcName:
+        #if author == googleAcName:
+        if matchCommentAuthorName(author, usersInUnit):
             comm = Comment()
             comm.commId = item['id']
             # Top level comment's parent ID is the same as ID
@@ -332,7 +389,8 @@ def getCommentsFromResponse(apiResponse, course_code, userName, googleAcName):
                 author = reply['snippet']['authorDisplayName']
 
                 # Check if the author of the comment is the same as the login user's google account name.
-                if author == googleAcName:
+                #if author == googleAcName:
+                if matchCommentAuthorName(author, usersInUnit):
                     replyComm = Comment()
                     replyComm.isReply = True
                     replyComm.commId = reply['id']
@@ -356,6 +414,24 @@ def getCommentsFromResponse(apiResponse, course_code, userName, googleAcName):
                     commList.append(replyComm)
 
     return commList
+
+
+def getAllUsersInCourseById(course_code):
+    unit = UnitOffering.objects.filter(code = course_code).get()
+    users = unit.users.all()
+    return users
+
+def matchCommentAuthorName(author, usersInUnit):
+    for user in usersInUnit:
+        if user.userprofile is not None and author == user.userprofile.google_account_name:
+            return True
+
+    return False
+
+
+#############################################################
+# End Youtube Integration
+#############################################################
 
 
 def injest_twitter(sent_hashtag, course_code):
@@ -854,34 +930,49 @@ def updateLRS():
             locallrs.senttolrs = True
             locallrs.save()
             '''
+
 '''
-#Extra code from merge - kept here in case it has changes that need to be used
-    stm = socialmediabuilder.socialmedia_builder(verb='created', platform=platform, account_name=from_uid, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_name, course_code=course_code, tags=tags)
-    jsn = ast.literal_eval(stm.to_json())
-    stm_json = socialmediabuilder.pretty_print_json(jsn)
-    lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=from_uid)
-    lrs.save()
+// Expand all view conversations
+$("span.expand-stream-item.js-view-details").click();
 
-def insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url, obj_type, platformID, platformParentID):
-    #stm = socialmediabuilder.socialmedia_builder(verb='liked', platform=platform, account_name=like_uid, account_homepage=platform_url, object_type='Note', object_id='post_id', message=message, account_email=usr_dict['email'], user_name=like_name, course_code=course_code)
-    stm = socialmediabuilder.socialmedia_builder(verb='liked', platform=platform, account_name=like_uid, account_homepage=platform_url, object_type=obj_type, object_id='post_id', message=message, account_email=usr_dict['email'], user_name=like_name, course_code=course_code)
-    jsn = ast.literal_eval(stm.to_json())
-    stm_json = socialmediabuilder.pretty_print_json(jsn)
-    lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='liked', platform=platform, username=like_uid, platformid=platformID, platformparentid=platformParentID)
-    lrs.save()
+tweets = $('div .tweet');
+twt_array = [];
+console.log(tweets.length)
+for (i=0;i<tweets.length;i++)
+{
+    console.log(i)
+    twt = tweets[i];
+    twt_id = twt.dataset.itemId;
+    console.log(twt_id);
+    twt_array.push(twt_id);
+}
+console.log(twt_array);
+twt_array.join(',')
+#alert(twt_array)
+'''
 
-def insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, platformID, platformParentID):
-    stm = socialmediabuilder.socialmedia_builder(verb='commented', platform=platform, account_name=comment_from_uid, account_homepage=platform_url, object_type='Note', object_id=comment_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code )
-    jsn = ast.literal_eval(stm.to_json())
-    stm_json = socialmediabuilder.pretty_print_json(jsn)
-    #lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='commented', platform=platform, username=comment_from_uid)
-    lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='commented', platform=platform, username=comment_from_uid, platformid=platformID, platformparentid=platformParentID)
-    lrs.save()
 
-def insert_share(usr_dict, post_id, share_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, tags=[]):
-    stm = socialmediabuilder.socialmedia_builder(verb='shared', platform=platform, account_name=comment_from_uid, account_homepage=platform_url, object_type='Note', object_id=share_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code, tags=tags )
-    jsn = ast.literal_eval(stm.to_json())
-    stm_json = socialmediabuilder.pretty_print_json(jsn)
-    lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='shared', platform=platform, username=comment_from_uid)
-    lrs.save()
+
+'''
+{u'snippet':
+    {u'isPublic': True, u'channelId': u'UCc4dGQLlc3xPLUGcEpSdHyw', u'videoId': u'X_F2F-AwwxY', u'canReply': True,
+    u'totalReplyCount': 0, u'topLevelComment':
+    {u'snippet':
+    {u'authorChannelUrl': u'http://www.youtube.com/channel/UCgWmpb4qnKicxbFqaMoAhnA',
+    u'authorDisplayName': u'CLA Toolkit ALASI 2015 Workshop', u'channelId': u'UCc4dGQLlc3xPLUGcEpSdHyw',
+    u'videoId': u'X_F2F-AwwxY', u'publishedAt': u'2015-11-03T04:28:01.443Z', u'viewerRating': u'none',
+    u'authorChannelId': {u'value': u'UCgWmpb4qnKicxbFqaMoAhnA'}, u'canRate': True, u'likeCount': 0, u'updatedAt': u'2015-11-03T04:28:01.443Z',
+    u'authorProfileImageUrl': u'https://lh3.googleusercontent.com/-XdUIqdMkCWA/AAAAAAAAAAI/AAAAAAAAAAA/4252rscbv5M/photo.jpg?sz=50',
+    u'authorGoogleplusProfileUrl': u'https://plus.google.com/108930139764469032263',
+    u'textDisplay': u'More research into policies is needed\ufeff'}, u'kind': u'youtube#comment',
+    u'etag': u'"0KG1mRN7bm3nResDPKHQZpg5-do/FqdG83kr6KoeSAlG_oW7KHh4tvw"',
+    u'id': u'z13dxnshpuexwfbie04cf3xp2uebe1ob1o00k'}},
+    u'kind': u'youtube#commentThread', u'etag': u'"0KG1mRN7bm3nResDPKHQZpg5-do/n7c50pnIAZOteKEEtKPsrqUFiLc"',
+    u'id': u'z13dxnshpuexwfbie04cf3xp2uebe1ob1o00k'}
+
+
+{u'snippet':
+{u'isPublic': True, u'channelId': u'UCc4dGQLlc3xPLUGcEpSdHyw', u'videoId': u'2_Pi96pRRdc', u'canReply': True, u'totalReplyCount': 0,
+u'topLevelComment': {u'snippet': {u'authorChannelUrl': u'http://www.youtube.com/channel/UC8dsMVHSb22wRSS_5xR4v9A',
+u'authorDisplayName': u'Aneesha Bakharia', u'channelId': u'UCc4dGQLlc3xPLUGcEpSdHyw', u'videoId': u'2_Pi96pRRdc', u'publishedAt': u'2015-10-28T23:02:26.442Z', u'viewerRating': u'none', u'authorChannelId': {u'value': u'UC8dsMVHSb22wRSS_5xR4v9A'}, u'canRate': True, u'likeCount': 0, u'updatedAt': u'2015-10-28T23:02:26.442Z', u'authorProfileImageUrl': u'https://lh3.googleusercontent.com/-XdUIqdMkCWA/AAAAAAAAAAI/AAAAAAAAAAA/4252rscbv5M/photo.jpg?sz=50', u'authorGoogleplusProfileUrl': u'https://plus.google.com/112502824417235079678', u'textDisplay': u'Is there a link for more info on the project?\ufeff'}, u'kind': u'youtube#comment', u'etag': u'"0KG1mRN7bm3nResDPKHQZpg5-do/dvz5o_bYJDU2ZetcSCAGnTJfb9Y"', u'id': u'z13iv3xaqznuuvgon04cdhlh5rimdlmieik'}}, u'kind': u'youtube#commentThread', u'etag': u'"0KG1mRN7bm3nResDPKHQZpg5-do/EgsldZ9y1LxA3L_ZBFdDQySLQiQ"', u'id': u'z13iv3xaqznuuvgon04cdhlh5rimdlmieik'}
 '''

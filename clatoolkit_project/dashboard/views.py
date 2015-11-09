@@ -10,7 +10,9 @@ from django.contrib.auth import logout
 from functools import wraps
 from django.db.models import Q
 import datetime
-#staceysarasvati 
+from django.db.models import Count
+
+#staceysarasvati
 def check_access(required_roles=None):
     def decorator(view):
         @wraps(view)
@@ -85,6 +87,7 @@ def dashboard(request):
     twitter_timeline = ""
     facebook_timeline = ""
     forum_timeline = ""
+    youtube_timeline = ""
 
     profiling = profiling + "| Platform Timelines %s" % (str(datetime.datetime.now()))
     platformclause = ""
@@ -94,6 +97,7 @@ def dashboard(request):
         twitter_timeline = get_timeseries_byplatform("Twitter", course_code)
         facebook_timeline = get_timeseries_byplatform("Facebook", course_code)
         forum_timeline = get_timeseries_byplatform("Forum", course_code)
+        youtube_timeline = get_timeseries_byplatform("YouTube", course_code)
         show_allplatforms_widgets = True
 
     profiling = profiling + "| Pies %s" % (str(datetime.datetime.now()))
@@ -129,7 +133,7 @@ def dashboard(request):
     topcontenttable = get_cached_top_content(platform, course_code) #get_top_content_table(platform, course_code)
     profiling = profiling + "| End Top Content %s" % (str(datetime.datetime.now()))
 
-    context_dict = {'profiling': profiling, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline': forum_timeline, 'show_allplatforms_widgets': show_allplatforms_widgets, 'platformactivity_pie_series': platformactivity_pie_series,  'title': title, 'activememberstable': activememberstable, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    context_dict = {'profiling': profiling, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline': forum_timeline, 'youtube_timeline':youtube_timeline, 'show_allplatforms_widgets': show_allplatforms_widgets, 'platformactivity_pie_series': platformactivity_pie_series,  'title': title, 'activememberstable': activememberstable, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
 
     return render_to_response('dashboard/dashboard.html', context_dict, context)
 
@@ -152,8 +156,14 @@ def cadashboard(request):
     #pyLDAVis_json = get_LDAVis_JSON(platform, 4, course_code)
 
     tags = get_wordcloud(platform, course_code)
-
-    context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'tags': tags, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    sentiments = ""
+    sentiment_classification = {'positive':0, 'neutral':0, 'negative':0}
+    sentiment_counts = Classification.objects.values('classification').filter(classifier='VaderSentiment').order_by().annotate(Count('classification'))
+    for sentiment in sentiment_counts:
+        # example dict = {'classification__count': 27, 'classification': u'Negative'}
+        sentiments = sentiments + "['%s',  %s]," % (sentiment['classification'],sentiment['classification__count'])
+        #sentiment_classification[sentiment['classification']] = sentiment['classification__count']
+    context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'sentiments': sentiments, 'tags': tags, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
     return render_to_response('dashboard/cadashboard.html', context_dict, context)
 
 @check_access(required_roles=['Staff'])
@@ -368,7 +378,6 @@ def mydashboard(request):
 
     return render_to_response('dashboard/mydashboard.html', context_dict, context)
 
-@check_access(required_roles=['Student'])
 @login_required
 def myclassifications(request):
     context = RequestContext(request)
@@ -382,23 +391,7 @@ def myclassifications(request):
     platform = request.GET.get('platform')
 
     inner_q = UserClassification.objects.all().values_list('classification_id')
-    classifications = Classification.objects.filter(xapistatement__username=username).exclude(id__in = inner_q)
+    classifications = Classification.objects.filter(xapistatement__username=username, classifier='NaiveBayes_t1.model').exclude(id__in = inner_q)
 
     context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications }
     return render_to_response('dashboard/myclassifications.html', context_dict, context)
-
-def topicmodeling(request):
-    context = RequestContext(request)
-    datasets = ['shark','putin']
-    dataset = "shark"
-    num_topics = 5
-
-    if request.method == 'POST':
-        num_topics = int(request.POST['num_topics'])
-        dataset = request.POST['corpus']
-
-    pyLDAVis_json = get_LDAVis_JSON_IFN600(dataset,num_topics)
-
-    context_dict = {'title': "Topic Modeling", 'pyLDAVis_json': pyLDAVis_json, 'num_topics':num_topics, 'dataset':dataset}
-
-    return render_to_response('dashboard/topicmodeling.html', context_dict, context)

@@ -48,4 +48,4 @@ class UserClassificationFilter(django_filters.FilterSet):
 
     class Meta:
         model = UserClassification
-        fields = ('id', 'classification', 'username', 'isclassificationcorrect', 'userreclassification', 'trained', 'feedback')
+        fields = ('id', 'classification', 'username', 'isclassificationcorrect', 'userreclassification', 'feedback', 'feature')

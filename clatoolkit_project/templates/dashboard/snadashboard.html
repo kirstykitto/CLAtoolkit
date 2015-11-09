@@ -61,6 +61,7 @@
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
+              <div id="message_loading"><img src="{% static 'css/img/ajax-loader.gif'%}"></div>
               <div class="dataTable_wrapper">
                   <table class="table table-striped table-bordered table-hover" id="dataTables-selectedmessages">
                   </table>
@@ -112,6 +113,9 @@ function update_messages(nodes,edges)
   var start_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().min);
   var end_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().max);
   $('#messageselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
+
+  $('#message_loading').show();
+  render_messages([]);
 
   typeofrequest = "Node";
   if (nodes.length == 0)
@@ -189,6 +193,7 @@ function update_messages(nodes,edges)
         datatable_array.push(datarow)
       }
       render_messages(datatable_array);
+      $('#message_loading').hide();
     });
 
 }
@@ -351,6 +356,8 @@ $(function() {
           id : 'dataseries2'
       }]
   });
+
+  $('#message_loading').hide();
 
   $('#datefilter').click(function () {
     update_data();

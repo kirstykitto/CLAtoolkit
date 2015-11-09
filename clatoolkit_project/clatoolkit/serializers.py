@@ -31,4 +31,4 @@ class UserClassificationSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = UserClassification
-        fields = ('id', 'classification', 'username', 'isclassificationcorrect', 'userreclassification', 'feedback')
+        fields = ('id', 'classification', 'username', 'isclassificationcorrect', 'userreclassification', 'trained', 'feedback', 'feature')

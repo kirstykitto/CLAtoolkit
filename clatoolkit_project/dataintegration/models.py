@@ -21,4 +21,3 @@ class Video(models.Model):
 	channelUrl = models.CharField(max_length=1000)
 	#videoList = models.ManyToManyField('self')
 	#commentList = models.ManyToManyField(Comment)
-

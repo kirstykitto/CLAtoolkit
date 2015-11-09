@@ -11,7 +11,7 @@
     "Activity Timeseries" chart and then click on the "Filter widgets by date selection" button.
 </div>
 <div class="row">
-    <div class="col-lg-8">
+    <div class="col-lg-12">
         <div class="panel panel-default">
             <div class="panel-heading">
                 <i class="fa fa-bar-chart-o fa-fw"></i> Activity Timeseries
@@ -25,22 +25,39 @@
         </div>
         <!-- /.panel -->
     </div>
-    <!-- /.col-lg-8 -->
-    <div class="col-lg-4">
+    <!-- /.col-lg-12 -->
+</div>
+<!-- /.row -->
+<div class="row">
+    <div class="col-lg-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Sentiment
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="sentiment"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-6 -->
+    <div class="col-lg-6">
         <div class="panel panel-default">
             <div class="panel-heading">
                 <i class="fa fa-bell fa-fw"></i> Tag Cloud <span id="wordcloudselectedrange"></span>
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
-              <div id="tag_container" style="width: 550px; height: 350px;"></div>
+              <div id="tag_container" style="width: 550px; height: 550px;"></div>
             </div>
             <!-- /.panel-body -->
         </div>
         <!-- /.panel -->
 
     </div>
-    <!-- /.col-lg-4 -->
+    <!-- /.col-lg-6 -->
 </div>
 <!-- /.row -->
 <div class="row">
@@ -150,6 +167,37 @@ $(document).ready(function(){
           id : 'dataseries2'
       }]
   });
+  $('#sentiment').highcharts({
+      chart: {
+          plotBackgroundColor: null,
+          plotBorderWidth: null,
+          plotShadow: false
+      },
+      title: {
+          text: ' '
+      },
+      tooltip: {
+          pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+      },
+      plotOptions: {
+          pie: {
+              allowPointSelect: true,
+              cursor: 'pointer',
+              dataLabels: {
+                  enabled: true,
+                  format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                  style: {
+                      color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                  }
+              }
+          }
+      },
+      series: [{
+          type: 'pie',
+          name: 'Sentiment',
+          data: [{{sentiments|safe}}]
+      }]
+  });
 
   $('#datefilter').click(function () {
     update_data();
@@ -157,7 +205,7 @@ $(document).ready(function(){
 
   $("#tag_container").jQCloud(wordcloud_data, {
     width: 300,
-    height: 200,
+    height: 300,
     shape: 'rectangular'
   });
 
