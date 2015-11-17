@@ -52,7 +52,11 @@ def injest_youtube(request, course_code, channelIds, http, course_id):
 #############################################################
 # Get Logged in users personal channel
 #############################################################
-def youtube_getpersonalchannel(course_code, http, loginUserInfo):
+def youtube_getpersonalchannel(request, course_code, channelIds, http, course_id):
+    #print course_code,course_id
+    #ytList = injest_youtubeData(request, course_code, channelIds, http)
+
+    loginUserInfo = request.user
     #print "youtube_getpersonalchannel"
     service = build('youtube', 'v3', http=http)
 
@@ -60,7 +64,8 @@ def youtube_getpersonalchannel(course_code, http, loginUserInfo):
                 part = 'contentDetails',
                 mine = True
                 ).execute()
-    print ret
+    #print ret
+    return ret['items'][0]['id']
 
 #############################################################
 # Extract "like"d videos from YouTube and insert it into DB
@@ -134,10 +139,14 @@ def injest_youtube_comment(course_code, channelIds, http, loginUserInfo, course_
 
     channelCommList = injest_youtube_commentById(course_code, channelIds, http, loginUserInfo, False, course_id)
     print "Channel ID comment extraction result: " + str(len(channelCommList))
+    #Don't think this code above works had to write another method to get the comment thread from a channel
 
     # Retrieve all video IDs in registered channels, and then retrieve all user's comments in the videos.
     channelIDList = channelIds.split('\r\n')
-    videoIds = getAllVideoIDsInChannel(channelIDList, http)
+    videoIds,playlists = getAllVideoIDsInChannel(channelIDList, http)
+    vidsinplaylist = getAllVideoIDsInPlaylist(playlists, http)
+    videoIds.extend(vidsinplaylist)
+    #channelcommentthreads = getChannelCommentThreads(channelIDList, http)
     videoCommList = injest_youtube_commentById(course_code, videoIds, http, loginUserInfo, True, course_id)
     channelCommList.extend(videoCommList)
     print "Video ID comment extraction result: " + str(len(channelCommList))
@@ -152,6 +161,7 @@ def injest_youtube_commentById(course_code, allIds, http, loginUserInfo, isVideo
     isFirstTime = True
     nextPageToken = ""
     commList = []
+    id_creator_dict = None
 
     if not isinstance(allIds, list):
         ids = allIds.split(os.linesep)
@@ -174,7 +184,7 @@ def injest_youtube_commentById(course_code, allIds, http, loginUserInfo, isVideo
             # Retrieve comments from API response
             #tempList = getCommentsFromResponse(ret, course_code,
             #    loginUserInfo.username, loginUserInfo.userprofile.google_account_name, course_id)
-            tempList = getCommentsFromResponse(ret, course_code, loginUserInfo.username, usersInUnit)
+            tempList, id_creator_dict = getCommentsFromResponse(ret, course_code, loginUserInfo.username, usersInUnit)
             commList.extend(tempList)
             isFirstTime = False
 
@@ -188,6 +198,7 @@ def injest_youtube_commentById(course_code, allIds, http, loginUserInfo, isVideo
         #usr_dict['email'] = loginUserInfo.email
         #comment_from_name = loginUserInfo.username
         print comment
+        #print comment.authorChannelUrl, comment.authorDisplayName
         userInfo = getUserDetailsByGoogleAccount(comment.authorDispName, usersInUnit)
         usr_dict = {'googleAcName': userInfo['googleAcName'], 'email': userInfo['email']}
         """
@@ -195,13 +206,14 @@ def injest_youtube_commentById(course_code, allIds, http, loginUserInfo, isVideo
                         comment.text, loginUserInfo.username, comment_from_name,
                         comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE, comment.commId, "")
         """
+        parentusername = "-"
+        if comment.commId in id_creator_dict:
+            parentusername = id_creator_dict[comment.commId]
         insert_comment(usr_dict, comment.parentId, comment.commId,
                         comment.text, userInfo['googleAcName'], userInfo['username'],
-                        comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE, "-")
+                        comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE, parentusername)
 
     return commList
-
-
 
 def getUserDetailsByGoogleAccount(authorName, usersInUnit):
     userInfo = {'googleAcName': "Unknown User" }
@@ -220,6 +232,7 @@ def getUserDetailsByGoogleAccount(authorName, usersInUnit):
 ##############################################
 def getAllVideoIDsInChannel(channelIds, http):
     ret = []
+    playlists = []
     isFirstTime = True
     nextPageToken = ""
 
@@ -259,11 +272,72 @@ def getAllVideoIDsInChannel(channelIds, http):
 
             #Loop to get all items
             for item in searchRet['items']:
+                #print "Video Ids"
                 print item['id']
                 info = item['id']
                 if info.get('videoId'):
                     ret.append(item['id']['videoId'])
                     #print item['id']['videoId']
+                elif info.get('kind')=='youtube#playlist':
+                    playlists.append(info.get('playlistId'))
+
+            isFirstTime = False
+
+        # Initialize the flag for next loop
+        isFirstTime = True
+        nextPageToken = ""
+
+    return ret,playlists
+
+
+###################################################################################
+# Get comment threads directly linked to a channel (i.e., under the discussion tab)
+###################################################################################
+def getChannelCommentThreads(channelIds, http):
+    ret = []
+    isFirstTime = True
+    nextPageToken = ""
+
+    #Create youtube API controller
+    service = build('youtube', 'v3', http=http)
+    idVal = "id"
+    resultOrder = "time"
+    maxResultsNum = 50
+
+    for cid in channelIds:
+        while isFirstTime or nextPageToken is not "":
+            if nextPageToken is not "":
+                searchRet = service.commentThreads().list(
+                    part = idVal,
+                    maxResults = maxResultsNum,
+                    order = resultOrder,
+                    channelId = cid,
+                    pageToken = nextPageToken
+                ).execute()
+            else:
+                searchRet = service.commentThreads().list(
+                    part = idVal,
+                    maxResults = maxResultsNum,
+                    order = resultOrder,
+                    channelId = cid
+                ).execute()
+
+            #When an error occurs
+            if searchRet.get('error'):
+                print "An error has occured in getChannelCommentThreads() method."
+                return ret
+
+            if searchRet.get('nextPageToken'):
+                nextPageToken = str(searchRet['nextPageToken'])
+            else:
+                nextPageToken = ""
+
+            #Loop to get all items
+            for item in searchRet['items']:
+                #print "Video Ids"
+                print item['id']
+                if item['id']:
+                    ret.append(item['id'])
 
             isFirstTime = False
 
@@ -273,6 +347,60 @@ def getAllVideoIDsInChannel(channelIds, http):
 
     return ret
 
+
+##############################################
+# Get all video IDs from a playlist
+##############################################
+def getAllVideoIDsInPlaylist(playlistids, http):
+    print "getAllVideoIDsInPlaylist called"
+    ret = []
+    isFirstTime = True
+    nextPageToken = ""
+
+    #Create youtube API controller
+    service = build('youtube', 'v3', http=http)
+    maxResultsNum = 50
+
+    for cid in playlistids:
+        while isFirstTime or nextPageToken is not "":
+            if nextPageToken is not "":
+                searchRet = service.playlistItems().list(
+                    part = 'contentDetails',
+                    maxResults = maxResultsNum,
+                    playlistId = cid,
+                    pageToken = nextPageToken
+                ).execute()
+            else:
+                searchRet = service.playlistItems().list(
+                    part = 'contentDetails',
+                    maxResults = maxResultsNum,
+                    playlistId = cid
+                ).execute()
+
+            #When an error occurs
+            if searchRet.get('error'):
+                print "An error has occured in getAllVideoIDsInPlaylist() method."
+                return ret
+
+            if searchRet.get('nextPageToken'):
+                nextPageToken = str(searchRet['nextPageToken'])
+            else:
+                nextPageToken = ""
+
+            #Loop to get all items
+            for item in searchRet['items']:
+                #print "Video Ids"
+                print "vid in playlist", item['contentDetails']['videoId']
+                if item['contentDetails']['videoId']:
+                    ret.append(item['contentDetails']['videoId'])
+
+            isFirstTime = False
+
+        # Initialize the flag for next loop
+        isFirstTime = True
+        nextPageToken = ""
+
+    return ret
 
 ################################################################
 # Extract comments by either channel ID or video ID from YouTube
@@ -319,7 +447,10 @@ def extractCommentsById(singleId, nextPageToken, isVideoIdSearch, http):
                 order = resultOrder,
                 channelId = singleId
             ).execute()
-
+    '''
+    if isVideoIdSearch == False:
+        print "channel comment", ret
+    '''
     return ret
 
 
@@ -330,6 +461,7 @@ def extractCommentsById(singleId, nextPageToken, isVideoIdSearch, http):
 #def getCommentsFromResponse(apiResponse, course_code, userName, googleAcName, course_id):
 def getCommentsFromResponse(apiResponse, course_code, userName, usersInUnit):
     commList = []
+    id_creator_dict = {}
 
     #When an error occurs
     if apiResponse.get('error'):
@@ -346,15 +478,18 @@ def getCommentsFromResponse(apiResponse, course_code, userName, usersInUnit):
             continue
 
         author = item['snippet']['topLevelComment']['snippet']['authorDisplayName']
-        print author
+        authorChannelUrl = item['snippet']['topLevelComment']['snippet']['authorChannelUrl']
+        print author, authorChannelUrl
         # Check if the author of the comment is the same as the login user's google account name.
         #if author == googleAcName:
-        if matchCommentAuthorName(author, usersInUnit):
+        if matchCommentAuthorName(authorChannelUrl, usersInUnit):
             comm = Comment()
             comm.commId = item['id']
             # Top level comment's parent ID is the same as ID
             comm.parentId = item['id']
-            comm.authorDispName = author
+            comm.authorDispName = authorChannelUrl #author
+            #comm.parentUsername = authorChannelUrl
+            #comm.authorChannelUrl = authorChannelUrl
             comm.isReply = False
 
             snippet = item['snippet']
@@ -375,6 +510,7 @@ def getCommentsFromResponse(apiResponse, course_code, userName, usersInUnit):
             # UpdatedAt is the same as publishedAt when the comment isn't updated.
             comm.updatedAt = secondSnippet['updatedAt']
             commList.append(comm)
+            id_creator_dict[item['id']] = authorChannelUrl
 
         #Check if replies exist
         if item.get('replies'):
@@ -387,15 +523,17 @@ def getCommentsFromResponse(apiResponse, course_code, userName, usersInUnit):
                     continue
 
                 author = reply['snippet']['authorDisplayName']
-
+                authorChannelUrl = reply['snippet']['authorChannelUrl']
                 # Check if the author of the comment is the same as the login user's google account name.
                 #if author == googleAcName:
-                if matchCommentAuthorName(author, usersInUnit):
+                if matchCommentAuthorName(authorChannelUrl, usersInUnit):
                     replyComm = Comment()
                     replyComm.isReply = True
                     replyComm.commId = reply['id']
                     snippet = reply['snippet']
-                    replyComm.authorDispName = snippet['authorDisplayName']
+                    replyComm.authorDispName = snippet['authorChannelUrl'] #snippet['authorDisplayName']
+                    id_creator_dict[reply['id']] = snippet['authorChannelUrl']
+                    #replyComm.authorDispName = snippet['authorDisplayName']
                     replyComm.parentId = snippet['parentId']
 
                     if snippet.get('textOriginal'):
@@ -413,7 +551,7 @@ def getCommentsFromResponse(apiResponse, course_code, userName, usersInUnit):
                     replyComm.updatedAt = snippet['updatedAt']
                     commList.append(replyComm)
 
-    return commList
+    return commList,id_creator_dict
 
 
 def getAllUsersInCourseById(course_code):

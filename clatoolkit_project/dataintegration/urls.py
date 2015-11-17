@@ -13,5 +13,6 @@ urlpatterns = patterns(
     url(r'^updatelearningrecords/$', views.updatelearningrecords, name='updatelearningrecords'),
     url(r'^insertsocialrelationships/$', views.insertsocialrelationships, name='insertsocialrelationships'),
     url(r'^refreshyoutube/$', views.refreshyoutube, name='refreshyoutube'),
-    url(r'^ytAuthCallback/$', views.ytAuthCallback, name='ytAuthCallback')
+    url(r'^ytAuthCallback/$', views.ytAuthCallback, name='ytAuthCallback'),
+    url(r'^get_youtubechannel/$', views.get_youtubechannel, name='get_youtubechannel')
 )

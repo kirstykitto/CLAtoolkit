@@ -61,6 +61,7 @@ def myunits(request):
         if LearningRecord.objects.filter(Q(username__iexact=twitter_id) | Q(username__iexact=fb_id) | Q(username__iexact=forum_id)).count() == 0:
             shownocontentwarning = True
         '''
+
     context_dict = {'title': "My Units", 'units': units, 'show_dashboardnav':show_dashboardnav, 'shownocontentwarning': shownocontentwarning, 'role': role}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
@@ -395,3 +396,19 @@ def myclassifications(request):
 
     context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications }
     return render_to_response('dashboard/myclassifications.html', context_dict, context)
+
+def topicmodeling(request):
+    context = RequestContext(request)
+    datasets = ['shark','putin']
+    dataset = "shark"
+    num_topics = 5
+
+    if request.method == 'POST':
+        num_topics = int(request.POST['num_topics'])
+        dataset = request.POST['corpus']
+
+    pyLDAVis_json = get_LDAVis_JSON_IFN600(dataset,num_topics)
+
+    context_dict = {'title': "Topic Modeling", 'pyLDAVis_json': pyLDAVis_json, 'num_topics':num_topics, 'dataset':dataset}
+
+    return render_to_response('dashboard/topicmodeling.html', context_dict, context)

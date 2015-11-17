@@ -34,6 +34,7 @@ courseCode = None
 channelIds = None
 #videoIds = None
 courseId = None
+getyoutube = None
 
 
 ##############################################
@@ -60,15 +61,41 @@ def ytAuthCallback(request):
     #Authenticate
     http = googleAuth(request, FLOW_YOUTUBE)
     #Store extracted data into LRS
-    ytList = injest_youtube(request, courseCode, channelIds, http, courseId)
-    #ytList = injest_youtube(request, 'PROJ-TEAM', 'UCc4dGQLlc3xPLUGcEpSdHyw', http, 5)
+    if getyoutube is not None:
+        channel_url = youtube_getpersonalchannel(request, courseCode, channelIds, http, courseId)
 
-    vList = ytList[0]
-    vNum = len(vList)
-    commList = ytList[1]
-    commNum = len(commList)
-    context_dict = {"vList": vList, "vNum": vNum, "commList": commList, "commNum": commNum}
-    return render(request, 'dataintegration/ytresult.html', context_dict)
+        html_response = HttpResponse()
+
+        if channel_url:
+
+                html_response.write(u'<h2>Your YouTube Channel URl is: http://www.youtube.com/channel/{0}</h2>'.format(channel_url))
+        else:
+            html_response.write('No Channel url found. Please ensure that you are logged into YouTube and try again.')
+
+        return html_response
+    else:
+        ytList = injest_youtube(request, courseCode, channelIds, http, courseId)
+        #ytList = injest_youtube(request, 'PROJ-TEAM', 'UCc4dGQLlc3xPLUGcEpSdHyw', http, 5)
+
+        vList = ytList[0]
+        vNum = len(vList)
+        commList = ytList[1]
+        commNum = len(commList)
+        context_dict = {"vList": vList, "vNum": vNum, "commList": commList, "commNum": commNum}
+        return render(request, 'dataintegration/ytresult.html', context_dict)
+
+
+##############################################
+# Data Extraction for YouTube
+##############################################
+def get_youtubechannel(request):
+    global getyoutube
+    getyoutube = True
+
+    authUri = FLOW_YOUTUBE.step1_get_authorize_url()
+    #Redirect to REDIRECT_URI
+    return HttpResponseRedirect(authUri)
+
 
 
 CONFIG = {
@@ -83,7 +110,7 @@ CONFIG = {
     },
 }
 
-authomatic = Authomatic(CONFIG, '')
+authomatic = Authomatic(CONFIG, 'lamksdlkm213213kl5n521234lkn4231')
 
 def home(request):
     form = FacebookGatherForm()
