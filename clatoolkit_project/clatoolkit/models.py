@@ -35,6 +35,8 @@ class UserProfile(models.Model):
 
     # Google Integration - users Google xxx is required for Youtube, etc...
     # Todo - Add Google API user credential requirements below
+    # YouTube 26/08/2015
+    google_account_name = models.CharField(max_length=255, blank=True)
 
 class LearningRecord(models.Model):
     xapi = JsonField()
@@ -83,6 +85,7 @@ class UserClassification(models.Model):
     isclassificationcorrect = models.BooleanField(blank=False)
     userreclassification = models.CharField(max_length=1000, blank=False)
     feedback = models.TextField(blank=True)
+    feature = models.TextField(blank=True)
     trained = models.BooleanField(blank=False, default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -97,6 +100,8 @@ class UnitOffering(models.Model):
     enabled = models.BooleanField(blank=False, default=False)
     # determines whether unit should be displayed on EventRegistration Form
     event = models.BooleanField(blank=False, default=False)
+    # determines whether COI Classifier link should be diplayed for staff and student in a unit
+    enable_coi_classifier = models.BooleanField(blank=False, default=False)
 
     # Twitter Unit Integration Requirements
     twitter_hashtags = models.TextField(blank=False)
@@ -110,6 +115,9 @@ class UnitOffering(models.Model):
     # Unit External Forums
     forum_urls = models.TextField(blank=True)
 
+    # YouTube 26/08/2015
+    youtube_channelIds = models.TextField(blank=True)
+
     # LRS Integration - to send users data to unit LRS
     ll_endpoint = models.CharField(max_length=60, blank=True)
     ll_username = models.CharField(max_length=60, blank=True)
@@ -117,6 +125,30 @@ class UnitOffering(models.Model):
 
     def __unicode__(self):
         return self.code + " " + self.name
+
+    def twitter_hashtags_as_list(self):
+        if self.twitter_hashtags:
+            return self.twitter_hashtags.split(',')
+        else:
+            return []
+
+    def facebook_groups_as_list(self):
+        if self.facebook_groups:
+            return self.facebook_groups.split(',')
+        else:
+            return []
+
+    def forum_urls_as_list(self):
+        if self.forum_urls:
+            return self.forum_urls.split(',')
+        else:
+            return []
+
+    def youtube_channelIds_as_list(self):
+        if self.youtube_channelIds:
+            return self.youtube_channelIds.split(',')
+        else:
+            return []
 
 class ApiCredentials(models.Model):
     platform = models.CharField(max_length=5000, blank=False)

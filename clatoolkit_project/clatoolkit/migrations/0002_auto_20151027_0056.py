@@ -7,13 +7,18 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('clatoolkit', '0004_auto_20150825_0452'),
+        ('clatoolkit', '0001_initial'),
     ]
 
     operations = [
-        migrations.AlterField(
+        migrations.AddField(
             model_name='unitoffering',
-            name='google_groups',
+            name='youtube_channelIds',
             field=models.TextField(blank=True),
+        ),
+        migrations.AddField(
+            model_name='userprofile',
+            name='google_account_name',
+            field=models.CharField(max_length=255, blank=True),
         ),
     ]

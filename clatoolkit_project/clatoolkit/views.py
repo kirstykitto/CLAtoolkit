@@ -12,7 +12,7 @@ from clatoolkit.forms import UserForm, UserProfileForm
 
 from django.template import RequestContext
 
-from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification
+from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification, AccessLog
 
 from rest_framework import authentication, permissions, viewsets, filters
 from .serializers import LearningRecordSerializer, SocialRelationshipSerializer, ClassificationSerializer, UserClassificationSerializer
@@ -56,7 +56,7 @@ def userlogin(request):
     # The request is not a HTTP POST, so display the login form.
     # This scenario would most likely be a HTTP GET.
     else:
-        print "ordinary get"
+        #print "ordinary get"
         # No context variables to pass to the template system, hence the
         # blank dictionary object...
         return render_to_response('clatoolkit/login.html', {}, context)
@@ -68,6 +68,11 @@ def register(request):
     # A boolean value for telling the template whether the registration was successful.
     # Set to False initially. Code changes value to True when registration succeeds.
     registered = False
+
+    # A boolean value used to determine if a unit should already be selected
+    show_units = True
+    selected_unit = 0
+    course = None
 
     # If it's a HTTP POST, we're interested in processing form data.
     if request.method == 'POST':
@@ -87,8 +92,12 @@ def register(request):
             user.set_password(user.password)
 
             # Assign units to user
-            for unit in user_form.cleaned_data['units']:
-                user.usersinunitoffering.add(unit)
+            selectedunit = request.GET.get('selectedunit', None)
+            if selectedunit is not None:
+                user.usersinunitoffering.add(selectedunit)
+            else:
+                for unit in user_form.cleaned_data['units']:
+                    user.usersinunitoffering.add(unit)
 
             user.save()
 
@@ -110,17 +119,29 @@ def register(request):
         # They'll also be shown to the user.
         else:
             print user_form.errors, profile_form.errors
+            course_code = request.POST.get('course_code', None)
+            if course_code is not None:
+                course = UnitOffering.objects.get(code=course_code)
+                show_units = False
+                selected_unit = course.id
 
     # Not a HTTP POST, so we render our form using two ModelForm instances.
     # These forms will be blank, ready for user input.
     else:
+        print "loading forms"
         user_form = UserForm()
         profile_form = UserProfileForm()
+
+        course_code = request.GET.get('course_code', None)
+        if course_code is not None:
+            course = UnitOffering.objects.get(code=course_code)
+            show_units = False
+            selected_unit = course.id
 
     # Render the template depending on the context.
     return render_to_response(
         'clatoolkit/register.html',
-            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered,}, context)
+            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, 'show_units': show_units, 'selected_unit': selected_unit, "course": course}, context)
 
 def eventregistration(request):
     context = RequestContext(request)
@@ -297,4 +318,17 @@ class MLTRAIN(DefaultsMixin, APIView):
 
         result = train(course_code,platform)
         response = Response(result, status=status.HTTP_200_OK)
+        return response
+
+
+class EXTERNALLINKLOGView(DefaultsMixin, APIView):
+
+    def get(self, request, *args, **kw):
+
+        url = "https://coi.athabascau.ca/coi-model/"
+        userid = request.GET.get('userid', None)
+
+        entry = AccessLog(url=url, userid=userid)
+        entry.save()
+        response = Response("Logged External Link Click", status=status.HTTP_200_OK)
         return response

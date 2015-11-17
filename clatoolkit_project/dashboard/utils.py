@@ -8,32 +8,44 @@ import funcy as fp
 from pprint import pprint
 #from dateutil.parser import parse
 from django.contrib.auth.models import User
-from clatoolkit.models import UserProfile, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent
+from clatoolkit.models import UserProfile, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, Classification
 from django.db.models import Q
 from django.utils.html import strip_tags
-import networkx as nx
+#import networkx as nx
 import re
-import subprocess
+from vaderSentiment.vaderSentiment import sentiment as vaderSentiment
 
+import subprocess
 
 def classify(course_code, platform):
     #Calls JAR to extract and classify messages
     #$ java -cp /dataintegration/MLWrapper/CLAToolKit_JavaMLWrapper-0.1.jar load.from_clatk ./config.json [course_code] [platform]
+    p = os.popen('java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.from_clatk config.json ' + course_code + ' ' + platform)
+    print p
+    return p
+    '''
     try:
-        os.popen(['java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.from_clatk config.json ' + course_code + ' ' + platform]);
+        os.popen(['java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.from_clatk config.json ' + course_code + ' ' + platform])
         return True
     except Exception, e:
+        print e
         return e
+    '''
 
 
 def train(course_code, platform):
     #Call JAR to Train of UserReclassifications
     #$ java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.train_onUserClassifications ./config.json [course_code] [platform]
+    p = os.popen('java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.train_onUserClassifications config.json ' + course_code + ' ' + platform);
+    print p
+    return p
+    '''
     try:
         os.popen('java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.train_onUserClassifications config.json ' + course_code + ' ' + platform);
         return True
     except Exception, e:
         return e
+    '''
 
 def get_uid_fromsmid(username, platform):
     userprofile = None
@@ -430,7 +442,7 @@ def get_wordcloud(platform, course_code, username=None, start_date=None, end_dat
         documents = remove_stopwords(get_allcontent_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date))
     else:
         documents = remove_stopwords(get_allcontent_byplatform(platform, course_code, start_date=start_date, end_date=end_date))
-    print documents
+    #print documents
     # Make dictionary
     dictionary = corpora.Dictionary(documents)
 
@@ -482,7 +494,7 @@ def get_nodes_byplatform(platform, course_code, username=None, start_date=None, 
             FROM clatoolkit_learningrecord
             WHERE clatoolkit_learningrecord.course_code='%s' %s %s %s
           """ % (course_code, platformclause, userclause, dateclause)
-    print sql
+    #print sql
     cursor = connection.cursor()
     cursor.execute(sql)
     result = cursor.fetchall()
@@ -491,11 +503,10 @@ def get_nodes_byplatform(platform, course_code, username=None, start_date=None, 
     for row in result:
         node_dict[row[0]] = count
         count += 1
-    print "node_dict", node_dict
+    #print "node_dict", node_dict
     return node_dict
 
 def get_relationships_byplatform(platform, course_code, username=None, start_date=None, end_date=None):
-
 
     platformclause = ""
     if platform != "all":
@@ -588,7 +599,7 @@ def get_relationships_byplatform(platform, course_code, username=None, start_dat
 
 def sna_buildjson(platform, course_code, username=None, start_date=None, end_date=None):
 
-    print username
+    #print username
     node_dict = None
     edge_dict = None
     nodes_in_sna_dict = None
@@ -603,8 +614,8 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     dict_types = {'mention': mention_dict, 'share': share_dict, 'comment': comment_dict}
     relationship_type_colours = {'mention': 'black', 'share': 'green', 'comment': 'red'}
 
-    print node_dict
-    print edge_dict
+    #print node_dict
+    #print edge_dict
 
     json_str_list = []
     #print node_dict
@@ -617,6 +628,7 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     #pprint(nodes_in_sna_dict)
     #pprint(edge_dict)
 
+    '''
     # make networkx graph from sna data
     G=nx.MultiGraph() # Create a multi-graph as multiple directed edges per verb
     # Add nodes
@@ -631,7 +643,6 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
                 print edge_attributes
                 G.add_edge(node_dict[edgefrom], node_dict[edgeto], edge_attributes)
 
-    '''
     pr = nx.pagerank_numpy(G, alpha=0.9)
     print "pagerank", pr
     degree = nx.degree(G,weight='weight')
@@ -640,10 +651,24 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     print "betweenness", betweenness
     degree_centrality = nx.degree_centrality(G)
     print "degree_centrality", degree_centrality
-    '''
-    degree = nx.degree(G,weight='weight')
-    #print "degree", degree
 
+    #degree = nx.degree(G,weight='weight')
+    #print "degree", degree
+    '''
+
+    # Faster way of calculating the degree without using NetworkX
+    # As other metrics are not yet displayed the SNA calculations can be made faster
+    node_degree_dict = {}
+    for node in node_dict:
+        node_degree_dict[node] = 0
+    # Add degrees based upon edges
+    for relationshiptype in dict_types:
+        for edge_str in dict_types[relationshiptype]:
+            edgefrom, edgeto = edge_str.split('__')
+            if edgefrom in node_dict and edgeto in node_dict:
+                node_degree_dict[edgefrom] += 1
+                node_degree_dict[edgeto] += 1
+    #print node_degree_dict
     # make json for vis.js display
     # Build node json
     json_str_list.append('{"nodes": [')
@@ -653,7 +678,8 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
         role = get_role_fromusername(node, platform)
         node_border = node_type_colours[role]['border']
         node_fill = node_type_colours[role]['fill']
-        json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, degree[node_dict[node]]))
+        #json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, degree[node_dict[node]]))
+        json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, node_degree_dict[node]))
     json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
     json_str_list.append("],")
 
@@ -675,3 +701,21 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
     json_str_list.append("]}")
     return ''.join(json_str_list)
+
+def sentiment_classifier(course_code):
+    # get messages
+    sm_objs = LearningRecord.objects.filter(course_code=course_code)
+
+    for sm_obj in sm_objs:
+        message = sm_obj.message.encode('utf-8', 'replace')
+        sentiment = "Neutral"
+        vs = vaderSentiment(message)
+        #print vs, message
+        #print "\n\t" + str(vs)
+        if (vs['compound'] > 0):
+            sentiment = "Positive"
+        elif (vs['compound'] < 0):
+            sentiment = "Negative"
+        # Save Classification
+        classification_obj = Classification(xapistatement=sm_obj,classification=sentiment,classifier='VaderSentiment')
+        classification_obj.save()

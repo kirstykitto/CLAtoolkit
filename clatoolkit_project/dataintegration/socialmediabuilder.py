@@ -60,7 +60,7 @@ def statement_builder(actor, verb, object, context, result, timestamp=None):
 
 def socialmedia_builder(verb, platform, account_name, account_homepage, object_type, object_id, message, tags=[], parent_object_type=None, parent_id=None, rating=None, instructor_name=None, instructor_email=None, team_name=None, course_code=None, account_email=None, user_name=None, timestamp=None):
     verbmapper = {'created': 'http://activitystrea.ms/schema/1.0/create', 'shared': 'http://activitystrea.ms/schema/1.0/share', 'liked': 'http://activitystrea.ms/schema/1.0/like', 'rated': 'http://id.tincanapi.com/verb/rated', 'commented': 'http://adlnet.gov/expapi/verbs/commented'}
-    objectmapper = {'Note': 'http://activitystrea.ms/schema/1.0/note', 'Tag': 'http://id.tincanapi.com/activitytype/tag', 'Article': 'http://activitystrea.ms/schema/1.0/article'}
+    objectmapper = {'Note': 'http://activitystrea.ms/schema/1.0/note', 'Tag': 'http://id.tincanapi.com/activitytype/tag', 'Article': 'http://activitystrea.ms/schema/1.0/article', 'Video': 'http://activitystrea.ms/schema/1.0/video'}
 
     agentaccount = AgentAccount(name=account_name, home_page=account_homepage)
     actor = Agent(account=agentaccount)
@@ -70,6 +70,8 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
         actor.name = user_name
 
     verb_obj = Verb(id=verbmapper[verb],display=LanguageMap({'en-US': verb}))
+
+    #message = message.decode('utf-8').encode('ascii', 'ignore') #message.decode('utf-8').replace(u"\u2018", "'").replace(u"\u2019", "'").replace(u"\u2013", "-").replace(u"\ud83d", " ").replace(u"\ude09", " ").replace(u"\u00a0l", " ").replace(u"\ud83d", " ").replace(u"\u2026", " ").replace(u"\ude09", " ").replace(u"\u00a0"," ")
 
     object = Activity(
         id=object_id,
