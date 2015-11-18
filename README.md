@@ -3,6 +3,6 @@ The Connected Learning Analytics toolkit (new django architecture, superseeding 
 
 
 To Do:
- - Create/Assign all participants to groups
+ - Create/Assign all participants to groups (Working - Manually)
  - CoI Interface: Messages to be classified by everyone - order messages received to be different order for every group
  
