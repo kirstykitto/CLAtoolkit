@@ -143,6 +143,33 @@ def register(request):
         'clatoolkit/register.html',
             {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, 'show_units': show_units, 'selected_unit': selected_unit, "course": course}, context)
 
+@login_required
+def socialmediaaccounts(request):
+    context = RequestContext(request)
+    user_id = request.user.id
+    usr_profile = UserProfile.objects.get(user_id=user_id)
+
+    if request.method == 'POST':
+        profile_form = UserProfileForm(data=request.POST,instance=usr_profile)
+
+        if profile_form.is_valid():
+            profile_form.save()
+            return redirect('/dashboard/myunits')
+        # Invalid form or forms - mistakes or something else?
+        else:
+            print user_form.errors, profile_form.errors
+
+    # Not a HTTP POST, so we render our form using two ModelForm instances.
+    # These forms will be blank, ready for user input.
+    else:
+        profile_form = UserProfileForm(instance=usr_profile)
+
+    # Render the template depending on the context.
+    return render_to_response(
+        'clatoolkit/socialmediaaccounts.html',
+            {'profile_form': profile_form}, context)
+
+
 def eventregistration(request):
     context = RequestContext(request)
 

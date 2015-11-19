@@ -13,6 +13,7 @@ router.register(r'userclassification', views.UserClassificationViewSet)
 urlpatterns = patterns('',
     url(r'^register/$', views.register, name='register'),
     url(r'^eventregistration/$', views.eventregistration, name='eventregistration'),
+    url(r'^socialmediaaccounts/$', views.socialmediaaccounts, name='socialmediaaccounts'),
     url(r'^sna/$', views.SNARESTView.as_view(), name='sna'),
     url(r'^wordcloud/$', views.WORDCLOUDView.as_view(), name='wordcloud'),
     url(r'^topicmodel/$', views.TOPICMODELView.as_view(), name='topicmodel'),
