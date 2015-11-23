@@ -157,14 +157,14 @@ def cadashboard(request):
     #pyLDAVis_json = get_LDAVis_JSON(platform, 4, course_code)
 
     tags = get_wordcloud(platform, course_code)
-    sentiments = ""
-    sentiment_classification = {'positive':0, 'neutral':0, 'negative':0}
-    sentiment_counts = Classification.objects.values('classification').filter(classifier='VaderSentiment').order_by().annotate(Count('classification'))
-    for sentiment in sentiment_counts:
-        # example dict = {'classification__count': 27, 'classification': u'Negative'}
-        sentiments = sentiments + "['%s',  %s]," % (sentiment['classification'],sentiment['classification__count'])
-        #sentiment_classification[sentiment['classification']] = sentiment['classification__count']
-    context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'sentiments': sentiments, 'tags': tags, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+
+    sentiments = getClassifiedCounts(platform, course_code, classifier="VaderSentiment")
+    coi = getClassifiedCounts(platform, course_code, classifier="NaiveBayes_t1.model")
+
+    no_topics = 3
+    topic_model_output, sentimenttopic_piebubblesdataset = nmf(platform, no_topics, course_code, start_date=None, end_date=None)
+
+    context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'sentiments': sentiments, 'coi': coi, 'tags': tags, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'no_topics': no_topics, 'topic_model_output': topic_model_output, 'sentimenttopic_piebubblesdataset':sentimenttopic_piebubblesdataset }
     return render_to_response('dashboard/cadashboard.html', context_dict, context)
 
 @check_access(required_roles=['Staff'])
@@ -183,7 +183,7 @@ def snadashboard(request):
     likes_timeline = get_timeseries('liked', platform, course_code)
     comments_timeline = get_timeseries('commented', platform, course_code)
 
-    sna_json = sna_buildjson(platform, course_code)
+    sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
 
     context_dict = {'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform, 'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
 
@@ -256,6 +256,7 @@ def studentdashboard(request):
     twitter_timeline = ""
     facebook_timeline = ""
     forum_timeline = ""
+    youtube_timeline = ""
 
     #print "Platform timelines", datetime.datetime.now()
     platformclause = ""
@@ -265,6 +266,7 @@ def studentdashboard(request):
         twitter_timeline = get_timeseries_byplatform("Twitter", course_code, username)
         facebook_timeline = get_timeseries_byplatform("Facebook", course_code, username)
         forum_timeline = get_timeseries_byplatform("Forum", course_code, username)
+        youtube_timeline = get_timeseries_byplatform("YouTube", course_code, username)
         show_allplatforms_widgets = True
 
     cursor = connection.cursor()
@@ -283,12 +285,15 @@ def studentdashboard(request):
     topcontenttable = get_top_content_table(platform, course_code, username=username)
 
     #print "SNA", datetime.datetime.now()
-    sna_json = sna_buildjson(platform, course_code, username=username)
+    sna_json = sna_buildjson(platform, course_code, username=username, relationshipstoinclude="'mentioned','liked','shared','commented'")
 
     #print "Word Cloud", datetime.datetime.now()
     tags = get_wordcloud(platform, course_code, username=username)
 
-    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline':forum_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    sentiments = getClassifiedCounts(platform, course_code, username=username, classifier="VaderSentiment")
+    coi = getClassifiedCounts(platform, course_code, username=username, classifier="NaiveBayes_t1.model")
+
+    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline':forum_timeline, 'youtube_timeline':youtube_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi }
 
     return render_to_response('dashboard/studentdashboard.html', context_dict, context)
 
@@ -346,6 +351,7 @@ def mydashboard(request):
     twitter_timeline = ""
     facebook_timeline = ""
     forum_timeline = ""
+    youtube_timeline = ""
 
     platformclause = ""
     if platform != "all":
@@ -354,6 +360,7 @@ def mydashboard(request):
         twitter_timeline = get_timeseries_byplatform("Twitter", course_code, username)
         facebook_timeline = get_timeseries_byplatform("Facebook", course_code, username)
         forum_timeline = get_timeseries_byplatform("Forum", course_code, username)
+        youtube_timeline = get_timeseries_byplatform("YouTube", course_code, username)
         show_allplatforms_widgets = True
 
     cursor = connection.cursor()
@@ -370,12 +377,15 @@ def mydashboard(request):
 
     #topcontenttable = get_top_content_table(platform, course_code, username=username)
 
-    sna_json = sna_buildjson(platform, course_code, username=username)
+    sna_json = sna_buildjson(platform, course_code, username=username, relationshipstoinclude="'mentioned','liked','shared','commented'")
 
     tags = get_wordcloud(platform, course_code, username=username)
 
+    sentiments = getClassifiedCounts(platform, course_code, username=username, classifier="VaderSentiment")
+    coi = getClassifiedCounts(platform, course_code, username=username, classifier="NaiveBayes_t1.model")
+
     reflections = DashboardReflection.objects.filter(username=username)
-    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'forum_timeline': forum_timeline, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'forum_timeline': forum_timeline, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'youtube_timeline': youtube_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi  }
 
     return render_to_response('dashboard/mydashboard.html', context_dict, context)
 

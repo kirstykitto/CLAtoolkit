@@ -288,11 +288,12 @@ class SNARESTView(DefaultsMixin, APIView):
         start_date = request.GET.get('start_date', None)
         end_date = request.GET.get('end_date', None)
         username = request.GET.get('username', None)
+        relationshipstoinclude = request.GET.get('relationshipstoinclude', None)
 
         # Any URL parameters get passed in **kw
         #myClass = CalcClass(get_arg1, get_arg2, *args, **kw)
         #print sna_buildjson(platform, course_code)
-        result = json.loads(sna_buildjson(platform, course_code, username=username, start_date=start_date, end_date=end_date))
+        result = json.loads(sna_buildjson(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude))
         #{'nodes':["test sna","2nd test"]} #myClass.do_work()
         response = Response(result, status=status.HTTP_200_OK)
         return response
@@ -308,6 +309,21 @@ class WORDCLOUDView(DefaultsMixin, APIView):
         username = request.GET.get('username', None)
 
         result = json.loads(get_wordcloud(platform, course_code, username=username, start_date=start_date, end_date=end_date))
+        response = Response(result, status=status.HTTP_200_OK)
+        return response
+
+class CLASSIFICATIONPieView(DefaultsMixin, APIView):
+
+    def get(self, request, *args, **kw):
+
+        course_code = request.GET.get('course_code', None)
+        platform = request.GET.get('platform', None)
+        start_date = request.GET.get('start_date', None)
+        end_date = request.GET.get('end_date', None)
+        username = request.GET.get('username', None)
+        classifier = request.GET.get('classifier', None)
+
+        result = json.loads(getClassifiedCounts(platform, course_code, username=username, start_date=start_date, end_date=end_date, classifier=classifier))
         response = Response(result, status=status.HTTP_200_OK)
         return response
 

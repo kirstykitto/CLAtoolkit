@@ -82,6 +82,8 @@ def ytAuthCallback(request):
         commList = ytList[1]
         commNum = len(commList)
         context_dict = {"vList": vList, "vNum": vNum, "commList": commList, "commNum": commNum}
+        #perform sentiment classification
+        sentiment_classifier(courseCode)
         return render(request, 'dataintegration/ytresult.html', context_dict)
 
 
@@ -103,8 +105,8 @@ CONFIG = {
     'fb': {
         'class_': oauth2.Facebook,
 
-        'consumer_key': '',
-        'consumer_secret': '',
+        'consumer_key': '1409411262719592',
+        'consumer_secret': '8fbbb8f44a8b3e68302e2d8fb7a5ecf3',
 
         'scope': ['user_about_me', 'email', 'user_groups'],
     },
@@ -138,7 +140,7 @@ def refreshtwitter(request):
     cached_content.save()
 
     #perform sentiment classification
-    #sentiment_classifier(course_code)
+    sentiment_classifier(course_code)
 
     html_response.write('Twitter Refreshed.')
     return html_response
@@ -205,7 +207,7 @@ def login(request, group_id):
                     cached_content.htmltable = top_content
                     cached_content.save()
                     #perform sentiment classification
-                    #sentiment_classifier(course_code)
+                    sentiment_classifier(course_code)
                     html_response.write('Updating Facebook for ' + course_code)
                     '''
                     if access_response.status == 200:

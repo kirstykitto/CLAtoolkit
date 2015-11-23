@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from .models import UserProfile, LearningRecord, UnitOffering, AccessLog, CachedContent, Classification, UserClassification
+from .models import UserProfile, LearningRecord, UnitOffering, SocialRelationship, AccessLog, CachedContent, Classification, UserClassification
 
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
@@ -14,7 +14,11 @@ class UserAdmin(UserAdmin):
 
 class LearningRecordAdmin(admin.ModelAdmin):
     list_display = ('username', 'platform', 'verb', 'course_code', 'platformid')
-    search_fields = ('username', 'course_code')
+    search_fields = ('username', 'course_code', 'verb', 'platform')
+
+class SocialRelationshipAdmin(admin.ModelAdmin):
+    list_display = ('fromusername', 'tousername', 'platform', 'verb', 'course_code', 'platformid')
+    search_fields = ('verb', 'platform')
 
 class AccessLogAdmin(admin.ModelAdmin):
     list_display = ('url', 'userid', 'created_at')
@@ -35,6 +39,8 @@ admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
 
 admin.site.register(LearningRecord, LearningRecordAdmin)
+
+admin.site.register(SocialRelationship, SocialRelationshipAdmin)
 
 admin.site.register(UnitOffering, UnitOfferingAdmin)
 
