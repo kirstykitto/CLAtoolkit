@@ -32,3 +32,6 @@ requests-oauthlib==0.5.0
 tincan==0.0.5
 twython==3.2.0
 vaderSentiment==0.5
+scikit-bio==0.2.3
+scikit-learn==0.16.1
+scipy==0.15.1
