@@ -6,16 +6,17 @@
 {% block heading %}{{title}}{% endblock %}
 
 {% block body %}
+<!--
 <div class="alert alert-warning">
     You can filter the topic model and wordcloud by date. Select the timeframe using the
     "Activity Timeseries" chart and then click on the "Filter widgets by date selection" button.
-</div>
+</div>-->
 <div class="row">
     <div class="col-lg-12">
         <div class="panel panel-default">
             <div class="panel-heading">
                 <i class="fa fa-bar-chart-o fa-fw"></i> Activity Timeseries
-                <div class="pull-right"><button id="datefilter">Filter widgets by date selection</button></div>
+                <!--<div class="pull-right"><button id="datefilter">Filter widgets by date selection</button></div>-->
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
@@ -83,19 +84,17 @@
             <!-- /.panel-heading -->
             <div class="panel-body">
               <!--<iframe id="topicmodel_iframe" width="100%" height="700px" src="/dashboard/pyldavis/?platform={{platform}}&course_code={{course_code}}"> </iframe>-->
-<!--
-              <form role="form" name="nmf_params" method="post" action="/answersanalysis/" onsubmit="return validateForm()" >
+
+              <form role="form" name="nmf_params" method="post" action="/dashboard/ca_dashboard/" onsubmit="return validateForm()" >
                 {% csrf_token %}
-                <input type="hidden" name="projectid" value="{{project_id}}" />
-                <input type="hidden" name="questionid" value="{{question_id}}" />
+                <input type="hidden" name="course_code" value="{{course_code}}" />
+                <input type="hidden" name="platform" value="{{platform}}" />
               <div class="form-group has-success">
                   <label class="control-label" for="no_topics">No Topics</label>
-                  <input type="text" class="form-control" id="no_topics" name="no_topics" />
+                  <input type="text" class="form-control" id="no_topics" name="no_topics" style="width:20%" />
                   <button type="submit" class="btn btn-primary btn-xs">Generate Topics</button>
               </div>
-
               </form>
--->
               <div id="topicmodels">
               {{topic_model_output|safe}}
               </div>
@@ -180,7 +179,7 @@ function validateForm()
 {
     var a = document.forms["nmf_params"]["no_topics"].value;
     if (a == null || a == "" || a <= 0 || a>=20 || !(isInteger(a)) ) {
-      alert("Please enter a number between 1 and 20")
+      alert("Please enter a number between 3 and 10")
                 return false;
     }
     else return true;
@@ -326,7 +325,7 @@ var width = 960,
 var n = {{no_topics}}, // total number of nodes
     m = 3; // number of distinct clusters
 
-var color = d3.scale.ordinal().range(["#00cc00","#ff6600","#ffffe5"]);
+var color = d3.scale.ordinal().range(["#e5f7ff","#ffcccc","#ffffe5"]);
 
 // The largest node for each cluster.
 var clusters = new Array(m);

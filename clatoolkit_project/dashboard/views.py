@@ -12,7 +12,6 @@ from django.db.models import Q
 import datetime
 from django.db.models import Count
 
-#staceysarasvati
 def check_access(required_roles=None):
     def decorator(view):
         @wraps(view)
@@ -55,12 +54,6 @@ def myunits(request):
         username = request.user.username
         if LearningRecord.objects.filter(username__iexact=username).count() == 0:
             shownocontentwarning = True
-        '''
-        userid = request.user.id
-        twitter_id, fb_id, forum_id = get_smids_fromuid(userid)
-        if LearningRecord.objects.filter(Q(username__iexact=twitter_id) | Q(username__iexact=fb_id) | Q(username__iexact=forum_id)).count() == 0:
-            shownocontentwarning = True
-        '''
 
     context_dict = {'title': "My Units", 'units': units, 'show_dashboardnav':show_dashboardnav, 'shownocontentwarning': shownocontentwarning, 'role': role}
 
@@ -143,8 +136,17 @@ def dashboard(request):
 def cadashboard(request):
     context = RequestContext(request)
 
-    course_code = request.GET.get('course_code')
-    platform = request.GET.get('platform')
+    course_code = None
+    platform = None
+    no_topics = 3
+
+    if request.method == 'POST':
+        course_code = request.POST['course_code']
+        platform = request.POST['platform']
+        no_topics = int(request.POST['no_topics'])
+    else:
+        course_code = request.GET.get('course_code')
+        platform = request.GET.get('platform')
 
     title = "Content Analysis Dashboard: %s (Platform: %s)" % (course_code, platform)
     show_dashboardnav = True
@@ -154,14 +156,11 @@ def cadashboard(request):
     likes_timeline = get_timeseries('liked', platform, course_code)
     comments_timeline = get_timeseries('commented', platform, course_code)
 
-    #pyLDAVis_json = get_LDAVis_JSON(platform, 4, course_code)
-
     tags = get_wordcloud(platform, course_code)
 
     sentiments = getClassifiedCounts(platform, course_code, classifier="VaderSentiment")
     coi = getClassifiedCounts(platform, course_code, classifier="NaiveBayes_t1.model")
 
-    no_topics = 3
     topic_model_output, sentimenttopic_piebubblesdataset = nmf(platform, no_topics, course_code, start_date=None, end_date=None)
 
     context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'sentiments': sentiments, 'coi': coi, 'tags': tags, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'no_topics': no_topics, 'topic_model_output': topic_model_output, 'sentimenttopic_piebubblesdataset':sentimenttopic_piebubblesdataset }
