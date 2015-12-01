@@ -231,14 +231,16 @@ def injest_youtube_commentById(course_code, allIds, http, loginUserInfo, isVideo
                         parentdisplayname = id_creator_displayname_dict[id_creator_key]
                         parentusername = get_username_fromsmid(id_creator_dict[id_creator_key], "YouTube")
                     '''
+                    parentId = comment.parentId
                     if parentId in id_creator_displayname_dict:
-                        parentId = comment.parentId
+                        print "insert comment"
                         parentdisplayname = id_creator_displayname_dict[parentId]
                         parentusername = get_username_fromsmid(id_creator_dict[parentId], "YouTube")
                         insert_comment(usr_dict, parentId, postid,
                                         comment.text, userInfo['googleAcName'], userInfo['username'],
                                         comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE, parentusername, parentdisplayname)
                 else:
+                    print "insert post"
                     insert_post(usr_dict, postid, comment.text,userInfo['googleAcName'],userInfo['username'], comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE)
 
     return commList
@@ -481,6 +483,7 @@ def extractCommentsById(singleId, nextPageToken, isVideoIdSearch, http):
     '''
     return ret
 
+
 #############################################################
 # Retrieve comments from YouTube API response
 #############################################################
@@ -497,12 +500,24 @@ def getCommentsFromResponse(apiResponse, course_code, userName, usersInUnit):
     #Loop to get all items
     for item in apiResponse['items']:
         #Check if the comment is already in DB
+        replies = None
         #print 'item:',item
+        #for k in item:
+        #    print k
+        if u'replies' in item:
+            #print "setting replies"
+            replies = item[u'replies']
+            #print '1 replies', replies
+        else:
+            print "No replies"
+
+        '''
         records = LearningRecord.objects.filter(
             platform = STR_PLATFORM_NAME_YOUTUBE, course_code = course_code,
             platformid = item['id'])
         if(len(records) > 0):
             continue
+        '''
 
         author = item['snippet']['topLevelComment']['snippet']['authorDisplayName']
         authorChannelUrl = item['snippet']['topLevelComment']['snippet']['authorChannelUrl']
@@ -541,15 +556,38 @@ def getCommentsFromResponse(apiResponse, course_code, userName, usersInUnit):
         id_creator_displayname_dict[item['id']] = author
 
         #Check if replies exist
-        if item.get('replies'):
-            for reply in item['replies']['comments']:
+        '''
+        for k in item:
+            print k
+            for t in item[k]:
+                print '--',t
+        if 'replies' in item:
+            print "reply: ",item['replies']
+        else:
+            print "no replies"
+        '''
+        #tmp = json.dumps(item)
+        #newitem = json.loads(tmp)
+        #print "item:", item
+        #print "newitem: ", newitem
+        #if 'replies' in newitem:
+        #    print "reply: ",item['replies']
+
+        #if item.get('replies'):
+        #print "replies2", replies
+        if replies is not None:
+            #print "replies is not None"
+            for reply in replies[u'comments']:
+                #item['replies']['comments']:
                 #print "reply", reply
                 #Check if the comment is already in DB
+                '''
                 records = LearningRecord.objects.filter(
                     platform = STR_PLATFORM_NAME_YOUTUBE, course_code = course_code,
                     platformid = reply['id'])
                 if(len(records) > 0):
                     continue
+                '''
 
                 author = reply['snippet']['authorDisplayName']
                 authorChannelUrl = reply['snippet']['authorChannelUrl']
@@ -579,6 +617,7 @@ def getCommentsFromResponse(apiResponse, course_code, userName, usersInUnit):
                     replyComm.channelUrl = STR_YT_CHANNEL_BASE_URL + replyComm.channelId
 
                 replyComm.updatedAt = snippet['updatedAt']
+                #print "replyComm obj", replyComm.__dict__
                 commList.append(replyComm)
 
     return commList,id_creator_dict,id_creator_displayname_dict
@@ -620,10 +659,10 @@ def injest_twitter(sent_hashtag, course_code):
     #print "sent_hashtag:", sent_hashtag
 
     # Setup Twitter API Keys
-    app_key = "barKrgroD3LcyHRwehvaiv1Zu"
-    app_secret = "v6awGTCTP6wNJNhMPzmUzuIi1bAfNuoFOuPq1LXoCNjyqOIUki"
-    oauth_token = "1851621-4eTSnqZehoeVBWqUxGERiPKjnTsVEFaJ77MnTWKRfo"
-    oauth_token_secret = "4ZoEKJ9hnbviCuFtfGq2hBdCsfuX6eyqvvkbFGEeytE0U"
+    app_key = ""
+    app_secret = ""
+    oauth_token = ""
+    oauth_token_secret = ""
 
     twitter = Twython(app_key, app_secret, oauth_token, oauth_token_secret)
 
@@ -795,7 +834,8 @@ def check_ifuserincourse(user, course_id):
 def get_userdetails_twitter(screen_name):
     usr_dict = {'screen_name':screen_name}
     try:
-        usr = UserProfile.objects.filter(twitter_id__iexact=screen_name).get()
+        usrs = UserProfile.objects.filter(twitter_id__iexact=screen_name)
+        usr = usrs[0]
     except UserProfile.DoesNotExist:
         usr = None
 

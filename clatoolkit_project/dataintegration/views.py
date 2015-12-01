@@ -15,10 +15,11 @@ from .forms import FacebookGatherForm
 #from dataintegration.forms import UserForm, UserProfileForm
 import json
 from pprint import pprint
-from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent
+from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap
 from django.db import connection
 import dateutil.parser
 from dashboard.utils import *
+from dataintegration.groupbuilder import *
 
 ### YouTube Integration ###
 """
@@ -82,6 +83,14 @@ def ytAuthCallback(request):
         commList = ytList[1]
         commNum = len(commList)
         context_dict = {"vList": vList, "vNum": vNum, "commList": commList, "commNum": commNum}
+
+        top_content = get_top_content_table("YouTube", courseCode)
+        active_content = get_active_members_table("YouTube", courseCode)
+        cached_content, created = CachedContent.objects.get_or_create(course_code=courseCode, platform="YouTube")
+        cached_content.htmltable = top_content
+        cached_content.activitytable = active_content
+        cached_content.save()
+
         #perform sentiment classification
         sentiment_classifier(courseCode)
         return render(request, 'dataintegration/ytresult.html', context_dict)
@@ -359,6 +368,14 @@ def sendtolrs(request):
     updateLRS()
 
     html_response.write('Statements Sent to LRS.')
+    return html_response
+
+def assigngroups(request):
+    html_response = HttpResponse()
+    course_code = request.GET.get('course_code', None)
+    GroupMap.objects.filter(course_code=course_code).delete()
+    assign_groups_class(course_code)
+    html_response.write('Groups Assigned')
     return html_response
 
 def updatelearningrecords(request):

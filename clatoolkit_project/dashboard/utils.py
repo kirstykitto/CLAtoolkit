@@ -25,6 +25,7 @@ import subprocess
 def classify(course_code, platform):
     #Calls JAR to extract and classify messages
     #$ java -cp /dataintegration/MLWrapper/CLAToolKit_JavaMLWrapper-0.1.jar load.from_clatk ./config.json [course_code] [platform]
+    print platform
     p = os.popen('java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.from_clatk config.json ' + course_code + ' ' + platform)
     print p
     return p
@@ -379,10 +380,16 @@ def getClassifiedCounts(platform, course_code, username=None, start_date=None, e
     classification_dict = None
     if classifier == "VaderSentiment":
         classification_dict = {'positive':0, 'neutral':0, 'negative':0}
-    elif classifier == "NaiveBayes_t1.model":
-        classification_dict = {'Triggering':0, 'Exploration':0, 'Integration':0, 'Resolution':0}
+    else:
+        classification_dict = {'Triggering':0, 'Exploration':0, 'Integration':0, 'Resolution':0, 'Other':0}
+    #elif classifier == "NaiveBayes_t1.model":
 
     kwargs = {'classifier':classifier, 'xapistatement__course_code': course_code}
+    if classifier == "VaderSentiment":
+        kwargs['classifier']=classifier
+    else:
+        classifier_name = "nb_%s_%s.model" % (course_code,"YouTube")
+        kwargs['classifier']= classifier_name
     if username is not None:
         kwargs['xapistatement__username']=username
     if start_date is not None:
@@ -484,6 +491,7 @@ def nmf(platform, no_topics, course_code, start_date=None, end_date=None):
             topic_output = topic_output + "<li>%s</li>" % (doc)
         topic_output = topic_output + "</ul>"
 
+    print nmf_topic_doc_ids
     # find the % sentiment classification of each topic
     classification_dict = None
     classifier = 'VaderSentiment'
@@ -509,6 +517,7 @@ def nmf(platform, no_topics, course_code, start_date=None, end_date=None):
             #print count
             classification_dict[count['classification']] = count['classification__count']
         vals = "%d,%d,%d" % (classification_dict['Positive'],classification_dict['Negative'],classification_dict['Neutral'])
+        print vals
         radius = classification_dict['Positive'] + classification_dict['Negative'] + classification_dict['Neutral']
         feature_matrix[topic,0] = classification_dict['Positive']
         feature_matrix[topic,1] = classification_dict['Negative']
@@ -522,6 +531,7 @@ def nmf(platform, no_topics, course_code, start_date=None, end_date=None):
 
     n_clusters_ = len(cluster_centers_indices)
     #print 'n_clusters_', n_clusters_, aflabels
+    #print feature_matrix
 
     # generate piebubblechart dataset for d3.js
     #print piebubblechart
@@ -645,7 +655,7 @@ def get_relationships_byplatform(platform, course_code, username=None, start_dat
 
     userclause = ""
     if username is not None:
-        userclause = " AND clatoolkit_socialrelationship.fromusername='%s'" % (username)
+        userclause = " AND (clatoolkit_socialrelationship.fromusername='%s' OR clatoolkit_socialrelationship.tousername='%s')" % (username,username)
 
     dateclause = ""
     if start_date is not None:
@@ -709,9 +719,16 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
         node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
         edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
 
-    #print node_dict
-    #print nodes_in_sna_dict
-    #print edge_dict
+    #node_dict.update(nodes_in_sna_dict)
+    for key in nodes_in_sna_dict:
+        node_dict[key] = 1
+    count = 1
+    for key in node_dict:
+        node_dict[key] = count
+        count = count + 1
+
+    #print node_dict, node_dict
+
     node_type_colours = {'Staff':{'border':'#661A00','fill':'#CC3300'}, 'Student':{'border':'#003D99','fill':'#0066FF'}, 'Visitor':{'border':'black','fill':'white'}}
     dict_types = {'mention': mention_dict, 'share': share_dict, 'comment': comment_dict}
     relationship_type_colours = {'mention': 'grey', 'share': 'green', 'comment': 'red'}
@@ -774,6 +791,7 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     # make json for vis.js display
     # Build node json
     json_str_list.append('{"nodes": [')
+    count = 1
     for node in node_dict:
         #print node
         username = node
@@ -782,6 +800,7 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
         node_fill = node_type_colours[role]['fill']
         #json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, degree[node_dict[node]]))
         json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, node_degree_dict[node]))
+        count = count + 1
     json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
     json_str_list.append("],")
 
@@ -799,7 +818,7 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     if json_str_list[len(json_str_list)-1][-1:] == ',':
         json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
     json_str_list.append("]}")
-
+    #print ''.join(json_str_list)
     return ''.join(json_str_list)
 
 def get_LDAVis_JSON_IFN600(corpus, num_topics):

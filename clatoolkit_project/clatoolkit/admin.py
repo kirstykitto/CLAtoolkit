@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from .models import UserProfile, LearningRecord, UnitOffering, SocialRelationship, AccessLog, CachedContent, Classification, UserClassification
+from .models import UserProfile, LearningRecord, UnitOffering, SocialRelationship, AccessLog, CachedContent, Classification, UserClassification, GroupMap
 
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
@@ -31,6 +31,10 @@ class ClassificationAdmin(admin.ModelAdmin):
     list_display = ('xapistatement', 'classification', 'classifier', 'created_at')
     search_fields = ('classification',)
 
+class GroupMapAdmin(admin.ModelAdmin):
+    list_display = ('userId', 'course_code', 'groupId')
+    search_fields = ('course_code',)
+
 class UserClassificationAdmin(admin.ModelAdmin):
     list_display = ('classification', 'username', 'isclassificationcorrect', 'userreclassification', 'feedback', 'created_at')
     search_fields = ('username', 'isclassificationcorrect', 'userreclassification',)
@@ -51,3 +55,5 @@ admin.site.register(CachedContent)
 admin.site.register(Classification, ClassificationAdmin)
 
 admin.site.register(UserClassification, UserClassificationAdmin)
+
+admin.site.register(GroupMap, GroupMapAdmin)
