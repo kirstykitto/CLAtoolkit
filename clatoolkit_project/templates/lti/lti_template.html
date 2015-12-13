@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<form action="http://localhost:8000/lti/launch/" method="post">
+Name:<br>
+    <input type="text" name="lis_person_name_full" value="Zak"><br>
+    <input type="hidden" name="lti_message_type" value="basic-lti-launch-request">
+    <input type="hidden" name="lti_version" value="LTI-1p0">
+    <input type="hidden" name="oauth_consumer_key" value="somekey">
+    <input type="hidden" name="user_id" value="1212">
+    <input type="hidden" name="roles" value="Learner">
+    <input type="submit" value="Submit">
+</form>
+
+
+</body>
+</html>

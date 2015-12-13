@@ -40,7 +40,8 @@ INSTALLED_APPS = (
     'rest_framework',
     'clatoolkit',
     'dataintegration',
-    'dashboard'
+    'dashboard',
+    'lti'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -130,3 +131,8 @@ STATICFILES_FINDERS = (
 AUTH_PROFILE_MODULE = "account.userprofile"
 
 GA_TRACKING_ID = ''
+
+#Learning Tools Interoperability (LTI) settings
+LTI_DEBUG = True
+LTI_KEY = "cladevelopment01"
+LTI_SECRET = "same"

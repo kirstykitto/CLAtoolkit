@@ -1,0 +1,81 @@
+{% extends "clatoolkit/base_clatoolkit.html" %}
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block heading %}Enabling connected learning via open source analytics in social media (QUT Ethics Approval Number: 1500000398){% endblock %}
+
+{% block body %}
+<p class="lead">
+  You are invited to participate in this project because you are enrolled in a subject where you undertake learning activities using social media.
+</p>
+<p class="lead">
+  Agreeing to participate will lead to the creation of an account in a learning record store for you. You will then associate various social media accounts with that account (as your instructor suggests and you choose). This will allow for data to be gathered from your participation in learning activities using social media that you undertake in your class. You will then be able to see data and reports about your own engagement in the learning activities. This will give you information on your learning that you can use to gain a greater self-awareness of your learning.
+</p>
+<div class="row">
+  <div class="col-lg-6">
+      <div class="panel panel-info">
+          <div class="panel-heading">
+              Register
+          </div>
+          <div class="panel-body">
+            <p>
+              By registering you give consent for us to make use of your educational data (both in the learning record store, and when examining your assessment outcomes for this unit). Even upon doing this, you can chose which social media accounts you will link up to this account, and your social media data will only be harvested for those accounts.
+            </p>
+            {# Figure out how to display IDs on register page #}
+            <form role="form" id="user_form" method="post" action="/clatoolkit/register/">
+
+                {% csrf_token %}
+                <div class="form-group">
+                  <p class="help-block">{{ userform.username.errors }}</p>
+                  <label for="id_username">Username:</label> (required) <br />
+                  {{ userform.username }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ userform.email.errors }}</p>
+                  <label for="id_email">Email:</label> (required)<br />
+                  {{ userform.email }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ userform.password.errors }}</p>
+                  <label for="id_password">Password:</label> (required)<br />
+                  {{ userform.password }}
+                </div>
+
+                <div class="form-group">
+                  <p class="help-block">{{ userform.password.errors }}</p>
+                  <label for="id_password">Password:</label> (required)<br />
+                  {{ ltiform.roles }}
+                    <br />
+
+                </div>
+                <p>
+                By clicking the register button below, you are indicating that you:
+                <ul>
+                  <li>Have read and understood the information document regarding this project.</li>
+                  <li>Have had any questions answered to your satisfaction.</li>
+                  <li>Understand that if you have any additional questions you can contact the research team.</li>
+                  <li>Understand that you are free to withdraw at any time without comment or penalty.</li>
+                  <li>Understand that you can contact the Research Ethics Unit on 07 3138 5123 or email ethicscontact@qut.edu.au if you have concerns about the ethical conduct of the project.</li>
+                  <li>Agree to participate in the project.</li>
+                </ul>
+                </p>
+                <button type="submit" class="btn btn-primary btn-lg btn-block">Register</button>
+            </form>
+          </div>
+      </div>
+  </div>
+  <!-- /.col-lg-6 -->
+    <div class="col-lg-6">
+
+    </div>
+    <!-- /.col-lg-6 -->
+</div>
+<!-- /.row -->
+{% endblock %}
+
+{% block js_block %}
+{% autoescape off %}
+
+{% endautoescape %}
+{% endblock %}

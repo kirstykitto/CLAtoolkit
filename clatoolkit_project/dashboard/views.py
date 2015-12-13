@@ -11,6 +11,9 @@ from functools import wraps
 from django.db.models import Q
 import datetime
 from django.db.models import Count
+from django.contrib.auth.models import User
+
+from lti.models import LTIProfile
 
 import random
 
@@ -392,8 +395,36 @@ def myclassifications(request):
     username = user.username
     uid = user.id
 
-    course_code = request.GET.get('course_code')
-    platform = request.GET.get('platform')
+    #GET variable 'f' set to True if it's the user's first time
+    ethics_agreement_required = False
+    if ('f' in request.GET):
+        ethics_agreement_required = request.GET.get('f')
+
+    print ethics_agreement_required
+    if ethics_agreement_required is True:
+        context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'classifications': None, 'username':username, 'uid':uid, 'showethics': ethics_agreement_required }
+        return render_to_response('dashboard/myclassifications.html', context_dict, context)
+
+    if request.POST:
+        course_code = request.POST.get('course_code')
+        platform = request.POST.get('platform')
+
+        #if request.POST.get('agree') is True:
+        print 'USERNAME: ' + username
+        print 'USER: ' + str(user)
+        #inner_user = User.objects.filter(username=username)
+        lti_user = LTIProfile.objects.get(user=user)
+
+        #if lti_user:
+         #   print "FOUND USER"
+          #  for e in lti_user:
+           #     print e
+
+        lti_user.ethics_agreement = True
+        lti_user.save()
+    else:
+        course_code = request.GET.get('course_code')
+        platform = request.GET.get('platform')
 
     user_profile = UserProfile.objects.filter(user=user)
 
@@ -407,7 +438,9 @@ def myclassifications(request):
     random.seed(group_id_seed)
     random.shuffle(classifications_list)
 
-    context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications_list }
+
+
+    context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications_list, 'showethics': ethics_agreement_required }
     return render_to_response('dashboard/myclassifications.html', context_dict, context)
 
 def topicmodeling(request):

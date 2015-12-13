@@ -3,6 +3,29 @@ from django.contrib.auth.models import User
 import django_filters
 from django.core.exceptions import ValidationError 
 from clatoolkit.models import UserProfile, UnitOffering, LearningRecord, SocialRelationship, Classification, UserClassification
+from lti.models import LTIProfile
+
+"""class LTIProfileForm(forms.ModelForm):
+    opts = (
+        ('student', 'Student'),
+        ('staff', 'Staff'),
+    )
+    institution_userid = forms.CharField(widget=forms.HiddenInput(attrs={'class':'form-control'}))
+    roles = forms.ModelMultipleChoiceField(choices=opts, widget=forms.Select(attrs={'class': 'form-control'}))
+
+    class Meta:
+        model = LTIProfile
+        fields = ('roles')
+
+class LTIUserForm(forms.ModelForm):
+    username = forms.CharField(widget=forms.TextInput(attrs={'class':'form-control'}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+    email = forms.CharField(widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    unit = forms.CharField(widget=forms.HiddenInput(attrs={'class':'form-control'}))
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password', 'units')"""
 
 class UserForm(forms.ModelForm):
     username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
@@ -19,6 +42,7 @@ class UserProfileForm(forms.ModelForm):
     twitter_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     forum_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     google_account_name = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    cl_feature = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-control'}))
 
     def clean(self):
         if not ((self.cleaned_data.get('fb_id')) or (self.cleaned_data.get('twitter_id')) or (self.cleaned_data.get('forum_id')) or (self.cleaned_data.get('google_account_name'))):

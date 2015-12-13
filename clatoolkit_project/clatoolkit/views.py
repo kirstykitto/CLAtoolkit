@@ -1,5 +1,6 @@
 from django.shortcuts import render_to_response
 from django.shortcuts import redirect
+from django.conf import settings
 
 from django.contrib.auth import authenticate, login
 from django.http import HttpResponseRedirect, HttpResponse
@@ -27,6 +28,7 @@ from dataintegration.groupbuilder import *
 import json
 
 from django.db.models import Max
+#from lms_lti_py.tool_provider import DjangoToolProvider
 
 # from fb_data.models import
 
@@ -377,3 +379,4 @@ class GROUPIFY(DefaultsMixin, APIView):
         assign_groups_class(course_code)
 
         return redirect('/dashboard/myunits/', request)
+

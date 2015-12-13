@@ -2,6 +2,9 @@ from django.db import models
 from django.contrib.auth.models import User
 from django_pgjson.fields import JsonField
 
+#from lti_o.ims.utils import InvalidLTIRequestError
+import hashlib
+
 class UserProfile(models.Model):
     '''
     Custom user for data integration, uses Django's User class.
@@ -37,6 +40,9 @@ class UserProfile(models.Model):
     # Todo - Add Google API user credential requirements below
     # YouTube 26/08/2015
     google_account_name = models.CharField(max_length=255, blank=True)
+
+    #Augmented Learning Community Integration
+    cl_feature = models.BooleanField(blank=False, default=False)
 
 class LearningRecord(models.Model):
     xapi = JsonField()
@@ -179,3 +185,5 @@ class GroupMap(models.Model):
     userId = models.ForeignKey(UserProfile)
     course_code = models.CharField(max_length=5000, blank=False)
     groupId = models.IntegerField(max_length=5000, blank=False)
+
+
