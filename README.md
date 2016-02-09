@@ -24,35 +24,35 @@ Along with Docker we will be using:
 - Docker Compose for orchestrating a multi-container application into a single app, and
 - Docker Machine for creating Docker hosts both locally and in the cloud.
 
-Follow the directions [here](https://docs.docker.com/compose/install/) and [here](https://docs.docker.com/machine/#installation) to install Docker Compose and Machine, respectively.
+On Mac OS X, Docker Machine and Compose are installed with Docker Toolbox. Follow these directions [here](https://docs.docker.com/compose/install/) and [here](https://docs.docker.com/machine/#installation) to install Docker Compose and Machine, respectively on other platforms.
 
 Test if docker-machine and docker-compose are installed:
 
 ```bash
-λ docker-machine --version
+$ docker-machine --version
 docker-machine version 0.5.3, build 4d39a66
-λ docker-compose --version
+$ docker-compose --version
 docker-compose version 1.5.2, build e5cf49d
 ```
 
 Clone the project from the repository using git and enter the directory:
 
 ```bash
-λ git clone https://github.com/kirstykitto/CLAtoolkit.git
-λ cd CLAtoolkit
+$ git clone https://github.com/kirstykitto/CLAtoolkit.git
+$ cd CLAtoolkit
 ```
 
 Create a virtual machine for our project to live in:
 
 ```bash
-λ docker-machine create -d virtualbox dev;
+$ docker-machine create -d virtualbox dev;
 ```
 
 Select the dev VM as the machine we want to run commands against:
 
 **Linux/OSX**:
 ```bash
-λ eval "$(docker-machine env dev)"
+$ eval "$(docker-machine env dev)"
 ```
 
 **Windows**:
@@ -60,7 +60,7 @@ Select the dev VM as the machine we want to run commands against:
 If you're using cmd.exe replace 'powershell' with 'cmd'
 
 ```bash
-λ docker-machine.exe env --shell powershell dev
+$ docker-machine.exe env --shell powershell dev
 $Env:DOCKER_TLS_VERIFY = "1"
 $Env:DOCKER_HOST = "tcp://192.168.99.100:2376"
 $Env:DOCKER_CERT_PATH = "C:\Users\n-\.docker\machine\machines\dev"
@@ -72,15 +72,15 @@ $Env:DOCKER_MACHINE_NAME = "dev"
 Run the outputted command to configure your shell:
 
 ```bash
-λ docker-machine env --shell powershell dev | Invoke-Expression
+$ docker-machine env --shell powershell dev | Invoke-Expression
 ```
 ---
 
 To get the containers started build the images and start the services:
 
 ```bash
-λ docker-compose build
-λ docker-compose up -d
+$ docker-compose build
+$ docker-compose up -d
 ```
 
 This will take quite some time to complete the first time you run it. Subsequent builds will be far quicker as the results are cached from the first build.
@@ -88,12 +88,12 @@ This will take quite some time to complete the first time you run it. Subsequent
 Run Django database migrations:
 
 ```bash
-λ docker-compose run -d clatoolkit_project python manage.py migrate
+$ docker-compose run -d clatoolkit_project python manage.py migrate
 ```
 
 Grab the IP associated with the Docker Machine we created:
 ```bash
-λ docker-machine ip dev
+$ docker-machine ip dev
 192.168.99.100
 ```
 
@@ -111,22 +111,22 @@ Follow the directions [here](https://docs.docker.com/machine/#installation) to i
 Test if docker-compose is installed:
 
 ```bash
-λ docker-compose --version
+$ docker-compose --version
 docker-compose version 1.5.2, build e5cf49d
 ```
 
 Clone the project from the repository using git and enter the directory:
 
 ```bash
-λ git clone https://github.com/kirstykitto/CLAtoolkit.git
-λ cd CLAtoolkit
+$ git clone https://github.com/kirstykitto/CLAtoolkit.git
+$ cd CLAtoolkit
 ```
 
 To get the containers started build the images and start the services:
 
 ```bash
-λ docker-compose build
-λ docker-compose -f production.yml up -d
+$ docker-compose build
+$ docker-compose -f production.yml up -d
 ```
 
 This will take quite some time to complete the first time you run it. Subsequent builds will be far quicker as the results are cached from the first build.
@@ -134,7 +134,7 @@ This will take quite some time to complete the first time you run it. Subsequent
 Run Django database migrations:
 
 ```bash
-λ docker-compose run -d clatoolkit_project python manage.py migrate
+$ docker-compose run -d clatoolkit_project python manage.py migrate
 ```
 
 The server should now be running on port 80
@@ -145,7 +145,7 @@ Importing a seeded database
 List the running images:
 
 ```bash
-λ docker-compose ps
+$ docker-compose ps
                Name                              Command               State           Ports
 -----------------------------------------------------------------------------------------------------
 clatoolkit_clatoolkit_project_1       /usr/local/bin/gunicorn cl ...   Up      8000/tcp
@@ -158,13 +158,13 @@ clatoolkit_postgres_1                 /docker-entrypoint.sh postgres   Up      0
 Copy the seeded database into the postgres container:
 
 ```bash
-λ docker cp cladevdbase.bak clatoolkit_postgres_1:/cladevdbase.bak
+$ docker cp cladevdbase.bak clatoolkit_postgres_1:/cladevdbase.bak
 ```
 
 Enter a bash prompt in the postgres container:
 
 ```bash
-λ docker exec -it clatoolkit_postgres_1 bash
+$ docker exec -it clatoolkit_postgres_1 bash
 ```
 
 Create the default admin account:
@@ -187,17 +187,17 @@ Helpful Commands
 Use restart-containers.sh to have the server reflect changes made in the code (this should eventually be done using docker volumes instead):
 
 ```bash
-λ ./script_name.sh
+$ ./script_name.sh
 ```
 
 To see which environment variables are available to the clatoolkit_project service, run:
 
 ```bash
-λ docker-compose run clatoolkit_project env
+$ docker-compose run clatoolkit_project env
 ```
 
 To view the logs:
 
 ```bash
-λ docker-compose logs
+$ docker-compose logs
 ```
