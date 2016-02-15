@@ -28,6 +28,7 @@ $ cd clatoolkit/clatoolkit_project/clatoolkit_project
 ```
 
 Install Python and Django Requirements
+
 A requirements.txt file is provided in the code repository. This will take a while especially the installation of numpy. If numpy fails you may have to find a platform specific deployment method eg using apt-get on ubuntu ($ sudo apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose).
 
 ```bash
@@ -41,7 +42,7 @@ and add to path using:
 export PATH="/Applications/Postgres.app/Contents/Versions/9.4/bin:$PATH"
 ```
 
-You can either create a new postgres database for your CLAToolkit Instance or use database with preloaded Social Media content. A preloaded database is available upon request.
+You can either create a new postgres database for your CLAToolkit Instance or use database with preloaded Social Media content. A preloaded database is available upon request which comes with a set of migrations.
 
 Instructions to create a new postgres database
 Follow http://killtheyak.com/use-postgresql-with-django-flask/ to create a user and database for django
