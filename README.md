@@ -3,17 +3,76 @@ CLAtoolkit
 
 The Connected Learning Analytics toolkit (new django architecture, superseeding https://github.com/kirstykitto/CLAtoolkit-oldPrototypes)
 
-## Todo
-- Create/Assign all participants to groups (Working - Manually)
-- CoI Interface: Messages to be classified by everyone - order messages received to be different order for every group
-
 ## Table of Contents
-- [Development Installation](https://github.com/kirstykitto/CLAtoolkit#development-installation)
-- [Server Installation](https://github.com/kirstykitto/CLAtoolkit#server-installation)
+- [Local Installation using VirtualEnv](https://github.com/kirstykitto/CLAtoolkit#development-installation)
+- [Creating a Development VM Development with-Docker](https://github.com/kirstykitto/CLAtoolkit#Creating-a-Development-VM-Development-with Docker)
+- [Creating a Server VM with Docker](https://github.com/kirstykitto/CLAtoolkit#server-installation)
 - [Importing a seeded database](https://github.com/kirstykitto/CLAtoolkit#importing-a-seeded-database)
-- [Helpful Commands](https://github.com/kirstykitto/CLAtoolkit#helpful-commands)
+- [Helpful Docker Commands](https://github.com/kirstykitto/CLAtoolkit#helpful-commands)
 
-Development Installation
+Local Installation using VirtualEnv
+---------
+
+**CLAToolkit is built with Django. The installation is pretty standard but requires Postgres (for JSON document queries), Numpy and a range of Machine Learning Libraries such as Scikit Learn and Gensim**
+
+Create a virtual environment for CLAToolkit:
+```bash
+$ mkvirtualenv clatoolkit
+$ workon clatoolkit
+```
+
+Get code from GitHub:
+```bash
+$ git clone https://github.com/kirstykitto/CLAtoolkit.git
+$ cd clatoolkit/clatoolkit_project/clatoolkit_project
+```
+
+Install Python and Django Requirements
+A requirements.txt file is provided in the code repository. 
+```bash
+$ pip install -r requirements.txt
+```
+
+Install Postgres
+On a Mac install postgres.app using these instructions: http://postgresapp.com/ 
+and add to path using:
+```bash
+export PATH="/Applications/Postgres.app/Contents/Versions/9.4/bin:$PATH"
+```
+
+You can either create a new postgres database for your CLAToolkit Instance or use database with preloaded Social Media content. A preloaded database is available upon request.
+
+Instructions to create a new postgres database
+Follow http://killtheyak.com/use-postgresql-with-django-flask/ to create a user and database for django
+```bash
+$ sudo createdb -U username --locale=en_US.utf-8 -E utf-8 -O username cladjangodb -T template0
+```
+
+Load an existing database by first creating a new database and then importing data from backup database
+```bash
+$ sudo createdb -U username --locale=en_US.utf-8 -E utf-8 -O username newdatabasename -T template0
+$ psql newdatabasename < backedupdbname.bak
+```
+
+Enter database port and name in settings.py
+
+If a new database was created, you will need to setup the database tables and create a superuser.
+```bash
+$ python manage.py migrate
+$ python manage.py createsuperuser
+```
+
+Now you can run the django webserver:
+```bash
+$ python manage.py runserver
+```
+
+If a new database was created go to http://localhost:8000/admin and login with superuser account
+Add a unit offering with hashtags (for twitter) and group id (for facebook)
+Add users with twitter id and facebook id
+Login is at http://localhost:8000/
+
+Creating a Development VM Development with Docker
 ---------
 
 **If you're running OSX or Windows installing Docker, Docker Compose, and Machine via [Docker Toolbox](https://www.docker.com/docker-toolbox) is the easiest method.**
