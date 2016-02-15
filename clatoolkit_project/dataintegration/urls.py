@@ -13,7 +13,10 @@ urlpatterns = patterns(
     url(r'^updatelearningrecords/$', views.updatelearningrecords, name='updatelearningrecords'),
     url(r'^insertsocialrelationships/$', views.insertsocialrelationships, name='insertsocialrelationships'),
     url(r'^refreshyoutube/$', views.refreshyoutube, name='refreshyoutube'),
+    url(r'^refreshgoogleauthflow/$', views.refreshgoogleauthflow, name='refreshgoogleauthflow'),
     url(r'^ytAuthCallback/$', views.ytAuthCallback, name='ytAuthCallback'),
     url(r'^get_youtubechannel/$', views.get_youtubechannel, name='get_youtubechannel'),
-    url(r'^assigngroups/$', views.assigngroups, name='assigngroups')
+    url(r'^assigngroups/$', views.assigngroups, name='assigngroups'),
+    url(r'^dipluginauthomaticlogin/$', views.dipluginauthomaticlogin, name='dipluginauthomaticlogin'),
+    #url(r'^ytAuthCallback/(?P<course_id>\d+)/$', views.ytAuthCallback, name='ytAuthCallback'),
 )

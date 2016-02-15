@@ -131,3 +131,16 @@ STATICFILES_FINDERS = (
 AUTH_PROFILE_MODULE = "account.userprofile"
 
 GA_TRACKING_ID = ''
+
+import sys
+PLUGIN_PATH = os.path.join(BASE_DIR,'dataintegration')
+sys.path.append(PLUGIN_PATH)
+REGISTERED_DATAINTEGRATION_PLUGINS = ['twitter', 'facebook', 'forum']
+from dataintegration.core.plugins.loader import load_dataintegration_plugins
+from dataintegration.core.plugins.registry import get_includeindashboardwidgets, get_plugins, get_includeindashboardwidgets_verbs, get_includeindashboardwidgets_platforms, get_includeauthomaticplugins_platforms
+load_dataintegration_plugins(REGISTERED_DATAINTEGRATION_PLUGINS)
+
+DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_VERBS = get_includeindashboardwidgets_verbs()
+DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_PLATFORMS = get_includeindashboardwidgets_platforms()
+DATAINTEGRATION_PLUGINS = get_plugins()
+DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC = get_includeauthomaticplugins_platforms()

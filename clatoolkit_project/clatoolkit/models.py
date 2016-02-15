@@ -180,3 +180,14 @@ class GroupMap(models.Model):
     userId = models.ForeignKey(User)
     course_code = models.CharField(max_length=5000, blank=False)
     groupId = models.IntegerField(max_length=5000, blank=False)
+
+class OfflinePlatformAuthToken(models.Model):
+    user = models.ForeignKey(User)
+    token = models.CharField(max_length=1000, blank=False)
+    platform = models.CharField(max_length=1000, blank=False)
+
+class OauthFlowTemp(models.Model):
+    user = models.ForeignKey(User)
+    platform = models.CharField(max_length=1000, blank=False)
+    course_code = models.CharField(max_length=1000, blank=False)
+    transferdata = models.CharField(max_length=1000, blank=False)

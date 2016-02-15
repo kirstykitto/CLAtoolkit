@@ -15,11 +15,13 @@ from .forms import FacebookGatherForm
 #from dataintegration.forms import UserForm, UserProfileForm
 import json
 from pprint import pprint
-from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap
+from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp
 from django.db import connection
 import dateutil.parser
 from dashboard.utils import *
 from dataintegration.groupbuilder import *
+
+from django.conf import settings
 
 ### YouTube Integration ###
 """
@@ -54,10 +56,86 @@ def refreshyoutube(request):
     #Redirect to REDIRECT_URI
     return HttpResponseRedirect(authUri)
 
+from oauth2client.client import OAuth2WebServerFlow
+def refreshgoogleauthflow(request):
+    course_code = request.GET.get('course_code')
+    channelIds = request.GET.get('channelIds')
+    platform = courseId = request.GET.get('platform')
+
+    user = request.user
+
+    youtube_plugin = settings.DATAINTEGRATION_PLUGINS['Youtube']
+
+    # make redirecturl dynamically
+    redirecturl= 'http://127.0.0.1:8000/dataintegration/ytAuthCallback'
+
+    # store request data in temp table
+    # there is no other way to send these with the url (in querystring) as the return url must be registered
+    # and session var won't save due to redirect
+    t = OauthFlowTemp.objects.filter(user=user).delete()
+    temp_transfer_data = OauthFlowTemp(user=user, course_code=course_code, platform=platform, transferdata=channelIds)
+    temp_transfer_data.save()
+
+    FLOW_YOUTUBE = OAuth2WebServerFlow(
+        client_id="775313004373-6nt8n91ih4g5qku95us9ceskbdlb6ure.apps.googleusercontent.com",
+        client_secret="MJHbk5HdDWmqyptU_ZZtBQNP",
+        scope=youtube_plugin.scope,
+        redirect_uri=redirecturl
+    )
+
+    authUri = FLOW_YOUTUBE.step1_get_authorize_url()
+    #Redirect to REDIRECT_URI
+    return HttpResponseRedirect(authUri)
+
+def ytAuthCallback(request):
+
+    user = request.user
+    t = OauthFlowTemp.objects.filter(user=user)
+    course_code = t[0].course_code
+    platform = t[0].platform
+    channelIds = t[0].transferdata
+
+    print "From Youtube Auth callback", course_code, platform, channelIds
+
+    html_response = HttpResponse()
+
+    youtube_plugin = settings.DATAINTEGRATION_PLUGINS['Youtube']
+
+    redirecturl= 'http://127.0.0.1:8000/dataintegration/ytAuthCallback'
+
+    FLOW_YOUTUBE = OAuth2WebServerFlow(
+        client_id="775313004373-6nt8n91ih4g5qku95us9ceskbdlb6ure.apps.googleusercontent.com",
+        client_secret="MJHbk5HdDWmqyptU_ZZtBQNP",
+        scope=youtube_plugin.scope,
+        redirect_uri=redirecturl
+    )
+
+    http = googleAuth(request, FLOW_YOUTUBE)
+
+    #ytList = injest_youtube(request, courseCode, channelIds, http, courseId)
+    ytList = youtube_plugin.perform_import(channelIds, course_code, http)
+
+    vList = ytList[0]
+    vNum = len(vList)
+    commList = ytList[1]
+    commNum = len(commList)
+    context_dict = {"vList": vList, "vNum": vNum, "commList": commList, "commNum": commNum}
+
+    top_content = get_top_content_table("YouTube", courseCode)
+    active_content = get_active_members_table("YouTube", courseCode)
+    cached_content, created = CachedContent.objects.get_or_create(course_code=courseCode, platform="YouTube")
+    cached_content.htmltable = top_content
+    cached_content.activitytable = active_content
+    cached_content.save()
+
+    #perform sentiment classification
+    sentiment_classifier(courseCode)
+    return render(request, 'dataintegration/ytresult.html', context_dict)
 
 ##############################################
 # Callback method from OAuth
 ##############################################
+'''
 def ytAuthCallback(request):
     #Authenticate
     http = googleAuth(request, FLOW_YOUTUBE)
@@ -94,7 +172,7 @@ def ytAuthCallback(request):
         #perform sentiment classification
         sentiment_classifier(courseCode)
         return render(request, 'dataintegration/ytresult.html', context_dict)
-
+'''
 
 ##############################################
 # Data Extraction for YouTube
@@ -107,21 +185,19 @@ def get_youtubechannel(request):
     #Redirect to REDIRECT_URI
     return HttpResponseRedirect(authUri)
 
-
-
 CONFIG = {
     # Auth information for Facebook App
     'fb': {
         'class_': oauth2.Facebook,
 
-        'consumer_key': '',
-        'consumer_secret': '',
+        'consumer_key': '1409411262719592',
+        'consumer_secret': '8fbbb8f44a8b3e68302e2d8fb7a5ecf3',
 
         'scope': ['user_about_me', 'email', 'user_groups'],
     },
 }
 
-authomatic = Authomatic(CONFIG, '')
+authomatic = Authomatic(CONFIG, 'lamksdlkm213213kl5n521234lkn4231')
 
 def home(request):
     form = FacebookGatherForm()
@@ -139,7 +215,11 @@ def refreshtwitter(request):
 
     tags = hastags.split(',')
     for tag in tags:
-        injest_twitter(tag, course_code)
+        print settings.DATAINTEGRATION_PLUGINS
+        twitter_plugin = settings.DATAINTEGRATION_PLUGINS['Twitter']
+        print twitter_plugin
+        twitter_plugin.perform_import(tag, course_code)
+        #injest_twitter(tag, course_code)
 
     top_content = get_top_content_table("Twitter", course_code)
     active_content = get_active_members_table("Twitter", course_code)
@@ -152,6 +232,66 @@ def refreshtwitter(request):
     sentiment_classifier(course_code)
 
     html_response.write('Twitter Refreshed.')
+    return html_response
+
+
+
+def dipluginauthomaticlogin(request):
+    platform = request.GET.get('platform')
+    course_code = request.GET.get('course_code')
+    group_id = request.GET.get('group_id')
+
+    html_response = HttpResponse()
+
+    print "DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC", settings.DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC
+    if (platform in settings.DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC):
+        di_plugin = settings.DATAINTEGRATION_PLUGINS[platform]
+        print "di_plugin", di_plugin, di_plugin.authomatic_config_json, di_plugin.authomatic_secretkey, di_plugin.authomatic_config_key
+        authomatic = Authomatic(di_plugin.authomatic_config_json, di_plugin.authomatic_secretkey)
+        #authomatic = Authomatic(CONFIG, 'lamksdlkm213213kl5n521234lkn4231')
+        result = authomatic.login(DjangoAdapter(request, html_response), di_plugin.authomatic_config_key, report_errors=True)
+        #result = authomatic.login(DjangoAdapter(request, html_response), 'fb')
+        #di_plugin.perform_import(group_id, course_code, result)
+        # If there is no result, the login procedure is still pending.
+        # Don't write anything to the response if there is no result!
+        if result:
+            # If there is result, the login procedure is over and we can write to response.
+            html_response.write('<a href="..">Home</a>')
+
+            if result.error:
+                # Login procedure finished with an error.
+                html_response.write('<h2>Error: {0}</h2>'.format(result.error.message))
+
+            elif result.user:
+                # Hooray, we have the user!
+                # OAuth 2.0 and OAuth 1.0a provide only limited user data on login,
+                # We need to update the user to get more info.
+                if not (result.user.name and result.user.id):
+                    result.user.update()
+
+                # Welcome the user.
+                html_response.write(u'<p>Hi {0}</p>'.format(result.user.name))
+                # response.write(u'<h2>Your id is: {0}</h2>'.format(result.user.id))
+                # response.write(u'<h2>Your email is: {0}</h2>'.format(result.user.email))
+
+                # If there are credentials (only by AuthorizationProvider),
+                # we can _access user's protected resources.
+                if result.user.credentials:
+                    if result.provider.name == 'fb':
+                        di_plugin.perform_import(group_id, course_code, result)
+
+                        top_content = get_top_content_table("Facebook", course_code)
+                        active_content = get_active_members_table("Facebook", course_code)
+                        cached_content, created = CachedContent.objects.get_or_create(course_code=course_code, platform="Facebook")
+                        cached_content.activitytable = active_content
+                        cached_content.htmltable = top_content
+                        cached_content.save()
+                        #perform sentiment classification
+                        sentiment_classifier(course_code)
+                        html_response.write('Updating Facebook for ' + course_code)
+        else:
+            html_response.write('Auth Returned no Response.')
+
     return html_response
 
 def login(request, group_id):
@@ -198,15 +338,9 @@ def login(request, group_id):
                     course_code = unit_offering[0].code
                     # Access user's protected resource.
                     access_response = result.provider.access(url)
-                    #print access_response
-                    #print access_response.data.get('data')
-                    #fb_json = json.loads(access_response.data.get('data'))
-                    #pprint(access_response.data.get('data'))
                     fb_feed = access_response.data.get('data')
                     paging = access_response.data.get('paging')
-                    #pprint(paging)
-                    #pprint(fb_json)
-                    #t = LearningRecord.objects.filter(platform='Facebook',course_code=course_code).delete()
+
                     injest_facebook(fb_feed, paging, course_code)
                     #injest_twitter("#clatest", "cla101")
                     top_content = get_top_content_table("Facebook", course_code)
@@ -348,7 +482,11 @@ def refreshforum(request):
 
     #t = LearningRecord.objects.filter(platform='Forum').delete()
 
-    ingest_forum(forumurl, course_code)
+    print settings.DATAINTEGRATION_PLUGINS
+    forum_plugin = settings.DATAINTEGRATION_PLUGINS['Forum']
+    print forum_plugin
+    forum_plugin.perform_import("", course_code)
+    #ingest_forum(forumurl, course_code)
 
     top_content = get_top_content_table("Forum", course_code)
     active_content = get_active_members_table("Forum", course_code)
