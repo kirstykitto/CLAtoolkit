@@ -4,7 +4,7 @@ CLAtoolkit
 The Connected Learning Analytics toolkit (new django architecture, superseeding https://github.com/kirstykitto/CLAtoolkit-oldPrototypes)
 
 ## Table of Contents
-- [Local Installation using VirtualEnv](https://github.com/kirstykitto/CLAtoolkit#development-installation)
+- [Local Installation using VirtualEnv](https://github.com/kirstykitto/CLAtoolkit#local-installation-using-virtualenv)
 - [Creating a Development VM Development with-Docker](https://github.com/kirstykitto/CLAtoolkit#Creating-a-Development-VM-Development-with Docker)
 - [Creating a Server VM with Docker](https://github.com/kirstykitto/CLAtoolkit#server-installation)
 - [Importing a seeded database](https://github.com/kirstykitto/CLAtoolkit#importing-a-seeded-database)
@@ -83,7 +83,7 @@ Along with Docker we will be using:
 - Docker Compose for orchestrating a multi-container application into a single app, and
 - Docker Machine for creating Docker hosts both locally and in the cloud.
 
-On Mac OS X, Docker Machine and Compose are installed with Docker Toolbox. Follow these directions [here](https://docs.docker.com/compose/install/) and [here](https://docs.docker.com/machine/#installation) to install Docker Compose and Machine, respectively on other platforms.
+On Mac OS X, Docker Machine and Compose are installed with Docker Toolbox. Follow these directions [here](https://docs.docker.com/compose/install/) and [here](https://docs.docker.com/machine/#installation) to install Docker Compose and Machine, respectively on other platforms. Docker Compose does not seem to be available for Windows even though some intructions are below.
 
 Test if docker-machine and docker-compose are installed:
 
