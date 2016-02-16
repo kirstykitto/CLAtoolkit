@@ -114,14 +114,14 @@ CONFIG = {
     'fb': {
         'class_': oauth2.Facebook,
 
-        'consumer_key': '',
-        'consumer_secret': '',
+        'consumer_key': '1409411262719592',
+        'consumer_secret': '8fbbb8f44a8b3e68302e2d8fb7a5ecf3',
 
         'scope': ['user_about_me', 'email', 'user_groups'],
     },
 }
 
-authomatic = Authomatic(CONFIG, '')
+authomatic = Authomatic(CONFIG, 'lamksdlkm213213kl5n521234lkn4231')
 
 def home(request):
     form = FacebookGatherForm()
