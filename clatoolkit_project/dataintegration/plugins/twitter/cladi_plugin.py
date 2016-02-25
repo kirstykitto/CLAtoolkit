@@ -29,7 +29,7 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
     def perform_import(self, retrieval_param, course_code):
 
         # Setup Twitter API Keys
-        app_key = "barKrgroD3LcyHRwehvaiv1Zu"
+        app_key = ""
         app_secret = ""
         oauth_token = ""
         oauth_token_secret = ""
