@@ -29,6 +29,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('course_code', models.CharField(max_length=5000)),
 <<<<<<< HEAD
+<<<<<<< HEAD
                 ('groupId', models.CharField(max_length=5000)),
             ],
         ),
@@ -38,6 +39,8 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('xapi', django_pgjson.fields.JsonField()),
                 ('course_code', models.CharField(max_length=5000)),
+=======
+>>>>>>> kirstykitto/master
 =======
 >>>>>>> kirstykitto/master
                 ('platform', models.CharField(max_length=5000)),
@@ -54,6 +57,7 @@ class Migration(migrations.Migration):
                 ('semester', models.CharField(max_length=5000)),
                 ('description', models.TextField()),
                 ('twitter_hashtags', models.TextField()),
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
                 ('google_groups', models.TextField(blank=True)),
@@ -84,6 +88,10 @@ class Migration(migrations.Migration):
                 ('google_groups', models.TextField()),
                 ('facebook_groups', models.TextField()),
 >>>>>>> kirstykitto/master
+=======
+                ('google_groups', models.TextField()),
+                ('facebook_groups', models.TextField()),
+>>>>>>> kirstykitto/master
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('users', models.ManyToManyField(related_name='usersinunitoffering', to=settings.AUTH_USER_MODEL)),
             ],
@@ -92,6 +100,7 @@ class Migration(migrations.Migration):
             name='UserProfile',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
                 ('role', models.CharField(default=b'Student', max_length=100, choices=[(b'Staff', b'Staff'), (b'Student', b'Student'), (b'Visitor', b'Visitor')])),
@@ -112,6 +121,16 @@ class Migration(migrations.Migration):
             name='xapistatement',
             field=models.ForeignKey(to='clatoolkit.LearningRecord'),
         ),
+=======
+                ('fb_id', models.CharField(max_length=30)),
+                ('twitter_id', models.CharField(max_length=30)),
+                ('ll_endpoint', models.CharField(max_length=60)),
+                ('ll_username', models.CharField(max_length=60)),
+                ('ll_password', models.CharField(max_length=60)),
+                ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
+            ],
+        ),
+>>>>>>> kirstykitto/master
 =======
                 ('fb_id', models.CharField(max_length=30)),
                 ('twitter_id', models.CharField(max_length=30)),

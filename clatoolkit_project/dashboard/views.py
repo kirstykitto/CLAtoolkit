@@ -13,10 +13,13 @@ import datetime
 from django.db.models import Count
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 from django.contrib.auth.models import User
 
 from lti.models import LTIProfile
 
+=======
+>>>>>>> kirstykitto/master
 =======
 >>>>>>> kirstykitto/master
 =======
@@ -407,13 +410,17 @@ def myclassifications(request):
     platform = None
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> kirstykitto/master
 =======
 >>>>>>> kirstykitto/master
 
     user = request.user
     username = user.username
     uid = user.id
+<<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> kirstykitto/master
 
@@ -466,8 +473,11 @@ def myclassifications(request):
 
     random.seed(group_id_seed)
     random.shuffle(classifications_list)
+=======
+>>>>>>> kirstykitto/master
 
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 
     context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications_list, 'showethics': ethics_agreement_required }
@@ -495,6 +505,26 @@ def myclassifications(request):
 <<<<<<< HEAD
 >>>>>>> kirstykitto/master
 =======
+>>>>>>> kirstykitto/master
+=======
+    #user_profile = UserProfile.objects.filter(user=user)
+
+    group_id_seed = GroupMap.objects.filter(userId=user, course_code=course_code).values_list('groupId')
+
+    inner_q = UserClassification.objects.filter(username=username).values_list('classification_id')
+    #Need to add unique identifier to models to distinguish between classes
+    #xapistatement__username=username,
+    classifier_name = "nb_%s_%s.model" % (course_code,platform)
+    classifications_list = list(Classification.objects.filter(classifier=classifier_name).exclude(id__in = inner_q))
+
+    if len(group_id_seed)>0:
+        random.seed(group_id_seed)
+        random.shuffle(classifications_list)
+    else:
+        random.seed()
+        random.shuffle(classifications_list)
+
+    context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications_list }
 >>>>>>> kirstykitto/master
     return render_to_response('dashboard/myclassifications.html', context_dict, context)
 
