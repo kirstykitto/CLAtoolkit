@@ -36,10 +36,22 @@ Forums: {{unit.forum_urls}} [<a href="/dashboard/?course_code={{unit.code}}&plat
 {% endif %}
 
 <hr/>
+{% if unit.code == 'IFN614' %}
 <a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=Forum">View Your Community of Inquiry Classifications</a>
 <br/>
 Community of Inquiry Classification Admin: <a href="/clatoolkit/classify?course_code={{unit.code}}&platform=Forum">Classify All Student Data</a>/<a href="/clatoolkit/train?course_code={{unit.code}}&platform=Forum">Train on new Student Data</a>
+<<<<<<< HEAD
 
+=======
+{% else %}
+<a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=YouTube">View Your Community of Inquiry Classifications</a>
+<br/>
+Community of Inquiry Classification Admin: <a href="/clatoolkit/classify?course_code={{unit.code}}&platform=YouTube">Classify All Student Data</a>/<a href="/clatoolkit/train?course_code={{unit.code}}&platform=YouTube">Train on new Student Data</a>
+{% endif %}
+<br/>
+Assign Students to Group for COI Classification: <a href="/dataintegration/assigngroups?course_code={{unit.code}}">Group Students</a>
+{% endif %}
+>>>>>>> kirstykitto/master
 <br/>
 <hr/>
 CLA Toolkit Unit Registration Link for Students: http://clatoolkit.beyondlms.org/clatoolkit/register?course_code={{unit.code}}
@@ -54,8 +66,16 @@ CLA Toolkit Unit Registration Link for Students: http://clatoolkit.beyondlms.org
 <a href="/dashboard/mydashboard?course_code={{unit.code}}&platform=all">Go to My Social Media Dashboard</a>
 
 <br/>
+{% if unit.code == 'IFN614' %}
 <a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=Forum">View Community of Inquiry Classifications</a>
+<<<<<<< HEAD
 
+=======
+{% else %}
+<a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=YouTube">View Community of Inquiry Classifications</a>
+{% endif %}
+{% endif %}
+>>>>>>> kirstykitto/master
 </p>
 {% endif %}
 

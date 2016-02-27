@@ -53,7 +53,9 @@ class LearningRecord(models.Model):
     platformid = models.CharField(max_length=5000, blank=True)
     platformparentid = models.CharField(max_length=5000, blank=True)
     parentusername = models.CharField(max_length=5000, blank=True)
+    parentdisplayname = models.CharField(max_length=5000, blank=True)
     message = models.TextField(blank=True)
+    #mentions = models.TextField(blank=True)
     datetimestamp = models.DateTimeField(blank=True, null=True)
     senttolrs = models.CharField(max_length=5000, blank=True)
 
@@ -182,8 +184,14 @@ class DashboardReflection(models.Model):
         return self.id + ": " + self.username
 
 class GroupMap(models.Model):
+<<<<<<< HEAD
     userId = models.ForeignKey(UserProfile)
     course_code = models.CharField(max_length=5000, blank=False)
     groupId = models.IntegerField(max_length=5000, blank=False)
 
 
+=======
+    userId = models.ForeignKey(User)
+    course_code = models.CharField(max_length=5000, blank=False)
+    groupId = models.IntegerField(blank=False)
+>>>>>>> kirstykitto/master

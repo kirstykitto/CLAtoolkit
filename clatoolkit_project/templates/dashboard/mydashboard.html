@@ -88,6 +88,37 @@
 </div>
 <!-- /.row -->
 <div class="row">
+    <div class="col-lg-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Sentiment
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="sentiment"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-6 -->
+    <div class="col-lg-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Community of Inquiry:  Cognitive Presence
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="coi"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-6 -->
+</div>
+<!-- /.row -->
+<div class="row">
     <div class="col-lg-8">
         <div class="panel panel-default">
             <div class="panel-heading">
@@ -241,7 +272,7 @@
     $('#selectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
     //console.log("start_date:" + start_date)
     //console.log("end_date:" + end_date)
-    $.get("/clatoolkit/sna", { course_code:"{{course_code}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date},
+    $.get("/clatoolkit/sna", { course_code:"{{course_code}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date, relationshipstoinclude:"'mentioned','liked','shared','commented'"},
       function(data){
         //console.log("SNA: " + data);
         sna_data = data;
@@ -474,6 +505,10 @@ $(function() {
           name : 'Forum',
           data : [{{ forum_timeline }}],
           id : 'dataseries2'
+      },{
+          name : 'YouTube',
+          data : [{{ youtube_timeline }}],
+          id : 'dataseries3'
       }]
   });
 
@@ -584,6 +619,69 @@ $(function() {
             type: 'pie',
             name: 'Platform Activity',
             data: [{{activity_pie_series|safe}}]
+        }]
+    });
+
+    $('#sentiment').highcharts({
+        chart: {
+            plotBackgroundColor: null,
+            plotBorderWidth: null,
+            plotShadow: false
+        },
+        title: {
+            text: ' '
+        },
+        tooltip: {
+            pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+        },
+        plotOptions: {
+            pie: {
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: true,
+                    format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                    style: {
+                        color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                    }
+                }
+            }
+        },
+        series: [{
+            type: 'pie',
+            name: 'Sentiment',
+            data: [{{sentiments|safe}}]
+        }]
+    });
+    $('#coi').highcharts({
+        chart: {
+            plotBackgroundColor: null,
+            plotBorderWidth: null,
+            plotShadow: false
+        },
+        title: {
+            text: ' '
+        },
+        tooltip: {
+            pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+        },
+        plotOptions: {
+            pie: {
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: true,
+                    format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                    style: {
+                        color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                    }
+                }
+            }
+        },
+        series: [{
+            type: 'pie',
+            name: 'Cognitive Presense',
+            data: [{{coi|safe}}]
         }]
     });
 

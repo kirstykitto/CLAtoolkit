@@ -181,6 +181,33 @@ def register(request):
         'clatoolkit/register.html',
             {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, 'show_units': show_units, 'selected_unit': selected_unit, "course": course}, context)
 
+@login_required
+def socialmediaaccounts(request):
+    context = RequestContext(request)
+    user_id = request.user.id
+    usr_profile = UserProfile.objects.get(user_id=user_id)
+
+    if request.method == 'POST':
+        profile_form = UserProfileForm(data=request.POST,instance=usr_profile)
+
+        if profile_form.is_valid():
+            profile_form.save()
+            return redirect('/dashboard/myunits')
+        # Invalid form or forms - mistakes or something else?
+        else:
+            print user_form.errors, profile_form.errors
+
+    # Not a HTTP POST, so we render our form using two ModelForm instances.
+    # These forms will be blank, ready for user input.
+    else:
+        profile_form = UserProfileForm(instance=usr_profile)
+
+    # Render the template depending on the context.
+    return render_to_response(
+        'clatoolkit/socialmediaaccounts.html',
+            {'profile_form': profile_form}, context)
+
+
 def eventregistration(request):
     context = RequestContext(request)
 
@@ -299,11 +326,12 @@ class SNARESTView(DefaultsMixin, APIView):
         start_date = request.GET.get('start_date', None)
         end_date = request.GET.get('end_date', None)
         username = request.GET.get('username', None)
+        relationshipstoinclude = request.GET.get('relationshipstoinclude', None)
 
         # Any URL parameters get passed in **kw
         #myClass = CalcClass(get_arg1, get_arg2, *args, **kw)
         #print sna_buildjson(platform, course_code)
-        result = json.loads(sna_buildjson(platform, course_code, username=username, start_date=start_date, end_date=end_date))
+        result = json.loads(sna_buildjson(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude))
         #{'nodes':["test sna","2nd test"]} #myClass.do_work()
         response = Response(result, status=status.HTTP_200_OK)
         return response
@@ -319,6 +347,21 @@ class WORDCLOUDView(DefaultsMixin, APIView):
         username = request.GET.get('username', None)
 
         result = json.loads(get_wordcloud(platform, course_code, username=username, start_date=start_date, end_date=end_date))
+        response = Response(result, status=status.HTTP_200_OK)
+        return response
+
+class CLASSIFICATIONPieView(DefaultsMixin, APIView):
+
+    def get(self, request, *args, **kw):
+
+        course_code = request.GET.get('course_code', None)
+        platform = request.GET.get('platform', None)
+        start_date = request.GET.get('start_date', None)
+        end_date = request.GET.get('end_date', None)
+        username = request.GET.get('username', None)
+        classifier = request.GET.get('classifier', None)
+
+        result = json.loads(getClassifiedCounts(platform, course_code, username=username, start_date=start_date, end_date=end_date, classifier=classifier))
         response = Response(result, status=status.HTTP_200_OK)
         return response
 

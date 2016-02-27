@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 import django_filters
-from django.core.exceptions import ValidationError 
+from django.core.exceptions import ValidationError
 from clatoolkit.models import UserProfile, UnitOffering, LearningRecord, SocialRelationship, Classification, UserClassification
 from lti.models import LTIProfile
 
@@ -47,6 +47,20 @@ class UserProfileForm(forms.ModelForm):
     def clean(self):
         if not ((self.cleaned_data.get('fb_id')) or (self.cleaned_data.get('twitter_id')) or (self.cleaned_data.get('forum_id')) or (self.cleaned_data.get('google_account_name'))):
             raise ValidationError("At least one social media account must be added.")
+        else:
+            #Not blank so now check if the platform ids are already registeres to a User
+            fb_registered = UserProfile.objects.filter(fb_id__iexact=self.cleaned_data.get('fb_id'))
+            tw_registered = UserProfile.objects.filter(twitter_id__iexact=self.cleaned_data.get('twitter_id'))
+            gg_registered = UserProfile.objects.filter(google_account_name__iexact=self.cleaned_data.get('google_account_name'))
+            fr_registered = UserProfile.objects.filter(forum_id__iexact=self.cleaned_data.get('forum_id'))
+            if len(fb_registered)>0:
+                raise ValidationError("The specified Facebook Account is already registered.")
+            elif len(tw_registered)>0:
+                raise ValidationError("The specified Twitter Account is already registered.")
+            elif len(gg_registered)>0:
+                raise ValidationError("The specified YouTube Account is already registered.")
+            elif len(fr_registered)>0:
+                raise ValidationError("The specified Wordpress Forum ID is already registered.")
 
         return self.cleaned_data
 

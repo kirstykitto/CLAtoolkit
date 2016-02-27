@@ -599,8 +599,9 @@ $('#c_box').bind('slid.bs.carousel', function (e) {
     var $preview_div = $('.preview-wrap');
 
     $this.children('.class-buttons').show();
+    {% if course_code == "IFN614" %}
     $preview_div.show();
-
+    {% endif %}
     //console.log($('.carousel-inner').find('.active div').attr('id'));
 
     var $end_slide = $('.carousel-inner').find('.end');
@@ -613,6 +614,7 @@ $('#c_box').bind('slid.bs.carousel', function (e) {
     }
 
     try {
+      {% if course_code == "IFN614" %}
         var forum_link = $('.carousel-inner').find('.active div').attr('id').toString();
         $('.preview').attr('src', forum_link);
         //$('.preview').load(forum_link);
@@ -626,7 +628,7 @@ $('#c_box').bind('slid.bs.carousel', function (e) {
         var $contents = $iframe.contents();
         var $header = $contents.find('#masthead');
         $header.remove();
-
+      {% endif %}
 
     } catch (e) {
         console.log(e + ": forum_link - this is most likely thrown because we've hit the end of messages to display, which shouldnt be an issue");
