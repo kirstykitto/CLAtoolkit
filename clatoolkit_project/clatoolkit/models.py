@@ -185,11 +185,17 @@ class DashboardReflection(models.Model):
 
 class GroupMap(models.Model):
 <<<<<<< HEAD
+<<<<<<< HEAD
     userId = models.ForeignKey(UserProfile)
     course_code = models.CharField(max_length=5000, blank=False)
     groupId = models.IntegerField(max_length=5000, blank=False)
 
 
+=======
+    userId = models.ForeignKey(User)
+    course_code = models.CharField(max_length=5000, blank=False)
+    groupId = models.IntegerField(blank=False)
+>>>>>>> kirstykitto/master
 =======
     userId = models.ForeignKey(User)
     course_code = models.CharField(max_length=5000, blank=False)

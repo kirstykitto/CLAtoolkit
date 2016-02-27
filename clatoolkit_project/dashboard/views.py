@@ -12,10 +12,13 @@ from django.db.models import Q
 import datetime
 from django.db.models import Count
 <<<<<<< HEAD
+<<<<<<< HEAD
 from django.contrib.auth.models import User
 
 from lti.models import LTIProfile
 
+=======
+>>>>>>> kirstykitto/master
 =======
 >>>>>>> kirstykitto/master
 import random
@@ -403,11 +406,15 @@ def myclassifications(request):
     course_code = None
     platform = None
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> kirstykitto/master
 
     user = request.user
     username = user.username
     uid = user.id
+<<<<<<< HEAD
 >>>>>>> kirstykitto/master
 
     user = request.user
@@ -444,9 +451,12 @@ def myclassifications(request):
     else:
         course_code = request.GET.get('course_code')
         platform = request.GET.get('platform')
+=======
+>>>>>>> kirstykitto/master
 
     user_profile = UserProfile.objects.filter(user=user)
 
+<<<<<<< HEAD
     group_id_seed = GroupMap.objects.filter(userId=user_profile, course_code=course_code).values_list('groupId')
 
     inner_q = UserClassification.objects.filter(username=username).values_list('classification_id')
@@ -462,6 +472,8 @@ def myclassifications(request):
 
     context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications_list, 'showethics': ethics_agreement_required }
 =======
+=======
+>>>>>>> kirstykitto/master
     #user_profile = UserProfile.objects.filter(user=user)
 
     group_id_seed = GroupMap.objects.filter(userId=user, course_code=course_code).values_list('groupId')
@@ -480,6 +492,9 @@ def myclassifications(request):
         random.shuffle(classifications_list)
 
     context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications_list }
+<<<<<<< HEAD
+>>>>>>> kirstykitto/master
+=======
 >>>>>>> kirstykitto/master
     return render_to_response('dashboard/myclassifications.html', context_dict, context)
 

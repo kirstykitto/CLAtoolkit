@@ -35,6 +35,10 @@ scikit-bio==0.2.3
 scikit-learn==0.16.1
 scipy==0.15.1
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+gunicorn==19.3.0
+>>>>>>> kirstykitto/master
 =======
 gunicorn==19.3.0
 >>>>>>> kirstykitto/master
