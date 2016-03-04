@@ -28,7 +28,10 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
     scope = 'https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtubepartner'
 
     def __init__(self):
-        pass
+        # Load api_config.json and convert to dict
+        config_file = os.path.join(os.path.dirname(__file__), 'api_config.json')
+        with open(config_file) as data_file:
+            self.api_config_dict = json.load(data_file)
 
     def perform_import(self, retrieval_param, course_code, webserverflow_result):
         print "Youtube perform_import run"
@@ -39,7 +42,6 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
         ytList.append(vList)
         ytList.append(channelCommList)
         return ytList
-
 
     def injest_youtube_comment(self, course_code, channelIds, http):
 

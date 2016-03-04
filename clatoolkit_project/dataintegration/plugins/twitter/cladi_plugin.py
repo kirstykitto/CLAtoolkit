@@ -5,6 +5,7 @@ from dataintegration.core.recipepermissions import *
 import json
 import dateutil.parser
 from twython import Twython
+import os
 
 class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
@@ -24,15 +25,18 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
     xapi_verbs_to_includein_verbactivitywidget = ['created', 'shared', 'liked', 'commented']
 
     def __init__(self):
-        pass
+        # Load api_config.json and convert to dict
+        config_file = os.path.join(os.path.dirname(__file__), 'api_config.json')
+        with open(config_file) as data_file:
+            self.api_config_dict = json.load(data_file)
 
     def perform_import(self, retrieval_param, course_code):
 
         # Setup Twitter API Keys
-        app_key = ""
-        app_secret = ""
-        oauth_token = ""
-        oauth_token_secret = ""
+        app_key = self.api_config_dict['app_key']
+        app_secret = self.api_config_dict['app_secret']
+        oauth_token = self.api_config_dict['oauth_token']
+        oauth_token_secret = self.api_config_dict['oauth_token_secret']
 
         twitter = Twython(app_key, app_secret, oauth_token, oauth_token_secret)
 
@@ -57,7 +61,6 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 else:
                     next_results_url_params    = results['search_metadata']['next_results']
                     next_max_id = next_results_url_params.split('max_id=')[1].split('&')[0]
-                    #print next_max_id
                 count += 1
             except KeyError:
                     # When there are no more pages (['paging']['next']), break from the

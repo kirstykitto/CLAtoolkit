@@ -6,6 +6,8 @@ import json
 import dateutil.parser
 from authomatic.providers import oauth2
 import requests
+import os
+
 
 class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMixin):
 
@@ -25,22 +27,31 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
     xapi_verbs_to_includein_verbactivitywidget = ['created', 'shared', 'liked', 'commented']
 
     #from AuthomaticPluginMixin
-    authomatic_config_json = {
-        # Auth information for Facebook App
-        'fb': {
-            'class_': oauth2.Facebook,
-            'consumer_key': '1537638456563538',
-            'consumer_secret': 'b030c8e2128c345444cf9c9bb2ff2988',
-
-            'scope': ['user_about_me', 'email', 'user_groups'],
-            },
-        }
+    authomatic_config_json = {}
 
     authomatic_config_key = 'fb'
-    authomatic_secretkey = 'lamksdlkm213213kl5n521234lkn4231'
+    authomatic_secretkey = None
 
     def __init__(self):
-        pass
+        # Load api_config.json and convert to dict
+        config_file = os.path.join(os.path.dirname(__file__), 'api_config.json')
+        with open(config_file) as data_file:
+            self.api_config_dict = json.load(data_file)
+
+        #from AuthomaticPluginMixin
+        self.authomatic_config_json = {
+            # Auth information for Facebook App
+            'fb': {
+                'class_': oauth2.Facebook,
+                'consumer_key': self.api_config_dict['consumer_key'],
+                'consumer_secret': self.api_config_dict['consumer_secret'],
+
+                'scope': ['user_about_me', 'email', 'user_groups'],
+                },
+            }
+
+        self.authomatic_config_key = 'fb'
+        self.authomatic_secretkey = self.api_config_dict['authomatic_secretkey']
 
     def perform_import(self, retrieval_param, course_code, authomatic_result):
         """
@@ -71,7 +82,6 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
                 # When there are no more pages (['paging']['next']), break from the
                 # loop and end the script.
                 break
-
 
     def insert_facebook_lrs(self, fb_feed, course_code):
         """
