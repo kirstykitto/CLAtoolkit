@@ -160,6 +160,23 @@ def refreshtwitter(request):
     html_response.write('Twitter Refreshed.')
     return html_response
 
+def refreshdiigo(request):
+    html_response = HttpResponse()
+
+    diigo_plugin = settings.DATAINTEGRATION_PLUGINS['Diigo']
+
+    course_code = request.GET.get('course_code')
+    hastags = request.GET.get('tags')
+
+    tags = hastags.split(',')
+    for tag in tags:
+        diigo_plugin.perform_import(tag, course_code)
+
+    post_smimport(course_code, "Diigo")
+
+    html_response.write('Diigo Refreshed.')
+    return html_response
+
 
 def dipluginauthomaticlogin(request):
     platform = request.GET.get('platform')
