@@ -20,7 +20,7 @@ class DiigoPlugin(DIBasePlugin, DIPluginDashboardMixin):
     config_json_keys = ['user', 'password', 'apikey']
 
     #from DIPluginDashboardMixin
-    xapi_objects_to_includein_platformactivitywidget = ['Link']
+    xapi_objects_to_includein_platformactivitywidget = ['Bookmark']
     xapi_verbs_to_includein_verbactivitywidget = ['created', 'commented']
 
     def __init__(self):
@@ -44,7 +44,7 @@ class DiigoPlugin(DIBasePlugin, DIPluginDashboardMixin):
         if username_exists(username, course_code, self.platform):
             usr_dict = get_userdetails(username, self.platform)
 
-            insert_link(usr_dict, post_id,message,fullname,username, timestamp, course_code, self.platform, self.platform_url, tags=tags)
+            insert_bookmark(usr_dict, post_id,message,fullname,username, timestamp, course_code, self.platform, self.platform_url, tags=tags)
             insert_comment(usr_dict, forum_link, post_permalink, post_content, post_username, post_username, post_date, course_code, self.platform, self.platform_url, shared_username=forum_author)
         '''
 

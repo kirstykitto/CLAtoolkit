@@ -62,7 +62,7 @@ def statement_builder(actor, verb, object, context, result, timestamp=None):
 
 def socialmedia_builder(verb, platform, account_name, account_homepage, object_type, object_id, message, tags=[], parent_object_type=None, parent_id=None, rating=None, instructor_name=None, instructor_email=None, team_name=None, course_code=None, account_email=None, user_name=None, timestamp=None):
     verbmapper = {'created': 'http://activitystrea.ms/schema/1.0/create', 'shared': 'http://activitystrea.ms/schema/1.0/share', 'liked': 'http://activitystrea.ms/schema/1.0/like', 'rated': 'http://id.tincanapi.com/verb/rated', 'commented': 'http://adlnet.gov/expapi/verbs/commented'}
-    objectmapper = {'Note': 'http://activitystrea.ms/schema/1.0/note', 'Tag': 'http://id.tincanapi.com/activitytype/tag', 'Article': 'http://activitystrea.ms/schema/1.0/article', 'Video': 'http://activitystrea.ms/schema/1.0/video'}
+    objectmapper = {'Note': 'http://activitystrea.ms/schema/1.0/note', 'Tag': 'http://id.tincanapi.com/activitytype/tag', 'Article': 'http://activitystrea.ms/schema/1.0/article', 'Video': 'http://activitystrea.ms/schema/1.0/video', 'Bookmark': 'http://activitystrea.ms/schema/1.0/bookmark'}
 
     agentaccount = AgentAccount(name=account_name, home_page=account_homepage)
     actor = Agent(account=agentaccount)
@@ -181,3 +181,11 @@ def insert_share(usr_dict, post_id, share_id, comment_message, comment_from_uid,
         lrs.save()
         socialrelationship = SocialRelationship(verb = "shared", fromusername=get_username_fromsmid(comment_from_uid,platform), tousername=get_username_fromsmid(shared_username,platform), platform=platform, message=comment_message, datetimestamp=comment_created_time, course_code=course_code, platformid=share_id)
         socialrelationship.save()
+
+def insert_bookmark(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url, tags=[]):
+    if check_ifnotinlocallrs(course_code, platform, post_id):
+        stm = socialmedia_builder(verb='created', platform=platform, account_name=from_uid, account_homepage=platform_url, object_type='Bookmark', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_name, course_code=course_code, tags=tags)
+        jsn = ast.literal_eval(stm.to_json())
+        stm_json = pretty_print_json(jsn)
+        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=get_username_fromsmid(from_uid, platform), platformid=post_id, message=message, datetimestamp=created_time)
+        lrs.save()
