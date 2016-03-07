@@ -130,3 +130,24 @@ STATICFILES_FINDERS = (
 AUTH_PROFILE_MODULE = "account.userprofile"
 
 GA_TRACKING_ID = ''
+
+
+#####################################################
+######### Load Social Media Data Integration plugins
+#####################################################
+
+import sys
+import pkgutil
+DI_PATH = os.path.join(BASE_DIR,'dataintegration')
+sys.path.append(DI_PATH)
+PLUGIN_PATH = os.path.join(DI_PATH,'plugins')
+REGISTERED_DATAINTEGRATION_PLUGINS = ['twitter', 'facebook', 'forum', 'youtube']
+pluginModules = [name for _, name, _ in pkgutil.iter_modules([PLUGIN_PATH])]
+from dataintegration.core.plugins.loader import load_dataintegration_plugins
+from dataintegration.core.plugins.registry import get_includeindashboardwidgets, get_plugins, get_includeindashboardwidgets_verbs, get_includeindashboardwidgets_platforms, get_includeauthomaticplugins_platforms
+load_dataintegration_plugins(REGISTERED_DATAINTEGRATION_PLUGINS)
+
+DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_VERBS = get_includeindashboardwidgets_verbs()
+DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_PLATFORMS = get_includeindashboardwidgets_platforms()
+DATAINTEGRATION_PLUGINS = get_plugins()
+DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC = get_includeauthomaticplugins_platforms()

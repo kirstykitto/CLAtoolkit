@@ -38,6 +38,20 @@ class UserProfile(models.Model):
     # YouTube 26/08/2015
     google_account_name = models.CharField(max_length=255, blank=True)
 
+    #Diigo userName
+    diigo_username = models.CharField(max_length=255, blank=True)
+
+class OfflinePlatformAuthToken(models.Model):
+    user = models.ForeignKey(User)
+    token = models.CharField(max_length=1000, blank=False)
+    platform = models.CharField(max_length=1000, blank=False)
+
+class OauthFlowTemp(models.Model):
+    googleid = models.CharField(max_length=1000, blank=False)
+    platform = models.CharField(max_length=1000, blank=False)
+    course_code = models.CharField(max_length=1000, blank=False)
+    transferdata = models.CharField(max_length=1000, blank=False)
+
 class LearningRecord(models.Model):
     xapi = JsonField()
     course_code = models.CharField(max_length=5000, blank=False)
@@ -119,6 +133,9 @@ class UnitOffering(models.Model):
 
     # YouTube 26/08/2015
     youtube_channelIds = models.TextField(blank=True)
+
+    # Diigo Tags
+    diigo_tags = models.TextField(blank=True)
 
     # LRS Integration - to send users data to unit LRS
     ll_endpoint = models.CharField(max_length=60, blank=True)
