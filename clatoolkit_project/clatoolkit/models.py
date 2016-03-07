@@ -169,6 +169,12 @@ class UnitOffering(models.Model):
         else:
             return []
 
+    def diigo_tags_as_list(self):
+        if self.diigo_tags:
+            return self.diigo_tags.split(',')
+        else:
+            return []
+
 class ApiCredentials(models.Model):
     platform = models.CharField(max_length=5000, blank=False)
     credentials_json = JsonField()
