@@ -22,7 +22,7 @@ class UserProfileForm(forms.ModelForm):
     diigo_username = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
 
     def clean(self):
-        if not ((self.cleaned_data.get('fb_id')) or (self.cleaned_data.get('twitter_id')) or (self.cleaned_data.get('forum_id')) or (self.cleaned_data.get('google_account_name')) or or (self.cleaned_data.get('diigo_username'))):
+        if not ((self.cleaned_data.get('fb_id')) or (self.cleaned_data.get('twitter_id')) or (self.cleaned_data.get('forum_id')) or (self.cleaned_data.get('google_account_name')) or (self.cleaned_data.get('diigo_username'))):
             raise ValidationError("At least one social media account must be added.")
 
         return self.cleaned_data
