@@ -18,8 +18,12 @@ def check_ifnotinlocallrs(course_code, platform, platform_id):
 
 def get_userdetails(screen_name, platform):
     usr_dict = {'screen_name':screen_name}
+    platform_param_name = None
     try:
-        platform_param_name = "%s_id__iexact" % (platform.lower())
+        if platform=='YouTube':
+            platform_param_name = "google_account_name__iexact"
+        else:
+            platform_param_name = "%s_id__iexact" % (platform.lower())
         kwargs = {platform_param_name:screen_name}
         usrs = UserProfile.objects.filter(**kwargs)
         usr = usrs[0]
@@ -41,7 +45,11 @@ def get_userdetails(screen_name, platform):
 
 def username_exists(screen_name, course_code, platform):
     tw_id_exists = False
-    platform_param_name = "%s_id__iexact" % (platform.lower())
+    platform_param_name = None
+    if platform=='YouTube':
+        platform_param_name = "google_account_name__iexact"
+    else:
+        platform_param_name = "%s_id__iexact" % (platform.lower())    
     kwargs = {platform_param_name:screen_name}
     usrs = UserProfile.objects.filter(**kwargs)
     if len(usrs) > 0:
@@ -105,11 +113,13 @@ def get_smids_fromuid(uid):
     twitter_id = user.userprofile.twitter_id
     fb_id = user.userprofile.fb_id
     forum_id = user.userprofile.forum_id
-    return twitter_id, fb_id, forum_id
+    google_id = user.userprofile.google_account_name
+    return twitter_id, fb_id, forum_id, google_id
 
 def get_smids_fromusername(username):
     user = User.objects.get(username=username)
     twitter_id = user.userprofile.twitter_id
     fb_id = user.userprofile.fb_id
     forum_id = user.userprofile.forum_id
-    return twitter_id, fb_id, forum_id
+    google_id = user.userprofile.google_account_name
+    return twitter_id, fb_id, forum_id, google_id
