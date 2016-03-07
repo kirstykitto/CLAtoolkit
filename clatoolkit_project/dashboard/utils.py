@@ -450,98 +450,104 @@ def get_LDAVis_JSON(platform, num_topics, course_code, start_date=None, end_date
 
 def nmf(platform, no_topics, course_code, start_date=None, end_date=None):
     documents,ids = get_allcontent_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
-    tfidf = TfidfVectorizer(stop_words=ENGLISH_STOP_WORDS, lowercase=True, strip_accents="unicode", use_idf=True, norm="l2", min_df = 2, ngram_range=(1,4))
-    A = tfidf.fit_transform(documents)
+    if len(documents)<5:
+        d3_dataset = ""
+        topic_output = "Not enough text to run Topic Modeling."
+    else:
+        min_df = 2
+        tfidf = TfidfVectorizer(stop_words=ENGLISH_STOP_WORDS, lowercase=True, strip_accents="unicode", use_idf=True, norm="l2", min_df = min_df, ngram_range=(1,4))
+        A = tfidf.fit_transform(documents)
 
-    num_terms = len(tfidf.vocabulary_)
-    terms = [""] * num_terms
-    for term in tfidf.vocabulary_.keys():
-        terms[ tfidf.vocabulary_[term] ] = term
+        num_terms = len(tfidf.vocabulary_)
+        terms = [""] * num_terms
+        for term in tfidf.vocabulary_.keys():
+            terms[ tfidf.vocabulary_[term] ] = term
 
-    model = decomposition.NMF(init="nndsvd", n_components=no_topics, max_iter=1000)
-    W = model.fit_transform(A)
-    H = model.components_
+        model = decomposition.NMF(init="nndsvd", n_components=no_topics, max_iter=1000)
+        W = model.fit_transform(A)
+        H = model.components_
 
-    nmf_topic_terms = {}
-    nmf_topic_docs = {}
-    nmf_topic_doc_ids = {}
+        nmf_topic_terms = {}
+        nmf_topic_docs = {}
+        nmf_topic_doc_ids = {}
 
-    for topic_index in range( H.shape[0] ):
-        top_indices = np.argsort( H[topic_index,:] )[::-1][0:10]
-        term_ranking = [terms[i] for i in top_indices]
-        nmf_topic_terms[topic_index] = term_ranking
-        #tmp = "Topic %d: %s" % ( topic_index, ", ".join( term_ranking ) )
+        for topic_index in range( H.shape[0] ):
+            top_indices = np.argsort( H[topic_index,:] )[::-1][0:10]
+            term_ranking = [terms[i] for i in top_indices]
+            nmf_topic_terms[topic_index] = term_ranking
+            #tmp = "Topic %d: %s" % ( topic_index, ", ".join( term_ranking ) )
 
-    for topic_index in range( W.shape[1] ):
-        top_indices = np.argsort( W[:,topic_index] )[::-1][0:10]
-        doc_ranking = [documents[i] for i in top_indices]
-        id_ranking = [ids[i] for i in top_indices]
-        nmf_topic_docs[topic_index] = doc_ranking
-        nmf_topic_doc_ids[topic_index] = id_ranking
+        for topic_index in range( W.shape[1] ):
+            top_indices = np.argsort( W[:,topic_index] )[::-1][0:10]
+            doc_ranking = [documents[i] for i in top_indices]
+            id_ranking = [ids[i] for i in top_indices]
+            nmf_topic_docs[topic_index] = doc_ranking
+            nmf_topic_doc_ids[topic_index] = id_ranking
 
-    topic_output = ""
-    for topic in nmf_topic_terms:
-        topic_output = topic_output + "<h2>Topic %d</h2>" % (topic + 1)
-        topic_output = topic_output + "<p>"
-        for term in nmf_topic_terms[topic]:
-            topic_output = topic_output + '<a onClick="searchandhighlight(\'%s\')" class="btn btn-default btn-xs">%s</a> ' % (term, term)
-        topic_output = topic_output + "<p>"
-        topic_output = topic_output + "<ul>"
-        for doc in nmf_topic_docs[topic]:
-            topic_output = topic_output + "<li>%s</li>" % (doc)
-        topic_output = topic_output + "</ul>"
+        topic_output = ""
+        for topic in nmf_topic_terms:
+            topic_output = topic_output + "<h2>Topic %d</h2>" % (topic + 1)
+            topic_output = topic_output + "<p>"
+            for term in nmf_topic_terms[topic]:
+                topic_output = topic_output + '<a onClick="searchandhighlight(\'%s\')" class="btn btn-default btn-xs">%s</a> ' % (term, term)
+            topic_output = topic_output + "<p>"
+            topic_output = topic_output + "<ul>"
+            for doc in nmf_topic_docs[topic]:
+                topic_output = topic_output + "<li>%s</li>" % (doc)
+            topic_output = topic_output + "</ul>"
 
-    print nmf_topic_doc_ids
-    # find the % sentiment classification of each topic
-    classification_dict = None
-    classifier = 'VaderSentiment'
-    '''
-    if classifier == "VaderSentiment":
-        classification_dict = {'Positive':0, 'Neutral':0, 'Negative':0}
-    elif classifier == "NaiveBayes_t1.model":
-        classification_dict = {'Triggering':0, 'Exploration':0, 'Integration':0, 'Resolution':0, 'Other':0}
-    '''
-    piebubblechart = {}
-    feature_matrix = np.zeros(shape=(no_topics,3))
+        #print nmf_topic_doc_ids
+        # find the % sentiment classification of each topic
+        classification_dict = None
+        classifier = 'VaderSentiment'
+        '''
+        if classifier == "VaderSentiment":
+            classification_dict = {'Positive':0, 'Neutral':0, 'Negative':0}
+        elif classifier == "NaiveBayes_t1.model":
+            classification_dict = {'Triggering':0, 'Exploration':0, 'Integration':0, 'Resolution':0, 'Other':0}
+        '''
+        piebubblechart = {}
+        feature_matrix = np.zeros(shape=(no_topics,3))
 
-    for topic in nmf_topic_terms:
-        vals = ""
-        radius = 0
-        topiclabel = "Topic %d" % (topic + 1)
+        for topic in nmf_topic_terms:
+            vals = ""
+            radius = 0
+            topiclabel = "Topic %d" % (topic + 1)
 
-        classification_dict = {'Positive':0, 'Neutral':0, 'Negative':0}
-        kwargs = {'classifier':classifier, 'xapistatement__course_code': course_code, 'xapistatement__id__in':nmf_topic_doc_ids[topic]}
-        #print Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification')).query
-        counts = Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification'))
-        for count in counts:
-            #print count
-            classification_dict[count['classification']] = count['classification__count']
-        vals = "%d,%d,%d" % (classification_dict['Positive'],classification_dict['Negative'],classification_dict['Neutral'])
-        print vals
-        radius = classification_dict['Positive'] + classification_dict['Negative'] + classification_dict['Neutral']
-        feature_matrix[topic,0] = classification_dict['Positive']
-        feature_matrix[topic,1] = classification_dict['Negative']
-        feature_matrix[topic,2] = classification_dict['Neutral']
-        piebubblechart[topic] = {'label':topiclabel, 'vals':vals, 'radius':radius}
+            classification_dict = {'Positive':0, 'Neutral':0, 'Negative':0}
+            kwargs = {'classifier':classifier, 'xapistatement__course_code': course_code, 'xapistatement__id__in':nmf_topic_doc_ids[topic]}
+            #print Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification')).query
+            counts = Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification'))
+            for count in counts:
+                #print count
+                classification_dict[count['classification']] = count['classification__count']
+            vals = "%d,%d,%d" % (classification_dict['Positive'],classification_dict['Negative'],classification_dict['Neutral'])
+            print vals
+            radius = classification_dict['Positive'] + classification_dict['Negative'] + classification_dict['Neutral']
+            feature_matrix[topic,0] = classification_dict['Positive']
+            feature_matrix[topic,1] = classification_dict['Negative']
+            feature_matrix[topic,2] = classification_dict['Neutral']
+            piebubblechart[topic] = {'label':topiclabel, 'vals':vals, 'radius':radius}
 
-    # Perform Affinity Propogation
-    af = AffinityPropagation(preference=-50).fit(feature_matrix)
-    cluster_centers_indices = af.cluster_centers_indices_
-    aflabels = af.labels_
+        # Perform Affinity Propogation
+        af = AffinityPropagation(preference=-50).fit(feature_matrix)
+        cluster_centers_indices = af.cluster_centers_indices_
+        aflabels = af.labels_
 
-    n_clusters_ = len(cluster_centers_indices)
-    #print 'n_clusters_', n_clusters_, aflabels
-    #print feature_matrix
+        n_clusters_ = len(cluster_centers_indices)
+        #print 'n_clusters_', n_clusters_, aflabels
+        #print feature_matrix
 
-    # generate piebubblechart dataset for d3.js
-    #print piebubblechart
-    d3_dataset = ""
-    for topic in piebubblechart:
-        #print topic
-        # output format - {label: "Topic 1", vals: [10, 20], cluster: 1, radius: 30},
-        d3_dataset = d3_dataset + '{label: "%s", vals: [%s], cluster: %d, radius: %d},' % (piebubblechart[topic]['label'], piebubblechart[topic]['vals'], aflabels[topic], piebubblechart[topic]['radius'])
+        # generate piebubblechart dataset for d3.js
+        #print piebubblechart
+        d3_dataset = ""
+        for topic in piebubblechart:
+            #print topic
+            # output format - {label: "Topic 1", vals: [10, 20], cluster: 1, radius: 30},
+            d3_dataset = d3_dataset + '{label: "%s", vals: [%s], cluster: %d, radius: %d},' % (piebubblechart[topic]['label'], piebubblechart[topic]['vals'], aflabels[topic], piebubblechart[topic]['radius'])
 
     return topic_output, d3_dataset
+
 
 '''
 def CalculateWeights(arrValues, weightsCount):

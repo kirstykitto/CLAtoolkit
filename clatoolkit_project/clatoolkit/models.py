@@ -93,7 +93,6 @@ class Classification(models.Model):
     xapistatement = models.ForeignKey(LearningRecord)
     classification = models.CharField(max_length=1000, blank=False)
     classifier = models.CharField(max_length=1000, blank=False)
-    classifier_model = models.CharField(max_length=1000, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
 class UserClassification(models.Model):
@@ -119,8 +118,7 @@ class UnitOffering(models.Model):
     event = models.BooleanField(blank=False, default=False)
     # determines whether COI Classifier link should be diplayed for staff and student in a unit
     enable_coi_classifier = models.BooleanField(blank=False, default=False)
-    # allows multiple users to classify a others students posts as a group
-    enable_group_coi_classifier = models.BooleanField(blank=False, default=False)
+
     # Twitter Unit Integration Requirements
     twitter_hashtags = models.TextField(blank=False)
 
@@ -196,4 +194,4 @@ class DashboardReflection(models.Model):
 class GroupMap(models.Model):
     userId = models.ForeignKey(User)
     course_code = models.CharField(max_length=5000, blank=False)
-    groupId = models.IntegerField(max_length=5000, blank=False)
+    groupId = models.IntegerField(blank=False)

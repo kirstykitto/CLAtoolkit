@@ -56,6 +56,8 @@ $ sudo createdb -U username --locale=en_US.utf-8 -E utf-8 -O username newdatabas
 $ psql newdatabasename < backedupdbname.bak
 ```
 
+Edit clatoolkit_project/settings.py
+Enter secret key
 Enter database port and name in settings.py
 
 If a new database was created, you will need to setup the database tables and create a superuser.

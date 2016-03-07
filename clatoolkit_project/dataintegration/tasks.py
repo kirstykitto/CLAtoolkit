@@ -655,7 +655,6 @@ def youtubeuserchannel_exists(screen_name, course_code):
 
 
 def injest_twitter(sent_hashtag, course_code):
-    get_oldtweets(course_code, sent_hashtag)
     #print "sent_hashtag:", sent_hashtag
 
     # Setup Twitter API Keys

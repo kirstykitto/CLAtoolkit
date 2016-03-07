@@ -403,59 +403,21 @@ def myclassifications(request):
     course_code = request.GET.get('course_code')
     platform = request.GET.get('platform')
 
-    #get enable_group_coi_classifier boolean flag from UnitOffering
-    unit = UnitOffering.objects.filter(code=course_code).get()
-    enable_group_coi_classifier = unit.enable_group_coi_classifier
+    #user_profile = UserProfile.objects.filter(user=user)
 
-    group_id_seed = None
-
-    if enable_group_coi_classifier:
-        # check if the user has a grp number assigned
-        group_id_seed = GroupMap.objects.filter(userId=user, course_code=course_code).values_list('groupId')
-
-        if len(group_id_seed)<0:
-
-            # (Table GroupMap requires an associated UserProfile as a foreign key)
-            grpmapentries = []
-
-            # max_grp_size set to 5 for development. Easily made customisable by setting this value when creating a unit
-            # which can then be pulled from the associated UnitOffering instance in the DB.
-            max_grp_size = 5
-
-            # Get the current highest group number (to assign user to unit group)
-            # Default is 1 (i.e. no other groups have been created)
-            highest_grp_num = 1
-
-            # Find the most current group ID
-            highest_grp_dict = GroupMap.objects.filter(course_code=unit.code).aggregate(Max('groupId'))
-            if highest_grp_dict['groupId__max'] is not None:
-                highest_grp_num = int(highest_grp_dict['groupId__max'])
-
-            # Now we figure out if there's space in this group (constrained by var max_grp_size)
-            members_in_hgrp = GroupMap.objects.filter(groupId=highest_grp_num).count()
-
-            if members_in_hgrp < max_grp_size:
-                grpmapentries.append((course_code, highest_grp_num))
-            else:
-                grpmapentries.append((course_code, highest_grp_num+1))
-
-            #Once the UserProfile has been saved, we can assign user to unit groups
-            for (unit,grp_num) in grpmapentries:
-                grpmap = GroupMap(userId=user, course_code=unit, groupId=grp_num)
-                grpmap.save()
-
-            group_id_seed = GroupMap.objects.filter(userId=user, course_code=course_code).values_list('groupId')
+    group_id_seed = GroupMap.objects.filter(userId=user, course_code=course_code).values_list('groupId')
 
     inner_q = UserClassification.objects.filter(username=username).values_list('classification_id')
     #Need to add unique identifier to models to distinguish between classes
+    #xapistatement__username=username,
     classifier_name = "nb_%s_%s.model" % (course_code,platform)
-    kwargs = {'classifier':classifier_name, 'xapistatement__course_code': course_code}
-    if enable_group_coi_classifier:
-        kwargs['xapistatement__username'] = username
-    classifications_list = list(Classification.objects.filter(**kwargs).exclude(id__in = inner_q))
+    classifications_list = list(Classification.objects.filter(classifier=classifier_name).exclude(id__in = inner_q))
 
-    if enable_group_coi_classifier:
+    if len(group_id_seed)>0:
         random.seed(group_id_seed)
+        random.shuffle(classifications_list)
+    else:
+        random.seed()
         random.shuffle(classifications_list)
 
     context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications_list }

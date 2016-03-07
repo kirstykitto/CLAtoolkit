@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import migrations, models
+from django.db import models, migrations
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('clatoolkit', '0001_initial'),
+        ('clatoolkit', '0016_groupmap'),
     ]
 
     operations = [
         migrations.AlterField(
             model_name='groupmap',
             name='groupId',
-            field=models.IntegerField(max_length=5000),
+            field=models.IntegerField(),
         ),
     ]
