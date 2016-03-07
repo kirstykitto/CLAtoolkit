@@ -17,7 +17,6 @@ def register(PluginClass):
     Register a plugin class. This function will call back your plugin's
     constructor.
     """
-    print "Register", PluginClass
     if PluginClass in list(_cache.keys()):
         raise Exception("Plugin class already registered")
     plugin = PluginClass()
@@ -33,9 +32,6 @@ def register(PluginClass):
 
     if issubclass(PluginClass, DIAuthomaticPluginMixin):
         _includeauthomaticplugins.add(PluginClass.platform)
-
-    print "_includeauthomaticplugins", _includeauthomaticplugins
-    print "_includeverbsindashboardwidgets", _includeverbsindashboardwidgets
 
 def get_plugins():
     """Get loaded plugins - do not call before all plugins are loaded."""
