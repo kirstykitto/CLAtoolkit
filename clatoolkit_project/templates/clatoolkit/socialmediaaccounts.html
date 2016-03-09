@@ -57,6 +57,11 @@
                   <label for="id_diigo_username">Diigo Username:</label><br />
                   {{ profile_form.diigo_username }}
                 </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.blog_id.errors }}</p>
+                  <label for="id_blog_id">Blog Username:</label><br />
+                  {{ profile_form.blog_id }}
+                </div>
                 <button type="submit" class="btn btn-primary btn-lg btn-block">Update</button>
             </form>
           </div>

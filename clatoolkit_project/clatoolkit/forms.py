@@ -20,9 +20,10 @@ class UserProfileForm(forms.ModelForm):
     forum_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     google_account_name = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     diigo_username = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    blog_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
 
     def clean(self):
-        if not ((self.cleaned_data.get('fb_id')) or (self.cleaned_data.get('twitter_id')) or (self.cleaned_data.get('forum_id')) or (self.cleaned_data.get('google_account_name')) or (self.cleaned_data.get('diigo_username'))):
+        if not ((self.cleaned_data.get('fb_id')) or (self.cleaned_data.get('twitter_id')) or (self.cleaned_data.get('forum_id')) or (self.cleaned_data.get('blog_id')) or (self.cleaned_data.get('google_account_name')) or (self.cleaned_data.get('diigo_username'))):
             raise ValidationError("At least one social media account must be added.")
         else:
             #Not blank so now check if the platform ids are already registeres to a User
@@ -30,6 +31,7 @@ class UserProfileForm(forms.ModelForm):
             tw_registered = UserProfile.objects.filter(twitter_id__iexact=self.cleaned_data.get('twitter_id'))
             gg_registered = UserProfile.objects.filter(google_account_name__iexact=self.cleaned_data.get('google_account_name'))
             fr_registered = UserProfile.objects.filter(forum_id__iexact=self.cleaned_data.get('forum_id'))
+            bl_registered = UserProfile.objects.filter(blog_id__iexact=self.cleaned_data.get('blog_id'))
             if len(fb_registered)>0:
                 raise ValidationError("The specified Facebook Account is already registered.")
             elif len(tw_registered)>0:
@@ -38,12 +40,14 @@ class UserProfileForm(forms.ModelForm):
                 raise ValidationError("The specified YouTube Account is already registered.")
             elif len(fr_registered)>0:
                 raise ValidationError("The specified Wordpress Forum ID is already registered.")
+            elif len(bl_registered)>0:
+                raise ValidationError("The specified Wordpress Blog username is already registered.")
 
         return self.cleaned_data
 
     class Meta:
         model = UserProfile
-        fields = ('fb_id', 'twitter_id', 'forum_id', 'google_account_name', 'diigo_username')
+        fields = ('fb_id', 'twitter_id', 'forum_id', 'google_account_name', 'diigo_username', 'blog_id')
 
 class LearningRecordFilter(django_filters.FilterSet):
     datetimestamp_min = django_filters.DateFilter(name='datetimestamp', lookup_type='gte')

@@ -93,6 +93,8 @@ def dashboard(request):
         facebook_timeline = get_timeseries_byplatform("Facebook", course_code)
         forum_timeline = get_timeseries_byplatform("Forum", course_code)
         youtube_timeline = get_timeseries_byplatform("YouTube", course_code)
+        diigo_timeline = get_timeseries_byplatform("Diigo", course_code)
+        blog_timeline = get_timeseries_byplatform("Blog", course_code)
         show_allplatforms_widgets = True
 
     profiling = profiling + "| Pies %s" % (str(datetime.datetime.now()))
@@ -128,7 +130,7 @@ def dashboard(request):
     topcontenttable = get_cached_top_content(platform, course_code) #get_top_content_table(platform, course_code)
     profiling = profiling + "| End Top Content %s" % (str(datetime.datetime.now()))
 
-    context_dict = {'profiling': profiling, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline': forum_timeline, 'youtube_timeline':youtube_timeline, 'show_allplatforms_widgets': show_allplatforms_widgets, 'platformactivity_pie_series': platformactivity_pie_series,  'title': title, 'activememberstable': activememberstable, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    context_dict = {'profiling': profiling, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline': forum_timeline, 'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 'show_allplatforms_widgets': show_allplatforms_widgets, 'platformactivity_pie_series': platformactivity_pie_series,  'title': title, 'activememberstable': activememberstable, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
 
     return render_to_response('dashboard/dashboard.html', context_dict, context)
 
@@ -257,6 +259,8 @@ def studentdashboard(request):
     facebook_timeline = ""
     forum_timeline = ""
     youtube_timeline = ""
+    diigo_timeline = ""
+    blog_timeline = ""
 
     #print "Platform timelines", datetime.datetime.now()
     platformclause = ""
@@ -267,6 +271,8 @@ def studentdashboard(request):
         facebook_timeline = get_timeseries_byplatform("Facebook", course_code, username)
         forum_timeline = get_timeseries_byplatform("Forum", course_code, username)
         youtube_timeline = get_timeseries_byplatform("YouTube", course_code, username)
+        diigo_timeline = get_timeseries_byplatform("Diggo", course_code, username)
+        blog_timeline = get_timeseries_byplatform("Blog", course_code, username)
         show_allplatforms_widgets = True
 
     cursor = connection.cursor()
@@ -293,7 +299,7 @@ def studentdashboard(request):
     sentiments = getClassifiedCounts(platform, course_code, username=username, classifier="VaderSentiment")
     coi = getClassifiedCounts(platform, course_code, username=username, classifier="NaiveBayes_t1.model")
 
-    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline':forum_timeline, 'youtube_timeline':youtube_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi }
+    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline':forum_timeline, 'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi }
 
     return render_to_response('dashboard/studentdashboard.html', context_dict, context)
 
@@ -352,6 +358,8 @@ def mydashboard(request):
     facebook_timeline = ""
     forum_timeline = ""
     youtube_timeline = ""
+    diigo_timeline = ""
+    blog_timeline = ""
 
     platformclause = ""
     if platform != "all":
@@ -361,6 +369,8 @@ def mydashboard(request):
         facebook_timeline = get_timeseries_byplatform("Facebook", course_code, username)
         forum_timeline = get_timeseries_byplatform("Forum", course_code, username)
         youtube_timeline = get_timeseries_byplatform("YouTube", course_code, username)
+        diigo_timeline = get_timeseries_byplatform("Diigo", course_code, username)
+        blog_timeline = get_timeseries_byplatform("Blog", course_code, username)
         show_allplatforms_widgets = True
 
     cursor = connection.cursor()
@@ -385,7 +395,7 @@ def mydashboard(request):
     coi = getClassifiedCounts(platform, course_code, username=username, classifier="NaiveBayes_t1.model")
 
     reflections = DashboardReflection.objects.filter(username=username)
-    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'forum_timeline': forum_timeline, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'youtube_timeline': youtube_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi  }
+    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'forum_timeline': forum_timeline, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'youtube_timeline': youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi  }
 
     return render_to_response('dashboard/mydashboard.html', context_dict, context)
 
@@ -422,19 +432,3 @@ def myclassifications(request):
 
     context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications_list }
     return render_to_response('dashboard/myclassifications.html', context_dict, context)
-
-def topicmodeling(request):
-    context = RequestContext(request)
-    datasets = ['shark','putin']
-    dataset = "shark"
-    num_topics = 5
-
-    if request.method == 'POST':
-        num_topics = int(request.POST['num_topics'])
-        dataset = request.POST['corpus']
-
-    pyLDAVis_json = get_LDAVis_JSON_IFN600(dataset,num_topics)
-
-    context_dict = {'title': "Topic Modeling", 'pyLDAVis_json': pyLDAVis_json, 'num_topics':num_topics, 'dataset':dataset}
-
-    return render_to_response('dashboard/topicmodeling.html', context_dict, context)

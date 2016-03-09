@@ -9,6 +9,7 @@ urlpatterns = patterns(
     url(r'^get_social/$', views.get_social_media_id, name='get_social'),
     url(r'^refreshtwitter/$', views.refreshtwitter, name='refreshtwitter'),
     url(r'^refreshdiigo/$', views.refreshdiigo, name='refreshdiigo'),
+    url(r'^refreshblog/$', views.refreshblog, name='refreshblog'),
     url(r'^refreshforum/$', views.refreshforum, name='refreshforum'),
     url(r'^sendtolrs/$', views.sendtolrs, name='sendtolrs'),
     #url(r'^refreshyoutube/$', views.refreshyoutube, name='refreshyoutube'),

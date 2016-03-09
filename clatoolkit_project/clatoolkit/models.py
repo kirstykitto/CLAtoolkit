@@ -41,6 +41,9 @@ class UserProfile(models.Model):
     #Diigo userName
     diigo_username = models.CharField(max_length=255, blank=True)
 
+    #blog userName
+    blog_id = models.CharField(max_length=255, blank=True)
+
 class OfflinePlatformAuthToken(models.Model):
     user = models.ForeignKey(User)
     token = models.CharField(max_length=1000, blank=False)
@@ -137,6 +140,9 @@ class UnitOffering(models.Model):
     # Diigo Tags
     diigo_tags = models.TextField(blank=True)
 
+    # Blog Members (for blogrss plugin)
+    blogmember_urls = models.TextField(blank=True)
+
     # LRS Integration - to send users data to unit LRS
     ll_endpoint = models.CharField(max_length=60, blank=True)
     ll_username = models.CharField(max_length=60, blank=True)
@@ -172,6 +178,12 @@ class UnitOffering(models.Model):
     def diigo_tags_as_list(self):
         if self.diigo_tags:
             return self.diigo_tags.split(',')
+        else:
+            return []
+
+    def blogmember_urls_as_list(self):
+        if self.blogmember_urls:
+            return self.blogmember_urls.split(',')
         else:
             return []
 

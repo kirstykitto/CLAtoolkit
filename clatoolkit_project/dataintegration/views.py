@@ -178,6 +178,23 @@ def refreshdiigo(request):
     return html_response
 
 
+def refreshblog(request):
+    html_response = HttpResponse()
+
+    blog_plugin = settings.DATAINTEGRATION_PLUGINS['Blog']
+
+    course_code = request.GET.get('course_code')
+    hastags = request.GET.get('urls')
+
+    urls = hastags.split(',')
+    for url in urls:
+        blog_plugin.perform_import(url, course_code)
+
+    post_smimport(course_code, "Blog")
+
+    html_response.write('Blog Refreshed.')
+    return html_response
+
 def dipluginauthomaticlogin(request):
     platform = request.GET.get('platform')
     course_code = request.GET.get('course_code')

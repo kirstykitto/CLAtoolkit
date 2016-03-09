@@ -151,6 +151,18 @@ def insert_post(usr_dict, post_id,message,from_name,from_uid, created_time, cour
                 socialrelationship = SocialRelationship(verb = "mentioned", fromusername=get_username_fromsmid(from_uid,platform), tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
                 socialrelationship.save()
 
+def insert_blogpost(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url, tags=[]):
+    if check_ifnotinlocallrs(course_code, platform, post_id):
+        stm = socialmedia_builder(verb='created', platform=platform, account_name=from_uid, account_homepage=platform_url, object_type='Article', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_name, course_code=course_code, tags=tags)
+        jsn = ast.literal_eval(stm.to_json())
+        stm_json = pretty_print_json(jsn)
+        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=get_username_fromsmid(from_uid, platform), platformid=post_id, message=message, datetimestamp=created_time)
+        lrs.save()
+        for tag in tags:
+            if tag[0]=="@":
+                socialrelationship = SocialRelationship(verb = "mentioned", fromusername=get_username_fromsmid(from_uid,platform), tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
+                socialrelationship.save()
+
 def insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url, liked_username=None):
     if check_ifnotinlocallrs(course_code, platform, post_id):
         stm = socialmedia_builder(verb='liked', platform=platform, account_name=like_uid, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, account_email=usr_dict['email'], user_name=like_name, course_code=course_code)
