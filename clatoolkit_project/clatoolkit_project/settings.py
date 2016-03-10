@@ -141,11 +141,10 @@ import pkgutil
 DI_PATH = os.path.join(BASE_DIR,'dataintegration')
 sys.path.append(DI_PATH)
 PLUGIN_PATH = os.path.join(DI_PATH,'plugins')
-REGISTERED_DATAINTEGRATION_PLUGINS = ['twitter', 'facebook', 'forum', 'youtube']
 pluginModules = [name for _, name, _ in pkgutil.iter_modules([PLUGIN_PATH])]
 from dataintegration.core.plugins.loader import load_dataintegration_plugins
 from dataintegration.core.plugins.registry import get_includeindashboardwidgets, get_plugins, get_includeindashboardwidgets_verbs, get_includeindashboardwidgets_platforms, get_includeauthomaticplugins_platforms
-load_dataintegration_plugins(REGISTERED_DATAINTEGRATION_PLUGINS)
+load_dataintegration_plugins(pluginModules)
 
 DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_VERBS = get_includeindashboardwidgets_verbs()
 DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_PLATFORMS = get_includeindashboardwidgets_platforms()
