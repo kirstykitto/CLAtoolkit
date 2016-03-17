@@ -39,10 +39,14 @@ scipy==0.15.1
 <<<<<<< HEAD
 =======
 gunicorn==19.3.0
+<<<<<<< HEAD
 >>>>>>> kirstykitto/master
 =======
 gunicorn==19.3.0
 >>>>>>> kirstykitto/master
 =======
 gunicorn==19.3.0
+>>>>>>> kirstykitto/master
+=======
+feedparser==5.2.0
 >>>>>>> kirstykitto/master

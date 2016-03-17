@@ -52,7 +52,7 @@ def injest_youtube(request, course_code, channelIds, http, course_id):
 #############################################################
 # Get Logged in users personal channel
 #############################################################
-def youtube_getpersonalchannel(request, course_code, channelIds, http, course_id):
+def youtube_getpersonalchannel(request, http):
     #print course_code,course_id
     #ytList = injest_youtubeData(request, course_code, channelIds, http)
 

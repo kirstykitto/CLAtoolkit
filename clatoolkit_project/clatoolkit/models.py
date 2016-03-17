@@ -41,8 +41,27 @@ class UserProfile(models.Model):
     # YouTube 26/08/2015
     google_account_name = models.CharField(max_length=255, blank=True)
 
+<<<<<<< HEAD
     #Augmented Learning Community Integration
     cl_feature = models.BooleanField(blank=False, default=False)
+=======
+    #Diigo userName
+    diigo_username = models.CharField(max_length=255, blank=True)
+
+    #blog userName
+    blog_id = models.CharField(max_length=255, blank=True)
+
+class OfflinePlatformAuthToken(models.Model):
+    user = models.ForeignKey(User)
+    token = models.CharField(max_length=1000, blank=False)
+    platform = models.CharField(max_length=1000, blank=False)
+
+class OauthFlowTemp(models.Model):
+    googleid = models.CharField(max_length=1000, blank=False)
+    platform = models.CharField(max_length=1000, blank=False)
+    course_code = models.CharField(max_length=1000, blank=False)
+    transferdata = models.CharField(max_length=1000, blank=False)
+>>>>>>> kirstykitto/master
 
 class LearningRecord(models.Model):
     xapi = JsonField()
@@ -129,6 +148,12 @@ class UnitOffering(models.Model):
     # YouTube 26/08/2015
     youtube_channelIds = models.TextField(blank=True)
 
+    # Diigo Tags
+    diigo_tags = models.TextField(blank=True)
+
+    # Blog Members (for blogrss plugin)
+    blogmember_urls = models.TextField(blank=True)
+
     # LRS Integration - to send users data to unit LRS
     ll_endpoint = models.CharField(max_length=60, blank=True)
     ll_username = models.CharField(max_length=60, blank=True)
@@ -158,6 +183,18 @@ class UnitOffering(models.Model):
     def youtube_channelIds_as_list(self):
         if self.youtube_channelIds:
             return self.youtube_channelIds.split(',')
+        else:
+            return []
+
+    def diigo_tags_as_list(self):
+        if self.diigo_tags:
+            return self.diigo_tags.split(',')
+        else:
+            return []
+
+    def blogmember_urls_as_list(self):
+        if self.blogmember_urls:
+            return self.blogmember_urls.split(',')
         else:
             return []
 

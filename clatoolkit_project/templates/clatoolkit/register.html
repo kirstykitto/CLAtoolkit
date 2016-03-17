@@ -108,9 +108,20 @@
                   </p>
                 </div>
                 <div class="form-group">
+<<<<<<< HEAD
                     <p class="help-block">{{ profile_form.cl_feature.errors }}</p>
                     <label for="cl_feature">Participate in Learning-Connections Survey:</label><br />
                     {{ profile_form.cl_feature }}
+=======
+                  <p class="help-block">{{ profile_form.diigo_username.errors }}</p>
+                  <label for="id_diigo_username">Diigo Username:</label><br />
+                  {{ profile_form.diigo_username }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.blog_id.errors }}</p>
+                  <label for="id_blog_id">Blog Username:</label><br />
+                  {{ profile_form.blog_id }}
+>>>>>>> kirstykitto/master
                 </div>
                 <p>
                 By clicking the register button below, you are indicating that you:
@@ -202,9 +213,6 @@
                         <div id="collapseThree" class="panel-collapse collapse">
                             <div class="panel-body">
                               There are no risks beyond normal day-to-day living associated with your participation in this project if you treat your class mates with respect and dignity while using the tools that this project provides. You may find yourself somewhat embarrassed if you do not do so, but we do not anticipate anything worse than that.
-                              {% if course.code == 'ALASI2015' %}
-                              Signing your soul over to SoLAR.
-                              {% endif %}
                             </div>
                         </div>
                     </div>
