@@ -8,6 +8,8 @@ from urllib2 import urlopen
 import dateutil.parser
 import feedparser
 import urlparse
+import urllib
+import urllib2
 
 '''
 This plugin is specifically designed for the Kate Davies unit that is using Wordpress with multiple
@@ -65,23 +67,40 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
             self.insert_blogcomments(member_commentfeed, course_code, displayname_username_dict)
 
 
-    def get_allmemberblogurls(self, memberlist_url):
+    def get_allmemberblogurls(self, memberlist_url, max_pages=4):
 
-        # try to get all pages of blog members
+        #Ajax Handler for 2016 blog site
+        base_url = 'http://2016.socialtechnologi.es/wp-admin/admin-ajax.php'
+
+        #Parameters for AJAX pagination
+        data = {'action': 'blogs_filter',
+                'cookie': 'bp-activity-oldestpage%253D1',
+                'object': 'blogs',
+                'search_terms' : '',
+                'page' : 1,
+                'template': ''
+        }
         #http://2016.socialtechnologi.es/wp-admin/admin-ajax.php?action=blogs_filter&cookie=bp-activity-oldestpage%253D1&object=blogs&search_terms=&page=1&template=
-        html = urlopen(memberlist_url).read()
-        soup = BeautifulSoup(html, "lxml")
 
         memberblog_urls = []
-        #todo - need to get paged results via a post using beautifulsoup
+        # try to get all pages of blog members
         #eg http://stackoverflow.com/questions/12519193/using-python-urllib2-to-send-post-request-and-get-response
-        blog_containers = soup.findAll("div", class_="item-avatar")
+        while (data['page'] <= max_pages):
+            url_data = urllib.urlencode(data)
+            req = urllib2.Request(base_url, url_data)
+            html = urlopen(req).read()
+            soup = BeautifulSoup(html, "lxml")
 
-        for blog_item in blog_containers:
-            blog_link = blog_item.find("a").attrs['href']
-            memberblog_urls.append(blog_link)
+            blog_containers = soup.findAll("div", class_="item-avatar")
+            for blog_item in blog_containers:
+                blog_link = blog_item.find("a").attrs['href']
+                memberblog_urls.append(blog_link)
+
+            data['page'] = data['page'] + 1
 
         print memberblog_urls
+        print "BLOGS SCRAPED: %s" % len(memberblog_urls)
+
         #return ['http://2016.socialtechnologi.es/moonlo/']
         return memberblog_urls
 
