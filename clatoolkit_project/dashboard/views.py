@@ -11,19 +11,6 @@ from functools import wraps
 from django.db.models import Q
 import datetime
 from django.db.models import Count
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-from django.contrib.auth.models import User
-
-from lti.models import LTIProfile
-
-=======
->>>>>>> kirstykitto/master
-=======
->>>>>>> kirstykitto/master
-=======
->>>>>>> kirstykitto/master
 import random
 
 def check_access(required_roles=None):
@@ -418,82 +405,14 @@ def myclassifications(request):
 
     course_code = None
     platform = None
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> kirstykitto/master
-=======
->>>>>>> kirstykitto/master
-
-    user = request.user
-    username = user.username
-    uid = user.id
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> kirstykitto/master
 
     user = request.user
     username = user.username
     uid = user.id
 
-    #GET variable 'f' set to True if it's the user's first time
-    ethics_agreement_required = False
-    if ('f' in request.GET):
-        ethics_agreement_required = request.GET.get('f')
+    course_code = request.GET.get('course_code')
+    platform = request.GET.get('platform')
 
-    print ethics_agreement_required
-    if ethics_agreement_required is True:
-        context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'classifications': None, 'username':username, 'uid':uid, 'showethics': ethics_agreement_required }
-        return render_to_response('dashboard/myclassifications.html', context_dict, context)
-
-    if request.POST:
-        course_code = request.POST.get('course_code')
-        platform = request.POST.get('platform')
-
-        #if request.POST.get('agree') is True:
-        print 'USERNAME: ' + username
-        print 'USER: ' + str(user)
-        #inner_user = User.objects.filter(username=username)
-        lti_user = LTIProfile.objects.get(user=user)
-
-        #if lti_user:
-         #   print "FOUND USER"
-          #  for e in lti_user:
-           #     print e
-
-        lti_user.ethics_agreement = True
-        lti_user.save()
-    else:
-        course_code = request.GET.get('course_code')
-        platform = request.GET.get('platform')
-=======
->>>>>>> kirstykitto/master
-
-    user_profile = UserProfile.objects.filter(user=user)
-
-<<<<<<< HEAD
-    group_id_seed = GroupMap.objects.filter(userId=user_profile, course_code=course_code).values_list('groupId')
-
-    inner_q = UserClassification.objects.filter(username=username).values_list('classification_id')
-    #Need to add unique identifier to models to distinguish between classes
-    #xapistatement__username=username,
-    classifications_list = list(Classification.objects.filter(classifier='NaiveBayes_t1.model').exclude(id__in = inner_q))
-
-    random.seed(group_id_seed)
-    random.shuffle(classifications_list)
-=======
->>>>>>> kirstykitto/master
-
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-    context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications_list, 'showethics': ethics_agreement_required }
-=======
-=======
->>>>>>> kirstykitto/master
     #user_profile = UserProfile.objects.filter(user=user)
 
     group_id_seed = GroupMap.objects.filter(userId=user, course_code=course_code).values_list('groupId')
@@ -512,28 +431,4 @@ def myclassifications(request):
         random.shuffle(classifications_list)
 
     context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications_list }
-<<<<<<< HEAD
->>>>>>> kirstykitto/master
-=======
->>>>>>> kirstykitto/master
-=======
-    #user_profile = UserProfile.objects.filter(user=user)
-
-    group_id_seed = GroupMap.objects.filter(userId=user, course_code=course_code).values_list('groupId')
-
-    inner_q = UserClassification.objects.filter(username=username).values_list('classification_id')
-    #Need to add unique identifier to models to distinguish between classes
-    #xapistatement__username=username,
-    classifier_name = "nb_%s_%s.model" % (course_code,platform)
-    classifications_list = list(Classification.objects.filter(classifier=classifier_name).exclude(id__in = inner_q))
-
-    if len(group_id_seed)>0:
-        random.seed(group_id_seed)
-        random.shuffle(classifications_list)
-    else:
-        random.seed()
-        random.shuffle(classifications_list)
-
-    context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications_list }
->>>>>>> kirstykitto/master
     return render_to_response('dashboard/myclassifications.html', context_dict, context)

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from clatoolkit.models import UserProfile, LearningRecord, UnitOffering
-from dataintegration import socialmediabuilder
+from dataintegration.core.socialmediarecipebuilder import socialmedia_builder
 from django.db import connections
 
 import json
@@ -658,10 +658,10 @@ def injest_twitter(sent_hashtag, course_code):
     #print "sent_hashtag:", sent_hashtag
 
     # Setup Twitter API Keys
-    app_key = "barKrgroD3LcyHRwehvaiv1Zu"
-    app_secret = "v6awGTCTP6wNJNhMPzmUzuIi1bAfNuoFOuPq1LXoCNjyqOIUki"
-    oauth_token = "1851621-4eTSnqZehoeVBWqUxGERiPKjnTsVEFaJ77MnTWKRfo"
-    oauth_token_secret = "4ZoEKJ9hnbviCuFtfGq2hBdCsfuX6eyqvvkbFGEeytE0U"
+    app_key = ""
+    app_secret = ""
+    oauth_token = ""
+    oauth_token_secret = ""
 
     twitter = Twython(app_key, app_secret, oauth_token, oauth_token_secret)
 

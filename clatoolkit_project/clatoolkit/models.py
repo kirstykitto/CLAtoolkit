@@ -2,9 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 from django_pgjson.fields import JsonField
 
-#from lti_o.ims.utils import InvalidLTIRequestError
-import hashlib
-
 class UserProfile(models.Model):
     '''
     Custom user for data integration, uses Django's User class.
@@ -41,10 +38,6 @@ class UserProfile(models.Model):
     # YouTube 26/08/2015
     google_account_name = models.CharField(max_length=255, blank=True)
 
-<<<<<<< HEAD
-    #Augmented Learning Community Integration
-    cl_feature = models.BooleanField(blank=False, default=False)
-=======
     #Diigo userName
     diigo_username = models.CharField(max_length=255, blank=True)
 
@@ -61,7 +54,6 @@ class OauthFlowTemp(models.Model):
     platform = models.CharField(max_length=1000, blank=False)
     course_code = models.CharField(max_length=1000, blank=False)
     transferdata = models.CharField(max_length=1000, blank=False)
->>>>>>> kirstykitto/master
 
 class LearningRecord(models.Model):
     xapi = JsonField()
@@ -123,15 +115,12 @@ class UnitOffering(models.Model):
     description = models.TextField(blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
     users = models.ManyToManyField(User, related_name='usersinunitoffering')
-    # determines whether new enrolments should be added to a group
-    #assign_groups = models.BooleanField(blank=False, default=False)
-
     # determines whether unit should be displayed on Register form and on dashboard
     enabled = models.BooleanField(blank=False, default=False)
     # determines whether unit should be displayed on EventRegistration Form
     event = models.BooleanField(blank=False, default=False)
     # determines whether COI Classifier link should be diplayed for staff and student in a unit
-    #enable_coi_classifier = models.BooleanField(blank=False, default=False)
+    enable_coi_classifier = models.BooleanField(blank=False, default=False)
 
     # Twitter Unit Integration Requirements
     twitter_hashtags = models.TextField(blank=False)
@@ -221,26 +210,6 @@ class DashboardReflection(models.Model):
         return self.id + ": " + self.username
 
 class GroupMap(models.Model):
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-    userId = models.ForeignKey(UserProfile)
-    course_code = models.CharField(max_length=5000, blank=False)
-    groupId = models.IntegerField(max_length=5000, blank=False)
-
-
-=======
     userId = models.ForeignKey(User)
     course_code = models.CharField(max_length=5000, blank=False)
     groupId = models.IntegerField(blank=False)
->>>>>>> kirstykitto/master
-=======
-    userId = models.ForeignKey(User)
-    course_code = models.CharField(max_length=5000, blank=False)
-    groupId = models.IntegerField(blank=False)
->>>>>>> kirstykitto/master
-=======
-    userId = models.ForeignKey(User)
-    course_code = models.CharField(max_length=5000, blank=False)
-    groupId = models.IntegerField(blank=False)
->>>>>>> kirstykitto/master

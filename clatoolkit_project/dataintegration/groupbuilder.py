@@ -18,30 +18,12 @@ def assign_groups_class(courseCode, max_size=5):
     group = []
 
     for index in range(1,(len(course_users)+1)): #range from 1 - n; instead of 0-n
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-        try:
-            e = UserProfile.objects.filter(user=course_users[index-1])[0]
-            group.append((e, group_n))
-=======
-=======
->>>>>>> kirstykitto/master
-=======
->>>>>>> kirstykitto/master
         #print index
         #print course_users[index-1], course_users[index-1].id
         try:
             #e = User.objects.filter(pk=course_users[index-1])[0]
             #print e
             group.append((course_users[index-1], group_n))
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> kirstykitto/master
-=======
->>>>>>> kirstykitto/master
-=======
->>>>>>> kirstykitto/master
         except Exception as e:
             print(e)
 
@@ -110,16 +92,4 @@ def assign_groups_class(courseCode, max_size=5):
     for g in groups:
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 """
-=======
-"""
->>>>>>> kirstykitto/master
-=======
-"""
->>>>>>> kirstykitto/master
-=======
-"""
->>>>>>> kirstykitto/master

@@ -65,9 +65,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('course_code', models.CharField(max_length=5000)),
-<<<<<<< HEAD
-<<<<<<< HEAD
-                ('groupId', models.CharField(max_length=5000)),
+                ('groupId', models.IntegerField()),
+                ('userId', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -76,19 +75,35 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('xapi', django_pgjson.fields.JsonField()),
                 ('course_code', models.CharField(max_length=5000)),
-=======
->>>>>>> kirstykitto/master
-=======
->>>>>>> kirstykitto/master
                 ('platform', models.CharField(max_length=5000)),
                 ('verb', models.CharField(max_length=5000)),
                 ('username', models.CharField(max_length=5000, blank=True)),
                 ('platformid', models.CharField(max_length=5000, blank=True)),
                 ('platformparentid', models.CharField(max_length=5000, blank=True)),
                 ('parentusername', models.CharField(max_length=5000, blank=True)),
+                ('parentdisplayname', models.CharField(max_length=5000, blank=True)),
                 ('message', models.TextField(blank=True)),
                 ('datetimestamp', models.DateTimeField(null=True, blank=True)),
                 ('senttolrs', models.CharField(max_length=5000, blank=True)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='OauthFlowTemp',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('googleid', models.CharField(max_length=1000)),
+                ('platform', models.CharField(max_length=1000)),
+                ('course_code', models.CharField(max_length=1000)),
+                ('transferdata', models.CharField(max_length=1000)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='OfflinePlatformAuthToken',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('token', models.CharField(max_length=1000)),
+                ('platform', models.CharField(max_length=1000)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -113,52 +128,17 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=5000)),
                 ('semester', models.CharField(max_length=5000)),
                 ('description', models.TextField()),
-<<<<<<< HEAD
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('enabled', models.BooleanField(default=False)),
+                ('event', models.BooleanField(default=False)),
+                ('enable_coi_classifier', models.BooleanField(default=False)),
                 ('twitter_hashtags', models.TextField()),
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
                 ('google_groups', models.TextField(blank=True)),
                 ('facebook_groups', models.TextField(blank=True)),
                 ('forum_urls', models.TextField(blank=True)),
                 ('youtube_channelIds', models.TextField(blank=True)),
-                ('ll_endpoint', models.CharField(max_length=60, blank=True)),
-                ('ll_username', models.CharField(max_length=60, blank=True)),
-                ('ll_password', models.CharField(max_length=60, blank=True)),
-                ('users', models.ManyToManyField(related_name='usersinunitoffering', to=settings.AUTH_USER_MODEL)),
-            ],
-        ),
-        migrations.CreateModel(
-            name='UserClassification',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('username', models.CharField(max_length=5000)),
-                ('isclassificationcorrect', models.BooleanField()),
-                ('userreclassification', models.CharField(max_length=1000)),
-                ('feedback', models.TextField(blank=True)),
-                ('feature', models.TextField(blank=True)),
-                ('trained', models.BooleanField(default=False)),
-=======
-                ('google_groups', models.TextField()),
-                ('facebook_groups', models.TextField()),
->>>>>>> kirstykitto/master
-=======
-                ('google_groups', models.TextField()),
-                ('facebook_groups', models.TextField()),
->>>>>>> kirstykitto/master
-=======
-                ('google_groups', models.TextField()),
-                ('facebook_groups', models.TextField()),
->>>>>>> kirstykitto/master
-=======
->>>>>>> kirstykitto/master
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('enabled', models.BooleanField(default=False)),
-                ('event', models.BooleanField(default=False)),
-                ('twitter_hashtags', models.TextField()),
-                ('google_groups', models.TextField(blank=True)),
-                ('facebook_groups', models.TextField(blank=True)),
-                ('forum_urls', models.TextField(blank=True)),
+                ('diigo_tags', models.TextField(blank=True)),
+                ('blogmember_urls', models.TextField(blank=True)),
                 ('ll_endpoint', models.CharField(max_length=60, blank=True)),
                 ('ll_username', models.CharField(max_length=60, blank=True)),
                 ('ll_password', models.CharField(max_length=60, blank=True)),
@@ -183,62 +163,13 @@ class Migration(migrations.Migration):
             name='UserProfile',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> kirstykitto/master
                 ('role', models.CharField(default=b'Student', max_length=100, choices=[(b'Staff', b'Staff'), (b'Student', b'Student'), (b'Visitor', b'Visitor')])),
                 ('fb_id', models.CharField(max_length=30, blank=True)),
                 ('twitter_id', models.CharField(max_length=30, blank=True)),
                 ('forum_id', models.CharField(max_length=500, blank=True)),
-<<<<<<< HEAD
                 ('google_account_name', models.CharField(max_length=255, blank=True)),
-                ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
-            ],
-        ),
-        migrations.AddField(
-            model_name='groupmap',
-            name='userId',
-            field=models.ForeignKey(to='clatoolkit.UserProfile'),
-        ),
-        migrations.AddField(
-            model_name='classification',
-            name='xapistatement',
-            field=models.ForeignKey(to='clatoolkit.LearningRecord'),
-        ),
-=======
-                ('fb_id', models.CharField(max_length=30)),
-                ('twitter_id', models.CharField(max_length=30)),
-                ('ll_endpoint', models.CharField(max_length=60)),
-                ('ll_username', models.CharField(max_length=60)),
-                ('ll_password', models.CharField(max_length=60)),
-                ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
-            ],
-        ),
->>>>>>> kirstykitto/master
-=======
-                ('fb_id', models.CharField(max_length=30)),
-                ('twitter_id', models.CharField(max_length=30)),
-                ('ll_endpoint', models.CharField(max_length=60)),
-                ('ll_username', models.CharField(max_length=60)),
-                ('ll_password', models.CharField(max_length=60)),
-                ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
-            ],
-        ),
->>>>>>> kirstykitto/master
-=======
-                ('fb_id', models.CharField(max_length=30)),
-                ('twitter_id', models.CharField(max_length=30)),
-                ('ll_endpoint', models.CharField(max_length=60)),
-                ('ll_username', models.CharField(max_length=60)),
-                ('ll_password', models.CharField(max_length=60)),
-                ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
-            ],
-        ),
->>>>>>> kirstykitto/master
-=======
+                ('diigo_username', models.CharField(max_length=255, blank=True)),
+                ('blog_id', models.CharField(max_length=255, blank=True)),
                 ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
             ],
         ),
@@ -247,5 +178,4 @@ class Migration(migrations.Migration):
             name='xapistatement',
             field=models.ForeignKey(to='clatoolkit.LearningRecord'),
         ),
->>>>>>> kirstykitto/master
     ]

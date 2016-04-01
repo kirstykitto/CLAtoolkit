@@ -34,29 +34,16 @@ YouTube Channels: {% for channel in unit.youtube_channelIds_as_list %} <a href="
 <br/>
 Forums: {{unit.forum_urls}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Forum">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Forum">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Forum">Social Network Analysis</a>] | <a href="/dataintegration/refreshforum/?course_code={{unit.code}}&forumurl={{unit.forum_urls|urlencode}}">Refresh Imported Data</a>
 {% endif %}
-<<<<<<< HEAD
-
-=======
 {% if unit.diigo_tags_as_list|length > 0 %}
 <br/>
 Diigo Tags: {% for tag in unit.diigo_tags_as_list %} <a href="https://www.diigo.com/tag/{{tag}}" target="_blank">{{tag}}</a>  {% endfor %}  [<a href="/dashboard/?course_code={{unit.code}}&platform=Diigo">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Diigo">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Diigo">Social Network Analysis</a>] | <a href="/dataintegration/refreshdiigo/?course_code={{unit.code}}&tags={{unit.diigo_tags|urlencode}}">Refresh Imported Data</a>
 {% endif %}
 {% if unit.enable_coi_classifier %}
->>>>>>> kirstykitto/master
 <hr/>
 {% if unit.code == 'IFN614' %}
 <a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=Forum">View Your Community of Inquiry Classifications</a>
 <br/>
 Community of Inquiry Classification Admin: <a href="/clatoolkit/classify?course_code={{unit.code}}&platform=Forum">Classify All Student Data</a>/<a href="/clatoolkit/train?course_code={{unit.code}}&platform=Forum">Train on new Student Data</a>
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-=======
-=======
->>>>>>> kirstykitto/master
-=======
->>>>>>> kirstykitto/master
 {% else %}
 <a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=YouTube">View Your Community of Inquiry Classifications</a>
 <br/>
@@ -65,7 +52,6 @@ Community of Inquiry Classification Admin: <a href="/clatoolkit/classify?course_
 <br/>
 Assign Students to Group for COI Classification: <a href="/dataintegration/assigngroups?course_code={{unit.code}}">Group Students</a>
 {% endif %}
->>>>>>> kirstykitto/master
 <br/>
 <hr/>
 CLA Toolkit Unit Registration Link for Students: http://clatoolkit.beyondlms.org/clatoolkit/register?course_code={{unit.code}}
@@ -78,41 +64,16 @@ CLA Toolkit Unit Registration Link for Students: http://clatoolkit.beyondlms.org
 {% else %}
 <p>
 <a href="/dashboard/mydashboard?course_code={{unit.code}}&platform=all">Go to My Social Media Dashboard</a>
-
+{% if unit.enable_coi_classifier %}
 <br/>
 {% if unit.code == 'IFN614' %}
 <a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=Forum">View Community of Inquiry Classifications</a>
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-=======
-{% else %}
-<a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=YouTube">View Community of Inquiry Classifications</a>
-=======
-{% else %}
-<a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=YouTube">View Community of Inquiry Classifications</a>
-=======
 {% else %}
 <a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=YouTube">View Community of Inquiry Classifications</a>
 {% endif %}
->>>>>>> kirstykitto/master
 {% endif %}
->>>>>>> kirstykitto/master
-{% endif %}
-{% endif %}
->>>>>>> kirstykitto/master
 </p>
 {% endif %}
-
-    <p>
-    <b>Group Development and Testing Zone:</b><br/>
-    <a href="/clatoolkit/groupify?course_code={{unit.code}}">Group this unit</a>
-    </p>
-
-    <p>
-        Take the <a href="/clatoolkit/lcsurvey?course_code={{unit.code}}&platform=Facebook">Learning Connections Survey</a>.
-    </p>
 
 {% endif %}
             </div>
