@@ -20,7 +20,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'development' #os.environ['SECRET_KEY']
+SECRET_KEY = os.environ['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -78,7 +78,7 @@ WSGI_APPLICATION = 'clatoolkit_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 
-'''DATABASES = {
+DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': os.environ['DB_NAME'],
@@ -87,18 +87,19 @@ WSGI_APPLICATION = 'clatoolkit_project.wsgi.application'
         'HOST': os.environ['DB_SERVICE'],
         'PORT': os.environ['DB_PORT']
     }
-}'''
+}
 
-DATABASES = {
+#alternative (for local setups w/o env variables set)
+'''DATABASES = {
     'default': {
         'ENGINE' : 'django.db.backends.postgresql_psycopg2',
-        'NAME' : 'cladjangodb',
-        'USER' : 'zak',
+        'NAME' : 'djangodb',
+        'USER' : '',
         'PASSWORD' : '',
         'HOST' : 'localhost',
         'PORT' : '5432'
     }
-}
+}'''
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
