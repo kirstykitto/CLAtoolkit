@@ -8,7 +8,9 @@
 {% block body %}
 {% if registered %}
  <strong>Thank you for registering</strong>
- <a href="/">Click here to return to the homepage.</a><br />
+ <p>
+ <a href="/">You can login by going to http://clatoolkit.beyondlms.org/</a>.<br />
+ </p>
 {% else %}
 <p class="lead">
   You are invited to participate in this project because you are enrolled in a subject where you undertake learning activities using social media.
@@ -35,22 +37,44 @@
                 {{ profile_form.non_field_errors }}
                 <div class="form-group">
                   <p class="help-block">{{ user_form.username.errors }}</p>
-                  <label for="id_username">Username:</label> <br />
+                  <label for="id_username">Username:</label> (required) <br />
                   {{ user_form.username }}
                 </div>
                 <div class="form-group">
                   <p class="help-block">{{ user_form.email.errors }}</p>
-                  <label for="id_email">Email:</label><br />
+                  <label for="id_email">Email:</label> (required)<br />
                   {{ user_form.email }}
                 </div>
                 <div class="form-group">
                   <p class="help-block">{{ user_form.password.errors }}</p>
-                  <label for="id_password">Password:</label><br />
+                  <label for="id_password">Password:</label> (required)<br />
                   {{ user_form.password }}
                 </div>
                 <div class="form-group">
                   <label>Unit Enrollment:</label><br />
+                  {% if show_units  %}
+                  Please select a unit. (required)
                   {{ user_form.units }}
+                  {% else  %}
+                    {{course.code}}: {{course.name}}<input type="hidden" id="id_units" name="units" value="{{ selected_unit }}" /> <input type="hidden" name="course_code" value="{{course.code}}" />
+                    <br/>
+                    Your data will be imported from the following locations:
+                      {% if course.twitter_hashtags_as_list|length > 0 %}
+                      <br/>
+                      Twitter Hashtags: {% for hashtag in course.twitter_hashtags_as_list %} <a href="https://twitter.com/hashtag/{{hashtag}}" target="_blank">{{hashtag}}</a>  {% endfor %}
+                      {% endif %}
+                      {% if course.facebook_groups_as_list|length > 0 %}
+                      <br/>
+                      Facebook Groups: {% for grp in course.facebook_groups_as_list %} <a href="https://www.facebook.com/groups/{{grp}}" target="_blank">{{grp}}</a>  {% endfor %}
+                      {% endif %}
+                      {% if course.youtube_channelIds_as_list|length > 0 %}
+                      <br/>
+                      YouTube Channels: {% for channel in course.youtube_channelIds_as_list %} <a href="https://www.youtube.com/channel/{{channel}}" target="_blank">{{channel}}</a>  {% endfor %}
+                      {% endif %}
+                  {% endif  %}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">At least 1 social media account is required.</p>
                 </div>
                 <div class="form-group">
                   <p class="help-block">{{ profile_form.twitter_id.errors }}</p>
@@ -65,6 +89,7 @@
                     <a href="/dataintegration/get_social" target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
                   </p>
                 </div>
+                {% if course.code == 'IFN614'  %}
                 <div class="form-group">
                   <p class="help-block">{{ profile_form.forum_id.errors }}</p>
                   <label for="id_forum_id">IFN614 Site Username:</label> (Only required for IFN614 Students.)<br />
@@ -73,10 +98,24 @@
                     Forum posts for IFN614 students will be retrieved from <a href="http://2015.informationprograms.info/forums/" target="_blank">2015.informationprograms.info/forums/</a>
                   </p>
                 </div>
+                {% endif  %}
                 <div class="form-group">
                   <p class="help-block">{{ profile_form.google_account_name.errors }}</p>
-                  <label for="id_google_account_name">Google Account Name: (E.g. Jhon Smith (jsmith123@gmail.com) )</label><br />
+                  <label for="id_google_account_name">Youtube Channel URL:</label><br />
                   {{ profile_form.google_account_name }}
+                  <p>
+                    <a href="/dataintegration/get_youtubechannel" target="_blank">Click here to get your YouTube Channel ID - you will need to be logged into YouTube (opens in new tab)</a>
+                  </p>
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.diigo_username.errors }}</p>
+                  <label for="id_diigo_username">Diigo Username:</label><br />
+                  {{ profile_form.diigo_username }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.blog_id.errors }}</p>
+                  <label for="id_blog_id">Blog Username:</label><br />
+                  {{ profile_form.blog_id }}
                 </div>
                 <p>
                 By clicking the register button below, you are indicating that you:

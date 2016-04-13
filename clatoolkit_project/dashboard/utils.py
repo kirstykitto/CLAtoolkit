@@ -8,32 +8,49 @@ import funcy as fp
 from pprint import pprint
 #from dateutil.parser import parse
 from django.contrib.auth.models import User
-from clatoolkit.models import UserProfile, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent
-from django.db.models import Q
+from clatoolkit.models import UserProfile, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, Classification
+from django.db.models import Q, Count
 from django.utils.html import strip_tags
-import networkx as nx
 import re
-import subprocess
+from vaderSentiment.vaderSentiment import sentiment as vaderSentiment
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn import decomposition
+from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
+import numpy as np
+from sklearn.cluster import AffinityPropagation
 
+import subprocess
 
 def classify(course_code, platform):
     #Calls JAR to extract and classify messages
     #$ java -cp /dataintegration/MLWrapper/CLAToolKit_JavaMLWrapper-0.1.jar load.from_clatk ./config.json [course_code] [platform]
+    print platform
+    p = os.popen('java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.from_clatk config.json ' + course_code + ' ' + platform)
+    print p
+    return p
+    '''
     try:
-        os.popen(['java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.from_clatk config.json ' + course_code + ' ' + platform]);
+        os.popen(['java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.from_clatk config.json ' + course_code + ' ' + platform])
         return True
     except Exception, e:
+        print e
         return e
+    '''
 
 
 def train(course_code, platform):
     #Call JAR to Train of UserReclassifications
     #$ java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.train_onUserClassifications ./config.json [course_code] [platform]
+    p = os.popen('java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.train_onUserClassifications config.json ' + course_code + ' ' + platform);
+    print p
+    return p
+    '''
     try:
         os.popen('java -cp CLAToolKit_JavaMLWrapper-0.1.jar load.train_onUserClassifications config.json ' + course_code + ' ' + platform);
         return True
     except Exception, e:
         return e
+    '''
 
 def get_uid_fromsmid(username, platform):
     userprofile = None
@@ -43,9 +60,11 @@ def get_uid_fromsmid(username, platform):
         userprofile = UserProfile.objects.filter(fb_id__iexact=username)
     elif platform == "Forum":
         userprofile = UserProfile.objects.filter(forum_id__iexact=username)
+    elif platform == "YouTube":
+            userprofile = UserProfile.objects.filter(google_account_name__iexact=username)
     else:
         #platform must be = all
-        userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=username) | Q(fb_id__iexact=username) | Q(forum_id__iexact=username))
+        userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=username) | Q(fb_id__iexact=username) | Q(forum_id__iexact=username) | Q(google_account_name__iexact=username))
 
     id = userprofile[0].user.id
     return id
@@ -59,9 +78,11 @@ def get_username_fromsmid(sm_id, platform):
         userprofile = UserProfile.objects.filter(fb_id__iexact=sm_id)
     elif platform == "Forum":
         userprofile = UserProfile.objects.filter(forum_id__iexact=sm_id)
+    elif platform == "YouTube":
+            userprofile = UserProfile.objects.filter(google_account_name__iexact=sm_id)
     else:
         #platform must be = all
-        userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=sm_id) | Q(fb_id__iexact=sm_id) | Q(forum_id__iexact=sm_id))
+        userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=sm_id) | Q(fb_id__iexact=sm_id) | Q(forum_id__iexact=sm_id) | Q(google_account_name__iexact=sm_id))
     if len(userprofile)>0:
         username = userprofile[0].user.username
     else:
@@ -337,20 +358,48 @@ def get_allcontent_byplatform(platform, course_code, username=None, start_date=N
 
     cursor = connection.cursor()
     cursor.execute("""
-        SELECT clatoolkit_learningrecord.message as content
+        SELECT clatoolkit_learningrecord.message as content, clatoolkit_learningrecord.id
         FROM clatoolkit_learningrecord
         WHERE clatoolkit_learningrecord.course_code='%s' %s %s %s
     """ % (course_code, platformclause, userclause, dateclause))
     result = cursor.fetchall()
     content_list = []
+    id_list = []
     for row in result:
         #content_list.append(row[0])
         content = strip_tags(row[0])
         content = content.replace('"','')
         content = re.sub(r'[^\w\s]','',content) #quick fix to remove punctuation
         content_list.append(content)
+        id_list.append(row[1])
 
-    return content_list
+    return content_list,id_list
+
+def getClassifiedCounts(platform, course_code, username=None, start_date=None, end_date=None, classifier=None):
+    classification_dict = None
+    if classifier == "VaderSentiment":
+        classification_dict = {'positive':0, 'neutral':0, 'negative':0}
+    else:
+        classification_dict = {'Triggering':0, 'Exploration':0, 'Integration':0, 'Resolution':0, 'Other':0}
+    #elif classifier == "NaiveBayes_t1.model":
+
+    kwargs = {'classifier':classifier, 'xapistatement__course_code': course_code}
+    if classifier == "VaderSentiment":
+        kwargs['classifier']=classifier
+    else:
+        classifier_name = "nb_%s_%s.model" % (course_code,"YouTube")
+        kwargs['classifier']= classifier_name
+    if username is not None:
+        kwargs['xapistatement__username']=username
+    if start_date is not None:
+        kwargs['xapistatement__datetimestamp__range']=(start_date, end_date)
+
+    counts_for_pie = ""
+    counts = Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification'))
+    for count in counts:
+        #print count
+        counts_for_pie = counts_for_pie + "['%s',  %s]," % (count['classification'],count['classification__count'])
+    return counts_for_pie
 
 def loadStopWords(stopWordFile):
     stopWords = []
@@ -380,7 +429,8 @@ def remove_stopwords(documents):
 
 def get_LDAVis_JSON(platform, num_topics, course_code, start_date=None, end_date=None):
     #print "get_LDAVis_JSON"
-    documents = remove_stopwords(get_allcontent_byplatform(platform, course_code, start_date=start_date, end_date=end_date))
+    docs,ids = get_allcontent_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
+    documents = remove_stopwords(docs)
 
     # Make dictionary
     dictionary = corpora.Dictionary(documents)
@@ -397,40 +447,118 @@ def get_LDAVis_JSON(platform, num_topics, course_code, start_date=None, end_date
 
     return tmp
 
-'''
-def CalculateWeights(arrValues, weightsCount):
-    # converted to python from http://stackoverflow.com/questions/4991354/set-font-size-in-tag-cloud-based-on-occurances
-    arrWeights = [];
-    minValue = 999999;
-    maxValue = -1;
-    for i in arrValues:
-        curValue = i
-        if (curValue < minValue):
-            minValue = curValue
-        if (curValue > maxValue):
-            maxValue = curValue
+def nmf(platform, no_topics, course_code, start_date=None, end_date=None):
+    documents,ids = get_allcontent_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
+    if len(documents)<5:
+        d3_dataset = ""
+        topic_output = "Not enough text to run Topic Modeling."
+    else:
+        min_df = 2
+        tfidf = TfidfVectorizer(stop_words=ENGLISH_STOP_WORDS, lowercase=True, strip_accents="unicode", use_idf=True, norm="l2", min_df = min_df, ngram_range=(1,4))
+        A = tfidf.fit_transform(documents)
 
-    diff = weightsCount / (maxValue - minValue);
-    for i in arrValues:
-        curValue = i
-        if (curValue == minValue):
-            arrWeights.append(1)
-        elif (curValue == maxValue):
-            arrWeights.append(weightsCount)
-        else:
-            arrWeights.append(int(curValue * diff) + 1)
-            #arrWeights.append(int(curValue * diff, 10) + 1)
-    return arrWeights
-'''
+        num_terms = len(tfidf.vocabulary_)
+        terms = [""] * num_terms
+        for term in tfidf.vocabulary_.keys():
+            terms[ tfidf.vocabulary_[term] ] = term
+
+        model = decomposition.NMF(init="nndsvd", n_components=no_topics, max_iter=1000)
+        W = model.fit_transform(A)
+        H = model.components_
+
+        nmf_topic_terms = {}
+        nmf_topic_docs = {}
+        nmf_topic_doc_ids = {}
+
+        for topic_index in range( H.shape[0] ):
+            top_indices = np.argsort( H[topic_index,:] )[::-1][0:10]
+            term_ranking = [terms[i] for i in top_indices]
+            nmf_topic_terms[topic_index] = term_ranking
+            #tmp = "Topic %d: %s" % ( topic_index, ", ".join( term_ranking ) )
+
+        for topic_index in range( W.shape[1] ):
+            top_indices = np.argsort( W[:,topic_index] )[::-1][0:10]
+            doc_ranking = [documents[i] for i in top_indices]
+            id_ranking = [ids[i] for i in top_indices]
+            nmf_topic_docs[topic_index] = doc_ranking
+            nmf_topic_doc_ids[topic_index] = id_ranking
+
+        topic_output = ""
+        for topic in nmf_topic_terms:
+            topic_output = topic_output + "<h2>Topic %d</h2>" % (topic + 1)
+            topic_output = topic_output + "<p>"
+            for term in nmf_topic_terms[topic]:
+                topic_output = topic_output + '<a onClick="searchandhighlight(\'%s\')" class="btn btn-default btn-xs">%s</a> ' % (term, term)
+            topic_output = topic_output + "<p>"
+            topic_output = topic_output + "<ul>"
+            for doc in nmf_topic_docs[topic]:
+                topic_output = topic_output + "<li>%s</li>" % (doc)
+            topic_output = topic_output + "</ul>"
+
+        #print nmf_topic_doc_ids
+        # find the % sentiment classification of each topic
+        classification_dict = None
+        classifier = 'VaderSentiment'
+        '''
+        if classifier == "VaderSentiment":
+            classification_dict = {'Positive':0, 'Neutral':0, 'Negative':0}
+        elif classifier == "NaiveBayes_t1.model":
+            classification_dict = {'Triggering':0, 'Exploration':0, 'Integration':0, 'Resolution':0, 'Other':0}
+        '''
+        piebubblechart = {}
+        feature_matrix = np.zeros(shape=(no_topics,3))
+
+        for topic in nmf_topic_terms:
+            vals = ""
+            radius = 0
+            topiclabel = "Topic %d" % (topic + 1)
+
+            classification_dict = {'Positive':0, 'Neutral':0, 'Negative':0}
+            kwargs = {'classifier':classifier, 'xapistatement__course_code': course_code, 'xapistatement__id__in':nmf_topic_doc_ids[topic]}
+            #print Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification')).query
+            counts = Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification'))
+            for count in counts:
+                #print count
+                classification_dict[count['classification']] = count['classification__count']
+            vals = "%d,%d,%d" % (classification_dict['Positive'],classification_dict['Negative'],classification_dict['Neutral'])
+            print vals
+            radius = classification_dict['Positive'] + classification_dict['Negative'] + classification_dict['Neutral']
+            feature_matrix[topic,0] = classification_dict['Positive']
+            feature_matrix[topic,1] = classification_dict['Negative']
+            feature_matrix[topic,2] = classification_dict['Neutral']
+            piebubblechart[topic] = {'label':topiclabel, 'vals':vals, 'radius':radius}
+
+        # Perform Affinity Propogation
+        af = AffinityPropagation(preference=-50).fit(feature_matrix)
+        cluster_centers_indices = af.cluster_centers_indices_
+        aflabels = af.labels_
+
+        n_clusters_ = len(cluster_centers_indices)
+        #print 'n_clusters_', n_clusters_, aflabels
+        #print feature_matrix
+
+        # generate piebubblechart dataset for d3.js
+        #print piebubblechart
+        d3_dataset = ""
+        for topic in piebubblechart:
+            #print topic
+            # output format - {label: "Topic 1", vals: [10, 20], cluster: 1, radius: 30},
+            d3_dataset = d3_dataset + '{label: "%s", vals: [%s], cluster: %d, radius: %d},' % (piebubblechart[topic]['label'], piebubblechart[topic]['vals'], aflabels[topic], piebubblechart[topic]['radius'])
+
+    return topic_output, d3_dataset
 
 def get_wordcloud(platform, course_code, username=None, start_date=None, end_date=None):
     #print "get_wordcloud", platform, course_code
+    docs = None
+    ids = None
     documents = None
     if username is not None:
-        documents = remove_stopwords(get_allcontent_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date))
+        docs,ids = get_allcontent_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
     else:
-        documents = remove_stopwords(get_allcontent_byplatform(platform, course_code, start_date=start_date, end_date=end_date))
-    print documents
+        docs,ids = get_allcontent_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
+
+    documents = remove_stopwords(docs)
+    #print documents
     # Make dictionary
     dictionary = corpora.Dictionary(documents)
 
@@ -455,7 +583,11 @@ def get_wordcloud(platform, course_code, username=None, start_date=None, end_dat
                 weight = int(term_freq_pair[1][1])
             else:
                 weight = int(term_freq_pair[1])
-            word_tags.append('{"text": "%s", "weight": %d},' % (term_freq_pair[0], weight))
+
+            if (weight > 3):
+                #print weight
+                word_tags.append('{"text": "%s", "weight": %d},' % (term_freq_pair[0], weight))
+                #word_tags.append('["%s", %d],' % (term_freq_pair[0], weight))
             #word_tags.append('<li class="tag%d"><a href="#">%s</a></li>' % (term_freq_pair[1], term_freq_pair[0]))
     tags = "[" + ''.join(word_tags)[:-1] + "]"
     #print tags
@@ -482,7 +614,7 @@ def get_nodes_byplatform(platform, course_code, username=None, start_date=None, 
             FROM clatoolkit_learningrecord
             WHERE clatoolkit_learningrecord.course_code='%s' %s %s %s
           """ % (course_code, platformclause, userclause, dateclause)
-    print sql
+    #print sql
     cursor = connection.cursor()
     cursor.execute(sql)
     result = cursor.fetchall()
@@ -491,85 +623,50 @@ def get_nodes_byplatform(platform, course_code, username=None, start_date=None, 
     for row in result:
         node_dict[row[0]] = count
         count += 1
-    print "node_dict", node_dict
+    #print "node_dict", node_dict
     return node_dict
 
-def get_relationships_byplatform(platform, course_code, username=None, start_date=None, end_date=None):
-
-
+def get_relationships_byplatform(platform, course_code, username=None, start_date=None, end_date=None, relationshipstoinclude=None):
     platformclause = ""
     if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
+        platformclause = " AND clatoolkit_socialrelationship.platform='%s'" % (platform)
 
     userclause = ""
     if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
+        userclause = " AND (clatoolkit_socialrelationship.fromusername='%s' OR clatoolkit_socialrelationship.tousername='%s')" % (username,username)
 
     dateclause = ""
     if start_date is not None:
-        dateclause = " AND clatoolkit_learningrecord.datetimestamp BETWEEN '%s' AND '%s'" % (start_date, end_date)
+        dateclause = " AND clatoolkit_socialrelationship.datetimestamp BETWEEN '%s' AND '%s'" % (start_date, end_date)
+
+    relationshipclause = ""
+    if relationshipstoinclude is not None and relationshipstoinclude!='-':
+        relationshipclause = " AND clatoolkit_socialrelationship.verb IN (%s) " % (relationshipstoinclude)
+    else:
+        relationshipclause = " AND clatoolkit_socialrelationship.verb NOT IN ('mentioned','shared','liked','commented') "
 
     count = 1
     nodes_in_sna_dict = {}
-    #first get @mentions
-    #and add edge based on @mention
-    #This query gets #hashtags as well and needs to be refined
+
     sql = """
-            SELECT clatoolkit_learningrecord.username, clatoolkit_learningrecord.verb, obj, clatoolkit_learningrecord.platform
-            FROM   clatoolkit_learningrecord, json_array_elements(clatoolkit_learningrecord.xapi->'context'->'contextActivities'->'other') obj
-            WHERE  clatoolkit_learningrecord.course_code='%s' %s %s %s
-          """ % (course_code, platformclause, userclause, dateclause)
+            SELECT clatoolkit_socialrelationship.fromusername, clatoolkit_socialrelationship.tousername, clatoolkit_socialrelationship.verb, clatoolkit_socialrelationship.platform
+            FROM   clatoolkit_socialrelationship
+            WHERE  clatoolkit_socialrelationship.course_code='%s' %s %s %s %s
+          """ % (course_code, platformclause, userclause, dateclause, relationshipclause)
+    #print sql
     cursor = connection.cursor()
     cursor.execute(sql)
-    #print username, sql
     result = cursor.fetchall()
+
     edge_dict = defaultdict(int)
     mention_dict = defaultdict(int)
     comment_dict = defaultdict(int)
     share_dict = defaultdict(int)
     for row in result:
-        #print row[1]
-        dict = row[2] #json.loads(row[1])
-        #print row[0]
-        # get @mention
-        #"{"definition": {"type": "http://id.tincanapi.com/activitytype/tag", "name": {"en-US": "@sbuckshum"}}, "id": "http://id.tincanapi.com/activity/tags/tincan", "objectType": "Activity"}"
-        tag = dict["definition"]["name"]["en-US"]
-        if tag.startswith('@'): # hastags are also returned in query and need to be filtered out
-            from_node = get_username_fromsmid(row[0], row[3])
-            to_node = get_username_fromsmid(tag[1:], row[3]) #remove @symbol
-            edgekey = "%s__%s" % (from_node,to_node)
-            edge_dict[edgekey] += 1
-            mention_dict[edgekey] += 1
-            if from_node not in nodes_in_sna_dict:
-                nodes_in_sna_dict[from_node] = count
-                count += 1
-            if to_node not in nodes_in_sna_dict:
-                nodes_in_sna_dict[to_node] = count
-                count += 1
-
-    #get all statements with platformparentid
-    sql = """
-            SELECT clatoolkit_learningrecord.username, clatoolkit_learningrecord.verb, clatoolkit_learningrecord.parentusername, clatoolkit_learningrecord.platform, clatoolkit_learningrecord.platformparentid
-            FROM clatoolkit_learningrecord
-            WHERE COALESCE(clatoolkit_learningrecord.platformparentid, '') != '' AND clatoolkit_learningrecord.course_code='%s' %s %s
-          """ % (course_code, platformclause, userclause)
-
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    result = cursor.fetchall()
-    #print sql
-    for row in result:
-        #print row
-        platform_username = row[0]
-        verb = row[1]
-        platform_parent_username = row[2]
-        row_platform = row[3] #if platform=all then need to know rows platform
-        display_username = get_username_fromsmid(platform_username, row_platform)
-        display_related_username = get_username_fromsmid(platform_parent_username, row_platform)
-        #print "platform_username", platform_username, "display_username", display_username
-        #print "platform_parent_username", platform_parent_username, "display_related_username", display_related_username
+        display_username = row[0]
+        verb = row[2]
+        display_related_username = row[1]
+        row_platform = row[3]
         from_node = display_username
         to_node = display_related_username
         edgekey = "%s__%s" % (from_node,to_node)
@@ -578,6 +675,8 @@ def get_relationships_byplatform(platform, course_code, username=None, start_dat
             share_dict[edgekey] += 1
         elif verb=="commented":
             comment_dict[edgekey] += 1
+        elif verb=="mentioned":
+            mention_dict[edgekey] += 1
         if from_node not in nodes_in_sna_dict:
             nodes_in_sna_dict[from_node] = count
             count += 1
@@ -586,74 +685,59 @@ def get_relationships_byplatform(platform, course_code, username=None, start_dat
             count += 1
     return edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict
 
-def sna_buildjson(platform, course_code, username=None, start_date=None, end_date=None):
+def sna_buildjson(platform, course_code, username=None, start_date=None, end_date=None, relationshipstoinclude=None):
 
-    print username
     node_dict = None
     edge_dict = None
     nodes_in_sna_dict = None
     if username is not None:
         node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
-        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
+        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
     else:
         node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
-        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
+        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+
+    #node_dict.update(nodes_in_sna_dict)
+    for key in nodes_in_sna_dict:
+        node_dict[key] = 1
+    count = 1
+    for key in node_dict:
+        node_dict[key] = count
+        count = count + 1
+
+    #print node_dict, node_dict
 
     node_type_colours = {'Staff':{'border':'#661A00','fill':'#CC3300'}, 'Student':{'border':'#003D99','fill':'#0066FF'}, 'Visitor':{'border':'black','fill':'white'}}
     dict_types = {'mention': mention_dict, 'share': share_dict, 'comment': comment_dict}
-    relationship_type_colours = {'mention': 'black', 'share': 'green', 'comment': 'red'}
+    relationship_type_colours = {'mention': 'grey', 'share': 'green', 'comment': 'red'}
 
-    print node_dict
-    print edge_dict
 
     json_str_list = []
-    #print node_dict
-    #print nodes_in_sna_dict
-    #if username is not None:
-    if len(nodes_in_sna_dict)>0:
-        node_dict = nodes_in_sna_dict
 
-    #pprint(node_dict)
-    #pprint(nodes_in_sna_dict)
-    #pprint(edge_dict)
-
-    # make networkx graph from sna data
-    G=nx.MultiGraph() # Create a multi-graph as multiple directed edges per verb
-    # Add nodes
+    node_degree_dict = {}
     for node in node_dict:
-        G.add_node(node_dict[node])
-    # Add edges
+        node_degree_dict[node] = 1
+    # Add degrees based upon edges
     for relationshiptype in dict_types:
         for edge_str in dict_types[relationshiptype]:
             edgefrom, edgeto = edge_str.split('__')
             if edgefrom in node_dict and edgeto in node_dict:
-                edge_attributes = "{'weight':%d, 'verb':'%s'}" % (dict_types[relationshiptype][edge_str], relationshiptype)
-                print edge_attributes
-                G.add_edge(node_dict[edgefrom], node_dict[edgeto], edge_attributes)
-
-    '''
-    pr = nx.pagerank_numpy(G, alpha=0.9)
-    print "pagerank", pr
-    degree = nx.degree(G,weight='weight')
-    print "degree", degree
-    betweenness = nx.betweenness_centrality(G)
-    print "betweenness", betweenness
-    degree_centrality = nx.degree_centrality(G)
-    print "degree_centrality", degree_centrality
-    '''
-    degree = nx.degree(G,weight='weight')
-    #print "degree", degree
+                node_degree_dict[edgefrom] += 1
+                node_degree_dict[edgeto] += 1
 
     # make json for vis.js display
     # Build node json
     json_str_list.append('{"nodes": [')
+    count = 1
     for node in node_dict:
         #print node
         username = node
         role = get_role_fromusername(node, platform)
         node_border = node_type_colours[role]['border']
         node_fill = node_type_colours[role]['fill']
-        json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, degree[node_dict[node]]))
+        #json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, degree[node_dict[node]]))
+        json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, node_degree_dict[node]))
+        count = count + 1
     json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
     json_str_list.append("],")
 
@@ -661,9 +745,6 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
 
     json_str_list.append('"edges": [')
 
-    #print "mention_dict", mention_dict
-    #print "share_dict", share_dict
-    #print "comment_dict", comment_dict
     idcount = 1;
     for relationshiptype in dict_types:
         for edge_str in dict_types[relationshiptype]:
@@ -671,7 +752,28 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
             if edgefrom in node_dict and edgeto in node_dict:
                 json_str_list.append('{"id": %d, "from": %s, "to": %s, "arrows":{"to":{"scaleFactor":0.4}}, "label":"%s", "color":"%s", "value":%d, "title": "%d" },' % (idcount, node_dict[edgefrom], node_dict[edgeto], relationshiptype, relationship_type_colours[relationshiptype], dict_types[relationshiptype][edge_str], dict_types[relationshiptype][edge_str]))
                 idcount += 1
-
-    json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
+    if json_str_list[len(json_str_list)-1][-1:] == ',':
+        json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
     json_str_list.append("]}")
+    #print ''.join(json_str_list)
     return ''.join(json_str_list)
+
+def sentiment_classifier(course_code):
+    # delete all previous classifications
+    Classification.objects.filter(classifier='VaderSentiment').delete()
+    # get messages
+    sm_objs = LearningRecord.objects.filter(course_code=course_code)
+
+    for sm_obj in sm_objs:
+        message = sm_obj.message.encode('utf-8', 'replace')
+        sentiment = "Neutral"
+        vs = vaderSentiment(message)
+        #print vs, message
+        #print "\n\t" + str(vs)
+        if (vs['compound'] > 0):
+            sentiment = "Positive"
+        elif (vs['compound'] < 0):
+            sentiment = "Negative"
+        # Save Classification
+        classification_obj = Classification(xapistatement=sm_obj,classification=sentiment,classifier='VaderSentiment')
+        classification_obj.save()
