@@ -36,10 +36,28 @@
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
+              <div class="alert alert-info">
+                <div class="form-group">
+                  <label>Relationship Filter</label>
+                  <label class="checkbox-inline">
+                      <input id="mention" value="mentioned" checked type="checkbox">Mention
+                  </label>
+                  <label class="checkbox-inline">
+                      <input id="like"  value="liked" checked type="checkbox">Like
+                  </label>
+                  <label class="checkbox-inline">
+                      <input id="share"  value="shared" checked type="checkbox">Share
+                  </label>
+                  <label class="checkbox-inline">
+                      <input id="comment"  value="commented" checked type="checkbox">Comment
+                  </label>
+                  <button id="snarelationshipfilterbtn">Apply Filter</button>
+                </div>
+              </div>
               <div class="alert alert-warning">
                   Click on your node to view the messages you have posted. Click on a link (or relationship) to view the messages that were shared or commented on by another user.
               </div>
-                <div id="mynetwork" style="height: 500px;"></div>
+              <div id="mynetwork" style="height: 500px;"></div>
             </div>
             <strong>Legend: </strong><br/>
             - White Nodes: Mentioned users not registered with CLAToolkit<br/>
@@ -61,6 +79,7 @@
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
+              <div id="message_loading"><img src="{% static 'css/img/ajax-loader.gif'%}"></div>
               <div class="dataTable_wrapper">
                   <table class="table table-striped table-bordered table-hover" id="dataTables-selectedmessages">
                   </table>
@@ -86,7 +105,21 @@ function update_data()
   var chart = $('#pageview_chart').highcharts();
   var start_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().min);
   var end_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().max);
-  update_snadata(start_date, end_date);
+  var relationships_array = ['#mention','#like','#share','#comment'];
+  relationshipstoinclude = "";
+  for (i in relationships_array)
+  {
+    if ($(relationships_array[i]).is(':checked'))
+    {
+      relationshipstoinclude = relationshipstoinclude + "'" + $(relationships_array[i]).val() + "',";
+    }
+  }
+  relationshipstoinclude = relationshipstoinclude.substring(0, relationshipstoinclude.length - 1);
+  if (relationshipstoinclude == "")
+  {
+    relationshipstoinclude = '-'
+  }
+  update_snadata(start_date, end_date, relationshipstoinclude);
   //update_messages(start_date, end_date);
 }
 
@@ -97,7 +130,7 @@ function update_snadata(start_date, end_date)
   $('#selectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
   //console.log("start_date:" + start_date)
   //console.log("end_date:" + end_date)
-  $.get("/clatoolkit/sna", { course_code:"{{course_code}}", platform:"{{platform}}", start_date:start_date, end_date:end_date},
+  $.get("/clatoolkit/sna", { course_code:"{{course_code}}", platform:"{{platform}}", start_date:start_date, end_date:end_date, relationshipstoinclude:relationshipstoinclude},
     function(data){
       //console.log("SNA: " + data);
       sna_data = data;
@@ -112,6 +145,9 @@ function update_messages(nodes,edges)
   var start_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().min);
   var end_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().max);
   $('#messageselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
+
+  $('#message_loading').show();
+  render_messages([]);
 
   typeofrequest = "Node";
   if (nodes.length == 0)
@@ -189,6 +225,7 @@ function update_messages(nodes,edges)
         datatable_array.push(datarow)
       }
       render_messages(datatable_array);
+      $('#message_loading').hide();
     });
 
 }
@@ -352,9 +389,16 @@ $(function() {
       }]
   });
 
+  $('#message_loading').hide();
+
   $('#datefilter').click(function () {
     update_data();
   });
+
+  $('#snarelationshipfilterbtn').click(function () {
+    update_data();
+  });
+
 
   render_sna(sna_data);
   $('#dataTables-selectedmessages').DataTable( {

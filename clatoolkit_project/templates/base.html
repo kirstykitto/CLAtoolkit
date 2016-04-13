@@ -49,11 +49,23 @@
         <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
 
-
     <style>
       #page-wrapper {
         margin: 0 0 0 0px;
       }
+
+      .highlight {
+        background-color: #FFFF88;
+      }
+
+      g.arc path {
+        stroke: #828282;
+        stroke-width: 0.5;
+      }
+      g.arc text {
+        font-size: 10px;
+      }      
+
     </style>
 
 </head>
@@ -97,8 +109,8 @@
                         <i class="fa fa-user fa-fw"></i>  <i class="fa fa-caret-down"></i>
                     </a>
                     <ul class="dropdown-menu dropdown-user">
-                        {% comment %} <li><a href="#"><i class="fa fa-user fa-fw"></i> User Profile</a></li>
-                        <li class="divider"></li> {% endcomment %}
+                        <li><a href="/clatoolkit/socialmediaaccounts"><i class="fa fa-user fa-fw"></i> Social Media Accounts</a></li>
+                        <li class="divider"></li>
                         <li><a href="/logout"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
                         </li>
                     </ul>
@@ -679,7 +691,7 @@
     <script src="{% static 'js/sb-admin-2.js'%}"></script>
 
     <script>
-
+    /*
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
       m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
@@ -687,13 +699,13 @@
 
       {% if user.is_authenticated %}
       ga('create', '{% settings_value "GA_TRACKING_ID" %}', { 'userId': '{{ request.user.id }}' });
-      //{% accesslog request.user.id request.get_full_path  %}
+      {% accesslog request.user.id request.get_full_path  %}
       {% else %}
       ga('create', '{% settings_value "GA_TRACKING_ID" %}', 'auto');
-      //{% accesslog 'anon' request.get_full_path  %}
+      {% accesslog 'anon' request.get_full_path  %}
       {% endif %}
       ga('send', 'pageview');
-
+    */
     </script>
 
     {% block js_block %}

@@ -9,6 +9,17 @@ a:
 q:
 br
 a
+dont
+im
+ill
+youll
+amp
+id
+youre
+ive
+youd
+weve
+isnt
 #039;s
 a's
 able

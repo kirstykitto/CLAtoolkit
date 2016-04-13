@@ -38,6 +38,23 @@ class UserProfile(models.Model):
     # YouTube 26/08/2015
     google_account_name = models.CharField(max_length=255, blank=True)
 
+    #Diigo userName
+    diigo_username = models.CharField(max_length=255, blank=True)
+
+    #blog userName
+    blog_id = models.CharField(max_length=255, blank=True)
+
+class OfflinePlatformAuthToken(models.Model):
+    user = models.ForeignKey(User)
+    token = models.CharField(max_length=1000, blank=False)
+    platform = models.CharField(max_length=1000, blank=False)
+
+class OauthFlowTemp(models.Model):
+    googleid = models.CharField(max_length=1000, blank=False)
+    platform = models.CharField(max_length=1000, blank=False)
+    course_code = models.CharField(max_length=1000, blank=False)
+    transferdata = models.CharField(max_length=1000, blank=False)
+
 class LearningRecord(models.Model):
     xapi = JsonField()
     course_code = models.CharField(max_length=5000, blank=False)
@@ -47,7 +64,9 @@ class LearningRecord(models.Model):
     platformid = models.CharField(max_length=5000, blank=True)
     platformparentid = models.CharField(max_length=5000, blank=True)
     parentusername = models.CharField(max_length=5000, blank=True)
+    parentdisplayname = models.CharField(max_length=5000, blank=True)
     message = models.TextField(blank=True)
+    #mentions = models.TextField(blank=True)
     datetimestamp = models.DateTimeField(blank=True, null=True)
     senttolrs = models.CharField(max_length=5000, blank=True)
 
@@ -85,6 +104,7 @@ class UserClassification(models.Model):
     isclassificationcorrect = models.BooleanField(blank=False)
     userreclassification = models.CharField(max_length=1000, blank=False)
     feedback = models.TextField(blank=True)
+    feature = models.TextField(blank=True)
     trained = models.BooleanField(blank=False, default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -99,6 +119,8 @@ class UnitOffering(models.Model):
     enabled = models.BooleanField(blank=False, default=False)
     # determines whether unit should be displayed on EventRegistration Form
     event = models.BooleanField(blank=False, default=False)
+    # determines whether COI Classifier link should be diplayed for staff and student in a unit
+    enable_coi_classifier = models.BooleanField(blank=False, default=False)
 
     # Twitter Unit Integration Requirements
     twitter_hashtags = models.TextField(blank=False)
@@ -113,7 +135,13 @@ class UnitOffering(models.Model):
     forum_urls = models.TextField(blank=True)
 
     # YouTube 26/08/2015
-    youtube_channelIds = models.TextField(blank=False)
+    youtube_channelIds = models.TextField(blank=True)
+
+    # Diigo Tags
+    diigo_tags = models.TextField(blank=True)
+
+    # Blog Members (for blogrss plugin)
+    blogmember_urls = models.TextField(blank=True)
 
     # LRS Integration - to send users data to unit LRS
     ll_endpoint = models.CharField(max_length=60, blank=True)
@@ -122,6 +150,42 @@ class UnitOffering(models.Model):
 
     def __unicode__(self):
         return self.code + " " + self.name
+
+    def twitter_hashtags_as_list(self):
+        if self.twitter_hashtags:
+            return self.twitter_hashtags.split(',')
+        else:
+            return []
+
+    def facebook_groups_as_list(self):
+        if self.facebook_groups:
+            return self.facebook_groups.split(',')
+        else:
+            return []
+
+    def forum_urls_as_list(self):
+        if self.forum_urls:
+            return self.forum_urls.split(',')
+        else:
+            return []
+
+    def youtube_channelIds_as_list(self):
+        if self.youtube_channelIds:
+            return self.youtube_channelIds.split(',')
+        else:
+            return []
+
+    def diigo_tags_as_list(self):
+        if self.diigo_tags:
+            return self.diigo_tags.split(',')
+        else:
+            return []
+
+    def blogmember_urls_as_list(self):
+        if self.blogmember_urls:
+            return self.blogmember_urls.split(',')
+        else:
+            return []
 
 class ApiCredentials(models.Model):
     platform = models.CharField(max_length=5000, blank=False)
@@ -144,3 +208,8 @@ class DashboardReflection(models.Model):
 
     def __unicode__(self):
         return self.id + ": " + self.username
+
+class GroupMap(models.Model):
+    userId = models.ForeignKey(User)
+    course_code = models.CharField(max_length=5000, blank=False)
+    groupId = models.IntegerField(blank=False)

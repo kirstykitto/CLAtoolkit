@@ -1,9 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 
 	<head>
 	<title>YouTube data refresh</title>
-	<script type="text/javascript" src="../../static/js/jquery-2.1.4.min.js"></script>
+	<script type="text/javascript" src="{% static 'bower_components/jquery/dist/jquery.min.js'%}"></script>
 	<script type="text/javascript">
 		$(function()
 		{
@@ -74,4 +75,3 @@
 		{% endif %}
 	</body>
 </html>
-

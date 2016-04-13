@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from .models import UserProfile, LearningRecord, UnitOffering, AccessLog, CachedContent, Classification, UserClassification
+from .models import UserProfile, LearningRecord, UnitOffering, SocialRelationship, AccessLog, CachedContent, Classification, UserClassification, GroupMap
 
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
@@ -14,7 +14,15 @@ class UserAdmin(UserAdmin):
 
 class LearningRecordAdmin(admin.ModelAdmin):
     list_display = ('username', 'platform', 'verb', 'course_code', 'platformid')
-    search_fields = ('username', 'course_code')
+    search_fields = ('username', 'course_code', 'verb', 'platform')
+
+class SocialRelationshipAdmin(admin.ModelAdmin):
+    list_display = ('fromusername', 'tousername', 'platform', 'verb', 'course_code', 'platformid')
+    search_fields = ('verb', 'platform')
+
+class AccessLogAdmin(admin.ModelAdmin):
+    list_display = ('url', 'userid', 'created_at')
+    search_fields = ('userid','url')
 
 class UnitOfferingAdmin(admin.ModelAdmin):
     filter_horizontal = ('users',)
@@ -22,6 +30,10 @@ class UnitOfferingAdmin(admin.ModelAdmin):
 class ClassificationAdmin(admin.ModelAdmin):
     list_display = ('xapistatement', 'classification', 'classifier', 'created_at')
     search_fields = ('classification',)
+
+class GroupMapAdmin(admin.ModelAdmin):
+    list_display = ('userId', 'course_code', 'groupId')
+    search_fields = ('course_code',)
 
 class UserClassificationAdmin(admin.ModelAdmin):
     list_display = ('classification', 'username', 'isclassificationcorrect', 'userreclassification', 'feedback', 'created_at')
@@ -32,12 +44,16 @@ admin.site.register(User, UserAdmin)
 
 admin.site.register(LearningRecord, LearningRecordAdmin)
 
+admin.site.register(SocialRelationship, SocialRelationshipAdmin)
+
 admin.site.register(UnitOffering, UnitOfferingAdmin)
 
-admin.site.register(AccessLog)
+admin.site.register(AccessLog, AccessLogAdmin)
 
 admin.site.register(CachedContent)
 
 admin.site.register(Classification, ClassificationAdmin)
 
 admin.site.register(UserClassification, UserClassificationAdmin)
+
+admin.site.register(GroupMap, GroupMapAdmin)
