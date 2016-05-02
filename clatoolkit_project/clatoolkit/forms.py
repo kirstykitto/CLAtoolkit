@@ -21,8 +21,8 @@ class UserProfileForm(forms.ModelForm):
     google_account_name = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     diigo_username = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     blog_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
-
     def clean(self):
+
         if not ((self.cleaned_data.get('fb_id')) or (self.cleaned_data.get('twitter_id')) or (self.cleaned_data.get('forum_id')) or (self.cleaned_data.get('blog_id')) or (self.cleaned_data.get('google_account_name')) or (self.cleaned_data.get('diigo_username'))):
             raise ValidationError("At least one social media account must be added.")
         else:
@@ -32,15 +32,27 @@ class UserProfileForm(forms.ModelForm):
             gg_registered = UserProfile.objects.filter(google_account_name__iexact=self.cleaned_data.get('google_account_name'))
             fr_registered = UserProfile.objects.filter(forum_id__iexact=self.cleaned_data.get('forum_id'))
             bl_registered = UserProfile.objects.filter(blog_id__iexact=self.cleaned_data.get('blog_id'))
-            if len(fb_registered)>0:
+
+            #Need to check if they exist AND if they're blank or not
+            #(Blank submissions still get saved to DB - checking if it already exists only will cause validation bugs)
+            if len(fb_registered)>0 and self.cleaned_data.get('fb_id') != '':
+
                 raise ValidationError("The specified Facebook Account is already registered.")
-            elif len(tw_registered)>0:
+
+            elif len(tw_registered)>0 and self.cleaned_data.get('twitter_id') != '':
+
                 raise ValidationError("The specified Twitter Account is already registered.")
-            elif len(gg_registered)>0:
+
+            elif len(gg_registered)>0 and self.cleaned_data.get('google_account_name') != '':
+
                 raise ValidationError("The specified YouTube Account is already registered.")
-            elif len(fr_registered)>0:
+
+            elif len(fr_registered)>0 and self.cleaned_data.get('forum_id') != '':
+
                 raise ValidationError("The specified Wordpress Forum ID is already registered.")
-            elif len(bl_registered)>0:
+
+            elif len(bl_registered)>0 and self.cleaned_data.get('blog_id'):
+
                 raise ValidationError("The specified Wordpress Blog username is already registered.")
 
         return self.cleaned_data
