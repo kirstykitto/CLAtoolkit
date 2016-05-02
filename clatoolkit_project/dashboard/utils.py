@@ -690,12 +690,12 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     node_dict = None
     edge_dict = None
     nodes_in_sna_dict = None
-    if username is not None:
-        node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
-        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
-    else:
-        node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
-        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+    #if username is not None:
+    #    node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
+    #    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+    #else:
+    node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
+    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
 
     #node_dict.update(nodes_in_sna_dict)
     for key in nodes_in_sna_dict:
