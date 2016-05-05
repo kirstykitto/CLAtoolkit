@@ -80,6 +80,8 @@ def get_username_fromsmid(sm_id, platform):
         userprofile = UserProfile.objects.filter(forum_id__iexact=sm_id)
     elif platform == "YouTube":
             userprofile = UserProfile.objects.filter(google_account_name__iexact=sm_id)
+    elif platform == "Blog":
+        userprofile = UserProfile.objects.filter(blog_id=sm_id)
     else:
         #platform must be = all
         userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=sm_id) | Q(fb_id__iexact=sm_id) | Q(forum_id__iexact=sm_id) | Q(google_account_name__iexact=sm_id))
@@ -87,6 +89,8 @@ def get_username_fromsmid(sm_id, platform):
         username = userprofile[0].user.username
     else:
         username = sm_id # user may not be registered but display platform username
+
+    #print "GET USERNAME FROM SM_ID: ", username
     return username
 
 def get_role_fromusername(username, platform):
