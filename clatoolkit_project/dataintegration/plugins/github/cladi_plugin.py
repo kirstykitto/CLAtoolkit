@@ -50,7 +50,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             # Use .rstrip() to eliminate line-change cord
             repo = gh.get_repo(repoFullName.rstrip())
             self.importGitHubCommits(course_code, url, token, repo)
-            self.importGitHubIssues(course_code, url, token, repo)
+            self.importGitHubIssues(course_code, url, token, repo, gh)
             self.importGitHubCommitComments(course_code, url, token, repo)
             self.importGitHubIssueComments(course_code, url, token, repo)
 
@@ -130,14 +130,17 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 break;
 
     ###################################################################
-    # Import GitHub issue data.
+    # Import GitHub all issues.
+    # Note that issues include pull requests.
+    # 
     #   A library PyGithub is used to interact with GitHub API.
     #   See @ http://pygithub.readthedocs.org/en/stable/index.html
     ###################################################################
-    def importGitHubIssues(self, courseCode, repoUrl, token, repo):
-        #repoFullName = repoUrl.lstrip(STR_PLATFORM_URL_GITHUB)
+    def importGitHubIssues(self, courseCode, repoUrl, token, repo, githubObj):
+        # Search issues including pull requests using search method
         count = 0
-        issueList = repo.get_issues().get_page(count)
+        query = 'repo:kojiagile/testrepo'
+        issueList = githubObj.search_issues(query, order = 'asc').get_page(count)
 
         # Retrieve issue data
         while True:
@@ -172,12 +175,12 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         assignee)
 
             count = count + 1
-            issueList = repo.get_issues().get_page(count)
+            issueList = githubObj.search_issues(query, order = 'asc').get_page(count)
             temp = list(issueList)
-            #print "# of content in repo.get_commits().get_page(" + str(count) + ") = " + str(len(temp))
+            #print "# of content in githubObj.search_issues.get_page(count) = " + str(len(temp))
             #If length is 0, it means that no commit data is left.
             if len(temp) == 0:
-                #Break from while
+                #Break from while loop
                 break;
 
 
