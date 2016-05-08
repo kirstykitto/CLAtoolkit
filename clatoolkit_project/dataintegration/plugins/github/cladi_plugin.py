@@ -151,7 +151,6 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 if body is None or body == "":
                     body = issue.title
 
-                verb = 'created'
                 # TODO:
                 # When pull request data is imported, verb needs to be shared (or sth better one).
                 # 
@@ -169,8 +168,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     usr_dict = get_userdetails(assignee, self.platform)
                     claUserName = get_username_fromsmid(assignee, self.platform)
                     insert_issue(usr_dict, issueURL, body, assignee, claUserName,
-                        date, courseCode, repoUrl, self.platform, assigneeHomepage, 
-                        verb, assignee)
+                        date, courseCode, repoUrl, self.platform, issueURL, 
+                        assignee)
 
             count = count + 1
             issueList = repo.get_issues().get_page(count)
@@ -189,15 +188,6 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     #   See @ http://pygithub.readthedocs.org/en/stable/index.html
     ###################################################################
     def importGitHubCommits(self, courseCode, repoUrl, token, repo):
-        #ghDataList = []
-        #repoFullName = repoUrl.lstrip(STR_PLATFORM_URL_GITHUB)
-        # Instanciate PyGithub object
-        #gh = Github(token, per_page=self.parPage)
-
-        # Get all events that occurred in the specified repository.
-        # Use .rstrip() to eliminate line-change cord
-        #repo = gh.get_repo(repoFullName.rstrip())
-
         count = 0
         commitList = repo.get_commits().get_page(count)
         # Retrieve commit data
@@ -227,7 +217,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     usr_dict = get_userdetails(committerName, self.platform)
                     claUserName = get_username_fromsmid(committerName, self.platform)
                     insert_commit(usr_dict, commitHtmlURL, msg, committerName, claUserName,
-                        date, courseCode, repoUrl, self.platform, committerHomepage, committerName)
+                        date, courseCode, repoUrl, self.platform, commitHtmlURL, committerName)
                 else:
                     #If a user does not exist, ignore the commit data
                     continue
@@ -249,8 +239,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         #usr_dict = get_userdetails(committerName, self.platform)
                         #claUserName = get_username_fromsmid(committerName, self.platform)
                         insert_file(usr_dict, file.blob_url, patch, committerName, claUserName,
-                            date, courseCode, commitHtmlURL, self.platform, committerHomepage, 
-                            verb, committerName)
+                            date, courseCode, commitHtmlURL, self.platform, file.blob_url, 
+                            commitHtmlURL, verb, committerName)
 
 
             # End of for commit in commitList:

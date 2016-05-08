@@ -103,7 +103,7 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
             object_type=parent_object_type,
             )
         parentlist.append(parentobject)
-    elif (platform == 'GitHub' and (verb == 'created' or object_type == 'File')):
+    elif (platform == 'GitHub'):
         parentobject = Activity(
             id=parent_id,
             object_type=parent_object_type,
@@ -226,7 +226,7 @@ def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_t
         lrs = LearningRecord(
             xapi=stm_json, course_code=course_code, verb=verb, 
             platform=platform, username=get_username_fromsmid(from_uid, platform), 
-            platformid=platform_id, platformparentid=commit_id, 
+            platformid=platform_id, platformparentid=parent_id, 
             parentusername=get_username_fromsmid(commit_username, platform), 
             message=message, datetimestamp=committed_time)
         lrs.save()
@@ -239,14 +239,14 @@ def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_t
         socialrelationship.save()
 
 
-def insert_file(usr_dict, commit_id, message, from_uid, from_name, committed_time, course_code, parent_id, platform, platform_id, verb, commit_username=None, tags=[]):
-    if check_ifnotinlocallrs(course_code, platform, commit_id):
+def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time, course_code, parent_id, platform, platform_id, platform_parentid, verb, commit_username=None, tags=[]):
+    if check_ifnotinlocallrs(course_code, platform, file_id):
         object = "File"
         parentObj = "Collection"
 
         stm = socialmedia_builder(
             verb=verb, platform=platform, account_name=from_uid, 
-            account_homepage=platform_id, object_type=object, object_id=commit_id, 
+            account_homepage=platform_id, object_type=object, object_id=file_id, 
             message=message, tags=tags, parent_object_type=parentObj, parent_id=parent_id, 
             timestamp=committed_time, account_email=usr_dict['email'], 
             user_name=from_name, course_code=course_code)
@@ -256,7 +256,7 @@ def insert_file(usr_dict, commit_id, message, from_uid, from_name, committed_tim
         lrs = LearningRecord(
             xapi=stm_json, course_code=course_code, verb=verb, 
             platform=platform, username=get_username_fromsmid(from_uid, platform), 
-            platformid=platform_id, platformparentid=commit_id, 
+            platformid=platform_id, platformparentid=platform_parentid, 
             parentusername=get_username_fromsmid(commit_username, platform), 
             message=message, datetimestamp=committed_time)
         lrs.save()
@@ -265,18 +265,19 @@ def insert_file(usr_dict, commit_id, message, from_uid, from_name, committed_tim
             fromusername=get_username_fromsmid(from_uid, platform), 
             tousername=get_username_fromsmid(commit_username, platform), 
             platform=platform, message=message, datetimestamp=committed_time, 
-            course_code=course_code, platformid=commit_id)
+            course_code=course_code, platformid=file_id)
         socialrelationship.save()
 
 
-def insert_issue(usr_dict, issue_id, message, from_name, from_uid, created_time, course_code, parent_id, platform, platform_url, verb, assignee, tags=[]):
+def insert_issue(usr_dict, issue_id, message, from_name, from_uid, created_time, course_code, parent_id, platform, platform_id, assignee, tags=[]):
     if check_ifnotinlocallrs(course_code, platform, issue_id):
+        verb = 'created'
         object = "Note"
         parentObj = "Collection"
-        
+
         stm = socialmedia_builder(
             verb=verb, platform=platform, account_name=from_uid, 
-            account_homepage=platform_url, object_type=object, object_id=issue_id, 
+            account_homepage=issue_id, object_type=object, object_id=issue_id, 
             message=message, parent_object_type=parentObj, parent_id=parent_id, 
             timestamp=created_time, account_email=usr_dict['email'], 
             user_name=from_name, course_code=course_code, tags=tags)
@@ -285,15 +286,16 @@ def insert_issue(usr_dict, issue_id, message, from_name, from_uid, created_time,
         lrs = LearningRecord(
             xapi=stm_json, course_code=course_code, verb=verb, 
             platform=platform, username=get_username_fromsmid(from_uid, platform),
-            platformid=issue_id, platformparentid=issue_id, message=message, datetimestamp=created_time,
+            platformid=platform_id, platformparentid=parent_id, message=message, datetimestamp=created_time,
             parentusername=get_username_fromsmid(assignee, platform))
         lrs.save()
-
+        """
         for tag in tags:
             if tag[0]=="@":
                 socialrelationship = SocialRelationship(
                     verb = "mentioned", fromusername=get_username_fromsmid(from_uid,platform), 
                     tousername=get_username_fromsmid(tag[1:],platform), 
                     platform=platform, message=message, datetimestamp=created_time, 
-                    course_code=course_code, platformid=issue_id)
+                    course_code=course_code, platformid=platform_id)
                 socialrelationship.save()
+        """
