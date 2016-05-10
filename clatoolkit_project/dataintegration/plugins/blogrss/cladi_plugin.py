@@ -58,10 +58,11 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
     def perform_import(self, retrieval_param, course_code):
         memberblog_urls = self.get_allmemberblogurls(retrieval_param)
-        memberblog_urls.append('http://2016.socialtechnologi.es/teaching-team-blog/') #staff blogs to be scraped
+        #memberblog_urls.append('http://2016.socialtechnologi.es/teaching-team-blog/') #staff blogs to be scraped
         displayname_username_dict = {}
         for memberblog_url in memberblog_urls:
             member_blogfeed = memberblog_url + 'feed/'
+            print "Checking blogfeed %s" % (member_blogfeed)
             temp_dict = self.insert_blogposts(member_blogfeed, course_code)
             displayname_username_dict.update(temp_dict)
         for memberblog_url in memberblog_urls:
@@ -90,7 +91,7 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
         while (data['page'] <= max_pages):
             url_data = urllib.urlencode(data)
             req = urllib2.Request(base_url, url_data)
-            html = urlopen(req).read()
+            html = urlopen(req,timeout=300).read()
             soup = BeautifulSoup(html, "lxml")
 
             blog_containers = soup.findAll("div", class_="item-avatar")
@@ -112,7 +113,7 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
         blogurl = d['feed']['link']
         slash_pos = blogurl.rfind('/')
         blog_url_name = blogurl[slash_pos+1:]
-        #print blog_display_name
+        print blog_url_name
 
 
         #print username
@@ -137,6 +138,7 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
             if blog_display_name not in displayname_username_dict:
                 displayname_username_dict[blog_display_name] = blog_url_name
 
+            #print "Does " + blog_url_name + "exist in Toolkit?: " + username_exists(displayname_username_dict[blog_display_name], course_code, self.platform)
             if username_exists(displayname_username_dict[blog_display_name], course_code, self.platform):
                 usr_dict = get_userdetails(displayname_username_dict[blog_display_name], self.platform)
                 insert_blogpost(usr_dict, link, message, get_username_fromsmid(blog_url_name,self.platform), blog_display_name, post_date, course_code, self.platform, self.platform_url, tags=tags)
@@ -147,20 +149,23 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
         d = feedparser.parse(member_commentfeed)
 
         for post in d.entries:
-            link = post.link
+            comment_link = post.link
             slash_pos = post.link.rfind("/")
-            parent_link = post.link[:slash_pos+1]
-            path = urlparse.urlparse(parent_link).path
-            parent_username = path.split('/')[1]
-            message = post.title + " " + post.content[0]['value']
-            author = post.author
-            post_date = dateutil.parser.parse(post.published)
-            if author != "Anonymous" and author in displayname_username_dict:
-                blog_url_name = displayname_username_dict[author]
-                post_date = dateutil.parser.parse(post.published)
+            op_link = post.link[:slash_pos+1]
+            op_path = urlparse.urlparse(op_link).path
+            op_smid = op_path.split('/')[1]
+            comment_message = post.title + " " + post.content[0]['value']
+            comment_author = post.author
+            comment_post_date = dateutil.parser.parse(post.published)
+            if  comment_author != "Anonymous" and comment_author in displayname_username_dict:
+                #print "Author in Dict - seeing if they exist in system..."
+                comment_smid = displayname_username_dict[comment_author]
+                comment_post_date = dateutil.parser.parse(post.published)
 
-                if username_exists(blog_url_name, course_code, self.platform):
-                    usr_dict = get_userdetails(blog_url_name, self.platform)
-                    insert_comment(usr_dict, parent_link, link, message, get_username_fromsmid(blog_url_name, self.platform), author, post_date, course_code, self.platform, self.platform_url, shared_username=parent_username)
+                if username_exists(comment_smid, course_code, self.platform):
+                    print "BLOG_COMMENT FOUND USER on url" + comment_smid
+                    print "ON %s" % op_smid
+                    usr_dict = get_userdetails(comment_smid, self.platform)
+                    insert_blogcomment(usr_dict, op_link, comment_link, comment_message, get_username_fromsmid(comment_smid, self.platform), comment_author, comment_post_date, course_code, self.platform, self.platform_url, get_username_fromsmid(op_smid,self.platform), get_username_fromsmid(op_smid, self.platform))
 
 registry.register(BlogrssPlugin)

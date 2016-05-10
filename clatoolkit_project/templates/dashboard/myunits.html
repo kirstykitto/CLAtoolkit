@@ -45,9 +45,9 @@ Diigo Tags: {% for tag in unit.diigo_tags_as_list %} <a href="https://www.diigo.
 <br/>
 Community of Inquiry Classification Admin: <a href="/clatoolkit/classify?course_code={{unit.code}}&platform=Forum">Classify All Student Data</a>/<a href="/clatoolkit/train?course_code={{unit.code}}&platform=Forum">Train on new Student Data</a>
 {% else %}
-<a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=YouTube">View Your Community of Inquiry Classifications</a>
+<a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=Blog">View Your Community of Inquiry Classifications</a>
 <br/>
-Community of Inquiry Classification Admin: <a href="/clatoolkit/classify?course_code={{unit.code}}&platform=YouTube">Classify All Student Data</a>/<a href="/clatoolkit/train?course_code={{unit.code}}&platform=YouTube">Train on new Student Data</a>
+Community of Inquiry Classification Admin: <a href="/clatoolkit/classify?course_code={{unit.code}}&platform=Blog">Classify All Student Data</a>/<a href="/clatoolkit/train?course_code={{unit.code}}&platform=Blog">Train on new Student Data</a>
 {% endif %}
 <br/>
 Assign Students to Group for COI Classification: <a href="/dataintegration/assigngroups?course_code={{unit.code}}">Group Students</a>
