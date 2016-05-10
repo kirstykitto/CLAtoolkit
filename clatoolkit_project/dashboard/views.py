@@ -13,6 +13,7 @@ import datetime
 from django.db.models import Count
 import random
 
+
 def check_access(required_roles=None):
     def decorator(view):
         @wraps(view)
@@ -186,8 +187,13 @@ def snadashboard(request):
     comments_timeline = get_timeseries('commented', platform, course_code)
 
     sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
-
-    context_dict = {'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform, 'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    sna_neighbours = getNeighbours(sna_json)
+    context_dict = {
+        'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform, 
+        'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline, 
+        'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
+        'sna_neighbours': sna_neighbours
+    }
 
     return render_to_response('dashboard/snadashboard.html', context_dict, context)
 
