@@ -110,6 +110,9 @@
                     </a>
                     <ul class="dropdown-menu dropdown-user">
                         <li><a href="/clatoolkit/socialmediaaccounts"><i class="fa fa-user fa-fw"></i> Social Media Accounts</a></li>
+                        {% if role == "Staff" %}
+                        <li><a href="/clatoolkit/unitmanagement"><i class="fa fa-pencil-square-o fa-fw"></i> Unit Administration</a></li>
+                        {% endif %}
                         <li class="divider"></li>
                         <li><a href="/logout"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
                         </li>

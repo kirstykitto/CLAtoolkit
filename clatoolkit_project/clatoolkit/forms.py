@@ -61,6 +61,33 @@ class UserProfileForm(forms.ModelForm):
         model = UserProfile
         fields = ('fb_id', 'twitter_id', 'forum_id', 'google_account_name', 'diigo_username', 'blog_id')
 
+class UnitOfferingForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super(UnitOfferingForm, self).__init__(*args, **kwargs)
+        self.fields['users'].initial = kwargs.pop['thisuser']
+
+    code = forms.CharField(required=True, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+    name = forms.CharField(required=True, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+    semester = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+    desc = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+    users = forms.ModelMultipleChoiceField(queryset=User.objects.all(), widget=forms.SelectMultiple(attrs={'class' : 'unit-form'}))
+
+    coi_enabled = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class' : 'unit-form'}))
+    event_enabled = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class' : 'unit-form'}))
+    unit_enabled = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class' : 'unit-form'}))
+
+    twitter_hashtags = forms.CharField(required=True, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+    google_groups = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+    facebook_groups = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+    forum_urls = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+    youtube_channel_ids = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+    blogmember_urls = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+
+    lrs_endpoint = forms.CharField(required=True, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+    lrs_username = forms.CharField(required=True, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+    lrs_password = forms.CharField(required=True, widget=forms.TextInput(attrs={'class' : 'unit-form'}))
+
 class LearningRecordFilter(django_filters.FilterSet):
     datetimestamp_min = django_filters.DateFilter(name='datetimestamp', lookup_type='gte')
     datetimestamp_max = django_filters.DateFilter(name='datetimestamp', lookup_type='lte')

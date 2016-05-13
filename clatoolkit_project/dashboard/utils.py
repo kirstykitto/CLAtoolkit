@@ -75,8 +75,6 @@ def get_username_fromsmid(sm_id, platform):
     #curframe = inspect.currentframe()
     #callframe = inspect.getouterframes(curframe, 2)
 
-
-
     #print "sm_id", sm_id
     userprofile = None
     if platform == "Twitter":
