@@ -75,28 +75,6 @@
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
-              <!--
-              <div class="alert alert-info">
-                <div class="form-group">
-                  <label>Relationship Filter</label>
-                  <label class="checkbox-inline">
-                      <input id="mentionego" value="mentioned" checked type="checkbox">Mention
-                  </label>
-                  <label class="checkbox-inline">
-                      <input id="likeego"  value="liked" checked type="checkbox">Like
-                  </label>
-                  <label class="checkbox-inline">
-                      <input id="shareego"  value="shared" checked type="checkbox">Share
-                  </label>
-                  <label class="checkbox-inline">
-                      <input id="commentego"  value="commented" checked type="checkbox">Comment
-                  </label>
-                  <button id="snarelationshipfilteregobtn">Apply Filter</button>
-                </div>
-              </div>
-              -->
-              <!-- alert alert-info -->
-
               <div id="egonetwork" style="height:500px;"></div>
             </div>
         </div><!-- end panel -->
@@ -124,7 +102,6 @@
           <!-- /.panel-body -->
         </div>
         <!-- /.panel -->
-
     </div>
 </div>
 
@@ -159,6 +136,7 @@
 var sna_data = {{sna_json}};
 var platform = "{{platform}}";
 var sna_neighbours = {{sna_neighbours}};
+var centrality = {{centrality}};
 function update_data()
 {
   var chart = $('#pageview_chart').highcharts();
@@ -191,7 +169,6 @@ function update_snadata(start_date, end_date)
   //console.log("end_date:" + end_date)
   $.get("/clatoolkit/sna", { course_code:"{{course_code}}", platform:"{{platform}}", start_date:start_date, end_date:end_date, relationshipstoinclude:relationshipstoinclude},
     function(data){
-      //console.log(data);
       sna_data = data;
       sna_neighbours = data["neighbours"];
       render_sna(sna_data);
@@ -268,10 +245,6 @@ function update_messages(nodes,edges)
     }
   }
   console.log(resturl);
-  
-  //Comment out due to unknown error. Probably develop env is localhost, which causes js error. 
-  //Do not commit.
-  /*
   $.getJSON(resturl, restparams,
     function(data){
       console.log(data.results);
@@ -291,7 +264,6 @@ function update_messages(nodes,edges)
       render_messages(datatable_array);
       $('#message_loading').hide();
     });
-  */
 }
 
 function getnodelabel(node_id)
@@ -351,6 +323,32 @@ function render_messages(dataSet)
 function render_sna(data)
 {
   var container = document.getElementById('mynetwork');
+  var options = getDrawOption()
+  var network = new vis.Network(container, data, options);
+  // Capture click event
+  network.on("click", function (params) {
+        params.event = "[original event]";
+        //document.getElementById('relationships').innerHTML = '<h2>Click event:</h2>' + JSON.stringify(params, null, 4);
+        update_messages(params.nodes,params.edges);
+        drawEgoNetwork(params.nodes);
+  });
+}
+
+function drawEgoNetwork(nodes)
+{
+  if (nodes.length == 0) return;
+
+  var nodeId = nodes[0];
+  var allNodeIDs = getNodesInEgoNetwork(nodeId);
+  var data = getNodeInfo(allNodeIDs);
+  //console.log(data);
+  var options = getDrawOption()
+  var network = new vis.Network(document.getElementById("egonetwork"), data, options);
+}
+
+
+function getDrawOption()
+{
   var options = {
       nodes: {
           shape: 'dot',
@@ -388,72 +386,15 @@ function render_sna(data)
           keyboard: true
       }
   };
-  var network = new vis.Network(container, data, options);
-  // Capture click event
-  network.on("click", function (params) {
-        params.event = "[original event]";
-        //document.getElementById('relationships').innerHTML = '<h2>Click event:</h2>' + JSON.stringify(params, null, 4);
-        update_messages(params.nodes,params.edges);
-        drawEgoNetwork(params.nodes);
-  });
+  return options;
 }
 
-function drawEgoNetwork(nodes)
-{
-  if (nodes.length == 0) return;
 
-  var nodeId = nodes[0];
-  var allNodeIDs = getNodesInEgoNetwork(nodeId);
-  // console.log("All nodes in ego n/w");
-  // console.log(allNodeIDs);
-
-  var data = getNodeInfo(allNodeIDs);
-  console.log(data);
-
-  var options = {
-      nodes: {
-          shape: 'dot',
-          scaling: {
-            customScalingFunction: function (min,max,total,value) {
-              return value/total;
-            },
-            min:10,
-            max:50
-          }
-      },
-      edges: {
-          scaling: {
-            customScalingFunction: function (min,max,total,value) {
-              return value/total;
-            },
-            min:2,
-            max:8
-          }
-      },
-      physics: {
-          forceAtlas2Based: {
-              gravitationalConstant: -26,
-              centralGravity: 0.005,
-              springLength: 230,
-              springConstant: 0.18
-          },
-          maxVelocity: 146,
-          solver: 'forceAtlas2Based',
-          timestep: 0.35,
-          stabilization: {iterations:300}
-      },
-      interaction: {
-          navigationButtons: true,
-          keyboard: true
-      }
-    }
-    var network = new vis.Network(document.getElementById("egonetwork"), data, options);
-}
 
 function getNodesInEgoNetwork(nodeId)
 {
   var allNodes = [];
-  console.log("selected node ID: " + nodeId);
+  //console.log("selected node ID: " + nodeId);
   // Get neighbour nodes (node directly connected to the selected node)
   neighbours = getNeighbours(nodeId);
   // console.log("directly neighbours");
@@ -464,7 +405,6 @@ function getNodesInEgoNetwork(nodeId)
   for(var i = 0; i < neighbours.length; i++)
   {
     // console.log("neighbours id : " + neighbours[i]);
-
     var associates = getNeighbours(neighbours[i]);
     // console.log("associates");
     // console.log(associates);
@@ -494,16 +434,12 @@ function getNodesInEgoNetwork(nodeId)
       }
     }
   }
-  // console.log("allAssociates")
-  // console.log(allAssociates);
-
   allNodes.push(parseInt(nodeId));
   allNodes = $.merge(allNodes, neighbours);
   allNodes = $.merge(allNodes, allAssociates);
   allNodes = $.unique(allNodes);
 
   return allNodes;
-
 }
 
 function getNeighbours(targetNodeId)
@@ -534,7 +470,7 @@ function getNodeInfo(allNodeIDs)
       }
     }
   }
-  console.log(nodes);
+  //console.log(nodes);
 
   for (var i = 0; i < nodes.length; i++)
   {
@@ -554,38 +490,22 @@ function getNodeInfo(allNodeIDs)
       }
     }
   }
-
   return { "nodes": nodes, "edges": edges};
 }
 
-function calcDegreeCentrality(sna_data)
+function calcDegreeCentrality(centr)
 {
   var ret = [];
   var index = 0;
-  for(var i = 0; i < sna_data.nodes.length; i++)
+  for(var i = 0; i < centr.ids.length; i++)
   {
-    var dc = [];
-    var inVal = 0;
-    var outVal = 0;
-    var nodeId = sna_data.nodes[i].id;
-    for(var j = 0; j < sna_data.edges.length; j++)
-    {
-      // if to and from are same, it is ignored.
-      if(nodeId == sna_data.edges[j].to)
-      {
-        inVal += parseInt(sna_data.edges[j].value);
-      }
-      else if(nodeId == sna_data.edges[j].from && sna_data.edges[j].to != sna_data.edges[j].from)
-      {
-        outVal += parseInt(sna_data.edges[j].value);
-      }
-    }
-    var total = inVal + outVal;
-    var datarow = [sna_data.nodes[i].label, total, inVal, outVal];
-    //dc = {"id": nodeId, "label": sna_data.nodes[i].label, "inDegree": inVal, "outDegree": outVal };
+    var datarow = [centr.ids[i], centr.label[i], centr.inDegree[i], 
+          centr.outDegree[i], centr.totalDegree[i], centr.betweenness[i],
+          centr.inCloseness[i], centr.outCloseness[i], centr.totalCloseness[i],
+          centr.eigenvector[i]
+        ];
     ret.push(datarow);
   }
-  //console.log(ret);
   return ret;
 }
 
@@ -669,15 +589,21 @@ $(function() {
         ]
     } );
 
-  dc = calcDegreeCentrality(sna_data);
+  dc = calcDegreeCentrality(centrality);
 
   $('#dctable').DataTable( {
         data: dc,
         columns: [
-            { title: "User" },
-            { title: "Total" },
-            { title: "Messages (to others)" },
-            { title: "Messages (from others)" }
+            { title: "ids", "bVisible": false },
+            { title: "user" },
+            { title: "inDegree" },
+            { title: "outDegree" },
+            { title: "totalDegree" },
+            { title: "betweenness" },
+            { title: "inCloseness" },
+            { title: "outCloseness" },
+            { title: "totalCloseness" },
+            { title: "eigenvector" }
         ]
     } );
 });
