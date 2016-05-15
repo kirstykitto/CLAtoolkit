@@ -188,11 +188,12 @@ def snadashboard(request):
 
     sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
     sna_neighbours = getNeighbours(sna_json)
+    centrality = getCentrality(sna_json)
     context_dict = {
         'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform, 
         'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline, 
         'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
-        'sna_neighbours': sna_neighbours
+        'sna_neighbours': sna_neighbours, 'centrality': centrality
     }
 
     return render_to_response('dashboard/snadashboard.html', context_dict, context)
