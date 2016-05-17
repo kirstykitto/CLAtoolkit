@@ -8,9 +8,11 @@
 {% block body %}
 <div class="row">
   <div class="col-lg-6">
-        <div class="panel panel-info">
+      <div class="panel panel-info">
       {% if action %}
-          {% if action == "new" and role == "Staff" %}
+
+          <!-- New/Edit Unit Offering -->
+          {% if action == "new" or action == "edit" and role == "Staff" %}
               <div class="panel-heading">
                  Create New Unit
               </div>
@@ -44,7 +46,7 @@
                     <div class="form-group">
                         <p class="help-block">{{ unit_form.description.errors }}</p>
                         <label for="id_desc">Description:</label> <br />
-                        {{ unit_form.desc }}
+                        {{ unit_form.description }}
                     </div>
 
                     <div class="form-group">
@@ -54,25 +56,25 @@
                     </div>
 
                     <div class="form-group">
-                        <p class="help-block">{{ unit_form.coi_enabled.errors }}</p>
+                        <p class="help-block">{{ unit_form.enable_coi_classifier.errors }}</p>
                         <label for="id_coi_enabled">Enable Community of Inquiry Classifier</label>
-                        {{ unit_form.coi_enabled }}
+                        {{ unit_form.enable_coi_classifier }}
                     </div>
 
                     <div class="form-group">
-                        <p class="help-block">{{ unit_form.event_enabled.errors }}</p>
+                        <p class="help-block">{{ unit_form.event.errors }}</p>
                         <label for="id_event_enabled">Event</label>
-                        {{ unit_form.event_enabled }}
+                        {{ unit_form.event }}
                     </div>
 
                     <div class="form-group">
-                        <p class="help-block">{{ unit_form.unit_enabled.errors }}</p>
+                        <p class="help-block">{{ unit_form.enabled.errors }}</p>
                         <label for="id_unit_enabled">Unit Available</label>
-                        {{ unit_form.unit_enabled }}
+                        {{ unit_form.enabled }}
                     </div>
 
                     <div class="form-group">
-                        <h3>Social Media Configuration</h3>
+                        <h1><small>Social Media Configuration</small></h1>
                         <p class="help-block">{{ unit_form.twitter_hashtags.errors }}</p>
                         <label for="id_twitter_hashtags">Twitter Hashtags: </label> (hashtag begins with "#". multiple hashtags comma seperated.) <br />
                         {{ unit_form.twitter_hashtags }}
@@ -109,7 +111,7 @@
                     </div>
 
                     <div class="form-group">
-                        <h3>Learning Record Store (LRS) Configuration (optional)</h3>
+                        <h1><small>Learning Record Store (LRS) Configuration (optional)</small></h1>
                         <p class="help-block">{{  unit_form.lrs_endpoint.errors }}</p>
                         <label for="id_lrs_endpoint">LRS Endpoint: </label> <br />
                         {{ unit_form.lrs_endpoint }}
@@ -126,23 +128,21 @@
                         <label for="id_lrs_password">LRS Password: </label> <br />
                         {{ unit_form.lrs_password }}
                     </div>
+
+                    <input type="hidden" name="action" value="{{action}}" />
+                    {% if action == "edit" %}
+
+                        <input type="hidden" name="ucode" value="{{ucode}}" />
+                    {% endif %}
                     <button type="submit" class="btn btn-primary btn-lg btn-block">Create Unit Offering</button>
                 </form>
               </div>
+              {% if action == 'edit' %}
+              <div class="panel-footer">
+                  <a href="/clatoolkit/unitmanagement/?action=delete&course_code={{ucode}}"><button type="button" class="btn btn-warning btn-sm">Delete Unit Offering</button></a>
+              <span class="text-danger pull-right">NOTE: this will remove the Unit from the CLAToolkit.</span></div>
+              {% endif %}
 
-          {% endif %}
-
-          {% if action == "edit" %}
-              <div class="panel-heading">
-                 Manage Unit: {{unit.code}}
-              </div>
-
-          {% endif %}
-
-          {% if action == "unenrol" %}
-              <p>You have successfully withdrawed from {{unit.code}}: {{unit.name}}. Your associated social media will no longer be captured.
-              If you have any equiries, please don't hesitate to contact your course administrator.</p>
-              <p><a href="/">Return Home</a></p>
           {% endif %}
 
       {% else %}
@@ -169,7 +169,7 @@
                         <td>
                             <a href="/clatoolkit/unitmanagement/?action=unenrol&course_code={{unit.code}}"><i class="fa fa-sign-out fa-fw"></i> Withdraw</a>
                             {% if role == "Staff" %}
-                                || <a href="/clatoolkit/unitmanagement/?action=edit&course_code={{unit.code}}">Edit</a> ||
+                                || <a href="/clatoolkit/unitmanagement/?action=edit&course_code={{unit.code}}">Edit</a>
                             {% endif %}
                         </td>
                     </tr>

@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 
 from django.contrib.auth.models import User
-from clatoolkit.forms import UserForm, UserProfileForm
+from clatoolkit.forms import UserForm, UserProfileForm, UnitOfferingForm
 
 from django.template import RequestContext
 
@@ -55,6 +55,10 @@ def userlogin(request):
 
     # The request is not a HTTP POST, so display the login form.
     # This scenario would most likely be a HTTP GET.
+
+    #If the user is found in our request context - they're probably already logged in..
+    if request.user.is_authenticated():
+        return redirect('/dashboard/myunits')
     else:
         #print "ordinary get"
         # No context variables to pass to the template system, hence the
@@ -137,11 +141,95 @@ def register(request):
             course = UnitOffering.objects.get(code=course_code)
             show_units = False
             selected_unit = course.id
+            #required_sm = Uni
 
     # Render the template depending on the context.
     return render_to_response(
         'clatoolkit/register.html',
             {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, 'show_units': show_units, 'selected_unit': selected_unit, "course": course}, context)
+
+#13/05/16 - Unit management integration for staff
+#@check_access(required_roles="Staff")
+@login_required
+def unitmanagement(request):
+    context = RequestContext(request)
+
+    role = request.user.userprofile.role
+    user = request.user
+    action = None
+    unit_form = None
+    units = None
+    hidden_ucode = None
+
+    if request.method == 'POST':
+        print "Got UnitManagement POST Req"
+
+        post_data = request.POST.copy()
+
+        post_action = post_data.pop("action")[0]
+
+        #print "POST ACTION IS: %s" % (post_action[0])
+
+        if (post_action == 'edit'):
+            course_code = post_data.pop('ucode')[0]
+            print "COURSE CODE: %s" % (course_code)
+            unitoffering_id = UnitOffering.objects.get(code=course_code)
+            unit_form = UnitOfferingForm(data=request.POST, instance=unitoffering_id)
+
+        else:
+            unit_form = UnitOfferingForm(data=request.POST)
+
+        #print "Got POST DATA: %s" % (str(request.POST))
+        if unit_form.is_valid():
+            if post_action == 'edit':
+                print "Updated UnitOffering Valid - Saving"
+                unit = unit_form.save(commit=False)
+                unit.save(force_update=True)
+            else:
+                print "UnitOffering Valid - Saving"
+                unit_form.save()
+
+            print "Redirecting to myunits..."
+            return redirect('/dashboard/myunits')
+        else:
+            print unit_form.errors
+            HttpResponse("ERROR: %s" % (unit_form.errors))
+    elif request.method == "GET":
+
+        action = request.GET.get('action')
+        course_code = request.GET.get('course_code')
+
+        if action == 'edit' and role == 'Staff':
+            unitoffering_id = UnitOffering.objects.get(code=course_code)
+            unit_form = UnitOfferingForm(instance=unitoffering_id)
+            hidden_ucode = course_code
+
+        if action == 'new' and role == 'Staff':
+            #kwargs = {'thisuser' : user}
+            unit_form = UnitOfferingForm()
+
+        if action == 'delete' and role == 'Staff':
+            unit = UnitOffering.objects.get(code=course_code)
+            unit.delete()
+            return redirect('/dashboard/myunits')
+
+        if action == 'unenrol':
+            unit = UnitOffering.objects.filter(code=course_code)
+            user.usersinunitoffering.remove(unit)
+            return redirect('/dashboard/myunits')
+
+        if role == "Staff":
+            units = UnitOffering.objects.filter()
+
+        else:
+            units = UnitOffering.objects.filter(users=user, enabled=True)
+
+    context_dict = {'action' : action, 'unit_form' : unit_form, 'units' : units, 'role' : role, 'ucode' : hidden_ucode}
+    return render_to_response(
+        'clatoolkit/unitmanagement.html',
+        context_dict, context
+    )
+
 
 @login_required
 def socialmediaaccounts(request):
@@ -163,11 +251,12 @@ def socialmediaaccounts(request):
     # These forms will be blank, ready for user input.
     else:
         profile_form = UserProfileForm(instance=usr_profile)
+        units = UnitOffering.objects.filter(users=user_id)
 
     # Render the template depending on the context.
     return render_to_response(
         'clatoolkit/socialmediaaccounts.html',
-            {'profile_form': profile_form}, context)
+            {'profile_form': profile_form, 'units' : units}, context)
 
 
 def eventregistration(request):
