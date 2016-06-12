@@ -6,6 +6,34 @@
 {% block heading %}{{title}}{% endblock %}
 
 {% block body %}
+{% if not units %}
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    No Units Registered
+                </div>
+
+                <div class="panel-body">
+                    If you're signed up as a part of a unit using the CLAToolkit, enter your course code below: <br />
+                    <form method="get" action="/clatoolkit/register/">
+                        <input type="text" name="course_code" />
+
+                        <button class="btn btn-sm btn-default" type="submit">Register to Course</button>
+                    </form>
+                    <hr />
+                    <p>
+                        Alternatively, you may feel free to add and track your own social media accounts and communities that you utilize for
+                        your own educational purposes by <a href="/clatoolkit/unitmanagement/">Attaching them to your CLAToolkit Account</a>.
+                    </p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endif %}
+
 {% for unit in units %}
   <div class="row">
     <div class="col-lg-12">
@@ -18,26 +46,36 @@
 {% if role == "Staff" %}
 <p>
 All Platforms [<a href="/dashboard/?course_code={{unit.code}}&platform=all">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=all">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=all">Social Network Analysis</a>]
+
 {% if unit.twitter_hashtags_as_list|length > 0 %}
 <br/>
 Twitter Hashtags: {% for hashtag in unit.twitter_hashtags_as_list %} <a href="https://twitter.com/hashtag/{{hashtag}}" target="_blank">{{hashtag}}</a>  {% endfor %}  [<a href="/dashboard/?course_code={{unit.code}}&platform=Twitter">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Twitter">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Twitter">Social Network Analysis</a>] | <a href="/dataintegration/refreshtwitter/?course_code={{unit.code}}&hashtags={{unit.twitter_hashtags|urlencode}}">Refresh Imported Data</a>
 {% endif %}
+
 {% if unit.facebook_groups_as_list|length > 0 %}
 <br/>
-Facebook Groups: {% for grp in unit.facebook_groups_as_list %} <a href="https://www.facebook.com/groups/{{grp}}" target="_blank">{{grp}}</a>  {% endfor %}  [<a href="/dashboard/?course_code={{unit.code}}&platform=Facebook">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Facebook">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Facebook">Social Network Analysis</a>] | <a href="/dataintegration/dipluginauthomaticlogin/?course_code={{unit.code}}&group_id={{unit.facebook_groups}}&platform=Facebook">Refresh Imported Data</a>
+Facebook Groups: {% for grp in unit.facebook_groups_as_list %} <a href="https://www.facebook.com/groups/{{grp}}" target="_blank">{{grp}}</a>  {% endfor %}  [<a href="/dashboard/?course_code={{unit.code}}&platform=Facebook">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Facebook">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Facebook">Social Network Analysis</a>] | <a href='/dataintegration/dipluginauthomaticlogin/?context={"platform": "facebook", "course_code": "{{unit.code}}", "group": "{{unit.facebook_groups}}"}' target="_blank">Refresh Imported Data</a>
 {% endif %}
+
 {% if unit.youtube_channelIds_as_list|length > 0 %}
 <br/>
 YouTube Channels: {% for channel in unit.youtube_channelIds_as_list %} <a href="https://www.youtube.com/channel/{{channel}}" target="_blank">{{channel}}</a>  {% endfor %} [<a href="/dashboard/?course_code={{unit.code}}&platform=YouTube">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=YouTube">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=YouTube">Social Network Analysis</a>] | <a href="/dataintegration/refreshgoogleauthflow/?course_code={{unit.code}}&course_id={{unit.id}}&channelIds={{unit.youtube_channelIds|urlencode}}&platform=Youtube">Refresh Imported Data</a>
 {% endif %}
-{% if unit.code == 'IFN614' %}
+
+{% if unit.blogmember_urls_as_list|length > 0 %}
+<br />
+Blogs Attached: {{unit.blogmember_urls_as_list|length}}. (<a href="#">See All</a>)
+{% endif %}
+
 <br/>
 Forums: {{unit.forum_urls}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Forum">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Forum">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Forum">Social Network Analysis</a>] | <a href="/dataintegration/refreshforum/?course_code={{unit.code}}&forumurl={{unit.forum_urls|urlencode}}">Refresh Imported Data</a>
 {% endif %}
+
 {% if unit.diigo_tags_as_list|length > 0 %}
 <br/>
 Diigo Tags: {% for tag in unit.diigo_tags_as_list %} <a href="https://www.diigo.com/tag/{{tag}}" target="_blank">{{tag}}</a>  {% endfor %}  [<a href="/dashboard/?course_code={{unit.code}}&platform=Diigo">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Diigo">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Diigo">Social Network Analysis</a>] | <a href="/dataintegration/refreshdiigo/?course_code={{unit.code}}&tags={{unit.diigo_tags|urlencode}}">Refresh Imported Data</a>
 {% endif %}
+
 {% if unit.enable_coi_classifier %}
 <hr/>
 {% if unit.code == 'IFN614' %}
@@ -52,11 +90,12 @@ Community of Inquiry Classification Admin: <a href="/clatoolkit/classify?course_
 <br/>
 Assign Students to Group for COI Classification: <a href="/dataintegration/assigngroups?course_code={{unit.code}}">Group Students</a>
 {% endif %}
+
 <br/>
 <hr/>
 CLA Toolkit Unit Registration Link for Students: http://clatoolkit.beyondlms.org/clatoolkit/register?course_code={{unit.code}}
 </p>
-{% else %}
+
 {% if shownocontentwarning == True %}
 <div class="alert alert-warning">
     <strong>Note:</strong> Your social media content has not been imported. Imports are scheduled overnight. Please login and check tomorrow.
@@ -69,13 +108,12 @@ CLA Toolkit Unit Registration Link for Students: http://clatoolkit.beyondlms.org
 {% if unit.code == 'IFN614' %}
 <a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=Forum">View Community of Inquiry Classifications</a>
 {% else %}
-<a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=YouTube">View Community of Inquiry Classifications</a>
+<a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=Blog">View Community of Inquiry Classifications</a>
 {% endif %}
 {% endif %}
 </p>
 {% endif %}
 
-{% endif %}
             </div>
             <!-- /.panel-body -->
       </div>
@@ -90,8 +128,34 @@ CLA Toolkit Unit Registration Link for Students: http://clatoolkit.beyondlms.org
 {% block js_block %}
 {% autoescape off %}
 <script>
-$(function() {
+ function get_social(el) {
+     //el.preventDefault();
+     console.log(el);
 
+
+
+     return false;
+ }
+
+
+$(function() {
+    $('.data-integration').on('click', function(e) {
+        e.preventDefault();
+
+        $.ajax({
+            type: 'POST',
+            url: this.href,
+            data: {
+                'platform': $(this).attr('platform'),
+                'course_code': $(this).attr('code'),
+                'group' : $(this).attr('group'),
+                'csrfmiddlewaretoken': '{{csrf_token}}'
+            },
+            success: function(msg) {
+                console.log("HELLO FRIEND: "+msg);
+            }
+        });
+    });
 });
 </script>
 {% endautoescape %}

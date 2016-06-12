@@ -83,6 +83,8 @@ def dashboard(request):
     facebook_timeline = ""
     forum_timeline = ""
     youtube_timeline = ""
+    diigo_timeline = ""
+    blog_timeline = ""
 
     profiling = profiling + "| Platform Timelines %s" % (str(datetime.datetime.now()))
     platformclause = ""

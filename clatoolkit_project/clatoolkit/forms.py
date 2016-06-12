@@ -23,43 +23,100 @@ class UserProfileForm(forms.ModelForm):
     blog_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     def clean(self):
 
-        if not ((self.cleaned_data.get('fb_id')) or (self.cleaned_data.get('twitter_id')) or (self.cleaned_data.get('forum_id')) or (self.cleaned_data.get('blog_id')) or (self.cleaned_data.get('google_account_name')) or (self.cleaned_data.get('diigo_username'))):
+
+        if not ((self.cleaned_data.get('fb_id')) or
+                    (self.cleaned_data.get('twitter_id')) or
+                    (self.cleaned_data.get('forum_id')) or
+                    (self.cleaned_data.get('blog_id')) or
+                    (self.cleaned_data.get('google_account_name')) or
+                    (self.cleaned_data.get('diigo_username'))):
             raise ValidationError("At least one social media account must be added.")
         else:
-            #Not blank so now check if the platform ids are already registeres to a User
-            fb_registered = UserProfile.objects.filter(fb_id__iexact=self.cleaned_data.get('fb_id'))
-            tw_registered = UserProfile.objects.filter(twitter_id__iexact=self.cleaned_data.get('twitter_id'))
-            gg_registered = UserProfile.objects.filter(google_account_name__iexact=self.cleaned_data.get('google_account_name'))
-            fr_registered = UserProfile.objects.filter(forum_id__iexact=self.cleaned_data.get('forum_id'))
-            bl_registered = UserProfile.objects.filter(blog_id__iexact=self.cleaned_data.get('blog_id'))
+            #print "self.instance.pk is: %s" % (self.instance.pk)
+            #determine whether this form is being used to update userprofile or create one
+            #if a pk exists for this form - it's an update procedure
+            #otherwise, we're creating an account
+            if (self.instance.pk is None):
+                #Not blank so now check if the platform ids are already registeres to a User
+                fb_registered = UserProfile.objects.filter(fb_id__iexact=self.cleaned_data.get('fb_id'))
+                tw_registered = UserProfile.objects.filter(twitter_id__iexact=self.cleaned_data.get('twitter_id'))
+                gg_registered = UserProfile.objects.filter(google_account_name__iexact=self.cleaned_data.get('google_account_name'))
+                fr_registered = UserProfile.objects.filter(forum_id__iexact=self.cleaned_data.get('forum_id'))
+                bl_registered = UserProfile.objects.filter(blog_id__iexact=self.cleaned_data.get('blog_id'))
 
-            #Need to check if they exist AND if they're blank or not
-            #(Blank submissions still get saved to DB - checking if it already exists only will cause validation bugs)
-            if len(fb_registered)>0 and self.cleaned_data.get('fb_id') != '':
+                #Need to check if they exist AND if they're blank or not
+                #(Blank submissions still get saved to DB - checking if it already exists only will cause validation bugs)
+                if len(fb_registered)>0 and self.cleaned_data.get('fb_id') != '':
 
-                raise ValidationError("The specified Facebook Account is already registered.")
+                    raise ValidationError("The specified Facebook Account is already registered.")
 
-            elif len(tw_registered)>0 and self.cleaned_data.get('twitter_id') != '':
+                elif len(tw_registered)>0 and self.cleaned_data.get('twitter_id') != '':
 
-                raise ValidationError("The specified Twitter Account is already registered.")
+                    raise ValidationError("The specified Twitter Account is already registered.")
 
-            elif len(gg_registered)>0 and self.cleaned_data.get('google_account_name') != '':
+                elif len(gg_registered)>0 and self.cleaned_data.get('google_account_name') != '':
 
-                raise ValidationError("The specified YouTube Account is already registered.")
+                    raise ValidationError("The specified YouTube Account is already registered.")
 
-            elif len(fr_registered)>0 and self.cleaned_data.get('forum_id') != '':
+                elif len(fr_registered)>0 and self.cleaned_data.get('forum_id') != '':
 
-                raise ValidationError("The specified Wordpress Forum ID is already registered.")
+                    raise ValidationError("The specified Wordpress Forum ID is already registered.")
 
-            elif len(bl_registered)>0 and self.cleaned_data.get('blog_id'):
+                elif len(bl_registered)>0 and self.cleaned_data.get('blog_id'):
 
-                raise ValidationError("The specified Wordpress Blog username is already registered.")
+                    raise ValidationError("The specified Wordpress Blog username is already registered.")
 
         return self.cleaned_data
 
     class Meta:
         model = UserProfile
         fields = ('fb_id', 'twitter_id', 'forum_id', 'google_account_name', 'diigo_username', 'blog_id')
+
+class UnitOfferingForm(forms.ModelForm):
+
+    #def __init__(self, *args, **kwargs):
+    #    username = kwargs.pop('thisuser')
+    #    super(UnitOfferingForm, self).__init__(*args, **kwargs)
+    #    self.fields['users'].initial = username
+
+    coi_platform_choices = (
+        ('Facebook', 'Facebook'),
+        ('Google+', 'Google+'),
+        ('Forum', 'Forum'),
+        ('Blog', 'Blog'),
+    )
+
+    code = forms.CharField(required=True, widget=forms.TextInput(attrs={'class' : 'form-control'}))
+    name = forms.CharField(required=True, widget=forms.TextInput(attrs={'class' : 'form-control'}))
+    semester = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'form-control'}))
+    description = forms.CharField(required=False, widget=forms.Textarea(attrs={'class' : 'form-control'}))
+    users = forms.ModelMultipleChoiceField(queryset=User.objects.filter(), widget=forms.SelectMultiple(attrs={'class' : 'form-control'}))
+
+    enable_coi_classifier = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class' : 'form-control'}))
+
+    coi_platforms = forms.MultipleChoiceField(
+        choices = coi_platform_choices,
+        widget = forms.CheckboxSelectMultiple,
+    )
+
+    event = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class' : 'form-control'}))
+    enabled = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class' : 'form-control'}))
+
+    twitter_hashtags = forms.CharField(required=True, widget=forms.TextInput(attrs={'class' : 'form-control'}))
+    google_groups = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'form-control'}))
+    facebook_groups = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'form-control'}))
+    forum_urls = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'form-control'}))
+    youtube_channel_ids = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'form-control'}))
+    blogmember_urls = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'form-control'}))
+
+    lrs_endpoint = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'form-control'}))
+    lrs_username = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'form-control'}))
+    lrs_password = forms.CharField(required=False, widget=forms.TextInput(attrs={'class' : 'form-control'}))
+
+    class Meta:
+        model = UnitOffering
+        fields = ('id', 'code', 'name', 'semester', 'description', 'users', 'enabled', 'event', 'enable_coi_classifier', 'twitter_hashtags', 'google_groups',
+                  'facebook_groups', 'forum_urls', 'youtube_channelIds', 'blogmember_urls', 'll_endpoint', 'll_username', 'll_password')
 
 class LearningRecordFilter(django_filters.FilterSet):
     datetimestamp_min = django_filters.DateFilter(name='datetimestamp', lookup_type='gte')
