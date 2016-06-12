@@ -158,38 +158,47 @@ def unitmanagement(request):
     user = request.user
     action = None
     unit_form = None
+    #coi_platforms_form = None
     units = None
     hidden_ucode = None
 
+    #User has submitted something
     if request.method == 'POST':
-        print "Got UnitManagement POST Req"
 
+        print 'Got POST data: %s' % (request.POST)
+
+        #Copy post req data because we're removing some elements
         post_data = request.POST.copy()
 
+        #Get the action context of submitted form
         post_action = post_data.pop("action")[0]
 
-        #print "POST ACTION IS: %s" % (post_action[0])
-
+        #Getting the form to be displayed
         if (post_action == 'edit'):
+            #If user is editing/updating a unit offering, fetch the details
             course_code = post_data.pop('ucode')[0]
-            print "COURSE CODE: %s" % (course_code)
+
             unitoffering_id = UnitOffering.objects.get(code=course_code)
             unit_form = UnitOfferingForm(data=request.POST, instance=unitoffering_id)
 
         else:
+            #otherwise we'll fill the form with submitted data
             unit_form = UnitOfferingForm(data=request.POST)
 
-        #print "Got POST DATA: %s" % (str(request.POST))
+        #Validate and submit form data
         if unit_form.is_valid():
+
+            #print 'Got valid form: %s' % (unit_form)
+
             if post_action == 'edit':
-                print "Updated UnitOffering Valid - Saving"
+                #Updating db entry
                 unit = unit_form.save(commit=False)
                 unit.save(force_update=True)
             else:
-                print "UnitOffering Valid - Saving"
+                #Creating new unit offering
                 unit_form.save()
 
-            print "Redirecting to myunits..."
+
             return redirect('/dashboard/myunits')
         else:
             print unit_form.errors
@@ -205,14 +214,15 @@ def unitmanagement(request):
             hidden_ucode = course_code
 
         if action == 'new' and role == 'Staff':
-            #kwargs = {'thisuser' : user}
             unit_form = UnitOfferingForm()
 
+        #staff member deletes unit offering
         if action == 'delete' and role == 'Staff':
             unit = UnitOffering.objects.get(code=course_code)
             unit.delete()
             return redirect('/dashboard/myunits')
 
+        #student removing their attached account to this course
         if action == 'unenrol':
             unit = UnitOffering.objects.filter(code=course_code)
             user.usersinunitoffering.remove(unit)
@@ -239,13 +249,14 @@ def socialmediaaccounts(request):
 
     if request.method == 'POST':
         profile_form = UserProfileForm(data=request.POST,instance=usr_profile)
+        units = UnitOffering.objects.filter(users=user_id)
 
         if profile_form.is_valid():
             profile_form.save()
             return redirect('/dashboard/myunits')
         # Invalid form or forms - mistakes or something else?
         else:
-            print user_form.errors, profile_form.errors
+            print profile_form.errors #user_form.errors,
 
     # Not a HTTP POST, so we render our form using two ModelForm instances.
     # These forms will be blank, ready for user input.

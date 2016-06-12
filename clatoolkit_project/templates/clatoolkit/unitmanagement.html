@@ -56,24 +56,6 @@
                     </div>
 
                     <div class="form-group">
-                        <p class="help-block">{{ unit_form.enable_coi_classifier.errors }}</p>
-                        <label for="id_coi_enabled">Enable Community of Inquiry Classifier</label>
-                        {{ unit_form.enable_coi_classifier }}
-                    </div>
-
-                    <div class="form-group">
-                        <p class="help-block">{{ unit_form.event.errors }}</p>
-                        <label for="id_event_enabled">Event</label>
-                        {{ unit_form.event }}
-                    </div>
-
-                    <div class="form-group">
-                        <p class="help-block">{{ unit_form.enabled.errors }}</p>
-                        <label for="id_unit_enabled">Unit Available</label>
-                        {{ unit_form.enabled }}
-                    </div>
-
-                    <div class="form-group">
                         <h1><small>Social Media Configuration</small></h1>
                         <p class="help-block">{{ unit_form.twitter_hashtags.errors }}</p>
                         <label for="id_twitter_hashtags">Twitter Hashtags: </label> (hashtag begins with "#". multiple hashtags comma seperated.) <br />
@@ -108,6 +90,31 @@
                         <p class="help-block">{{ unit_form.blogmember_urls.errors }}</p>
                         <label for="id_blogmemeber_urls">Blog URLs: </label> (blogs must be RSS compatible, mutiple blog urls comma seperated.) <br />
                         {{ unit_form.blogmember_urls }}
+                    </div>
+
+                    <div class="form-group">
+                        <h1><small>Unit Configuration</small></h1>
+                        <p class="help-block">{{ unit_form.enable_coi_classifier.errors }}</p>
+                        <label for="id_coi_enabled">Enable Community of Inquiry Classifier</label>
+                        {{ unit_form.enable_coi_classifier }}
+
+                        <div id="coi_platforms">
+                            <label>Use Community of Inquiry Classifier with</label> <br/>
+
+                            {{ unit_form.coi_platforms }}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <p class="help-block">{{ unit_form.event.errors }}</p>
+                        <label for="id_event_enabled">Event</label>
+                        {{ unit_form.event }}
+                    </div>
+
+                    <div class="form-group">
+                        <p class="help-block">{{ unit_form.enabled.errors }}</p>
+                        <label for="id_unit_enabled">Unit Available</label>
+                        {{ unit_form.enabled }}
                     </div>
 
                     <div class="form-group">
@@ -188,10 +195,21 @@
 
 </div>
 <!-- /.row -->
+
+    <!-- #id_enable_coi_classifier -->
 {% endblock %}
 
 {% block js_block %}
 {% autoescape off %}
-
+<script type="text/javascript">
+$('#coi_platforms').hide();
+$('#id_enable_coi_classifier').click(function(){
+    if ($(this).is(":checked")) {
+        $('#coi_platforms').show(300);
+    } else {
+        $('#coi_platforms').hide(200);
+    }
+});
+</script>
 {% endautoescape %}
 {% endblock %}

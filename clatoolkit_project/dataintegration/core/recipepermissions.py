@@ -16,12 +16,15 @@ def check_ifnotinlocallrs(course_code, platform, platform_id):
     else:
         return False
 
+#TODO::::::::::::::::::::::::::::::::::::
 def get_userdetails(screen_name, platform):
     usr_dict = {'screen_name':screen_name}
     platform_param_name = None
     try:
         if platform=='YouTube':
             platform_param_name = "google_account_name__iexact"
+        elif platform=='facebook':
+            platform_param_name = "fb_id__iexact"
         else:
             platform_param_name = "%s_id__iexact" % (platform.lower())
         kwargs = {platform_param_name:screen_name}
@@ -51,10 +54,17 @@ def username_exists(screen_name, course_code, platform):
     platform_param_name = None
     if platform=='YouTube':
         platform_param_name = "google_account_name__iexact"
+
+    elif platform=='facebook':
+        platform_param_name = "fb_id__iexact"
     else:
-        platform_param_name = "%s_id__iexact" % (platform.lower())    
+        platform_param_name = "%s_id__iexact" % (platform.lower())
+
+    print 'Platform param name: %s' % (platform_param_name)
     kwargs = {platform_param_name:screen_name}
-    #print "searching %s with blog name %s" % (platform_param_name,screen_name)
+
+    #print 'kwargs: %s' % (kwargs)
+    print "searching %s with blog name %s" % (platform_param_name,screen_name)
     usrs = UserProfile.objects.filter(**kwargs)
     if len(usrs) > 0:
         usr_prof = usrs[0]

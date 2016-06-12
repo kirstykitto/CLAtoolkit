@@ -27,7 +27,7 @@
           </div>
           <div class="panel-body">
             <p>
-              By registering you give consent for us to make use of your educational data (both in the learning record store, and when examining your assessment outcomes for this unit). Even upon doing this, you can chose which social media accounts you will link up to this account, and your social media data will only be harvested for those accounts.
+              By registering you give consent for us to make use of your educational data (both in the learning record store, and when examining your assessment outcomes for this unit). Even upon doing this, you can choose which social media accounts you will link up to this account, and your social media data will only be harvested for those accounts.
             </p>
             {# Figure out how to display IDs on register page #}
             <form role="form" id="user_form" method="post" action="/clatoolkit/register/">
@@ -57,12 +57,12 @@
                   Please select a unit. (required)
                   {{ user_form.units }}
                   {% else  %}
-                    {{course.code}}: {{course.name}}<input type="hidden" id="id_units" name="units" value="{{ selected_unit }}" /> <input type="hidden" name="course_code" value="{{course.code}}" />
+                    {{course.code}}: {{course.name}}<input type="hidden" id="id_units" name="units" value="{{selected_unit}}" /> <input type="hidden" name="course_code" value="{{course.code}}" />
                     <br/>
                     Your data will be imported from the following locations:
                       {% if course.twitter_hashtags_as_list|length > 0 %}
                       <br/>
-                      Twitter Hashtags: {% for hashtag in course.twitter_hashtags_as_list %} <a href="https://twitter.com/hashtag/{{hashtag}}" target="_blank">{{hashtag}}</a>  {% endfor %}
+                      Twitter Hashtags (optional): {% for hashtag in course.twitter_hashtags_as_list %} <a href="https://twitter.com/hashtag/{{hashtag}}" target="_blank">{{hashtag}}</a>  {% endfor %}
                       {% endif %}
                       {% if course.facebook_groups_as_list|length > 0 %}
                       <br/>
@@ -71,6 +71,9 @@
                       {% if course.youtube_channelIds_as_list|length > 0 %}
                       <br/>
                       YouTube Channels: {% for channel in course.youtube_channelIds_as_list %} <a href="https://www.youtube.com/channel/{{channel}}" target="_blank">{{channel}}</a>  {% endfor %}
+                      {% endif %}
+                      {% if course.code == 'IAB260' %}
+                          Your IAB260: Social Technologies blog.
                       {% endif %}
                   {% endif  %}
                 </div>
@@ -86,7 +89,17 @@
                     E.g.: for the blog http://http://2016.socialtechnologi.es/<b>zakww</b>/. The blog name is: <b>zakww</b>
                   </p>
                 </div>
-                {% endif  %}
+                {% elif course.code == 'IFN614' %}
+                <!-- IFN614 Forum RSS -->
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.forum_id.errors }}</p>
+                  <label for="id_forum_id">IFN614 Site Username:</label> (Only required for IFN614 Students.)<br />
+                  {{ profile_form.forum_id }}
+                  <p>
+                    Forum posts for IFN614 students will be retrieved from <a href="http://2015.informationprograms.info/forums/" target="_blank">2015.informationprograms.info/forums/</a>
+                  </p>
+                </div>
+                {% else  %}
 
                 <!-- Twitter -->
                 <div><a href="#" class="form_control" handle="twitter">Attach Twitter Account</a></div>
@@ -103,22 +116,10 @@
                   <label for="id_fb_id">Facebook ID:</label><br />
                   {{ profile_form.fb_id }}
                   <p>
-                    <a href="/dataintegration/get_social" target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
+                      <!---->
+                    <a href="/dataintegration/get_social/?platform=facebook" target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
                   </p>
                 </div>
-
-
-                {% if course.code == 'IFN614'  %}
-                <!-- IFN614 Forum RSS -->
-                <div class="form-group">
-                  <p class="help-block">{{ profile_form.forum_id.errors }}</p>
-                  <label for="id_forum_id">IFN614 Site Username:</label> (Only required for IFN614 Students.)<br />
-                  {{ profile_form.forum_id }}
-                  <p>
-                    Forum posts for IFN614 students will be retrieved from <a href="http://2015.informationprograms.info/forums/" target="_blank">2015.informationprograms.info/forums/</a>
-                  </p>
-                </div>
-                {% endif  %}
 
                 <!-- Youtube -->
                 <div><a href="#" class="form_control" handle="youtube">Attach YouTube Account</a></div>
@@ -146,6 +147,7 @@
                   <label for="id_blog_id">Blog Username:</label><br />
                   {{ profile_form.blog_id }}
                 </div>
+                    {% endif %}
                 <p>
                 By clicking the register button below, you are indicating that you:
                 <ul>
