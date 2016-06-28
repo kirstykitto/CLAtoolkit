@@ -1,9 +1,5 @@
 from django.db import models
 
-from django.contrib.auth.models import User
-
-
-
 # Create your models here.
 
 
@@ -26,10 +22,3 @@ class Video(models.Model):
 	channelUrl = models.CharField(max_length=1000)
 	#videoList = models.ManyToManyField('self')
 	#commentList = models.ManyToManyField(Comment)
-
-class AuthCache(models.Model):
-	course_code = models.CharField(max_length=50)
-	platform = models.CharField(max_length=50)
-	target = models.CharField(max_length=1000)
-
-

@@ -29,8 +29,6 @@
 
     <!-- Custom CSS -->
     <link href="{% static 'css/sb-admin-2.css'%}" rel="stylesheet">
-    <!-- HOMEPAGE -->
-    <!--<link href="'css/main.css'" rel="stylesheet">-->
 
     <!-- Morris Charts CSS -->
     <link href="{% static 'bower_components/morrisjs/morris.css'%}" rel="stylesheet">
@@ -66,7 +64,7 @@
       }
       g.arc text {
         font-size: 10px;
-      }
+      }      
 
     </style>
 
@@ -106,17 +104,12 @@
               <!-- /.dropdown -->
               {% endblock %}
               {% block userprofilenav %}
-                <li><a href="/clatoolkit/mygroups"><i class="fa fa-users" aria-hidden="true"></i> My Groups</a></li>
                 <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                        <i class="fa fa-user fa-fw"></i> {{request.user.username}} <i class="fa fa-caret-down"></i>
+                        <i class="fa fa-user fa-fw"></i>  <i class="fa fa-caret-down"></i>
                     </a>
                     <ul class="dropdown-menu dropdown-user">
-                        <!--<li><a href="/clatoolkit/mygroups"></a></li>-->
                         <li><a href="/clatoolkit/socialmediaaccounts"><i class="fa fa-user fa-fw"></i> Social Media Accounts</a></li>
-                        {% if role == "Staff" %}
-                        <li><a href="/clatoolkit/unitmanagement"><i class="fa fa-pencil-square-o fa-fw"></i> Unit Administration</a></li>
-                        {% endif %}
                         <li class="divider"></li>
                         <li><a href="/logout"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
                         </li>

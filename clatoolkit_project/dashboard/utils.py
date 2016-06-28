@@ -19,8 +19,6 @@ from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 import numpy as np
 from sklearn.cluster import AffinityPropagation
 
-import inspect
-
 import subprocess
 
 def classify(course_code, platform):
@@ -72,9 +70,6 @@ def get_uid_fromsmid(username, platform):
     return id
 
 def get_username_fromsmid(sm_id, platform):
-    #curframe = inspect.currentframe()
-    #callframe = inspect.getouterframes(curframe, 2)
-
     #print "sm_id", sm_id
     userprofile = None
     if platform == "Twitter":
@@ -85,18 +80,13 @@ def get_username_fromsmid(sm_id, platform):
         userprofile = UserProfile.objects.filter(forum_id__iexact=sm_id)
     elif platform == "YouTube":
             userprofile = UserProfile.objects.filter(google_account_name__iexact=sm_id)
-    elif platform == "Blog":
-        userprofile = UserProfile.objects.filter(blog_id__iexact=sm_id)
     else:
         #platform must be = all
         userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=sm_id) | Q(fb_id__iexact=sm_id) | Q(forum_id__iexact=sm_id) | Q(google_account_name__iexact=sm_id))
     if len(userprofile)>0:
         username = userprofile[0].user.username
     else:
-        print "User Not Found setting username to sm_id: ", sm_id
-        #print "Called by: %s" % (callframe[1][3])
         username = sm_id # user may not be registered but display platform username
-
     return username
 
 def get_role_fromusername(username, platform):
@@ -397,7 +387,7 @@ def getClassifiedCounts(platform, course_code, username=None, start_date=None, e
     if classifier == "VaderSentiment":
         kwargs['classifier']=classifier
     else:
-        classifier_name = "nb_%s_%s.model" % (course_code,"Blog")
+        classifier_name = "nb_%s_%s.model" % (course_code,"YouTube")
         kwargs['classifier']= classifier_name
     if username is not None:
         kwargs['xapistatement__username']=username
@@ -700,12 +690,12 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     node_dict = None
     edge_dict = None
     nodes_in_sna_dict = None
-    #if username is not None:
-    #    node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
-    #    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
-    #else:
-    node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
-    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+    if username is not None:
+        node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
+        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+    else:
+        node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
+        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
 
     #node_dict.update(nodes_in_sna_dict)
     for key in nodes_in_sna_dict:
