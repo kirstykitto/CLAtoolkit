@@ -27,6 +27,11 @@ import json
 
 # from fb_data.models import
 
+def home(request):
+    context = RequestContext(request)
+
+    return render_to_response('clatoolkit/home.html', {}, context)
+
 def userlogin(request):
     context = RequestContext(request)
 
