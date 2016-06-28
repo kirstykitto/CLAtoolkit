@@ -202,8 +202,13 @@ def dipluginauthomaticdata(request):
     return NotImplementedError
 
 def dipluginauthomaticlogin(request):
-    #Authomatic does not work with extra request parameters
-    #print 'request: %s' % request.GET
+    #Authomatic does not work with extra request parameters..... /sigh
+    #TODO: Figure out a work around for authomatic without using request parameters... /sigh
+    #todo: Idea: create temporary cache model to store params
+    #todo: send req with params to utility function via jquery ajax to store into db
+    #todo: get users platform/course_code/group_id by matching sm_id with that stored in tmp_db
+    #todo: after retreiving required data, remove the record from db.... /sigh
+    print 'request: %s' % request.GET
 
     if (request.GET.get('context') is not None):
         request.GET = request.GET.copy()
@@ -212,7 +217,7 @@ def dipluginauthomaticlogin(request):
         state_dict = state_dict[0]
         state_dict = json.loads(state_dict)
 
-        #print str(state_dict)
+        print str(state_dict)
 
         request.session['platform'] = state_dict['platform']
         request.session['course_code'] = state_dict['course_code']
