@@ -22,6 +22,8 @@ from dataintegration.core.recipepermissions import *
 
 from django.conf import settings
 
+from rest_framework.decorators import api_view
+
 from dataintegration.googleLib import *
 from oauth2client.client import OAuth2WebServerFlow
 from django.contrib.sites.shortcuts import get_current_site
@@ -195,20 +197,57 @@ def refreshblog(request):
     html_response.write('Blog Refreshed.')
     return html_response
 
+@api_view()
+def dipluginauthomaticdata(request):
+    return NotImplementedError
+
 def dipluginauthomaticlogin(request):
-    platform = request.GET.get('platform')
-    course_code = request.GET.get('course_code')
-    group_id = request.GET.get('group_id')
+    #Authomatic does not work with extra request parameters..... /sigh
+    #TODO: Figure out a work around for authomatic without using request parameters... /sigh
+    #todo: Idea: create temporary cache model to store params
+    #todo: send req with params to utility function via jquery ajax to store into db
+    #todo: get users platform/course_code/group_id by matching sm_id with that stored in tmp_db
+    #todo: after retreiving required data, remove the record from db.... /sigh
+    print 'request: %s' % request.GET
+
+    if (request.GET.get('context') is not None):
+        request.GET = request.GET.copy()
+
+        state_dict = request.GET.pop('context')
+        state_dict = state_dict[0]
+        state_dict = json.loads(state_dict)
+
+        print str(state_dict)
+
+        request.session['platform'] = state_dict['platform']
+        request.session['course_code'] = state_dict['course_code']
+        request.session['group_id'] = state_dict['group']
+
+    print 'Data stored in session: %s, %s, %s' % (request.session['platform'], request.session['course_code'], request.session['group_id'])
+
+    platform = request.session['platform']
+
+    #if (request.GET.get('platform') and
+    #    request.GET.get('course_code') and
+    #    request.GET.get('group') is not None):
+
 
     html_response = HttpResponse()
 
+    #print 'Platform exists? %s' % (platform in settings.DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC)
     if (platform in settings.DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC):
         di_plugin = settings.DATAINTEGRATION_PLUGINS[platform]
         authomatic = Authomatic(di_plugin.authomatic_config_json, di_plugin.authomatic_secretkey)
+
         result = authomatic.login(DjangoAdapter(request, html_response), di_plugin.authomatic_config_key, report_errors=True)
+
+        print di_plugin
+
+        print di_plugin.authomatic_config_json
 
         # If there is no result, the login procedure is still pending.
         # Don't write anything to the response if there is no result!
+        print result
         if result:
             # If there is result, the login procedure is over and we can write to response.
             html_response.write('<a href="..">Home</a>')
@@ -232,14 +271,23 @@ def dipluginauthomaticlogin(request):
                 # If there are credentials (only by AuthorizationProvider),
                 # we can _access user's protected resources.
                 if result.user.credentials:
+                    group_id = request.session['group_id']
+                    course_code = request.session['course_code']
                     if result.provider.name == 'fb':
                         di_plugin.perform_import(group_id, course_code, result)
 
                         post_smimport(course_code, "Facebook")
-                        html_response.write('Updating Facebook for ' + course_code)
-        else:
-            html_response.write('Auth Returned no Response.')
 
+                        #Remove all data stored in session for this view to avoid cache issues
+                        del request.session['platform']
+                        del request.session['course_code']
+                        del request.session['group_id']
+                        html_response.write('Updating Facebook for ' + course_code)
+                        #return html_response
+    else:
+        return html_response.write('Auth returned no Response.')
+
+    #print html_response
     return html_response
 
 def get_social_media_id(request):
@@ -252,6 +300,8 @@ def get_social_media_id(request):
     # We we need the response object for the adapter.
     html_response = HttpResponse()
 
+    #Facebook endpoints break on GET variables.....
+    platform = 'facebook' #request.GET.get('platform')
 
     if (platform in settings.DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC):
         di_plugin = settings.DATAINTEGRATION_PLUGINS[platform]
@@ -260,12 +310,14 @@ def get_social_media_id(request):
 
         # If there is no result, the login procedure is still pending.
         # Don't write anything to the response if there is no result!
+        print result
         if result:
             # If there is result, the login procedure is over and we can write to response.
             #html_response.write('<a href="..">Home</a>')
 
             if result.error:
                 # Login procedure finished with an error.
+                print 'ERROR: %s' % (str(result.error))
                 html_response.write('<p>Error: {0}</p>'.format(result.error.message))
 
             elif result.user:

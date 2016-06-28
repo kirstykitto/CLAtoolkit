@@ -16,12 +16,15 @@ def check_ifnotinlocallrs(course_code, platform, platform_id):
     else:
         return False
 
+#TODO::::::::::::::::::::::::::::::::::::
 def get_userdetails(screen_name, platform):
     usr_dict = {'screen_name':screen_name}
     platform_param_name = None
     try:
         if platform=='YouTube':
             platform_param_name = "google_account_name__iexact"
+        elif platform=='facebook':
+            platform_param_name = "fb_id__iexact"
         else:
             platform_param_name = "%s_id__iexact" % (platform.lower())
         kwargs = {platform_param_name:screen_name}
@@ -44,22 +47,37 @@ def get_userdetails(screen_name, platform):
     return usr_dict
 
 def username_exists(screen_name, course_code, platform):
+    #if (screen_name == 'zakww'):
+    #    print "Searching for user with blog name: %s" % (screen_name)
+
     tw_id_exists = False
     platform_param_name = None
     if platform=='YouTube':
         platform_param_name = "google_account_name__iexact"
+
+    elif platform=='facebook':
+        platform_param_name = "fb_id__iexact"
     else:
-        platform_param_name = "%s_id__iexact" % (platform.lower())    
+        platform_param_name = "%s_id__iexact" % (platform.lower())
+
+    print 'Platform param name: %s' % (platform_param_name)
     kwargs = {platform_param_name:screen_name}
+
+    #print 'kwargs: %s' % (kwargs)
+    print "searching %s with blog name %s" % (platform_param_name,screen_name)
     usrs = UserProfile.objects.filter(**kwargs)
     if len(usrs) > 0:
         usr_prof = usrs[0]
         usr = usr_prof.user
+        #print "Found user profile with username: %s" % usr.username
+        #print "Checking whether acc is enrolled"
         user_in_course = check_ifuserincourse(usr, course_code)
         if user_in_course:
             tw_id_exists = True
         else:
             tw_id_exists = False
+
+    #print "id exists? %s" % str(tw_id_exists)
     return tw_id_exists
 
 def get_uid_fromsmid(username, platform):
@@ -89,7 +107,10 @@ def get_username_fromsmid(sm_id, platform):
     elif platform == "Forum":
         userprofile = UserProfile.objects.filter(forum_id__iexact=sm_id)
     elif platform == "YouTube":
-            userprofile = UserProfile.objects.filter(google_account_name__iexact=sm_id)
+        userprofile = UserProfile.objects.filter(google_account_name__iexact=sm_id)
+    elif platform == "Blog":
+        userprofile = UserProfile.objects.filter(blog_id__iexact=sm_id)
+            #NEED TO GET THINGS FROM HERE
     else:
         #platform must be = all
         userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=sm_id) | Q(fb_id__iexact=sm_id) | Q(forum_id__iexact=sm_id) | Q(google_account_name__iexact=sm_id))

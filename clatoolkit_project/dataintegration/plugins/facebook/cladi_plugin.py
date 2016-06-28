@@ -11,7 +11,7 @@ import os
 
 class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMixin):
 
-    platform = "Facebook"
+    platform = "facebook"
     platform_url = "http://www.facebook.com/"
 
     xapi_verbs = ['created', 'shared', 'liked', 'commented']
@@ -38,22 +38,26 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
         with open(config_file) as data_file:
             self.api_config_dict = json.load(data_file)
 
+        #print 'FACEBOOK DI PLUGIN: Config string type is: %s and %s' % (type(self.api_config_dict['consumer_key']), type(self.api_config_dict['consumer_secret']))
+
         #from AuthomaticPluginMixin
         self.authomatic_config_json = {
             # Auth information for Facebook App
             'fb': {
                 'class_': oauth2.Facebook,
-                'consumer_key': self.api_config_dict['consumer_key'],
-                'consumer_secret': self.api_config_dict['consumer_secret'],
+                'consumer_key': str(self.api_config_dict['consumer_key']),
+                'consumer_secret': str(self.api_config_dict['consumer_secret']),
 
                 'scope': ['user_about_me', 'email', 'user_groups'],
                 },
             }
 
         self.authomatic_config_key = 'fb'
-        self.authomatic_secretkey = self.api_config_dict['authomatic_secretkey']
+        self.authomatic_secretkey = str(self.api_config_dict['authomatic_secretkey'])
 
-    def perform_import(self, retrieval_param, course_code, authomatic_result):
+        print 'TYPEOF OF SECRETKEY: %s' % (type(self.authomatic_secretkey))
+
+    def perform_import(self, retrieval_param, course_code, result):
         """
         Sends formatted data to LRS
         1. Parses facebook feed
@@ -71,7 +75,7 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
         paging = access_response.data.get('paging')
         while True:
             try:
-                insert_facebook_lrs(fb_feed=data, course_code=course_code)
+                self.insert_facebook_lrs(fb_feed=data, course_code=course_code)
                 fb_resp = requests.get(paging['next']).json()
                 data = fb_resp['data']
                 if 'paging' not in fb_resp:
