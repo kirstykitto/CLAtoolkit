@@ -6,7 +6,6 @@
 {% block heading %}Enabling connected learning via open source analytics in social media (QUT Ethics Approval Number: 1500000398){% endblock %}
 
 {% block body %}
-
 {% if registered %}
  <strong>Thank you for registering</strong>
  <p>
@@ -27,7 +26,7 @@
           </div>
           <div class="panel-body">
             <p>
-              By registering you give consent for us to make use of your educational data (both in the learning record store, and when examining your assessment outcomes for this unit). Even upon doing this, you can choose which social media accounts you will link up to this account, and your social media data will only be harvested for those accounts.
+              By registering you give consent for us to make use of your educational data (both in the learning record store, and when examining your assessment outcomes for this unit). Even upon doing this, you can chose which social media accounts you will link up to this account, and your social media data will only be harvested for those accounts.
             </p>
             {# Figure out how to display IDs on register page #}
             <form role="form" id="user_form" method="post" action="/clatoolkit/register/">
@@ -57,12 +56,12 @@
                   Please select a unit. (required)
                   {{ user_form.units }}
                   {% else  %}
-                    {{course.code}}: {{course.name}}<input type="hidden" id="id_units" name="units" value="{{selected_unit}}" /> <input type="hidden" name="course_code" value="{{course.code}}" />
+                    {{course.code}}: {{course.name}}<input type="hidden" id="id_units" name="units" value="{{ selected_unit }}" /> <input type="hidden" name="course_code" value="{{course.code}}" />
                     <br/>
                     Your data will be imported from the following locations:
                       {% if course.twitter_hashtags_as_list|length > 0 %}
                       <br/>
-                      Twitter Hashtags (optional): {% for hashtag in course.twitter_hashtags_as_list %} <a href="https://twitter.com/hashtag/{{hashtag}}" target="_blank">{{hashtag}}</a>  {% endfor %}
+                      Twitter Hashtags: {% for hashtag in course.twitter_hashtags_as_list %} <a href="https://twitter.com/hashtag/{{hashtag}}" target="_blank">{{hashtag}}</a>  {% endfor %}
                       {% endif %}
                       {% if course.facebook_groups_as_list|length > 0 %}
                       <br/>
@@ -72,25 +71,25 @@
                       <br/>
                       YouTube Channels: {% for channel in course.youtube_channelIds_as_list %} <a href="https://www.youtube.com/channel/{{channel}}" target="_blank">{{channel}}</a>  {% endfor %}
                       {% endif %}
-                      {% if course.code == 'IAB260' %}
-                          Your IAB260: Social Technologies blog.
-                      {% endif %}
                   {% endif  %}
                 </div>
                 <div class="form-group">
-                  <p class="help-block"><label>At least 1 social media account is required:</label></p>
+                  <p class="help-block">At least 1 social media account is required.</p>
                 </div>
-                {% if course.code == 'IAB260'  %}
                 <div class="form-group">
-                  <p class="help-block">{{ profile_form.blog_id.errors }}</p>
-                  <label for="id_forum_id">IAB260 Blog Name:</label> (Only required for IAB260 Students.)<br />
-                  {{ profile_form.blog_id }}
+                  <p class="help-block">{{ profile_form.twitter_id.errors }}</p>
+                  <label for="id_twitter_id">Twitter Username:</label> (Don't include the @ prefix.)<br />
+                  {{ profile_form.twitter_id }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.fb_id.errors }}</p>
+                  <label for="id_fb_id">Facebook ID:</label><br />
+                  {{ profile_form.fb_id }}
                   <p>
-                    E.g.: for the blog http://http://2016.socialtechnologi.es/<b>zakww</b>/. The blog name is: <b>zakww</b>
+                    <a href="/dataintegration/get_social" target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
                   </p>
                 </div>
-                {% elif course.code == 'IFN614' %}
-                <!-- IFN614 Forum RSS -->
+                {% if course.code == 'IFN614'  %}
                 <div class="form-group">
                   <p class="help-block">{{ profile_form.forum_id.errors }}</p>
                   <label for="id_forum_id">IFN614 Site Username:</label> (Only required for IFN614 Students.)<br />
@@ -99,31 +98,8 @@
                     Forum posts for IFN614 students will be retrieved from <a href="http://2015.informationprograms.info/forums/" target="_blank">2015.informationprograms.info/forums/</a>
                   </p>
                 </div>
-                {% else  %}
-
-                <!-- Twitter -->
-                <div><a href="#" class="form_control" handle="twitter">Attach Twitter Account</a></div>
-                <div id="twitter_input" class="form-group">
-                  <p class="help-block">{{ profile_form.twitter_id.errors }}</p>
-                  <label for="id_twitter_id">Twitter Username:</label> (Don't include the @ prefix.)<br />
-                  {{ profile_form.twitter_id }}
-                </div>
-
-                <!-- Facebook -->
-                <div><a href="#" class="form_control" handle="facebook">Attach Facebook Account</a></div>
-                <div id="facebook_input" class="form-group">
-                  <p class="help-block">{{ profile_form.fb_id.errors }}</p>
-                  <label for="id_fb_id">Facebook ID:</label><br />
-                  {{ profile_form.fb_id }}
-                  <p>
-                      <!---->
-                    <a href="/dataintegration/get_social/?platform=facebook" target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
-                  </p>
-                </div>
-
-                <!-- Youtube -->
-                <div><a href="#" class="form_control" handle="youtube">Attach YouTube Account</a></div>
-                <div id="youtube_input" class="form-group">
+                {% endif  %}
+                <div class="form-group">
                   <p class="help-block">{{ profile_form.google_account_name.errors }}</p>
                   <label for="id_google_account_name">Youtube Channel URL:</label><br />
                   {{ profile_form.google_account_name }}
@@ -131,23 +107,21 @@
                     <a href="/dataintegration/get_youtubechannel" target="_blank">Click here to get your YouTube Channel ID - you will need to be logged into YouTube (opens in new tab)</a>
                   </p>
                 </div>
-
-                <!-- Diigo -->
-                <div><a href="#" class="form_control" handle="diigo"">Attach Diigo Account</a></div>
-                <div id="diigo_input" class="form-group">
+                <div class="form-group">
                   <p class="help-block">{{ profile_form.diigo_username.errors }}</p>
                   <label for="id_diigo_username">Diigo Username:</label><br />
                   {{ profile_form.diigo_username }}
                 </div>
-
-                <!-- Blog -->
-                <div><a href="#" class="form_control" handle="blog">Attach Blog (RSS-Compatible blogs only)</a></div>
-                <div id="blog_input" class="form-group">
+                <div class="form-group">
                   <p class="help-block">{{ profile_form.blog_id.errors }}</p>
                   <label for="id_blog_id">Blog Username:</label><br />
                   {{ profile_form.blog_id }}
                 </div>
-                    {% endif %}
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.github_account_name.errors }}</p>
+                  <label for="id_github_account_name">GitHub Account:</label><br />
+                  {{ profile_form.github_account_name }}
+                </div>
                 <p>
                 By clicking the register button below, you are indicating that you:
                 <ul>
@@ -329,39 +303,6 @@
 {% endblock %}
 
 {% block js_block %}
-    <script type="text/javascript">
-
-        var platforms_dict = {
-            twitter : 'twitter_input',
-            facebook : 'facebook_input',
-            youtube : 'youtube_input',
-            diigo : 'diigo_input',
-            blog : 'blog_input'
-        }
-
-        $(function() {
-            for (var platform in platforms_dict) {
-                    $('#'+platforms_dict[platform]).hide()
-                    //console.log('.'+platforms_dict[platform])
-                }
-        });
-
-        $('.form_control').on('click', function(e){
-            e.preventDefault();
-            //console.log($(this));
-            platform = $(this).attr("handle");
-            //console.log(platform);
-            $(this).hide()
-            $('#'+platform+"_input").show();
-        });
-
-    </script>
-    <style>
-        div .form_control {
-            line-height: 3;
-            font-weight: bold;
-        }
-    </style>
 {% autoescape off %}
 
 {% endautoescape %}

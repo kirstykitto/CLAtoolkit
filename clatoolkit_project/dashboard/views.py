@@ -13,6 +13,7 @@ import datetime
 from django.db.models import Count
 import random
 
+
 def check_access(required_roles=None):
     def decorator(view):
         @wraps(view)
@@ -83,8 +84,6 @@ def dashboard(request):
     facebook_timeline = ""
     forum_timeline = ""
     youtube_timeline = ""
-    diigo_timeline = ""
-    blog_timeline = ""
 
     profiling = profiling + "| Platform Timelines %s" % (str(datetime.datetime.now()))
     platformclause = ""
@@ -164,7 +163,7 @@ def cadashboard(request):
     tags = get_wordcloud(platform, course_code)
 
     sentiments = getClassifiedCounts(platform, course_code, classifier="VaderSentiment")
-    coi = getClassifiedCounts(platform, course_code, classifier="nb_"+course_code+"_"+platform+".model")
+    coi = getClassifiedCounts(platform, course_code, classifier="NaiveBayes_t1.model")
 
     topic_model_output, sentimenttopic_piebubblesdataset = nmf(platform, no_topics, course_code, start_date=None, end_date=None)
 
@@ -188,8 +187,14 @@ def snadashboard(request):
     comments_timeline = get_timeseries('commented', platform, course_code)
 
     sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
-
-    context_dict = {'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform, 'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    sna_neighbours = getNeighbours(sna_json)
+    centrality = getCentrality(sna_json)
+    context_dict = {
+        'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform, 
+        'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline, 
+        'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
+        'sna_neighbours': sna_neighbours, 'centrality': centrality
+    }
 
     return render_to_response('dashboard/snadashboard.html', context_dict, context)
 
@@ -299,7 +304,7 @@ def studentdashboard(request):
     tags = get_wordcloud(platform, course_code, username=username)
 
     sentiments = getClassifiedCounts(platform, course_code, username=username, classifier="VaderSentiment")
-    coi = getClassifiedCounts(platform, course_code, username=username, classifier="nb_"+course_code+"_"+platform+".model")
+    coi = getClassifiedCounts(platform, course_code, username=username, classifier="NaiveBayes_t1.model")
 
     context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline':forum_timeline, 'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi }
 
@@ -390,14 +395,26 @@ def mydashboard(request):
     #topcontenttable = get_top_content_table(platform, course_code, username=username)
 
     sna_json = sna_buildjson(platform, course_code, username=username, relationshipstoinclude="'mentioned','liked','shared','commented'")
-
+    centrality = getCentrality(sna_json)
     tags = get_wordcloud(platform, course_code, username=username)
 
     sentiments = getClassifiedCounts(platform, course_code, username=username, classifier="VaderSentiment")
-    coi = getClassifiedCounts(platform, course_code, username=username, classifier="nb_"+course_code+"_"+platform+".model")
+    coi = getClassifiedCounts(platform, course_code, username=username, classifier="NaiveBayes_t1.model")
 
     reflections = DashboardReflection.objects.filter(username=username)
-    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'forum_timeline': forum_timeline, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'youtube_timeline': youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'reflections':reflections, 'sna_json': sna_json,  'tags': tags, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi  }
+    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 
+        'forum_timeline': forum_timeline, 'twitter_timeline': twitter_timeline, 
+        'facebook_timeline': facebook_timeline, 'youtube_timeline': youtube_timeline, 
+        'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 
+        'platformactivity_pie_series':platformactivity_pie_series, 
+        'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 
+        'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 
+        'username':username, 'reflections':reflections, 'sna_json': sna_json,
+        'tags': tags, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 
+        'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 
+        'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi,
+        'centrality': centrality
+    }
 
     return render_to_response('dashboard/mydashboard.html', context_dict, context)
 
