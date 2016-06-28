@@ -19,9 +19,9 @@ from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 import numpy as np
 from sklearn.cluster import AffinityPropagation
 
-import inspect
-
 import subprocess
+import igraph
+from collections import OrderedDict
 
 def classify(course_code, platform):
     #Calls JAR to extract and classify messages
@@ -72,9 +72,6 @@ def get_uid_fromsmid(username, platform):
     return id
 
 def get_username_fromsmid(sm_id, platform):
-    #curframe = inspect.currentframe()
-    #callframe = inspect.getouterframes(curframe, 2)
-
     #print "sm_id", sm_id
     userprofile = None
     if platform == "Twitter":
@@ -85,18 +82,13 @@ def get_username_fromsmid(sm_id, platform):
         userprofile = UserProfile.objects.filter(forum_id__iexact=sm_id)
     elif platform == "YouTube":
             userprofile = UserProfile.objects.filter(google_account_name__iexact=sm_id)
-    elif platform == "Blog":
-        userprofile = UserProfile.objects.filter(blog_id__iexact=sm_id)
     else:
         #platform must be = all
         userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=sm_id) | Q(fb_id__iexact=sm_id) | Q(forum_id__iexact=sm_id) | Q(google_account_name__iexact=sm_id))
     if len(userprofile)>0:
         username = userprofile[0].user.username
     else:
-        print "User Not Found setting username to sm_id: ", sm_id
-        #print "Called by: %s" % (callframe[1][3])
         username = sm_id # user may not be registered but display platform username
-
     return username
 
 def get_role_fromusername(username, platform):
@@ -397,7 +389,7 @@ def getClassifiedCounts(platform, course_code, username=None, start_date=None, e
     if classifier == "VaderSentiment":
         kwargs['classifier']=classifier
     else:
-        classifier_name = "nb_%s_%s.model" % (course_code,"Blog")
+        classifier_name = "nb_%s_%s.model" % (course_code,"YouTube")
         kwargs['classifier']= classifier_name
     if username is not None:
         kwargs['xapistatement__username']=username
@@ -700,12 +692,12 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     node_dict = None
     edge_dict = None
     nodes_in_sna_dict = None
-    #if username is not None:
-    #    node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
-    #    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
-    #else:
-    node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
-    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+    if username is not None:
+        node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
+        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+    else:
+        node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
+        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
 
     #node_dict.update(nodes_in_sna_dict)
     for key in nodes_in_sna_dict:
@@ -787,3 +779,99 @@ def sentiment_classifier(course_code):
         # Save Classification
         classification_obj = Classification(xapistatement=sm_obj,classification=sentiment,classifier='VaderSentiment')
         classification_obj.save()
+
+
+def getNeighbours(jsonStr):
+    data = json.loads(jsonStr)
+    nodes = data["nodes"]
+    edges = data["edges"]
+    allNeighbours = {"nodes": []}
+    
+    for node in nodes:
+        neighbours = {"id": node["id"], "neighbours": []}
+        for edge in edges:
+            #insert directly connected node's ID
+            if edge["from"] == node["id"]:
+                neighbours["neighbours"].append(edge["to"])
+            elif edge["to"] == node["id"]:
+                neighbours["neighbours"].append(edge["from"])
+        # remove duplicated id from the array before adding it to allNeighbours object
+        neighbours["neighbours"] = list(set(neighbours["neighbours"]))
+        allNeighbours["nodes"].append(neighbours)
+
+    allNeighbours = json.dumps(allNeighbours)
+    return allNeighbours
+
+
+def getCentrality(jsonStr):
+
+    g = _createGraphElements(json.loads(jsonStr))
+    #print(g)
+    #layout = g.layout("kk")
+    #igraph.plot(g, layout=layout)
+    dc = OrderedDict({"ids": g.vs["ids"], "label": g.vs["label"]})
+    digits = 2
+    numOfNodes = g.vcount()
+    dc["inDegree"] = _roundNumbers(_normaliseDegree(g.degree(mode="in"), numOfNodes), digits)
+    dc["outDegree"] = _roundNumbers(_normaliseDegree(g.degree(mode="out"), numOfNodes), digits)
+    dc["totalDegree"] = _roundNumbers(_normaliseDegree(g.degree(), numOfNodes), digits)
+    dc["betweenness"] = _roundNumbers(g.betweenness(directed=True), digits)
+    dc["inCloseness"] = _roundNumbers(g.closeness(mode="in"), digits)
+    dc["outCloseness"] = _roundNumbers(g.closeness(mode="out"), digits)
+    dc["totalCloseness"] = _roundNumbers(g.closeness(), digits)
+    dc["eigenvector"] = _roundNumbers(g.eigenvector_centrality(directed=True, scale=True), digits)
+    dc["density"] = _roundNumber(g.density(loops=True), digits)
+
+    return json.dumps(dc)
+
+def _createGraphElements(jdata):
+    ## Sample code
+    #g = igraph.Graph([(0,1),(0,1),(0,1),(0,2),(0,3),(0,4),(0,5),(6,0),(6,6)], directed=True)
+    # g.vs["ids"] = ["1","2","3","4","5","6",]
+    # g.vs["label"] = ["Alice", "Bob", "Claire", "Dennis", "Esther", "Frank", "Koji"]
+    # g.add_edges([(0,1),(0,1),(0,1),(0,2),(0,3),(0,4),(0,5),(6,0),(6,6),(3,5)])
+
+    ids = []
+    labels = []
+    for node in jdata["nodes"]:
+        ids.append(node["id"])
+        labels.append(node["label"])
+
+    connections = []
+    for edge in jdata["edges"]:
+        #create a tuple and set it in the array
+        for val in range(0, int(edge["value"])):
+            # create the same edges 'edge["value"]' times
+            # edge index starts at 0, so -1 needed
+            connections.append( (int(edge["from"]) - 1, int(edge["to"]) - 1) )
+
+    g = igraph.Graph(directed=True)
+    g.add_vertices(len(ids))
+    g.vs["ids"] = ids
+    g.vs["label"] = labels
+    g.add_edges(connections)
+    return g
+
+
+def _normaliseDegree(targetArray, numOfNodes):
+    if numOfNodes == 0:
+        return 0
+
+    index = 0
+    #To normalize the degree, degree is divided by n-1, where n is the number of vertices in the graph.
+    for num in targetArray:
+        targetArray[index] = float(num) / (numOfNodes - 1)
+        index = index + 1
+
+    return targetArray
+
+def _roundNumbers(targetArray, digits):
+    index = 0
+    for num in targetArray:
+        targetArray[index] = _roundNumber(num, digits)
+        index = index + 1
+
+    return targetArray
+
+def _roundNumber(target, digits):
+    return round(target, digits)

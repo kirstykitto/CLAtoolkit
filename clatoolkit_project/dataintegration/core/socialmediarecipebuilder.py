@@ -61,8 +61,8 @@ def statement_builder(actor, verb, object, context, result, timestamp=None):
     return statement
 
 def socialmedia_builder(verb, platform, account_name, account_homepage, object_type, object_id, message, tags=[], parent_object_type=None, parent_id=None, rating=None, instructor_name=None, instructor_email=None, team_name=None, course_code=None, account_email=None, user_name=None, timestamp=None):
-    verbmapper = {'created': 'http://activitystrea.ms/schema/1.0/create', 'shared': 'http://activitystrea.ms/schema/1.0/share', 'liked': 'http://activitystrea.ms/schema/1.0/like', 'rated': 'http://id.tincanapi.com/verb/rated', 'commented': 'http://adlnet.gov/expapi/verbs/commented'}
-    objectmapper = {'Note': 'http://activitystrea.ms/schema/1.0/note', 'Tag': 'http://id.tincanapi.com/activitytype/tag', 'Article': 'http://activitystrea.ms/schema/1.0/article', 'Video': 'http://activitystrea.ms/schema/1.0/video', 'Bookmark': 'http://activitystrea.ms/schema/1.0/bookmark'}
+    verbmapper = {'created': 'http://activitystrea.ms/schema/1.0/create', 'shared': 'http://activitystrea.ms/schema/1.0/share', 'liked': 'http://activitystrea.ms/schema/1.0/like', 'rated': 'http://id.tincanapi.com/verb/rated', 'commented': 'http://adlnet.gov/expapi/verbs/commented', 'added': 'http://adlnet.gov/expapi/verbs/added', 'updated': 'http://adlnet.gov/expapi/verbs/updated', 'removed': 'http://adlnet.gov/expapi/verbs/removed'}
+    objectmapper = {'Note': 'http://activitystrea.ms/schema/1.0/note', 'Tag': 'http://id.tincanapi.com/activitytype/tag', 'Article': 'http://activitystrea.ms/schema/1.0/article', 'Video': 'http://activitystrea.ms/schema/1.0/video', 'Bookmark': 'http://activitystrea.ms/schema/1.0/bookmark', 'Collection': 'http://activitystrea.ms/schema/1.0/collection', 'File': 'http://activitystrea.ms/schema/1.0/file'}
 
     agentaccount = AgentAccount(name=account_name, home_page=account_homepage)
     actor = Agent(account=agentaccount)
@@ -98,6 +98,12 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
 
     parentlist = []
     if (verb in ['liked','shared','commented','rated']):
+        parentobject = Activity(
+            id=parent_id,
+            object_type=parent_object_type,
+            )
+        parentlist.append(parentobject)
+    elif (platform == 'GitHub'):
         parentobject = Activity(
             id=parent_id,
             object_type=parent_object_type,
@@ -151,22 +157,17 @@ def insert_post(usr_dict, post_id,message,from_name,from_uid, created_time, cour
                 socialrelationship = SocialRelationship(verb = "mentioned", fromusername=get_username_fromsmid(from_uid,platform), tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
                 socialrelationship.save()
 
-def insert_blogpost(usr_dict, post_id,message,from_uid,from_name, created_time, course_code, platform, platform_url, tags=[]):
-    #print "Inserting blogpost $$$$$"
-    #print "INSERTBLOGPOST: from_name is %s and from_uid is %s" % (from_name,from_uid)
+def insert_blogpost(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url, tags=[]):
     if check_ifnotinlocallrs(course_code, platform, post_id):
-        stm = socialmedia_builder(verb='created', platform=platform, account_name=from_name, account_homepage=platform_url, object_type='Article', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_uid, course_code=course_code, tags=tags)
+        stm = socialmedia_builder(verb='created', platform=platform, account_name=from_uid, account_homepage=platform_url, object_type='Article', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_name, course_code=course_code, tags=tags)
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=from_uid, platformid=post_id, message=message, datetimestamp=created_time)
-        print "Saved blogpost for %s" % from_uid
+        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=get_username_fromsmid(from_uid, platform), platformid=post_id, message=message, datetimestamp=created_time)
         lrs.save()
-        #print "ADDED USER: ", from_name
         for tag in tags:
             if tag[0]=="@":
-                socialrelationship = SocialRelationship(verb = "mentioned", fromusername=from_uid, tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
+                socialrelationship = SocialRelationship(verb = "mentioned", fromusername=get_username_fromsmid(from_uid,platform), tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
                 socialrelationship.save()
-    #else: print "RECORD IN LRS~!!!"
 
 def insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url, liked_username=None):
     if check_ifnotinlocallrs(course_code, platform, post_id):
@@ -178,30 +179,14 @@ def insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, pl
         socialrelationship = SocialRelationship(verb = "liked", fromusername=get_username_fromsmid(like_uid,platform), tousername=get_username_fromsmid(liked_username,platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
         socialrelationship.save()
 
-def insert_blogcomment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, shared_username=None, shared_displayname=None):
-    print "Insert comment -  from %s to %s" % (comment_from_uid,shared_displayname)
-    if check_ifnotinlocallrs(course_code, platform, comment_id):
-        if shared_displayname is not None:
-            stm = socialmedia_builder(verb='commented', platform=platform, account_name=comment_from_uid, account_homepage=platform_url, object_type='Note', object_id=comment_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code )
-            jsn = ast.literal_eval(stm.to_json())
-            stm_json = pretty_print_json(jsn)
-            lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='commented', platform=platform, username=get_username_fromsmid(comment_from_uid, platform), platformid=comment_id, platformparentid=post_id, parentusername=get_username_fromsmid(shared_displayname,platform), parentdisplayname=shared_displayname, message=comment_message, datetimestamp=comment_created_time)
-            lrs.save()
-            print "COMMENT SAVED!"
-            socialrelationship = SocialRelationship(verb = "commented", fromusername=get_username_fromsmid(comment_from_uid,platform), tousername=get_username_fromsmid(shared_username,platform), platform=platform, message=comment_message, datetimestamp=comment_created_time, course_code=course_code, platformid=comment_id)
-            socialrelationship.save()
-
-
 def insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, shared_username=None, shared_displayname=None):
-    print "Insert comment -  from %s to %s" % (comment_from_uid,shared_displayname)
     if check_ifnotinlocallrs(course_code, platform, comment_id):
         if shared_displayname is not None:
             stm = socialmedia_builder(verb='commented', platform=platform, account_name=comment_from_uid, account_homepage=platform_url, object_type='Note', object_id=comment_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code )
             jsn = ast.literal_eval(stm.to_json())
             stm_json = pretty_print_json(jsn)
-            lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='commented', platform=platform, username=get_username_fromsmid(comment_from_name, platform), platformid=comment_id, platformparentid=post_id, parentusername=get_username_fromsmid(shared_displayname,platform), parentdisplayname=shared_displayname, message=comment_message, datetimestamp=comment_created_time)
+            lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='commented', platform=platform, username=get_username_fromsmid(comment_from_uid, platform), platformid=comment_id, platformparentid=post_id, parentusername=get_username_fromsmid(shared_username,platform), parentdisplayname=shared_displayname, message=comment_message, datetimestamp=comment_created_time)
             lrs.save()
-            print "COMMENT SAVED!"
             socialrelationship = SocialRelationship(verb = "commented", fromusername=get_username_fromsmid(comment_from_uid,platform), tousername=get_username_fromsmid(shared_username,platform), platform=platform, message=comment_message, datetimestamp=comment_created_time, course_code=course_code, platformid=comment_id)
             socialrelationship.save()
 
@@ -222,3 +207,95 @@ def insert_bookmark(usr_dict, post_id,message,from_name,from_uid, created_time, 
         stm_json = pretty_print_json(jsn)
         lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=get_username_fromsmid(from_uid, platform), platformid=post_id, message=message, datetimestamp=created_time)
         lrs.save()
+
+def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_time, course_code, parent_id, platform, platform_id, commit_username=None, tags=[]):
+    if check_ifnotinlocallrs(course_code, platform, commit_id):
+        verb = "created"
+        object = "Collection"
+        parentObj = "Collection"
+
+        stm = socialmedia_builder(
+            verb=verb, platform=platform, account_name=from_uid, 
+            account_homepage=platform_id, object_type=object, object_id=commit_id, 
+            message=message, tags=tags, parent_object_type=parentObj, parent_id=parent_id, 
+            timestamp=committed_time, account_email=usr_dict['email'], 
+            user_name=from_name, course_code=course_code)
+
+        jsn = ast.literal_eval(stm.to_json())
+        stm_json = pretty_print_json(jsn)
+        lrs = LearningRecord(
+            xapi=stm_json, course_code=course_code, verb=verb, 
+            platform=platform, username=get_username_fromsmid(from_uid, platform), 
+            platformid=platform_id, platformparentid=parent_id, 
+            parentusername=get_username_fromsmid(commit_username, platform), 
+            message=message, datetimestamp=committed_time)
+        lrs.save()
+        socialrelationship = SocialRelationship(
+            verb = verb, 
+            fromusername=get_username_fromsmid(from_uid, platform), 
+            tousername=get_username_fromsmid(commit_username, platform), 
+            platform=platform, message=message, datetimestamp=committed_time, 
+            course_code=course_code, platformid=commit_id)
+        socialrelationship.save()
+
+
+def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time, course_code, parent_id, platform, platform_id, platform_parentid, verb, commit_username=None, tags=[]):
+    if check_ifnotinlocallrs(course_code, platform, file_id):
+        object = "File"
+        parentObj = "Collection"
+
+        stm = socialmedia_builder(
+            verb=verb, platform=platform, account_name=from_uid, 
+            account_homepage=platform_id, object_type=object, object_id=file_id, 
+            message=message, tags=tags, parent_object_type=parentObj, parent_id=parent_id, 
+            timestamp=committed_time, account_email=usr_dict['email'], 
+            user_name=from_name, course_code=course_code)
+
+        jsn = ast.literal_eval(stm.to_json())
+        stm_json = pretty_print_json(jsn)
+        lrs = LearningRecord(
+            xapi=stm_json, course_code=course_code, verb=verb, 
+            platform=platform, username=get_username_fromsmid(from_uid, platform), 
+            platformid=platform_id, platformparentid=platform_parentid, 
+            parentusername=get_username_fromsmid(commit_username, platform), 
+            message=message, datetimestamp=committed_time)
+        lrs.save()
+        socialrelationship = SocialRelationship(
+            verb = verb, 
+            fromusername=get_username_fromsmid(from_uid, platform), 
+            tousername=get_username_fromsmid(commit_username, platform), 
+            platform=platform, message=message, datetimestamp=committed_time, 
+            course_code=course_code, platformid=file_id)
+        socialrelationship.save()
+
+
+def insert_issue(usr_dict, issue_id, message, from_name, from_uid, created_time, course_code, parent_id, platform, platform_id, assignee, tags=[]):
+    if check_ifnotinlocallrs(course_code, platform, issue_id):
+        verb = 'created'
+        object = "Note"
+        parentObj = "Collection"
+
+        stm = socialmedia_builder(
+            verb=verb, platform=platform, account_name=from_uid, 
+            account_homepage=issue_id, object_type=object, object_id=issue_id, 
+            message=message, parent_object_type=parentObj, parent_id=parent_id, 
+            timestamp=created_time, account_email=usr_dict['email'], 
+            user_name=from_name, course_code=course_code, tags=tags)
+        jsn = ast.literal_eval(stm.to_json())
+        stm_json = pretty_print_json(jsn)
+        lrs = LearningRecord(
+            xapi=stm_json, course_code=course_code, verb=verb, 
+            platform=platform, username=get_username_fromsmid(from_uid, platform),
+            platformid=platform_id, platformparentid=parent_id, message=message, datetimestamp=created_time,
+            parentusername=get_username_fromsmid(assignee, platform))
+        lrs.save()
+        """
+        for tag in tags:
+            if tag[0]=="@":
+                socialrelationship = SocialRelationship(
+                    verb = "mentioned", fromusername=get_username_fromsmid(from_uid,platform), 
+                    tousername=get_username_fromsmid(tag[1:],platform), 
+                    platform=platform, message=message, datetimestamp=created_time, 
+                    course_code=course_code, platformid=platform_id)
+                socialrelationship.save()
+        """

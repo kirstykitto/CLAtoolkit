@@ -2,15 +2,12 @@ from dataintegration.core.plugins import registry
 from dataintegration.core.plugins.base import DIBasePlugin, DIPluginDashboardMixin
 from dataintegration.core.socialmediarecipebuilder import *
 from dataintegration.core.recipepermissions import *
-from dashboard.utils import get_username_fromsmid
 import json
 from bs4 import BeautifulSoup
 from urllib2 import urlopen
 import dateutil.parser
 import feedparser
 import urlparse
-import urllib
-import urllib2
 
 '''
 This plugin is specifically designed for the Kate Davies unit that is using Wordpress with multiple
@@ -58,11 +55,9 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
     def perform_import(self, retrieval_param, course_code):
         memberblog_urls = self.get_allmemberblogurls(retrieval_param)
-        #memberblog_urls.append('http://2016.socialtechnologi.es/teaching-team-blog/') #staff blogs to be scraped
         displayname_username_dict = {}
         for memberblog_url in memberblog_urls:
             member_blogfeed = memberblog_url + 'feed/'
-            print "Checking blogfeed %s" % (member_blogfeed)
             temp_dict = self.insert_blogposts(member_blogfeed, course_code)
             displayname_username_dict.update(temp_dict)
         for memberblog_url in memberblog_urls:
@@ -70,41 +65,23 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
             self.insert_blogcomments(member_commentfeed, course_code, displayname_username_dict)
 
 
-    def get_allmemberblogurls(self, memberlist_url, max_pages=4):
+    def get_allmemberblogurls(self, memberlist_url):
 
-        #Ajax Handler for 2016 blog site
-        base_url = 'http://2016.socialtechnologi.es/wp-admin/admin-ajax.php'
-
-        #Parameters for AJAX pagination
-        data = {'action': 'blogs_filter',
-                'cookie': 'bp-activity-oldestpage%253D1',
-                'object': 'blogs',
-                'search_terms' : '',
-                'page' : 1,
-                'template': ''
-        }
+        # try to get all pages of blog members
         #http://2016.socialtechnologi.es/wp-admin/admin-ajax.php?action=blogs_filter&cookie=bp-activity-oldestpage%253D1&object=blogs&search_terms=&page=1&template=
+        html = urlopen(memberlist_url).read()
+        soup = BeautifulSoup(html, "lxml")
 
         memberblog_urls = []
-        # try to get all pages of blog members
+        #todo - need to get paged results via a post using beautifulsoup
         #eg http://stackoverflow.com/questions/12519193/using-python-urllib2-to-send-post-request-and-get-response
-        while (data['page'] <= max_pages):
-            url_data = urllib.urlencode(data)
-            req = urllib2.Request(base_url, url_data)
-            html = urlopen(req,timeout=300).read()
-            soup = BeautifulSoup(html, "lxml")
+        blog_containers = soup.findAll("div", class_="item-avatar")
 
-            blog_containers = soup.findAll("div", class_="item-avatar")
-            for blog_item in blog_containers:
-                blog_link = blog_item.find("a").attrs['href']
+        for blog_item in blog_containers:
+            blog_link = blog_item.find("a").attrs['href']
+            memberblog_urls.append(blog_link)
 
-                memberblog_urls.append(blog_link)
-
-            data['page'] = data['page'] + 1
-
-        #print memberblog_urls
-        #print "BLOGS SCRAPED: %s" % len(memberblog_urls)
-
+        print memberblog_urls
         #return ['http://2016.socialtechnologi.es/moonlo/']
         return memberblog_urls
 
@@ -112,13 +89,7 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
         d = feedparser.parse(blogfeed)
         blogurl = d['feed']['link']
         slash_pos = blogurl.rfind('/')
-        blog_url_name = blogurl[slash_pos+1:]
-        print blog_url_name
-
-
-        #print username
-
-        #dict to stored blog display name with url name
+        username = blogurl[slash_pos+1:]
         displayname_username_dict = {}
         #print d.feed.subtitle
         #print d.version
@@ -127,7 +98,7 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
         for post in d.entries:
             link = post.link
             message = post.title + " " + post.content[0]['value']
-            blog_display_name = post.author
+            author = post.author
             post_date = dateutil.parser.parse(post.published)
             tags_dict_list = post.tags
             tags = []
@@ -135,13 +106,12 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 term = tag_dict['term']
                 tags.append(term)
 
-            if blog_display_name not in displayname_username_dict:
-                displayname_username_dict[blog_display_name] = blog_url_name
+            if author not in displayname_username_dict:
+                displayname_username_dict[author] = username
 
-            #print "Does " + blog_url_name + "exist in Toolkit?: " + username_exists(displayname_username_dict[blog_display_name], course_code, self.platform)
-            if username_exists(displayname_username_dict[blog_display_name], course_code, self.platform):
-                usr_dict = get_userdetails(displayname_username_dict[blog_display_name], self.platform)
-                insert_blogpost(usr_dict, link, message, get_username_fromsmid(blog_url_name,self.platform), blog_display_name, post_date, course_code, self.platform, self.platform_url, tags=tags)
+            if username_exists(username, course_code, self.platform):
+                usr_dict = get_userdetails(username, self.platform)
+                insert_blogpost(usr_dict, link, message, author, username, post_date, course_code, self.platform, self.platform_url, tags=tags)
 
         return displayname_username_dict
 
@@ -149,23 +119,20 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
         d = feedparser.parse(member_commentfeed)
 
         for post in d.entries:
-            comment_link = post.link
+            link = post.link
             slash_pos = post.link.rfind("/")
-            op_link = post.link[:slash_pos+1]
-            op_path = urlparse.urlparse(op_link).path
-            op_smid = op_path.split('/')[1]
-            comment_message = post.title + " " + post.content[0]['value']
-            comment_author = post.author
-            comment_post_date = dateutil.parser.parse(post.published)
-            if  comment_author != "Anonymous" and comment_author in displayname_username_dict:
-                #print "Author in Dict - seeing if they exist in system..."
-                comment_smid = displayname_username_dict[comment_author]
-                comment_post_date = dateutil.parser.parse(post.published)
+            parent_link = post.link[:slash_pos+1]
+            path = urlparse.urlparse(parent_link).path
+            parent_username = path.split('/')[1]
+            message = post.title + " " + post.content[0]['value']
+            author = post.author
+            post_date = dateutil.parser.parse(post.published)
+            if author != "Anonymous" and author in displayname_username_dict:
+                post_username = displayname_username_dict[author]
+                post_date = dateutil.parser.parse(post.published)
 
-                if username_exists(comment_smid, course_code, self.platform):
-                    print "BLOG_COMMENT FOUND USER on url" + comment_smid
-                    print "ON %s" % op_smid
-                    usr_dict = get_userdetails(comment_smid, self.platform)
-                    insert_blogcomment(usr_dict, op_link, comment_link, comment_message, get_username_fromsmid(comment_smid, self.platform), comment_author, comment_post_date, course_code, self.platform, self.platform_url, get_username_fromsmid(op_smid,self.platform), get_username_fromsmid(op_smid, self.platform))
+                if username_exists(post_username, course_code, self.platform):
+                    usr_dict = get_userdetails(post_username, self.platform)
+                    insert_comment(usr_dict, parent_link, link, message, post_username, author, post_date, course_code, self.platform, self.platform_url, shared_username=parent_username)
 
 registry.register(BlogrssPlugin)
