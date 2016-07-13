@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django_pgjson.fields import JsonField
+import os
 
 class UserProfile(models.Model):
     '''
@@ -43,6 +44,9 @@ class UserProfile(models.Model):
 
     #blog userName
     blog_id = models.CharField(max_length=255, blank=True)
+    
+    #GitHub user account
+    github_account_name = models.CharField(max_length=255, blank=True)
 
 class OfflinePlatformAuthToken(models.Model):
     user = models.ForeignKey(User)
@@ -109,7 +113,7 @@ class UserClassification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 class UnitOffering(models.Model):
-    code = models.CharField(max_length=5000, blank=False, unique=True)
+    code = models.CharField(max_length=5000, blank=False)
     name = models.CharField(max_length=5000, blank=False)
     semester = models.CharField(max_length=5000, blank=False)
     description = models.TextField(blank=False)
@@ -121,9 +125,6 @@ class UnitOffering(models.Model):
     event = models.BooleanField(blank=False, default=False)
     # determines whether COI Classifier link should be diplayed for staff and student in a unit
     enable_coi_classifier = models.BooleanField(blank=False, default=False)
-
-    # determines which plaforms should be utilized by COI classifier
-    coi_platforms = models.TextField(blank=True)
 
     # Twitter Unit Integration Requirements
     twitter_hashtags = models.TextField(blank=False)
@@ -145,6 +146,13 @@ class UnitOffering(models.Model):
 
     # Blog Members (for blogrss plugin)
     blogmember_urls = models.TextField(blank=True)
+
+    # GitHub Repository URLs
+    github_urls = models.TextField(blank=True)
+
+    # Determines which platforms should be utilized by COI classifier
+    coi_platforms = models.TextField(blank=True)
+
 
     # LRS Integration - to send users data to unit LRS
     ll_endpoint = models.CharField(max_length=60, blank=True)
@@ -190,11 +198,18 @@ class UnitOffering(models.Model):
         else:
             return []
 
-    def coi_platforms_as_list(self):
-        if self.coi_platforms:
-            return self.coi_platforms.split(',')
+    def github_urls_as_list(self):
+        if self.github_urls:
+            return self.github_urls.split(os.linesep)
         else:
             return []
+
+    def coi_platforms_as_list(self):
+	if self.coi_platforms:
+	    return self.coi_platforms.split(',')
+	else:
+	    return []
+
 
 class ApiCredentials(models.Model):
     platform = models.CharField(max_length=5000, blank=False)
@@ -222,7 +237,3 @@ class GroupMap(models.Model):
     userId = models.ForeignKey(User)
     course_code = models.CharField(max_length=5000, blank=False)
     groupId = models.IntegerField(blank=False)
-
-#class UnitRegister(models.Model):
-#    unit = models.ForeignKey(UnitOffering)
-#    required_socialmedia = models.CharField(max_length=5000, blank=True)

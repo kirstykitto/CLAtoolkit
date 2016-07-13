@@ -27,6 +27,11 @@ import json
 
 # from fb_data.models import
 
+
+def home(request):
+    context = RequestContext(request)
+    return render_to_response('clatoolkit/home.html', {}, context)
+
 def userlogin(request):
     context = RequestContext(request)
 
@@ -56,100 +61,16 @@ def userlogin(request):
     # The request is not a HTTP POST, so display the login form.
     # This scenario would most likely be a HTTP GET.
 
-    #If the user is found in our request context - they're probably already logged in..
+    #if the user is found in our context, they're probably already logged in..
     if request.user.is_authenticated():
-        return redirect('/dashboard/myunits')
+	return redirect('/dashboard/myunits')
     else:
         #print "ordinary get"
         # No context variables to pass to the template system, hence the
         # blank dictionary object...
         return render_to_response('clatoolkit/login.html', {}, context)
 
-def register(request):
-    # Like before, get the request's context.
-    context = RequestContext(request)
-
-    # A boolean value for telling the template whether the registration was successful.
-    # Set to False initially. Code changes value to True when registration succeeds.
-    registered = False
-
-    # A boolean value used to determine if a unit should already be selected
-    show_units = True
-    selected_unit = 0
-    course = None
-
-    # If it's a HTTP POST, we're interested in processing form data.
-    if request.method == 'POST':
-        #print request.POST
-        # Attempt to grab information from the raw form information.
-        # Note that we make use of both UserForm and UserProfileForm.
-        user_form = UserForm(data=request.POST)
-        profile_form = UserProfileForm(data=request.POST)
-
-        # If the two forms are valid...
-        if user_form.is_valid() and profile_form.is_valid():
-            # Save the user's form data to the database.
-            user = user_form.save()
-
-            # Now we hash the password with the set_password method.
-            # Once hashed, we can update the user object.
-            user.set_password(user.password)
-
-            # Assign units to user
-            selectedunit = request.GET.get('selectedunit', None)
-            if selectedunit is not None:
-                user.usersinunitoffering.add(selectedunit)
-            else:
-                for unit in user_form.cleaned_data['units']:
-                    user.usersinunitoffering.add(unit)
-
-            user.save()
-
-            # Now sort out the UserProfile instance.
-            # Since we need to set the user attribute ourselves, we set commit=False.
-            # This delays saving the model until we're ready to avoid integrity problems.
-            profile = profile_form.save(commit=False)
-            profile.user = user
-            profile.role = "Student"
-
-            # Now we save the UserProfile model instance.
-            profile.save()
-
-            # Update our variable to tell the template registration was successful.
-            registered = True
-
-        # Invalid form or forms - mistakes or something else?
-        # Print problems to the terminal.
-        # They'll also be shown to the user.
-        else:
-            print user_form.errors, profile_form.errors
-            course_code = request.POST.get('course_code', None)
-            if course_code is not None:
-                course = UnitOffering.objects.get(code=course_code)
-                show_units = False
-                selected_unit = course.id
-
-    # Not a HTTP POST, so we render our form using two ModelForm instances.
-    # These forms will be blank, ready for user input.
-    else:
-        print "loading forms"
-        user_form = UserForm()
-        profile_form = UserProfileForm()
-
-        course_code = request.GET.get('course_code', None)
-        if course_code is not None:
-            course = UnitOffering.objects.get(code=course_code)
-            show_units = False
-            selected_unit = course.id
-            #required_sm = Uni
-
-    # Render the template depending on the context.
-    return render_to_response(
-        'clatoolkit/register.html',
-            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, 'show_units': show_units, 'selected_unit': selected_unit, "course": course}, context)
-
-#13/05/16 - Unit management integration for staff
-#@check_access(required_roles="Staff")
+#Unit management integration for staff - 13/05/16
 @login_required
 def unitmanagement(request):
     context = RequestContext(request)
@@ -240,6 +161,87 @@ def unitmanagement(request):
         context_dict, context
     )
 
+def register(request):
+    # Like before, get the request's context.
+    context = RequestContext(request)
+
+    # A boolean value for telling the template whether the registration was successful.
+    # Set to False initially. Code changes value to True when registration succeeds.
+    registered = False
+
+    # A boolean value used to determine if a unit should already be selected
+    show_units = True
+    selected_unit = 0
+    course = None
+
+    # If it's a HTTP POST, we're interested in processing form data.
+    if request.method == 'POST':
+        #print request.POST
+        # Attempt to grab information from the raw form information.
+        # Note that we make use of both UserForm and UserProfileForm.
+        user_form = UserForm(data=request.POST)
+        profile_form = UserProfileForm(data=request.POST)
+
+        # If the two forms are valid...
+        if user_form.is_valid() and profile_form.is_valid():
+            # Save the user's form data to the database.
+            user = user_form.save()
+
+            # Now we hash the password with the set_password method.
+            # Once hashed, we can update the user object.
+            user.set_password(user.password)
+
+            # Assign units to user
+            selectedunit = request.GET.get('selectedunit', None)
+            if selectedunit is not None:
+                user.usersinunitoffering.add(selectedunit)
+            else:
+                for unit in user_form.cleaned_data['units']:
+                    user.usersinunitoffering.add(unit)
+
+            user.save()
+
+            # Now sort out the UserProfile instance.
+            # Since we need to set the user attribute ourselves, we set commit=False.
+            # This delays saving the model until we're ready to avoid integrity problems.
+            profile = profile_form.save(commit=False)
+            profile.user = user
+            profile.role = "Student"
+
+            # Now we save the UserProfile model instance.
+            profile.save()
+
+            # Update our variable to tell the template registration was successful.
+            registered = True
+
+        # Invalid form or forms - mistakes or something else?
+        # Print problems to the terminal.
+        # They'll also be shown to the user.
+        else:
+            print user_form.errors, profile_form.errors
+            course_code = request.POST.get('course_code', None)
+            if course_code is not None:
+                course = UnitOffering.objects.get(code=course_code)
+                show_units = False
+                selected_unit = course.id
+
+    # Not a HTTP POST, so we render our form using two ModelForm instances.
+    # These forms will be blank, ready for user input.
+    else:
+        print "loading forms"
+        user_form = UserForm()
+        profile_form = UserProfileForm()
+
+        course_code = request.GET.get('course_code', None)
+        if course_code is not None:
+            course = UnitOffering.objects.get(code=course_code)
+            show_units = False
+            selected_unit = course.id
+
+    # Render the template depending on the context.
+    return render_to_response(
+        'clatoolkit/register.html',
+            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, 'show_units': show_units, 'selected_unit': selected_unit, "course": course}, context)
 
 @login_required
 def socialmediaaccounts(request):
@@ -249,25 +251,25 @@ def socialmediaaccounts(request):
 
     if request.method == 'POST':
         profile_form = UserProfileForm(data=request.POST,instance=usr_profile)
-        units = UnitOffering.objects.filter(users=user_id)
+	units = UnitOffering.objects.filter(users=user_id)	
 
         if profile_form.is_valid():
             profile_form.save()
             return redirect('/dashboard/myunits')
         # Invalid form or forms - mistakes or something else?
         else:
-            print profile_form.errors #user_form.errors,
+            print profile_form.errors
 
     # Not a HTTP POST, so we render our form using two ModelForm instances.
     # These forms will be blank, ready for user input.
     else:
         profile_form = UserProfileForm(instance=usr_profile)
-        units = UnitOffering.objects.filter(users=user_id)
+	units = UnitOffering.objects.filter(users=user_id)	
 
     # Render the template depending on the context.
     return render_to_response(
         'clatoolkit/socialmediaaccounts.html',
-            {'profile_form': profile_form, 'units' : units}, context)
+            {'profile_form': profile_form, 'units': units}, context)
 
 
 def eventregistration(request):
@@ -394,6 +396,7 @@ class SNARESTView(DefaultsMixin, APIView):
         #myClass = CalcClass(get_arg1, get_arg2, *args, **kw)
         #print sna_buildjson(platform, course_code)
         result = json.loads(sna_buildjson(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude))
+        result["neighbours"] = json.loads(getNeighbours(json.dumps(result)))
         #{'nodes':["test sna","2nd test"]} #myClass.do_work()
         response = Response(result, status=status.HTTP_200_OK)
         return response

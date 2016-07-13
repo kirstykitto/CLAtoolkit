@@ -169,3 +169,4 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     insert_blogcomment(usr_dict, op_link, comment_link, comment_message, get_username_fromsmid(comment_smid, self.platform), comment_author, comment_post_date, course_code, self.platform, self.platform_url, get_username_fromsmid(op_smid,self.platform), get_username_fromsmid(op_smid, self.platform))
 
 registry.register(BlogrssPlugin)
+

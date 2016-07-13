@@ -21,13 +21,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'development' #os.environ['SECRET_KEY']
-
+#import django
+#django.setup()
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
-LOGIN_URL = '/'
 
 
 # Application definition
@@ -94,12 +93,21 @@ WSGI_APPLICATION = 'clatoolkit_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE' : 'django.db.backends.postgresql_psycopg2',
-        'NAME' : 'cladjangodb',
-        'USER' : 'zak',
-        'PASSWORD' : '',
+        'NAME' : 'clapgdb',
+        'USER' : 'postgres',
+        'PASSWORD' : 'talioncat',
         'HOST' : 'localhost',
         'PORT' : '5432'
+    },
+    
+    'tweetimport': {
+	'ENGINE': 'django.db.backends.sqlite3',
+	'NAME': os.path.join(BASE_DIR, 'tweetimport.sqlite3'),
     }
+}
+
+REST_FRAMEWORK = {
+	'UNAUTHENTICATED_USER': None,
 }
 
 # Internationalization
@@ -143,23 +151,25 @@ STATICFILES_FINDERS = (
 AUTH_PROFILE_MODULE = "account.userprofile"
 
 GA_TRACKING_ID = ''
-
+#
+#MEDIA_ROOT = os.path.join(BASE_DIR, 'static')
+#MEDIA_URL = '/static/'
 
 #####################################################
 ######### Load Social Media Data Integration plugins
 #####################################################
 
-import sys
-import pkgutil
-DI_PATH = os.path.join(BASE_DIR,'dataintegration')
-sys.path.append(DI_PATH)
-PLUGIN_PATH = os.path.join(DI_PATH,'plugins')
-pluginModules = [name for _, name, _ in pkgutil.iter_modules([PLUGIN_PATH])]
-from dataintegration.core.plugins.loader import load_dataintegration_plugins
-from dataintegration.core.plugins.registry import get_includeindashboardwidgets, get_plugins, get_includeindashboardwidgets_verbs, get_includeindashboardwidgets_platforms, get_includeauthomaticplugins_platforms
-load_dataintegration_plugins(pluginModules)
+#import sys
+#import pkgutil
+#DI_PATH = os.path.join(BASE_DIR,'dataintegration')
+#sys.path.append(DI_PATH)
+#PLUGIN_PATH = os.path.join(DI_PATH,'plugins')
+#pluginModules = [name for _, name, _ in pkgutil.iter_modules([PLUGIN_PATH])]
+#from dataintegration.core.plugins.loader import load_dataintegration_plugins
+#from dataintegration.core.plugins.registry import get_includeindashboardwidgets, get_plugins, get_includeindashboardwidgets_verbs, get_includeindashboardwidgets_platforms, get_includeauthomaticplugins_platforms
+#load_dataintegration_plugins(pluginModules)
 
-DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_VERBS = get_includeindashboardwidgets_verbs()
-DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_PLATFORMS = get_includeindashboardwidgets_platforms()
-DATAINTEGRATION_PLUGINS = get_plugins()
-DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC = get_includeauthomaticplugins_platforms()
+#DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_VERBS = get_includeindashboardwidgets_verbs()
+#DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_PLATFORMS = get_includeindashboardwidgets_platforms()
+#DATAINTEGRATION_PLUGINS = get_plugins()
+#DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC = get_includeauthomaticplugins_platforms()

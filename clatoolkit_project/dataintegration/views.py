@@ -22,11 +22,31 @@ from dataintegration.core.recipepermissions import *
 
 from django.conf import settings
 
-from rest_framework.decorators import api_view
-
 from dataintegration.googleLib import *
 from oauth2client.client import OAuth2WebServerFlow
 from django.contrib.sites.shortcuts import get_current_site
+
+import os
+
+
+##############################################
+# GitHub Data Extraction
+##############################################
+def refreshgithub(request):
+
+    html_response = HttpResponse()
+    course_code = request.GET.get('course_code')
+    repoUrls = request.GET.get('urls')
+
+    github_plugin = settings.DATAINTEGRATION_PLUGINS['GitHub']
+    ghDataList = github_plugin.perform_import(repoUrls, course_code)
+    post_smimport(course_code, "Github")
+
+    #html_response.write('GitHub Refreshed.')
+    #return html_response
+
+    return render(request, 'dataintegration/githubresult.html')
+
 
 ##############################################
 # Data Extraction for YouTube
@@ -197,13 +217,18 @@ def refreshblog(request):
     html_response.write('Blog Refreshed.')
     return html_response
 
-@api_view()
-def dipluginauthomaticdata(request):
-    return NotImplementedError
+#@api_view()
+#def dipluginauthomaticdata(request):
+#    return NotImplementedError
 
 def dipluginauthomaticlogin(request):
-    #Authomatic does not work with extra request parameters
-    #print 'request: %s' % request.GET
+    #Authomatic does not work with extra request parameters..... /sigh
+    #TODO: Figure out a work around for authomatic without using request parameters... /sigh
+    #todo: Idea: create temporary cache model to store params
+    #todo: send req with params to utility function via jquery ajax to store into db
+    #todo: get users platform/course_code/group_id by matching sm_id with that stored in tmp_db
+    #todo: after retreiving required data, remove the record from db.... /sigh
+    print 'request: %s' % request.GET
 
     if (request.GET.get('context') is not None):
         request.GET = request.GET.copy()
@@ -212,7 +237,7 @@ def dipluginauthomaticlogin(request):
         state_dict = state_dict[0]
         state_dict = json.loads(state_dict)
 
-        #print str(state_dict)
+        print str(state_dict)
 
         request.session['platform'] = state_dict['platform']
         request.session['course_code'] = state_dict['course_code']
@@ -360,3 +385,4 @@ def assigngroups(request):
     assign_groups_class(course_code)
     html_response.write('Groups Assigned')
     return html_response
+
