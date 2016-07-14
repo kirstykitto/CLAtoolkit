@@ -12,6 +12,8 @@ from django.db.models import Q
 import datetime
 from django.db.models import Count
 import random
+from rest_framework import status
+from django.http import JsonResponse
 
 
 def check_access(required_roles=None):
@@ -187,13 +189,13 @@ def snadashboard(request):
     comments_timeline = get_timeseries('commented', platform, course_code)
 
     sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
-    sna_neighbours = getNeighbours(sna_json)
+    #sna_neighbours = getNeighbours(sna_json)
     centrality = getCentrality(sna_json)
     context_dict = {
         'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform, 
         'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline, 
         'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
-        'sna_neighbours': sna_neighbours, 'centrality': centrality
+        'centrality': centrality
     }
 
     return render_to_response('dashboard/snadashboard.html', context_dict, context)
@@ -451,3 +453,48 @@ def myclassifications(request):
 
     context_dict = {'course_code':course_code, 'platform':platform, 'title': "Community of Inquiry Classification", 'username':username, 'uid':uid, 'classifications': classifications_list }
     return render_to_response('dashboard/myclassifications.html', context_dict, context)
+
+
+@login_required
+def ccadashboard(request):
+    context = RequestContext(request)
+
+    course_code = request.GET.get('course_code')
+    platform = request.GET.get('platform')
+
+    title = "CCA Dashboard: %s (Platform: %s)" % (course_code, platform)
+    
+    """
+    show_dashboardnav = True
+
+    posts_timeline = get_timeseries('created', platform, course_code)
+    shares_timeline = get_timeseries('shared', platform, course_code)
+    likes_timeline = get_timeseries('liked', platform, course_code)
+    comments_timeline = get_timeseries('commented', platform, course_code)
+
+    sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
+    centrality = getCentrality(sna_json)
+    context_dict = {
+        'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform, 
+        'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline, 
+        'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
+        'centrality': centrality
+    }
+    """
+    context_dict = {'course_code':course_code, 'platform':platform, 'title': title, }
+    
+    return render_to_response('dashboard/ccadashboard.html', context_dict, context)
+
+
+@login_required
+def ccadata(request):
+
+    # print request.GET.get('course_code')
+    # print request.GET.get('platform')
+
+    result = getCCAData(request.user, request.GET.get('course_code'), request.GET.get('platform'))
+    
+    #print result
+
+    response = JsonResponse(result, status=status.HTTP_200_OK)
+    return response
