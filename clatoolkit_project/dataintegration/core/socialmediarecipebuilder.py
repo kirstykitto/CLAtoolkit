@@ -60,7 +60,7 @@ def statement_builder(actor, verb, object, context, result, timestamp=None):
         )
     return statement
 
-def socialmedia_builder(verb, platform, account_name, account_homepage, object_type, object_id, message, tags=[], parent_object_type=None, parent_id=None, rating=None, instructor_name=None, instructor_email=None, team_name=None, course_code=None, account_email=None, user_name=None, timestamp=None):
+def socialmedia_builder(verb, platform, account_name, account_homepage, object_type, object_id, message, tags=[], parent_object_type=None, parent_id=None, rating=None, instructor_name=None, instructor_email=None, team_name=None, course_code=None, account_email=None, user_name=None, timestamp=None, otherObjTypeName=None, grand_parent=None):
     verbmapper = {'created': 'http://activitystrea.ms/schema/1.0/create', 'shared': 'http://activitystrea.ms/schema/1.0/share', 'liked': 'http://activitystrea.ms/schema/1.0/like', 'rated': 'http://id.tincanapi.com/verb/rated', 'commented': 'http://adlnet.gov/expapi/verbs/commented', 'added': 'http://adlnet.gov/expapi/verbs/added', 'updated': 'http://adlnet.gov/expapi/verbs/updated', 'removed': 'http://adlnet.gov/expapi/verbs/removed'}
     objectmapper = {'Note': 'http://activitystrea.ms/schema/1.0/note', 'Tag': 'http://id.tincanapi.com/activitytype/tag', 'Article': 'http://activitystrea.ms/schema/1.0/article', 'Video': 'http://activitystrea.ms/schema/1.0/video', 'Bookmark': 'http://activitystrea.ms/schema/1.0/bookmark', 'Collection': 'http://activitystrea.ms/schema/1.0/collection', 'File': 'http://activitystrea.ms/schema/1.0/file'}
 
@@ -95,6 +95,24 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
                 ),
             )
         taglist.append(tagobject)
+
+    if otherObjTypeName is not None:
+        otherObject = Activity(
+            id=object_id,
+            object_type=object_type,
+            definition=ActivityDefinition(
+                name=LanguageMap({'en-US': otherObjTypeName}),
+                type=objectmapper[object_type]
+            ),
+        )
+        taglist.append(otherObject)
+    if object_type == 'File':
+        otherObject = Activity(
+            id=grand_parent,
+            object_type=object_type
+        )
+        taglist.append(otherObject)
+
 
     parentlist = []
     if (verb in ['liked','shared','commented','rated']):
@@ -213,13 +231,14 @@ def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_t
         verb = "created"
         object = "Collection"
         parentObj = "Collection"
+        otherObjTypeName = "commit"
 
         stm = socialmedia_builder(
             verb=verb, platform=platform, account_name=from_uid, 
             account_homepage=platform_id, object_type=object, object_id=commit_id, 
             message=message, tags=tags, parent_object_type=parentObj, parent_id=parent_id, 
             timestamp=committed_time, account_email=usr_dict['email'], 
-            user_name=from_name, course_code=course_code)
+            user_name=from_name, course_code=course_code, otherObjTypeName=otherObjTypeName)
 
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
@@ -239,7 +258,7 @@ def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_t
         socialrelationship.save()
 
 
-def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time, course_code, parent_id, platform, platform_id, platform_parentid, verb, commit_username=None, tags=[]):
+def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time, course_code, parent_id, platform, platform_id, platform_parentid, verb, repoUrl, additions, deletions, commit_username=None, tags=[]):
     if check_ifnotinlocallrs(course_code, platform, file_id):
         object = "File"
         parentObj = "Collection"
@@ -249,7 +268,7 @@ def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time,
             account_homepage=platform_id, object_type=object, object_id=file_id, 
             message=message, tags=tags, parent_object_type=parentObj, parent_id=parent_id, 
             timestamp=committed_time, account_email=usr_dict['email'], 
-            user_name=from_name, course_code=course_code)
+            user_name=from_name, course_code=course_code, grand_parent=repoUrl)
 
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
@@ -258,7 +277,7 @@ def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time,
             platform=platform, username=get_username_fromsmid(from_uid, platform), 
             platformid=platform_id, platformparentid=platform_parentid, 
             parentusername=get_username_fromsmid(commit_username, platform), 
-            message=message, datetimestamp=committed_time)
+            message=message, datetimestamp=committed_time, numofcontentadd=additions, numofcontentdel=deletions)
         lrs.save()
         socialrelationship = SocialRelationship(
             verb = verb, 
