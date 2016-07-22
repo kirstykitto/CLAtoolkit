@@ -42,6 +42,10 @@ Diigo Tags: {% for tag in unit.diigo_tags_as_list %} <a href="https://www.diigo.
 {% if unit.github_urls_as_list|length > 0 %}
 GitHub URLs: {% for url in unit.github_urls_as_list %} <a href="{{url}}" target="_blank">{{url}}</a>  {% endfor %} [<a href="/dashboard/?course_code={{unit.code}}&platform=GitHub">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=GitHub">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=GitHub">Social Network Analysis</a>] | <a href="/dataintegration/refreshgithub/?course_code={{unit.code}}&course_id={{unit.id}}&urls={{unit.github_urls|urlencode}}&platform=GitHub">Refresh Imported Data</a>
 {% endif %}
+
+{% if unit.trello_boards_as_list|length > 0 %}
+    Trello Boards signed up: {{unit.trello_boards_as_list|length}} || <a href="/dataintegration/refreshtrello/?course_code={{unit.code}}&course_id={{unit.id}}&boards={{unit.attached_trello_boards|urlencode}}&platform=trello">Refresh Imported Data</a> <div id="trello_import_sucess"></div>
+{% endif %}
 {% if unit.enable_coi_classifier %}
 <hr/>
 {% if unit.code == 'IFN614' %}
@@ -65,6 +69,9 @@ CLA Toolkit Unit Registration Link for Students: http://clatoolkit.beyondlms.org
 <div class="alert alert-warning">
     <strong>Note:</strong> Your social media content has not been imported. Imports are scheduled overnight. Please login and check tomorrow.
 </div>
+
+    <a href="#" onclick="javascript:get_and_link_board('{{unit.code}}')">Attach a Trello Board to plan your Work!</a>
+    <div id="trello_board_display"></div>
 {% else %}
 <p>
 <a href="/dashboard/mydashboard?course_code={{unit.code}}&platform=all">Go to My Social Media Dashboard</a>
@@ -76,6 +83,12 @@ CLA Toolkit Unit Registration Link for Students: http://clatoolkit.beyondlms.org
 <a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=YouTube">View Community of Inquiry Classifications</a>
 {% endif %}
 {% endif %}
+
+
+
+
+
+    </div>
 </p>
 {% endif %}
 
@@ -94,8 +107,27 @@ CLA Toolkit Unit Registration Link for Students: http://clatoolkit.beyondlms.org
 {% block js_block %}
 {% autoescape off %}
 <script>
-$(function() {
+    function get_and_link_board(course_code) {
+        $.ajax({
+            url: "/dashboard/getBoards?key=c908d424dda56c79d373f780a1ae26c7&course_code="+course_code,
+            type: 'GET',
+            success: function(response) {
+                document.getElementById('trello_board_display').innerHTML = response;
+            }
+        });
+    }
 
+    function add_board(course_code, id) {
+        $.ajax({
+           url: "/dashboard/addboardtocourse?course_code="+course_code+"&id="+id,
+           type: 'GET',
+           success: function(response) {
+               document.getElementById('trello_board_display').innerHTML = response;
+           }
+        });
+    }
+$(function() {
+   // $('#trello_board_display').hide();
 });
 </script>
 {% endautoescape %}

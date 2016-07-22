@@ -20,7 +20,7 @@ import numpy as np
 from sklearn.cluster import AffinityPropagation
 
 import subprocess
-import igraph
+import jgraph
 from collections import OrderedDict
 
 def classify(course_code, platform):

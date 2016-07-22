@@ -48,6 +48,14 @@ class UserProfile(models.Model):
     #GitHub user account
     github_account_name = models.CharField(max_length=255, blank=True)
 
+    #Trello user ID
+    trello_account_name = models.CharField(max_length=255, blank=True)
+
+class UserTrelloCourseBoardMap(models.Model):
+    user = models.ForeignKey(User)
+    course_code = models.CharField(max_length=1000, blank=False)
+    board_id = models.CharField(max_length=5000, blank=False)
+
 class OfflinePlatformAuthToken(models.Model):
     user = models.ForeignKey(User)
     token = models.CharField(max_length=1000, blank=False)
@@ -55,9 +63,9 @@ class OfflinePlatformAuthToken(models.Model):
 
 class OauthFlowTemp(models.Model):
     googleid = models.CharField(max_length=1000, blank=False)
-    platform = models.CharField(max_length=1000, blank=False)
-    course_code = models.CharField(max_length=1000, blank=False)
-    transferdata = models.CharField(max_length=1000, blank=False)
+    platform = models.CharField(max_length=1000, blank=True)
+    course_code = models.CharField(max_length=1000, blank=True)
+    transferdata = models.CharField(max_length=1000, blank=True)
 
 class LearningRecord(models.Model):
     xapi = JsonField()
@@ -150,6 +158,9 @@ class UnitOffering(models.Model):
     # GitHub Repository URLs
     github_urls = models.TextField(blank=True)
 
+    # Trello board IDs
+    attached_trello_boards = models.TextField(blank=True)
+
     # Determines which platforms should be utilized by COI classifier
     coi_platforms = models.TextField(blank=True)
 
@@ -161,6 +172,12 @@ class UnitOffering(models.Model):
 
     def __unicode__(self):
         return self.code + " " + self.name
+
+    def trello_boards_as_list(self):
+        if self.attached_trello_boards:
+            return self.attached_trello_boards.split(',')
+        else:
+            return []
 
     def twitter_hashtags_as_list(self):
         if self.twitter_hashtags:
@@ -212,7 +229,7 @@ class UnitOffering(models.Model):
 
 
 class ApiCredentials(models.Model):
-    platform = models.CharField(max_length=5000, blank=False)
+    platform_uid = models.CharField(max_length=5000, blank=False)
     credentials_json = JsonField()
 
 class DashboardReflection(models.Model):

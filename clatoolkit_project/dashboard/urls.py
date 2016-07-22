@@ -12,5 +12,7 @@ urlpatterns = patterns('',
     url(r'^student_dashboard/$', views.studentdashboard, name='studentdashboard'),
     url(r'^mydashboard/$', views.mydashboard, name='mydashboard'),
     url(r'^pyldavis/$', views.pyldavis, name='pyldavis'),
-    url(r'^myclassifications/$', views.myclassifications, name='myclassifications')
+    url(r'^myclassifications/$', views.myclassifications, name='myclassifications'),
+    url(r'^getBoards/$', views.get_trello_boards, name='gettrelloboards'),
+    url(r'^addboardtocourse/$', views.add_board_to_course, name='addboardtocourse'),
 )

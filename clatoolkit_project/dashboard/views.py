@@ -4,7 +4,7 @@ from django.template import RequestContext
 from django.http import HttpResponse
 from django.db import connection
 from utils import *
-from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap
+from clatoolkit.models import OauthFlowTemp, UnitOffering, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserTrelloCourseBoardMap
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from functools import wraps
@@ -12,6 +12,73 @@ from django.db.models import Q
 import datetime
 from django.db.models import Count
 import random
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+import requests
+
+#Attach trello board
+@login_required
+@api_view()
+def get_trello_boards(request):
+    user_profile = UserProfile.objects.get(user=request.user)
+    trello_member_id = user_profile.trello_account_name
+    token_qs = OauthFlowTemp.objects.get(googleid=trello_member_id)
+    token = token_qs.transferdata
+    key = request.GET.get('key')
+    course_code = request.GET.get('course_code')
+
+    print key + ' >>>>> ' + token
+
+    trello_boardsList_url = 'https://api.trello.com/1/member/me/boards?key=%s&token=%s' % (key,token)
+
+    r = requests.get(trello_boardsList_url)
+    print "got response %s" % r.json()
+    boardsList = r.json()
+
+    board_namesList = []
+    board_namesList.append('<ul>')
+
+    for board in boardsList:
+        board_namesList.append('<li>')
+        #board = json.load(board)
+        #format to something nice :)
+        board_name = board['name']
+        board_url = board['url']
+        board_id = board['id']
+
+        html_resp = '<a href="#" class="board_choice" onclick="javascript:add_board(\''+course_code+'\',\''+board_id+'\')">'+board_name+'</a>'
+
+        board_namesList.append(html_resp)
+        board_namesList.append('</li>')
+    board_namesList.append('</ul>')
+
+    return Response(('').join(board_namesList))
+
+@login_required
+@api_view()
+def add_board_to_course(request):
+    course = UnitOffering.objects.get(code=request.GET.get('course_code'))
+    board_list = course.attached_trello_boards
+
+    print 'board list %s' % (board_list)
+    print 'board list is "": %s' % (board_list == '')
+
+    if board_list == '':
+        new_board_list = request.GET.get('id')
+    else:
+        new_board_list = board_list+','+request.GET.get('id')
+
+    course.attached_trello_boards = new_board_list
+
+    course.save()
+
+    trello_user_course_map = UserTrelloCourseBoardMap(user=request.user, course_code=course.code, board_id=request.GET.get('id'))
+
+    trello_user_course_map.save()
+
+    return Response('<b>Board successfully added to course - <a href="/dashboard/myunits/">Reload</a></b>')
 
 
 def check_access(required_roles=None):
@@ -50,6 +117,8 @@ def myunits(request):
     show_dashboardnav = False
 
     shownocontentwarning = False
+
+    trello_noBoardsAttached = False
 
     #if student check if the student has imported data
     if role=='Student':
