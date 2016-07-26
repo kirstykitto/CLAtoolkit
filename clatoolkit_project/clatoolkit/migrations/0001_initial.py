@@ -61,15 +61,6 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='GroupMap',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('course_code', models.CharField(max_length=5000)),
-                ('groupId', models.IntegerField()),
-                ('userId', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
-            ],
-        ),
-        migrations.CreateModel(
             name='LearningRecord',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),

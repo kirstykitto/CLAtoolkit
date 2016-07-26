@@ -48,6 +48,9 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             repoFullName = url.lstrip(STR_PLATFORM_URL_GITHUB)
             gh = Github(token, per_page=self.parPage)
             # Use .rstrip() to eliminate line-change cord
+
+            print "repo name = " + repoFullName.rstrip()
+
             repo = gh.get_repo(repoFullName.rstrip())
             self.importGitHubCommits(course_code, url, token, repo)
             self.importGitHubIssues(course_code, url, token, repo, gh)
@@ -196,17 +199,23 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         # Retrieve commit data
         while True:
             for commit in commitList:
+                committerName = ""
+                email = ""
                 if commit.committer is None:
                     # 
-                    # When committer's email configured in his/her local repository does not match
+                    # When committer's email address registered in his/her local repository does not match
                     # to GitHub account's email, commit.committer or commit.authoer will be null in GitHub API resposen.
                     # Thus, PyGithub object has None when that happens.
                     # https://api.github.com/repos/luantrongtran/7colours-DementiaWatch/commits/d420df8defc273fb9acf56aa4e334377d556ec3f
-                    print "commit.committer is null."
+                    #print "commit.committer is null. This commit data " + commit.sha + " is ignored."
+                    print "commit.committer is null. url = " + commit.html_url
+                    #committerName = commit.author.name
+                    #email = commit.author.email
                     continue
-                #committerName = commit.commit.committer.name
-                committerName = commit.committer.login
-                email = commit.commit.committer.email
+                else:
+                    #committerName = commit.commit.committer.name
+                    committerName = commit.committer.login
+                    email = commit.commit.committer.email
                 #commitID = commit.sha
                 msg = commit.commit.message
                 commitHtmlURL = commit.html_url
@@ -243,8 +252,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         #claUserName = get_username_fromsmid(committerName, self.platform)
                         insert_file(usr_dict, file.blob_url, patch, committerName, claUserName,
                             date, courseCode, commitHtmlURL, self.platform, file.blob_url, 
-                            commitHtmlURL, verb, committerName)
-
+                            commitHtmlURL, verb, repoUrl, file.additions, file.deletions, committerName)
 
             # End of for commit in commitList:
 
