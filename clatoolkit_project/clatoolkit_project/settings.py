@@ -20,8 +20,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ['SECRET_KEY']
-
+SECRET_KEY = 'development' #os.environ['SECRET_KEY']
+#import django
+#django.setup()
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -78,7 +79,7 @@ WSGI_APPLICATION = 'clatoolkit_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 
-DATABASES = {
+'''DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': os.environ['DB_NAME'],
@@ -87,6 +88,26 @@ DATABASES = {
         'HOST': os.environ['DB_SERVICE'],
         'PORT': os.environ['DB_PORT']
     }
+}'''
+
+DATABASES = {
+    'default': {
+        'ENGINE' : 'django.db.backends.postgresql_psycopg2',
+        'NAME' : 'cladjangodb',
+        'USER' : '',
+        'PASSWORD' : '',
+        'HOST' : 'localhost',
+        'PORT' : '5432'
+    },
+    
+    'tweetimport': {
+	'ENGINE': 'django.db.backends.sqlite3',
+	'NAME': os.path.join(BASE_DIR, 'tweetimport.sqlite3'),
+    }
+}
+
+REST_FRAMEWORK = {
+	'UNAUTHENTICATED_USER': None,
 }
 
 # Internationalization
@@ -130,7 +151,9 @@ STATICFILES_FINDERS = (
 AUTH_PROFILE_MODULE = "account.userprofile"
 
 GA_TRACKING_ID = ''
-
+#
+#MEDIA_ROOT = os.path.join(BASE_DIR, 'static')
+#MEDIA_URL = '/static/'
 
 #####################################################
 ######### Load Social Media Data Integration plugins
