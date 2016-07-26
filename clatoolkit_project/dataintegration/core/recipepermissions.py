@@ -141,7 +141,8 @@ def get_smids_fromuid(uid):
     forum_id = user.userprofile.forum_id
     google_id = user.userprofile.google_account_name
     github_id = user.userprofile.github_account_name
-    return twitter_id, fb_id, forum_id, google_id, github_id
+    trello_id = user.userprofile.trello_account_name
+    return twitter_id, fb_id, forum_id, google_id, github_id, trello_id
 
 def get_smids_fromusername(username):
     user = User.objects.get(username=username)

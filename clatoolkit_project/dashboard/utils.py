@@ -19,9 +19,14 @@ from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 import numpy as np
 from sklearn.cluster import AffinityPropagation
 
+from django.conf import settings
+
 import subprocess
-import jgraph
+import igraph
 from collections import OrderedDict
+
+def getPluginKey(platform):
+    return settings.DATAINTEGRATION_PLUGINS[platform].api_config_dict['api_key']
 
 def classify(course_code, platform):
     #Calls JAR to extract and classify messages

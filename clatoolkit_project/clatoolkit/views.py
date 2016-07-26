@@ -251,7 +251,7 @@ def socialmediaaccounts(request):
 
     if request.method == 'POST':
         profile_form = UserProfileForm(data=request.POST,instance=usr_profile)
-	units = UnitOffering.objects.filter(users=user_id)	
+        units = UnitOffering.objects.filter(users=user_id)
 
         if profile_form.is_valid():
             profile_form.save()
@@ -264,7 +264,7 @@ def socialmediaaccounts(request):
     # These forms will be blank, ready for user input.
     else:
         profile_form = UserProfileForm(instance=usr_profile)
-	units = UnitOffering.objects.filter(users=user_id)	
+        units = UnitOffering.objects.filter(users=user_id)
 
     # Render the template depending on the context.
     return render_to_response(

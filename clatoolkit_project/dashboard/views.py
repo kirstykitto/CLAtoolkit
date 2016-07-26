@@ -35,6 +35,8 @@ def get_trello_boards(request):
 
     r = requests.get(trello_boardsList_url)
     print "got response %s" % r.json()
+
+    print 'course_code: %s' % (course_code)
     boardsList = r.json()
 
     board_namesList = []
@@ -107,6 +109,50 @@ def check_access(required_roles=None):
         return wrapper
     return decorator
 
+
+@login_required
+@api_view()
+def trello_remove_board(request):
+    course_code = request.GET.get('course_code')
+
+    trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, course_code=course_code)
+    trello_user_course_map.delete()
+
+    return myunits(request)
+
+@login_required
+@api_view()
+def trello_myunits_restview(request):
+        course_code = request.GET.get('course_code')
+
+
+        trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, course_code=course_code)
+
+        if trello_user_course_map:
+
+            token_qs = OauthFlowTemp.objects.filter(googleid=request.user.userprofile.trello_account_name)
+            if token_qs:
+                key = getPluginKey('trello')
+
+                http = 'https://api.trello.com/1/boards/%s?key=%s&token=%s' % (trello_user_course_map[0].board_id,key,token_qs[0].transferdata)
+
+                print http
+
+                r = requests.get(http)
+
+                print 'result: %s' % (r.json())
+
+                board = r.json()
+
+                response = {'data': '<a href="'+board['url']+'""><i class="fa fa-trello" aria-hidden="true"></i>   '+board['name']+'</a> | '
+                            '<a href="/dashboard/removeBoard?course_code='+course_code+'">Remove</a>', 'course_code': course_code}
+
+                return Response(response)
+        else:
+            response = {'data': '<a href="#" onclick="javascript:get_and_link_board(\''+course_code+'\')">Attach a Trello Board to plan your Work!</a>'
+                            '<div id="trello_board_display"></div>', 'course_code': course_code}
+            return Response(response)
+
 @login_required
 def myunits(request):
     context = RequestContext(request)
@@ -118,7 +164,9 @@ def myunits(request):
 
     shownocontentwarning = False
 
-    trello_noBoardsAttached = False
+    trello_attached = not request.user.userprofile.trello_account_name == ''
+
+    print trello_attached
 
     #if student check if the student has imported data
     if role=='Student':
@@ -126,7 +174,8 @@ def myunits(request):
         if LearningRecord.objects.filter(username__iexact=username).count() == 0:
             shownocontentwarning = True
 
-    context_dict = {'title': "My Units", 'units': units, 'show_dashboardnav':show_dashboardnav, 'shownocontentwarning': shownocontentwarning, 'role': role}
+    context_dict = {'title': "My Units", 'units': units, 'show_dashboardnav':show_dashboardnav, 'shownocontentwarning': shownocontentwarning, 'role': role,
+                     'trello_attached_to_acc': trello_attached}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
 

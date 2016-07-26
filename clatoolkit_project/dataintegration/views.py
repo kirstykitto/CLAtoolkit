@@ -132,7 +132,7 @@ def refreshgoogleauthflow(request):
     # store request data in temp table
     # there is no other way to send these with the url (in querystring) as the return url must be registered
     # and session var won't save due to redirect
-    twitter_id, fb_id, forum_id, google_id = get_smids_fromuid(user.id)
+    twitter_id, fb_id, forum_id, google_id, github_id, trello_id = get_smids_fromuid(user.id)
     t = OauthFlowTemp.objects.filter(googleid=google_id).delete()
     temp_transfer_data = OauthFlowTemp(googleid=google_id, course_code=course_code, platform=platform, transferdata=channelIds)
     temp_transfer_data.save()
