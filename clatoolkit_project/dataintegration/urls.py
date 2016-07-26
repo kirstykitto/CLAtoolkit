@@ -20,5 +20,7 @@ urlpatterns = patterns(
     url(r'^assigngroups/$', views.assigngroups, name='assigngroups'),
     url(r'^dipluginauthomaticlogin/$', views.dipluginauthomaticlogin, name='dipluginauthomaticlogin'),
     url(r'^refreshgithub/$', views.refreshgithub, name='refreshgithub'),
+    url(r'^process_trello/$', views.process_trello, name='processtrello'),
+    url(r'^refreshtrello/$', views.refreshtrello, name='refreshtrello'),
     #url(r'^ytAuthCallback/(?P<course_id>\d+)/$', views.ytAuthCallback, name='ytAuthCallback'),
 )

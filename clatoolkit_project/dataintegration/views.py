@@ -12,13 +12,16 @@ from dataintegration.tasks import *
 from .forms import FacebookGatherForm
 import json
 from pprint import pprint
-from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp
+from clatoolkit.models import UserTrelloCourseBoardMap, ApiCredentials, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp
 from django.db import connection
 import dateutil.parser
 from dashboard.utils import *
 from dataintegration.groupbuilder import *
 from dataintegration.core.processingpipeline import *
 from dataintegration.core.recipepermissions import *
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 from django.conf import settings
 
@@ -27,6 +30,71 @@ from oauth2client.client import OAuth2WebServerFlow
 from django.contrib.sites.shortcuts import get_current_site
 
 import os
+import requests
+
+##############################################
+# Process Trello Link
+##############################################
+@api_view(['GET'])
+def process_trello(request):
+    token = request.GET.get("token")
+    key = request.GET.get("key")
+
+    trello_member_url = 'https://api.trello.com/1/tokens/%s/member?key=%s' % (token, key)
+
+    #Get trello member ID
+    r = requests.get(trello_member_url)
+    #print "got response %s" % r.json()
+    member_json = r.json()
+    member_id = member_json['id']
+
+    token_storage = OauthFlowTemp(googleid=member_id, transferdata=token, platform='trello')
+    token_storage.save()
+
+    request.session['trello_memberid'] = member_id
+
+    return Response(member_id)
+
+
+##############################################
+# Trello Data Extraction
+##############################################
+# TODO: ADD STUDENT REFRESH
+@api_view()
+def refreshtrello(request):
+    course_code = request.GET.get('course_code')
+    trello_courseboard_ids = request.GET.get('boards')
+    trello_courseboard_ids = trello_courseboard_ids.split(',')
+    print course_code
+
+    print trello_courseboard_ids
+
+    trello_plugin = settings.DATAINTEGRATION_PLUGINS['trello']
+    diag_count = 0
+
+    for board_id in trello_courseboard_ids:
+        trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(board_id=board_id).filter(course_code=course_code)[0]
+        print 'got trello user course board map: %s' % (trello_user_course_map)
+
+        user = trello_user_course_map.user
+        usr_profile = UserProfile.objects.get(user=user)
+        token = OauthFlowTemp.objects.get(googleid=usr_profile.trello_account_name)
+
+
+        print 'Performing Trello Board Import for User: %s' % (user)
+        trello_plugin.perform_import(board_id, course_code, token=token.transferdata)
+        diag_count = diag_count + 1
+
+    post_smimport(course_code, 'trello')
+
+    return Response('<b>Trello refresh complete: %s users updated.</b>' % (diag_count))
+
+
+
+
+
+
+
 
 
 ##############################################
@@ -38,7 +106,7 @@ def refreshgithub(request):
     course_code = request.GET.get('course_code')
     repoUrls = request.GET.get('urls')
 
-    github_plugin = settings.DATAINTEGRATION_PLUGINS['GitHub']
+    github_plugin = settings.DATAINTEGRATION_PLUGINS['github']
     ghDataList = github_plugin.perform_import(repoUrls, course_code)
     post_smimport(course_code, "Github")
 
@@ -64,7 +132,7 @@ def refreshgoogleauthflow(request):
     # store request data in temp table
     # there is no other way to send these with the url (in querystring) as the return url must be registered
     # and session var won't save due to redirect
-    twitter_id, fb_id, forum_id, google_id = get_smids_fromuid(user.id)
+    twitter_id, fb_id, forum_id, google_id, github_id, trello_id = get_smids_fromuid(user.id)
     t = OauthFlowTemp.objects.filter(googleid=google_id).delete()
     temp_transfer_data = OauthFlowTemp(googleid=google_id, course_code=course_code, platform=platform, transferdata=channelIds)
     temp_transfer_data.save()
@@ -217,20 +285,57 @@ def refreshblog(request):
     html_response.write('Blog Refreshed.')
     return html_response
 
+#@api_view()
+#def dipluginauthomaticdata(request):
+#    return NotImplementedError
+
 def dipluginauthomaticlogin(request):
-    platform = request.GET.get('platform')
-    course_code = request.GET.get('course_code')
-    group_id = request.GET.get('group_id')
+    #Authomatic does not work with extra request parameters..... /sigh
+    #TODO: Figure out a work around for authomatic without using request parameters... /sigh
+    #todo: Idea: create temporary cache model to store params
+    #todo: send req with params to utility function via jquery ajax to store into db
+    #todo: get users platform/course_code/group_id by matching sm_id with that stored in tmp_db
+    #todo: after retreiving required data, remove the record from db.... /sigh
+    print 'request: %s' % request.GET
+
+    if (request.GET.get('context') is not None):
+        request.GET = request.GET.copy()
+
+        state_dict = request.GET.pop('context')
+        state_dict = state_dict[0]
+        state_dict = json.loads(state_dict)
+
+        print str(state_dict)
+
+        request.session['platform'] = state_dict['platform']
+        request.session['course_code'] = state_dict['course_code']
+        request.session['group_id'] = state_dict['group']
+
+    print 'Data stored in session: %s, %s, %s' % (request.session['platform'], request.session['course_code'], request.session['group_id'])
+
+    platform = request.session['platform']
+
+    #if (request.GET.get('platform') and
+    #    request.GET.get('course_code') and
+    #    request.GET.get('group') is not None):
+
 
     html_response = HttpResponse()
 
+    #print 'Platform exists? %s' % (platform in settings.DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC)
     if (platform in settings.DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC):
         di_plugin = settings.DATAINTEGRATION_PLUGINS[platform]
         authomatic = Authomatic(di_plugin.authomatic_config_json, di_plugin.authomatic_secretkey)
+
         result = authomatic.login(DjangoAdapter(request, html_response), di_plugin.authomatic_config_key, report_errors=True)
+
+        print di_plugin
+
+        print di_plugin.authomatic_config_json
 
         # If there is no result, the login procedure is still pending.
         # Don't write anything to the response if there is no result!
+        print result
         if result:
             # If there is result, the login procedure is over and we can write to response.
             html_response.write('<a href="..">Home</a>')
@@ -254,14 +359,23 @@ def dipluginauthomaticlogin(request):
                 # If there are credentials (only by AuthorizationProvider),
                 # we can _access user's protected resources.
                 if result.user.credentials:
+                    group_id = request.session['group_id']
+                    course_code = request.session['course_code']
                     if result.provider.name == 'fb':
                         di_plugin.perform_import(group_id, course_code, result)
 
                         post_smimport(course_code, "Facebook")
-                        html_response.write('Updating Facebook for ' + course_code)
-        else:
-            html_response.write('Auth Returned no Response.')
 
+                        #Remove all data stored in session for this view to avoid cache issues
+                        del request.session['platform']
+                        del request.session['course_code']
+                        del request.session['group_id']
+                        html_response.write('Updating Facebook for ' + course_code)
+                        #return html_response
+    else:
+        return html_response.write('Auth returned no Response.')
+
+    #print html_response
     return html_response
 
 def get_social_media_id(request):
@@ -274,20 +388,25 @@ def get_social_media_id(request):
     # We we need the response object for the adapter.
     html_response = HttpResponse()
 
+    #Facebook endpoints break on GET variables.....
+    platform = request.GET.get('platform')
 
     if (platform in settings.DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC):
+
         di_plugin = settings.DATAINTEGRATION_PLUGINS[platform]
         authomatic = Authomatic(di_plugin.authomatic_config_json, di_plugin.authomatic_secretkey)
         result = authomatic.login(DjangoAdapter(request, html_response), di_plugin.authomatic_config_key, report_errors=True)
 
         # If there is no result, the login procedure is still pending.
         # Don't write anything to the response if there is no result!
+        print result
         if result:
             # If there is result, the login procedure is over and we can write to response.
             #html_response.write('<a href="..">Home</a>')
 
             if result.error:
                 # Login procedure finished with an error.
+                print 'ERROR: %s' % (str(result.error))
                 html_response.write('<p>Error: {0}</p>'.format(result.error.message))
 
             elif result.user:
@@ -335,3 +454,4 @@ def assigngroups(request):
     assign_groups_class(course_code)
     html_response.write('Groups Assigned')
     return html_response
+

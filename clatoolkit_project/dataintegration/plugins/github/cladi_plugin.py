@@ -11,7 +11,7 @@ import os
 
 class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
-    platform = "GitHub"
+    platform = "github"
     platform_url = "https://github.com/"
 
     xapi_verbs = ['created', 'added', 'removed', 'updated', 'commented']
