@@ -118,6 +118,14 @@ def trello_remove_board(request):
     course_code = request.GET.get('course_code')
 
     trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, course_code=course_code)
+    unit = UnitOffering.objects.get(code=course_code)
+
+    #pythonic code below removes the ID of the attached board being removed
+    unit.attached_trello_boards = ','.join([board for board in unit.attached_trello_boards.split(',')
+                           if board is not trello_user_course_map.board_id[0]])
+
+    unit.save()
+
     trello_user_course_map.delete()
 
     return myunits(request)

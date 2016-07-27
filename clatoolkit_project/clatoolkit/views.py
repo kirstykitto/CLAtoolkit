@@ -173,6 +173,7 @@ def register(request):
     show_units = True
     selected_unit = 0
     course = None
+    platforms = []
 
     # If it's a HTTP POST, we're interested in processing form data.
     if request.method == 'POST':
@@ -225,6 +226,10 @@ def register(request):
                 show_units = False
                 selected_unit = course.id
 
+                platforms = course.get_required_platforms()
+                #get social media to be used
+
+
     # Not a HTTP POST, so we render our form using two ModelForm instances.
     # These forms will be blank, ready for user input.
     else:
@@ -238,10 +243,13 @@ def register(request):
             show_units = False
             selected_unit = course.id
 
+            platforms = course.get_required_platforms()
+
     # Render the template depending on the context.
     return render_to_response(
         'clatoolkit/register.html',
-            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, 'show_units': show_units, 'selected_unit': selected_unit, "course": course}, context)
+            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered,
+             'show_units': show_units, 'selected_unit': selected_unit, "course": course, "req_platforms": platforms}, context)
 
 @login_required
 def socialmediaaccounts(request):

@@ -102,14 +102,17 @@
                 {% else  %}
 
                 <!-- Twitter -->
+                {% if 'twitter' in req_platforms %}
                 <div><a href="#" class="form_control" handle="twitter">Attach Twitter Account</a></div>
                 <div id="twitter_input" class="form-group">
                   <p class="help-block">{{ profile_form.twitter_id.errors }}</p>
                   <label for="id_twitter_id">Twitter Username:</label> (Don't include the @ prefix.)<br />
                   {{ profile_form.twitter_id }}
                 </div>
+                {% endif %}
 
                 <!-- Facebook -->
+                {% if 'facebook' in req_platforms %}
                 <div><a href="#" class="form_control" handle="facebook">Attach Facebook Account</a></div>
                 <div id="facebook_input" class="form-group">
                   <p class="help-block">{{ profile_form.fb_id.errors }}</p>
@@ -120,8 +123,10 @@
                     <a href="/dataintegration/get_social/?platform=facebook" target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
                   </p>
                 </div>
+                {% endif %}
 
                 <!-- Youtube -->
+                {% if 'youtube' in req_platforms %}
                 <div><a href="#" class="form_control" handle="youtube">Attach YouTube Account</a></div>
                 <div id="youtube_input" class="form-group">
                   <p class="help-block">{{ profile_form.google_account_name.errors }}</p>
@@ -131,29 +136,39 @@
                     <a href="/dataintegration/get_youtubechannel" target="_blank">Click here to get your YouTube Channel ID - you will need to be logged into YouTube (opens in new tab)</a>
                   </p>
                 </div>
+                {% endif %}
 
                 <!-- Diigo -->
+                {% if 'diigo' in req_platforms %}
                 <div><a href="#" class="form_control" handle="diigo"">Attach Diigo Account</a></div>
                 <div id="diigo_input" class="form-group">
                   <p class="help-block">{{ profile_form.diigo_username.errors }}</p>
                   <label for="id_diigo_username">Diigo Username:</label><br />
                   {{ profile_form.diigo_username }}
                 </div>
+                {% endif %}
 
                 <!-- Blog -->
+                {% if 'blog' in req_platforms %}
                 <div><a href="#" class="form_control" handle="blog">Attach Blog (RSS-Compatible blogs only)</a></div>
                 <div id="blog_input" class="form-group">
                   <p class="help-block">{{ profile_form.blog_id.errors }}</p>
                   <label for="id_blog_id">Blog Username:</label><br />
                   {{ profile_form.blog_id }}
                 </div>
+                {% endif %}
 
+                <!-- Github -->
+                {% if 'github' in req_platforms %}
 		        <div class="form-group">
                   <p class="help-block">{{ profile_form.github_account_name.errors }}</p>
                   <label for="id_github_account_name">GitHub Account:</label><br />
                   {{ profile_form.github_account_name }}
                 </div>
+                {% endif %}
 
+                <!-- Trello -->
+                {% if 'trello' in req_platforms %}
                 <div class="form-group">
                   <p class="help-block">{{ profile_form.trello_account.errors }}</p>
                   <label for="id_trello_account_name">Trello:</label><br />
@@ -163,6 +178,7 @@
                       <a id="trellolink" href="#" onclick="javascript:get_and_link_trello();" target="_blank">Click here to link your trello profile</a>
                   </p>
                 </div>
+                {% endif %}
 
                     {% endif %}
                 <p>

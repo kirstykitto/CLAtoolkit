@@ -222,10 +222,32 @@ class UnitOffering(models.Model):
             return []
 
     def coi_platforms_as_list(self):
-	if self.coi_platforms:
-	    return self.coi_platforms.split(',')
-	else:
-	    return []
+        if self.coi_platforms:
+            return self.coi_platforms.split(',')
+        else:
+            return []
+
+    def get_required_platforms(self):
+        platforms = []
+
+        if len(self.twitter_hashtags_as_list()):
+            platforms.append('twitter')
+        if len(self.facebook_groups_as_list()):
+            platforms.append('facebook')
+        if len(self.forum_urls_as_list()):
+            platforms.append('forum')
+        if len(self.youtube_channelIds_as_list()):
+            platforms.append('youtube')
+        if len(self.diigo_tags_as_list()):
+            platforms.append('diigo')
+        if len(self.blogmember_urls_as_list()):
+            platforms.append('blog')
+        if len(self.github_urls_as_list()):
+            platforms.append('github')
+        if len(self.trello_boards_as_list()):
+            platforms.append('trello')
+
+        return platforms
 
 
 class ApiCredentials(models.Model):
