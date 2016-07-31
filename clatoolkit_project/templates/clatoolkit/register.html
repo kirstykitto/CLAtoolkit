@@ -107,7 +107,7 @@
                   {{ profile_form.fb_id }}
                   <p>
                       <!---->
-                    <a href="/dataintegration/get_social/?platform=facebook" target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
+                    <a href='/dataintegration/get_social/?context={"platform": "facebook"}' target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
                   </p>
                 </div>
                 {% endif %}
@@ -355,6 +355,7 @@
 </div>
 <!-- /.row -->
 {% endif %}
+    {% endif %}
 {% endblock %}
 
 {% block js_block %}

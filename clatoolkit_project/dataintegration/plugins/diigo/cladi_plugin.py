@@ -8,7 +8,7 @@ import os
 
 class DiigoPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
-    platform = "Diigo"
+    platform = "diigo"
     platform_url = "http://www.diigo.com/"
 
     xapi_verbs = ['created', 'commented']

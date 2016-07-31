@@ -791,7 +791,7 @@ def sentiment_classifier(course_code):
         elif (vs['compound'] < 0):
             sentiment = "Negative"
         # Save Classification
-        classification_obj = Classification(xapistatement=sm_obj,classification=sentiment,classifier='VaderSentiment')
+        classification_obj = Classification(xapistatement=sm_obj,classification=sentiment,classifier='VaderSentiment')#,classifier_model='VaderSentiment')
         classification_obj.save()
 
 """

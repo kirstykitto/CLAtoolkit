@@ -9,7 +9,7 @@ import os
 
 class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
-    platform = "Twitter"
+    platform = "twitter"
     platform_url = "http://www.twitter.com/"
 
     xapi_verbs = ['created', 'shared', 'liked', 'commented']

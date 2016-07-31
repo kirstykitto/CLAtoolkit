@@ -132,7 +132,7 @@ class UnitOffering(models.Model):
     # determines whether unit should be displayed on EventRegistration Form
     event = models.BooleanField(blank=False, default=False)
     # determines whether COI Classifier link should be diplayed for staff and student in a unit
-    enable_coi_classifier = models.BooleanField(blank=False, default=False)
+    enable_coi_classifier = models.BooleanField(blank=True, default=False)
 
     # Twitter Unit Integration Requirements
     twitter_hashtags = models.TextField(blank=False)

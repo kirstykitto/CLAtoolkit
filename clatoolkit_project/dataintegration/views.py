@@ -118,7 +118,7 @@ def refreshgoogleauthflow(request):
     platform = courseId = request.GET.get('platform')
 
     user = request.user
-    youtube_plugin = settings.DATAINTEGRATION_PLUGINS['YouTube']
+    youtube_plugin = settings.DATAINTEGRATION_PLUGINS['youtube']
 
     redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/ytAuthCallback'
 
@@ -145,7 +145,7 @@ def ytAuthCallback(request):
 
     html_response = HttpResponse()
 
-    youtube_plugin = settings.DATAINTEGRATION_PLUGINS['YouTube']
+    youtube_plugin = settings.DATAINTEGRATION_PLUGINS['youtube']
 
     redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/ytAuthCallback'
 
@@ -161,7 +161,7 @@ def ytAuthCallback(request):
 
     user_channelid = youtube_getpersonalchannel(request, http)
 
-    t = OauthFlowTemp.objects.filter(googleid='http://www.youtube.com/channel/'+user_channelid)
+    t = OauthFlowTemp.objects.filter(transferdata=user_channelid)
     course_code = t[0].course_code
     platform = t[0].platform
     channelIds = t[0].transferdata
@@ -235,10 +235,10 @@ def refreshtwitter(request):
 
     tags = hastags.split(',')
     for tag in tags:
-        twitter_plugin = settings.DATAINTEGRATION_PLUGINS['Twitter']
+        twitter_plugin = settings.DATAINTEGRATION_PLUGINS['twitter']
         twitter_plugin.perform_import(tag, course_code)
 
-    post_smimport(course_code, "Twitter")
+    post_smimport(course_code, "twitter")
 
     html_response.write('Twitter Refreshed.')
     return html_response
@@ -280,17 +280,40 @@ def refreshblog(request):
 
 
 def dipluginauthomaticlogin(request):
-    platform = request.GET.get('platform')
-    course_code = request.GET.get('course_code')
-    group_id = request.GET.get('group_id')
+
+    #login_context = json.loads(request.GET.get('context'))
+
+    if (request.GET.get('context') is not None):
+        request.GET = request.GET.copy()
+
+        state_dict = request.GET.pop('context')
+        state_dict = state_dict[0]
+        state_dict = json.loads(state_dict)
+
+        #print str(state_dict)
+
+        request.session['platform'] = state_dict['platform']
+        request.session['course_code'] = state_dict['course_code']
+        request.session['group_id'] = state_dict['group']
+
+    #print 'Data stored in session: %s, %s, %s' % (request.session['platform'], request.session['course_code'], request.session['group_id'])
+
+    platform = request.session['platform']
 
     html_response = HttpResponse()
 
     if (platform in settings.DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC):
         di_plugin = settings.DATAINTEGRATION_PLUGINS[platform]
+
+        #print di_plugin.authomatic_config_key
+
         authomatic = Authomatic(di_plugin.authomatic_config_json, di_plugin.authomatic_secretkey)
         result = authomatic.login(DjangoAdapter(request, html_response), di_plugin.authomatic_config_key, report_errors=True)
 
+        #while result is None:
+        #    print 'waiting...'
+
+        #print result
         # If there is no result, the login procedure is still pending.
         # Don't write anything to the response if there is no result!
         if result:
@@ -316,10 +339,17 @@ def dipluginauthomaticlogin(request):
                 # If there are credentials (only by AuthorizationProvider),
                 # we can _access user's protected resources.
                 if result.user.credentials:
+                    group_id = request.session['group_id']
+                    course_code = request.session['course_code']
                     if result.provider.name == 'fb':
                         di_plugin.perform_import(group_id, course_code, result)
 
-                        post_smimport(course_code, "Facebook")
+                        post_smimport(course_code, "facebook")
+
+                        #Remove all data stored in session for this view to avoid cache issues
+                        del request.session['platform']
+                        del request.session['course_code']
+                        del request.session['group_id']
                         html_response.write('Updating Facebook for ' + course_code)
         else:
             html_response.write('Auth Returned no Response.')
@@ -332,13 +362,32 @@ def get_social_media_id(request):
     :param request:
     :return:
     '''
+    if (request.GET.get('context') is not None):
+        request.GET = request.GET.copy()
+
+        state_dict = request.GET.pop('context')
+        state_dict = state_dict[0]
+        state_dict = json.loads(state_dict)
+
+        #print str(state_dict)
+
+        request.session['platform'] = state_dict['platform']
+        #request.session['course_code'] = state_dict['course_code']
+        #request.session['group_id'] = state_dict['group']
+
+    #print 'Data stored in session: %s, %s, %s' % (request.session['platform'], request.session['course_code'], request.session['group_id'])
+
+    platform = request.session['platform']
+
+
     # TODO: Add social media functionality apart from facebook
     # We we need the response object for the adapter.
     html_response = HttpResponse()
 
     #Facebook endpoints break on GET variables.....
-    platform = request.GET.get('platform')
+    #platform = request.GET.get('platform')
 
+    print platform in settings.DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC
     if (platform in settings.DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC):
 
         di_plugin = settings.DATAINTEGRATION_PLUGINS[platform]
@@ -347,6 +396,7 @@ def get_social_media_id(request):
 
         # If there is no result, the login procedure is still pending.
         # Don't write anything to the response if there is no result!
+        print result
         if result:
             # If there is result, the login procedure is over and we can write to response.
             #html_response.write('<a href="..">Home</a>')

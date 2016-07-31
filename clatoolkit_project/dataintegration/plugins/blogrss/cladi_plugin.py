@@ -35,7 +35,7 @@ To get the data into CLAToolkit the following is implemented in this plugin:
 
 class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
-    platform = "Blog"
+    platform = "blog"
     platform_url = "http://2016.socialtechnologi.es/"
 
     xapi_verbs = ['created', 'commented']
