@@ -264,7 +264,7 @@ def refreshdiigo(request):
 def refreshblog(request):
     html_response = HttpResponse()
 
-    blog_plugin = settings.DATAINTEGRATION_PLUGINS['Blog']
+    blog_plugin = settings.DATAINTEGRATION_PLUGINS['blog']
 
     course_code = request.GET.get('course_code')
     hastags = request.GET.get('urls')
