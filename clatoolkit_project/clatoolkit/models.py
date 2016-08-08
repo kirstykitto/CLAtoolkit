@@ -123,7 +123,64 @@ class UserClassification(models.Model):
 class UnitOffering(models.Model):
     code = models.CharField(max_length=5000, blank=False)
     name = models.CharField(max_length=5000, blank=False)
-    semester = models.CharField(max_length=5000, blank=False)
+
+    #teaching periods
+    SEM1 = 'Sem1'
+    SEM2 = 'Sem2'
+    SUM1 = 'Summer1'
+    SUM2 = 'Summer2'
+    SUM_ALL = 'Summer'
+    #School of Business periods
+    _6tp = ['6TP%s'%(num+1) for num in range(6)]
+    _6TPN = dict(zip([(i+1) for i in range(len(_6tp))], _6tp))
+    #English Language programs teaching periods
+    _5tp = ['5TP%s'%(num+1) for num in range(9)]
+    _5TPN = dict(zip([(i+1) for i in range(len(_5tp))], _5tp))
+    #EAP program teaching periods
+    _12tp = ['12TP%s'%(num+1) for num in range(3)]
+    _12TPN = dict(zip([(i+1) for i in range(len(_12tp))], _12tp))
+    #QUTIC courses/units periods
+    _13tp = ['13TP%s'%(num+1) for num in range(3)]
+    _13TPN = dict(zip([(i+1) for i in range(len(_13tp))], _13tp))
+    XCH_1 = 'XCH-1'
+    XCH_2 = 'XCH-2'
+    R1 = 'R1'
+    R2 = 'R2'
+
+    TP_OPTIONS = (
+        (SEM1, SEM1),
+        (SEM2, SEM2),
+        (SUM1, SUM1),
+        (SUM_ALL, SUM_ALL),
+        (_6TPN[1], _6TPN[1]),
+        (_6TPN[2], _6TPN[2]),
+        (_6TPN[3], _6TPN[3]),
+        (_6TPN[4], _6TPN[4]),
+        (_6TPN[5], _6TPN[5]),
+        (_6TPN[6], _6TPN[6]),
+        (_5TPN[1], _5TPN[1]),
+        (_5TPN[2], _5TPN[2]),
+        (_5TPN[3], _5TPN[3]),
+        (_5TPN[4], _5TPN[4]),
+        (_5TPN[5], _5TPN[5]),
+        (_5TPN[6], _5TPN[6]),
+        (_5TPN[7], _5TPN[7]),
+        (_5TPN[8], _5TPN[8]),
+        (_5TPN[9], _5TPN[9]),
+        (_12TPN[1], _12TPN[1]),
+        (_12TPN[2], _12TPN[2]),
+        (_12TPN[3], _12TPN[3]),
+        (_13TPN[1], _13TPN[1]),
+        (_13TPN[2], _13TPN[2]),
+        (_13TPN[3], _13TPN[3]),
+        (XCH_1, XCH_1),
+        (XCH_2, XCH_2),
+        (R1, R1),
+        (R2, R2)
+    )
+
+    semester = models.CharField(max_length=5000, choices=TP_OPTIONS, default=SEM2)
+
     description = models.TextField(blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
     users = models.ManyToManyField(User, related_name='usersinunitoffering')
@@ -158,7 +215,7 @@ class UnitOffering(models.Model):
     # GitHub Repository URLs
     github_urls = models.TextField(blank=True)
 
-    # Trello board IDs
+    # Trello board IDs 15/07/16
     attached_trello_boards = models.TextField(blank=True)
 
     # Determines which platforms should be utilized by COI classifier

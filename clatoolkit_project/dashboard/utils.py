@@ -3,6 +3,7 @@ from gensim import corpora, models, similarities
 from collections import defaultdict
 import pyLDAvis.gensim
 import os
+import datetime
 import json
 import funcy as fp
 from pprint import pprint
@@ -1029,3 +1030,34 @@ def getCCAData(user, course_code, platform):
     return result
     
 
+def get_teaching_period(non_normal=False):
+    semester_outlook_dict = {
+        'sem1': {
+            #start and end months
+            'start': 2,
+            'end' : 6
+        },
+        'sem2': {
+            'start' : 7,
+            'end': 11
+        },
+        'sum1': {
+            'start': 11,
+            'end': 1
+        },
+        'sum2': {
+            'start': 1,
+            'end' : 2
+        },
+        #'summer': {
+        #    'start': 11,
+        #    'end': 2
+        #}
+    }
+    date = datetime.datetime.now()
+    month = date.month
+    for period in semester_outlook_dict:
+        if month == 12 and semester_outlook_dict[period]['start'] == 11:
+            return period
+        if month >= semester_outlook_dict[period]['start'] and month <= semester_outlook_dict[period]:
+            return period

@@ -17,6 +17,7 @@ def get_new_course_settings():
         'youtube' : None,
         'blog' : None,
         'diigo' : None,
+        'trello': None,
         'coi' : False,
         'coi_platforms' : []
     }
@@ -66,6 +67,8 @@ class Command(BaseCommand):
                     COURSE_SETTINGS['diigo'] = True
                 if len(course.blogmember_urls_as_list()) > 0:
                     COURSE_SETTINGS['blog'] = True
+                if len(course.trello_boards_as_list()) > 0:
+                    COURSE_SETTINGS['trello'] = True
                 if course.enable_coi_classifier is True:
                     COURSE_SETTINGS['coi'] = True
 
@@ -82,7 +85,7 @@ class Command(BaseCommand):
                         raise CommandError('Error encountered during twitter update. HTTP Status Code: %s' % r.status_code)
 
                 if COURSE_SETTINGS['google']:
-                    raise NotImplementedError
+                    pass
 
                 if COURSE_SETTINGS['facebook']:
                     context = '{ "platform" : "facebook", "course_code" : "'+course_code+'", "group" : "'+course.facebook_groups_as_list()[0]+'" }'
@@ -93,19 +96,25 @@ class Command(BaseCommand):
 
                 if COURSE_SETTINGS['blog']:
                     #TODO: Modularize urls
-                    url_str = base_URI()+'refreshblog/?course_code='+course_code+'&urls=http://2016.socialtechnologi.es/student-blogs/'
+                    url_str = base_URI()+'refreshblog/?course_code='+course_code+'&urls=http://2016.informationprograms.info/student-blogs/'
                     r = requests.get(url_str)
                     if r.status_code is not 200:
                         raise CommandError('Error encountered during blog update. HTTP Status Code: %s' % r.status_code)
 
+                if COURSE_SETTINGS['trello']:
+                    url_str = base_URI()+'refreshtrello/?course_code='+course_code+'&boards='+course.trello_boards_as_list()
+                    r = requests.get(url_str)
+                    if r.status_code is not 200:
+                        raise CommandError('Error encountered during blog update. HTTP Status: %s' % r.status_code)
+
                 if COURSE_SETTINGS['diigo']:
-                    raise NotImplementedError
+                    pass
 
                 if COURSE_SETTINGS['youtube']:
-                    raise NotImplementedError
+                    pass
 
                 if COURSE_SETTINGS['forum']:
-                    raise NotImplementedError
+                    pass
 
                 if COURSE_SETTINGS['coi']:
                     for platform in COURSE_SETTINGS['coi_platforms']:

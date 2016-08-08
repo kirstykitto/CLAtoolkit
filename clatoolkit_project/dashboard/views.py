@@ -215,6 +215,9 @@ def dashboard(request):
 
     profiling = profiling + "| Platform Timelines %s" % (str(datetime.datetime.now()))
     platformclause = ""
+
+    #TODO: We've changed teaching periods to sync.. but most database entries grab from course_code.....
+    #periodclause = "AND "
     if platform != "all":
         platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
     else:
