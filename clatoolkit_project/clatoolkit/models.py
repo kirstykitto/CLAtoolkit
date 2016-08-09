@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django_pgjson.fields import JsonField
 import os
+import datetime
 
 class UserProfile(models.Model):
     '''
@@ -121,31 +122,34 @@ class UserClassification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 class UnitOffering(models.Model):
+    now_year = str(datetime.datetime.now().year)
+
+
     code = models.CharField(max_length=5000, blank=False)
     name = models.CharField(max_length=5000, blank=False)
 
     #teaching periods
-    SEM1 = 'Sem1'
-    SEM2 = 'Sem2'
-    SUM1 = 'Summer1'
-    SUM2 = 'Summer2'
-    SUM_ALL = 'Summer'
+    SEM1 = 'Sem1-'+now_year
+    SEM2 = 'Sem2-'+now_year
+    SUM1 = 'Summer1-'+now_year
+    SUM2 = 'Summer2-'+now_year
+    SUM_ALL = 'Summer-'+now_year
     #School of Business periods
-    _6tp = ['6TP%s'%(num+1) for num in range(6)]
+    _6tp = ['6TP%s' %(num+1) for num in range(6)]
     _6TPN = dict(zip([(i+1) for i in range(len(_6tp))], _6tp))
     #English Language programs teaching periods
-    _5tp = ['5TP%s'%(num+1) for num in range(9)]
+    _5tp = ['5TP%s' %(num+1) for num in range(9)]
     _5TPN = dict(zip([(i+1) for i in range(len(_5tp))], _5tp))
     #EAP program teaching periods
-    _12tp = ['12TP%s'%(num+1) for num in range(3)]
+    _12tp = ['12TP%s' %(num+1) for num in range(3)]
     _12TPN = dict(zip([(i+1) for i in range(len(_12tp))], _12tp))
     #QUTIC courses/units periods
-    _13tp = ['13TP%s'%(num+1) for num in range(3)]
+    _13tp = ['13TP%s' %(num+1) for num in range(3)]
     _13TPN = dict(zip([(i+1) for i in range(len(_13tp))], _13tp))
-    XCH_1 = 'XCH-1'
-    XCH_2 = 'XCH-2'
-    R1 = 'R1'
-    R2 = 'R2'
+    XCH_1 = 'XCH1-'+now_year
+    XCH_2 = 'XCH2-'+now_year
+    R1 = 'R1-'+now_year
+    R2 = 'R2-'+now_year
 
     TP_OPTIONS = (
         (SEM1, SEM1),

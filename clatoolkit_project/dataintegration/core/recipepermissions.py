@@ -16,8 +16,6 @@ def check_ifnotinlocallrs(course_code, platform, platform_id):
     else:
         return False
 
-
-#TODO?
 def get_userdetails(screen_name, platform):
     usr_dict = {'screen_name':screen_name}
     platform_param_name = None
