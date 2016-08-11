@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+
+  <!-- pyLDAVis -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.rawgit.com/bmabey/pyLDAvis/master/pyLDAvis/js/ldavis.v1.0.0.css">
+
+</head>
+
+<body>
+
+  <div id="ldavis"></div>
+    <script src="{% static 'bower_components/jquery/dist/jquery.min.js'%}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+    <script src="https://cdn.rawgit.com/bmabey/pyLDAvis/master/pyLDAvis/js/ldavis.v1.0.0.js"></script>
+    <script>
+
+
+    $(function() {
+      var ldavis_data = {{pyLDAVis_json|safe}};
+      new LDAvis("#ldavis", ldavis_data);
+
+    });
+
+    </script>
+</body>
+
+</html>

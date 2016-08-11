@@ -1,0 +1,67 @@
+{% extends "clatoolkit/base_clatoolkit.html" %}
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block heading %}Connected Learning Analytics Toolkit (CLAToolkit){% endblock %}
+
+{% block body %}
+{% if registered %}
+ <strong>Thank you for registering</strong>
+ <a href="/">Click here to return to the homepage.</a><br />
+{% else %}
+
+<div class="row">
+  <div class="col-lg-6">
+      <div class="panel panel-info">
+          <div class="panel-heading">
+              Register
+          </div>
+          <div class="panel-body">
+            {# Figure out how to display IDs on register page #}
+            <form role="form" id="user_form" method="post" action="/clatoolkit/eventregistration/">
+
+                {% csrf_token %}
+
+                {{ user_form.non_field_errors }}
+                {{ profile_form.non_field_errors }}
+                <div class="form-group">
+                  <p class="help-block">{{ user_form.username.errors }}</p>
+                  <label for="id_username">Username:</label> <br />
+                  {{ user_form.username }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ user_form.email.errors }}</p>
+                  <label for="id_email">Email:</label><br />
+                  {{ user_form.email }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ user_form.password.errors }}</p>
+                  <label for="id_password">Password:</label><br />
+                  {{ user_form.password }}
+                </div>
+                <div class="form-group">
+                  <label>Unit Enrollment:</label><br />
+                  {{ user_form.units }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.twitter_id.errors }}</p>
+                  <label for="id_twitter_id">Twitter Username:</label> (Don't include the @ prefix.)<br />
+                  {{ profile_form.twitter_id }}
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg btn-block">Register</button>
+            </form>
+          </div>
+      </div>
+  </div>
+  <!-- /.col-lg-6 -->
+</div>
+<!-- /.row -->
+{% endif %}
+{% endblock %}
+
+{% block js_block %}
+{% autoescape off %}
+
+{% endautoescape %}
+{% endblock %}

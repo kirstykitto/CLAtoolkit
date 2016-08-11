@@ -1,0 +1,660 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block heading %}{{title}}{% endblock %}
+
+{% block body %}
+{% if show_allplatforms_widgets == True %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i>Activity by Social Media Platform
+                <div class="pull-right"><button id="datefilter">Filter social network and wordcloud by date selection</button></div>
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="platform_pageview_chart"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-8 -->
+    <div class="col-lg-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bell fa-fw"></i> Platform Total Activity
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                  <div id="platform_activity_pie"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+
+    </div>
+    <!-- /.col-lg-4 -->
+</div>
+<!-- /.row -->
+{% endif %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Activity
+                <div class="pull-right"><button id="datefilter2">Filter social network and wordcloud by date selection</button></div>
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="pageview_chart"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-8 -->
+    <div class="col-lg-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bell fa-fw"></i> Total Activity
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                  <div id="activity_pie"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+
+    </div>
+    <!-- /.col-lg-4 -->
+</div>
+<!-- /.row -->
+<div class="row">
+    <div class="col-lg-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Sentiment
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="sentiment"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-6 -->
+    <div class="col-lg-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Community of Inquiry:  Cognitive Presence
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="coi"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-6 -->
+</div>
+<!-- /.row -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart-o fa-fw"></i> Social Network <span id="snaselectedrange"></span>
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <div id="mynetwork" style="height: 350px;"></div>
+                <div id="relationships""></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-8 -->
+    <div class="col-lg-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-bell fa-fw"></i> Word Cloud <span id="wordcloudselectedrange"></span>
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+              <div id="tag_container"></div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-4 -->
+</div>
+<!-- /.row -->
+<div class="row">
+        <div class="col-lg-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <i class="fa fa-bell fa-fw"></i> Messages <span id="messageselectedrange"></span>
+                </div>
+                <!-- /.panel-heading -->
+                <div class="panel-body">
+                  <div class="dataTable_wrapper">
+                    <table class="table table-striped table-bordered table-hover" id="dataTables-selectedmessages">
+                    </table>
+                  </div>
+                  <!-- /.table-responsive -->
+                </div>
+                <!-- /.panel-body -->
+            </div>
+            <!-- /.panel -->
+
+        </div>
+        <!-- /.col-lg-12 -->
+</div>
+<!-- /.row -->
+{% endblock %}
+
+{% block js_block %}
+{% autoescape off %}
+<script src="{% static 'js/vis.js'%}"></script>
+<script src="http://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.js"></script>
+<script>
+var sna_data = {{sna_json}};
+var wordcloud_data = {{tags|safe}};
+var platform = "{{platform}}";
+var username = "{{username}}";
+var start_date, end_date;
+
+function update_data(chartid)
+{
+  var chart = $(chartid).highcharts();
+  start_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().min);
+  end_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().max);
+  update_snadata(start_date, end_date);
+  update_wordcloud(start_date, end_date);
+}
+
+function render_wordcloud(tag_freqs)
+{
+  $('#tag_container').jQCloud('update', tag_freqs);
+}
+
+function update_wordcloud(start_date, end_date)
+{
+  $('#wordcloudselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
+  restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date};
+  $.getJSON("/clatoolkit/wordcloud", restparams,
+    function(data){
+      wordcloud_data = data;
+      render_wordcloud(wordcloud_data);
+    });
+}
+
+function update_snadata(start_date, end_date)
+{
+  // make ajax call to get sna data for selected time period
+  // and render new sna diagram
+  $('#selectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
+  //console.log("start_date:" + start_date)
+  //console.log("end_date:" + end_date)
+  $.get("/clatoolkit/sna", { course_code:"{{course_code}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date, relationshipstoinclude:"'mentioned','liked','shared','commented'"},
+    function(data){
+      //console.log("SNA: " + data);
+      sna_data = data;
+      render_sna(sna_data);
+    });
+}
+
+function render_sna(data)
+{
+  var container = document.getElementById('mynetwork');
+  var options = {
+      nodes: {
+          shape: 'dot',
+          scaling: {
+            customScalingFunction: function (min,max,total,value) {
+              return value/total;
+            },
+            min:10,
+            max:50
+          }
+      },
+      edges: {
+          scaling: {
+            customScalingFunction: function (min,max,total,value) {
+              return value/total;
+            },
+            min:2,
+            max:8
+          }
+      },
+      physics: {
+          forceAtlas2Based: {
+              gravitationalConstant: -26,
+              centralGravity: 0.005,
+              springLength: 230,
+              springConstant: 0.18
+          },
+          maxVelocity: 146,
+          solver: 'forceAtlas2Based',
+          timestep: 0.35,
+          stabilization: {iterations:300}
+      },
+      interaction: {
+          navigationButtons: true,
+          keyboard: true
+      }
+  };
+  var network = new vis.Network(container, data, options);
+  // Capture click event
+  network.on("click", function (params) {
+        params.event = "[original event]";
+        document.getElementById('relationships').innerHTML = '<h2>Click event:</h2>' + JSON.stringify(params, null, 4);
+        update_messages(params.nodes,params.edges);
+  });
+}
+
+function update_messages(nodes, edges)
+{
+  var resturl,restparams
+
+  $('#messageselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
+
+  typeofrequest = "Node";
+  if (nodes.length == 0)
+  {
+    typeofrequest = "Relationship"
+  }
+
+  if (typeofrequest == "Node")
+  {
+    // get node label
+    username = getnodelabel(nodes[0])
+    $('#relationships').html('<h3>Selected User: ' + username + '</h3>');
+    console.log("Selected User:" + username)
+    resturl = "/api/learningrecord";
+    if (platform!="all")
+    {
+      restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+    }
+    else
+    {
+      restparams = {format: "json", course_code:"{{course_code}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+    }
+  }
+  else
+  {
+    var verb;
+    usernames = getnodelabels(edges[0])
+    fromusername = usernames[0]
+    tousername = usernames[1]
+    link_label = usernames[2]
+    if (link_label == "mention")
+    {
+      verb = "mentioned";
+    }
+    else if(link_label == "share")
+    {
+      verb = "shared";
+    }
+    else if(link_label == "like")
+    {
+      verb = "liked";
+    }
+    else {
+      verb = "commented";
+    }
+    $('#relationships').html('<h3>Selected Link: ' + verb + '</h3>' + 'Between ' + fromusername + " and " + tousername);
+    console.log("fromusername:" + fromusername)
+    console.log("tousername:" + tousername)
+    resturl = "/api/socialrelationship";
+    if (platform!="all")
+    {
+      restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+    }
+    else
+    {
+      restparams = {format: "json", course_code:"{{course_code}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+    }
+  }
+  console.log(resturl);
+  $.getJSON(resturl, restparams,
+    function(data){
+      console.log(data.results);
+      datatable_array = []
+      for (i=0;i<data.results.length;i++)
+      {
+        var datarow;
+        if (typeofrequest == "Node")
+        {
+          datarow = [data.results[i].username, data.results[i].parentusername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
+        }
+        else {
+          datarow = [data.results[i].fromusername, data.results[i].tousername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
+        }
+        datatable_array.push(datarow)
+      }
+      render_messages(datatable_array);
+    });
+
+}
+
+function getnodelabel(node_id)
+{
+  var label;
+  //console.log(node_id);
+  //console.log(sna_data.nodes.length);
+  for (i=0;i<sna_data.nodes.length;i++)
+  {
+    //console.log(sna_data.nodes[i])
+    //console.log(sna_data.nodes[i].id)
+    if (sna_data.nodes[i].id == node_id)
+    {
+      label = sna_data.nodes[i].label;
+      //console.log(label);
+      break;
+    }
+  }
+  return label;
+}
+
+function getnodelabels(edge_id)
+{
+  var fromid, toid, fromuser, touser, verb;
+  console.log(sna_data.edges)
+  for (i=0;i<sna_data.edges.length;i++)
+  {
+    if (sna_data.edges[i].id == edge_id)
+    {
+      fromid = sna_data.edges[i].from;
+      toid = sna_data.edges[i].to;
+      verb = sna_data.edges[i].label;
+      break;
+    }
+  }
+  fromuser = getnodelabel(fromid);
+  touser = getnodelabel(toid);
+  return [fromuser, touser, verb]
+}
+
+function render_messages(dataSet)
+{
+  $('#dataTables-selectedmessages').dataTable().fnDestroy();
+  $('#dataTables-selectedmessages').DataTable( {
+        data: dataSet,
+        columns: [
+            { title: "From" },
+            { title: "To" },
+            { title: "Message" },
+            { title: "Verb" },
+            { title: "Platform" },
+            { title: "Date" }
+        ]
+    } );
+}
+
+$(function() {
+  // Create Platform Activity Chart
+  $('#platform_pageview_chart').highcharts('StockChart', {
+
+      rangeSelector : {
+          selected : 1
+      },
+
+      tooltip: {
+          style: {
+              width: '200px'
+          },
+          valueDecimals: 0
+      },
+
+      yAxis : {
+          min: 0,
+          title : {
+              text : 'Activity'
+          }
+      },
+      legend: {
+          enabled: true
+      },
+
+      series : [{
+          name : 'Twitter',
+          data : [{{ twitter_timeline }}],
+          id : 'dataseries'
+      },{
+          name : 'Facebook',
+          data : [{{ facebook_timeline }}],
+          id : 'dataseries1'
+      },{
+          name : 'Forum',
+          data : [{{ forum_timeline }}],
+          id : 'dataseries2'
+      },{
+          name : 'YouTube',
+          data : [{{ youtube_timeline }}],
+          id : 'dataseries3'
+      },
+      {
+          name : 'Blog',
+          data : [{{ blog_timeline }}],
+          id : 'dataseries5'
+      }]
+  });
+
+  // Create Activity Chart
+  $('#pageview_chart').highcharts('StockChart', {
+
+      rangeSelector : {
+          selected : 1
+      },
+
+      tooltip: {
+          style: {
+              width: '200px'
+          },
+          valueDecimals: 0
+      },
+
+      yAxis : {
+          min: 0,
+          title : {
+              text : 'Activity'
+          }
+      },
+      legend: {
+          enabled: true
+      },
+
+      series : [{
+          name : 'Posts',
+          data : [{{ posts_timeline }}],
+          id : 'dataseries'
+      },{
+          name : 'Shares',
+          data : [{{ shares_timeline }}],
+          id : 'dataseries1'
+      },{
+          name : 'Likes',
+          data : [{{ likes_timeline }}],
+          id : 'dataseries2'
+      },{
+          name : 'Comments',
+          data : [{{ comments_timeline }}],
+          id : 'dataseries3'
+      }]
+  });
+
+  //$('#dataTables-topcontent').DataTable({responsive: true});
+
+  // Create the Platform Activity Pie Chart
+  $('#platform_activity_pie').highcharts({
+      chart: {
+          plotBackgroundColor: null,
+          plotBorderWidth: null,
+          plotShadow: false
+      },
+      title: {
+          text: ' '
+      },
+      tooltip: {
+          pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+      },
+      plotOptions: {
+          pie: {
+              allowPointSelect: true,
+              cursor: 'pointer',
+              dataLabels: {
+                  enabled: true,
+                  format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                  style: {
+                      color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                  }
+              }
+          }
+      },
+      series: [{
+          type: 'pie',
+          name: 'Platform Activity',
+          data: [{{platformactivity_pie_series|safe}}]
+      }]
+  });
+
+    // Create the Activity Pie Chart
+    $('#activity_pie').highcharts({
+        chart: {
+            plotBackgroundColor: null,
+            plotBorderWidth: null,
+            plotShadow: false
+        },
+        title: {
+            text: ' '
+        },
+        tooltip: {
+            pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+        },
+        plotOptions: {
+            pie: {
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: true,
+                    format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                    style: {
+                        color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                    }
+                }
+            }
+        },
+        series: [{
+            type: 'pie',
+            name: 'Platform Activity',
+            data: [{{activity_pie_series|safe}}]
+        }]
+    });
+
+    $('#sentiment').highcharts({
+        chart: {
+            plotBackgroundColor: null,
+            plotBorderWidth: null,
+            plotShadow: false
+        },
+        title: {
+            text: ' '
+        },
+        tooltip: {
+            pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+        },
+        plotOptions: {
+            pie: {
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: true,
+                    format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                    style: {
+                        color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                    }
+                }
+            }
+        },
+        series: [{
+            type: 'pie',
+            name: 'Sentiment',
+            data: [{{sentiments|safe}}]
+        }]
+    });
+    $('#coi').highcharts({
+        chart: {
+            plotBackgroundColor: null,
+            plotBorderWidth: null,
+            plotShadow: false
+        },
+        title: {
+            text: ' '
+        },
+        tooltip: {
+            pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+        },
+        plotOptions: {
+            pie: {
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: true,
+                    format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                    style: {
+                        color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                    }
+                }
+            }
+        },
+        series: [{
+            type: 'pie',
+            name: 'Cognitive Presense',
+            data: [{{coi|safe}}]
+        }]
+    });
+
+    $('#datefilter').click(function () {
+      update_data("#platform_pageview_chart");
+    });
+
+    $('#datefilter2').click(function () {
+      update_data("#pageview_chart");
+    });
+
+    var chart = $('#platform_pageview_chart').highcharts();
+    start_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().min);
+    end_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().max);
+
+    render_sna(sna_data);
+
+    $("#tag_container").jQCloud(wordcloud_data, {
+    width: 300,
+    height: 200,
+    shape: 'rectangular'
+    });
+
+    $('#dataTables-selectedmessages').DataTable( {
+          data: [],
+          columns: [
+              { title: "From" },
+              { title: "To" },
+              { title: "Message" },
+              { title: "Verb" },
+              { title: "Platform" },
+              { title: "Date" }
+          ]
+      } );
+});
+</script>
+{% endautoescape %}
+{% endblock %}

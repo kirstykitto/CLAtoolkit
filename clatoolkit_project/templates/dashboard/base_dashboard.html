@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block homelink %}
+<a class="navbar-brand" href="/dashboard/myunits">Connected Learning Analytics Toolkit</a>
+{% endblock %}
+{% block userprofilenav %}
+{{ block.super }}
+{% endblock %}
+
+{% block pagetopnav %}
+{% if show_dashboardnav == True %}
+<li><a href="/dashboard/myunits"><i class="fa fa-dashboard fa-fw"></i> My Units</a></li>
+<li class="dropdown">
+    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+        <i class="fa fa-dashboard fa-fw"></i> Dashboards <i class="fa fa-caret-down"></i>
+    </a>
+    <ul class="dropdown-menu dropdown-user">
+        <li><a href="/dashboard/?course_code={{course_code}}&platform={{platform}}"><i class="fa fa-dashboard fa-fw"></i> Activity</a></li>
+        <li><a href="/dashboard/ca_dashboard/?course_code={{course_code}}&platform={{platform}}"><i class="fa fa-dashboard fa-fw"></i> Content Analysis</a></li>
+        <li><a href="/dashboard/sna_dashboard/?course_code={{course_code}}&platform={{platform}}"><i class="fa fa-dashboard fa-fw"></i> Social Network Analysis</a></li>
+    </ul>
+</li>
+<!-- /.dropdown -->
+{% endif %}
+{% endblock %}

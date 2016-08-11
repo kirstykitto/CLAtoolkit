@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+
+  <!-- pyLDAVis -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.rawgit.com/bmabey/pyLDAvis/master/pyLDAvis/js/ldavis.v1.0.0.css">
+<script language="javascript">
+function isInteger(x) {
+        return x % 1 === 0;
+    }
+function validateForm() {
+    var a = document.forms["ldaparams"]["num_topics"].value;
+    if (a == null || a == "" || a <= 0 || a>=20 || !(isInteger(a)) ) {
+      alert("Please enter a number between 1 and 20")
+                return false;
+    }
+    else return true;
+    }
+</script>
+</head>
+
+<body>
+  <h1>Topic Modeling</h1>
+  <form name="ldaparams" method="post" action="/dashboard/topicmodeling/" onsubmit="return validateForm()">
+  {% csrf_token %}
+  Corpus: <select name="corpus" id="corpus"><option value="shark">Shark</option><option value="putin">Putin</option></select>
+  Number of Topics: <input type="text" name="num_topics" />
+  <input type="submit" value="Generate Topics" />
+  </form>
+  <p>
+    Selected Corpus: {{dataset}}
+    <br/>
+    Selected Number of Topics: {{num_topics}}
+  </p>
+  <div id="ldavis"></div>
+    <script src="{% static 'bower_components/jquery/dist/jquery.min.js'%}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+    <script src="https://cdn.rawgit.com/bmabey/pyLDAvis/master/pyLDAvis/js/ldavis.v1.0.0.js"></script>
+    <script>
+
+
+    $(function() {
+      var ldavis_data = {{pyLDAVis_json|safe}};
+      new LDAvis("#ldavis", ldavis_data);
+
+    });
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,164 @@
+{% extends "clatoolkit/base_clatoolkit.html" %}
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block heading %}User Profile{% endblock %}
+
+{% block body %}
+<div class="row">
+  <div class="col-lg-6">
+      <div class="panel panel-info">
+          <div class="panel-heading">
+              Update Social Media Accounts
+          </div>
+          <div class="panel-body">
+            <form role="form" id="user_form" method="post" action="/clatoolkit/socialmediaaccounts/">
+
+                {% csrf_token %}
+                {{ profile_form.non_field_errors }}
+
+                <div class="form-group">
+                  <p class="help-block">At least 1 social media account is required.</p>
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.twitter_id.errors }}</p>
+                  <label for="id_twitter_id">Twitter Username:</label> (Don't include the @ prefix.)<br />
+                  {{ profile_form.twitter_id }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.fb_id.errors }}</p>
+                  <label for="id_fb_id">Facebook ID:</label><br />
+                  {{ profile_form.fb_id }}
+                  <p>
+                    <a href="/dataintegration/get_social" target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
+                  </p>
+                </div>
+                {% if course.code == 'IFN614'  %}
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.forum_id.errors }}</p>
+                  <label for="id_forum_id">IFN614 Site Username:</label> (Only required for IFN614 Students.)<br />
+                  {{ profile_form.forum_id }}
+                  <p>
+                    Forum posts for IFN614 students will be retrieved from <a href="http://2015.informationprograms.info/forums/" target="_blank">2015.informationprograms.info/forums/</a>
+                  </p>
+                </div>
+                {% endif  %}
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.google_account_name.errors }}</p>
+                  <label for="id_google_account_name">Youtube Channel URL:</label><br />
+                  {{ profile_form.google_account_name }}
+                  <p>
+                    <a href="/dataintegration/get_youtubechannel" target="_blank">Click here to get your YouTube Channel ID - you will need to be logged into YouTube (opens in new tab)</a>
+                  </p>
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.diigo_username.errors }}</p>
+                  <label for="id_diigo_username">Diigo Username:</label><br />
+                  {{ profile_form.diigo_username }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.blog_id.errors }}</p>
+                  <label for="id_blog_id">Blog Username:</label><br />
+                  {{ profile_form.blog_id }}
+                </div>
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.github_account_name.errors }}</p>
+                  <label for="id_github_account_name">GitHub Account:</label><br />
+                  {{ profile_form.github_account_name }}
+                </div>
+
+                <div class="form-group">
+                  <p class="help-block">{{ profile_form.trello_account_name.errors }}</p>
+                  <label for="id_github_account_name">Trello Account:</label><br />
+                  {{ profile_form.trello_account_name }}
+
+                    <p>
+                      <a id="trellolink" href="#" onclick="javascript:get_and_link_trello();" target="_blank">Click here to link your trello profile</a>
+                  </p>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg btn-block">Update</button>
+            </form>
+          </div>
+      </div>
+  </div>
+  <!-- /.col-lg-6 -->
+    <div class="col-lg-6">
+      <div class="panel panel-warning">
+          <div class="panel-heading">
+              Units Attached to Social Media Accounts
+          </div>
+
+          <div class="panel-body">
+              {% if units %}
+              <div class="col-sm-10 col-sm-offset-1"><table class="table table-sm table-hover rbpls">
+                <!--<thead>
+                    <tr>
+                        <th>Unit Name</th><th></th>
+                    </tr>
+                </thead>-->
+                <tbody>
+                    {% for unit in units %}
+                    <tr>
+                        <td>
+                            <b>{{unit.code}}</b>: {{unit.name}}
+                        </td>
+                        <td>
+                            <a href="/clatoolkit/unitmanagement/?action=unenrol&course_code={{unit.code}}"><i class="fa fa-sign-out fa-fw"></i> Withdraw</a>
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+                </tbody>
+              </table></div>
+              {% endif %}
+          </div>
+      </div>
+  </div>
+  <!-- /.col-lg-6 -->
+
+</div>
+<!-- /.row -->
+{% endblock %}
+
+{% block js_block %}
+{% autoescape off %}
+
+    <script src="https://trello.com/1/client.js?key=c908d424dda56c79d373f780a1ae26c7"></script>
+    <script>
+
+
+    function get_and_link_trello() {
+        var key = "c908d424dda56c79d373f780a1ae26c7";
+
+        Trello.authorize({
+            type: "popup",
+            expiration: "never",
+            name: "CLAToolkit",
+            persist: "true",
+            success: function() {
+                $.ajax({
+                url: "/dataintegration/process_trello/?token="+Trello.token()+"&key="+key,
+                type: 'GET',
+                success: function(response) {
+                    $('#id_trello_account_name').val(response)
+                }
+                });
+
+                var o = document.getElementById('trellolink');
+                o.innerHTML = "Trello account linked!";
+
+                //id_trello_account_name
+
+            },
+            error: function() {  console.log('Trello Auth failed.'); },
+            scope: { read: true, write: true },
+        });
+
+    }
+
+
+    </script>
+
+{% endautoescape %}
+{% endblock %}
