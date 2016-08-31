@@ -60,6 +60,7 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
         displayname_username_dict = {}
         for memberblog_url in memberblog_urls:
             member_blogfeed = memberblog_url + 'feed/'
+            #print 'getting memberblog feed: ' + member_blogfeed
             temp_dict = self.insert_blogposts(member_blogfeed, course_code)
             displayname_username_dict.update(temp_dict)
         for memberblog_url in memberblog_urls:
@@ -108,39 +109,41 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
     def insert_blogposts(self, blogfeed, course_code):
         d = feedparser.parse(blogfeed)
-        blogurl = d['feed']['link']
-        slash_pos = blogurl.rfind('/')
-        blog_url_name = blogurl[slash_pos+1:]
-        print blog_url_name
-
-
-        #print username
-
-        #dict to stored blog display name with url name
         displayname_username_dict = {}
-        #print d.feed.subtitle
-        #print d.version
-        #print d.headers.get('content-type')
-        #print len(d['entries'])
-        for post in d.entries:
-            link = post.link
-            message = post.title + " " + post.content[0]['value']
-            blog_display_name = post.author
-            post_date = dateutil.parser.parse(post.published)
-            tags_dict_list = post.tags
-            tags = []
-            for tag_dict in tags_dict_list:
-                term = tag_dict['term']
-                tags.append(term)
+        #print d
+        try:
+            blogurl = d['feed']['link']
+            slash_pos = blogurl.rfind('/')
+            blog_url_name = blogurl[slash_pos+1:]
 
-            if blog_display_name not in displayname_username_dict:
-                displayname_username_dict[blog_display_name] = blog_url_name
+            #print username
 
-            #print "Does " + blog_url_name + "exist in Toolkit?: " + username_exists(displayname_username_dict[blog_display_name], course_code, self.platform)
-            if username_exists(displayname_username_dict[blog_display_name], course_code, self.platform):
-                usr_dict = get_userdetails(displayname_username_dict[blog_display_name], self.platform)
-                insert_blogpost(usr_dict, link, message, get_username_fromsmid(blog_url_name,self.platform), blog_display_name, post_date, course_code, self.platform, self.platform_url, tags=tags)
+            #dict to stored blog display name with url name
 
+            #print d.feed.subtitle
+            #print d.version
+            #print d.headers.get('content-type')
+            #print len(d['entries'])
+            for post in d.entries:
+                link = post.link
+                message = post.title + " " + post.content[0]['value']
+                blog_display_name = post.author
+                post_date = dateutil.parser.parse(post.published)
+                tags_dict_list = post.tags
+                tags = []
+                for tag_dict in tags_dict_list:
+                    term = tag_dict['term']
+                    tags.append(term)
+
+                if blog_display_name not in displayname_username_dict:
+                    displayname_username_dict[blog_display_name] = blog_url_name
+
+                #print "Does " + blog_url_name + "exist in Toolkit?: " + username_exists(displayname_username_dict[blog_display_name], course_code, self.platform)
+                if username_exists(displayname_username_dict[blog_display_name], course_code, self.platform):
+                    usr_dict = get_userdetails(displayname_username_dict[blog_display_name], self.platform)
+                    insert_blogpost(usr_dict, link, message, get_username_fromsmid(blog_url_name,self.platform), blog_display_name, post_date, course_code, self.platform, self.platform_url, tags=tags)
+        except KeyError:
+            pass
         return displayname_username_dict
 
     def insert_blogcomments(self, member_commentfeed, course_code, displayname_username_dict):
@@ -156,14 +159,15 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
             comment_author = post.author
             comment_post_date = dateutil.parser.parse(post.published)
 
-            print 'comment author: %s' % comment_author
+            #print 'comment author: %s' % comment_author
 
-            if comment_author == 'Zak':
-                print comment_author != "Anonymous" and comment_author in displayname_username_dict
-                print displayname_username_dict
+            #if comment_author == 'Zak':
+                #print comment_author != "Anonymous" and comment_author in displayname_username_dict
+                #print displayname_username_dict
 
             if comment_author != "Anonymous" and comment_author in displayname_username_dict:
                 #print "Author in Dict - seeing if they exist in system..."
+                #print 'comment author: %s\n display_username_dict[comment_author]: %s' % (comment_author, displayname_username_dict[comment_author])
                 comment_smid = displayname_username_dict[comment_author]
                 comment_post_date = dateutil.parser.parse(post.published)
 
@@ -171,8 +175,8 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     print 'does username for zak exist? %s' % username_exists(comment_smid, course_code, self.platform)
 
                 if username_exists(comment_smid, course_code, self.platform):
-                    print "BLOG_COMMENT FOUND USER on url" + comment_smid
-                    print "ON %s" % op_smid
+                    #print "BLOG_COMMENT FOUND USER on url" + comment_smid
+                    #print "ON %s" % op_smid
                     usr_dict = get_userdetails(comment_smid, self.platform)
                     insert_blogcomment(usr_dict, op_link, comment_link, comment_message, get_username_fromsmid(comment_smid, self.platform), comment_author, comment_post_date, course_code, self.platform, self.platform_url, get_username_fromsmid(op_smid,self.platform), get_username_fromsmid(op_smid, self.platform))
 

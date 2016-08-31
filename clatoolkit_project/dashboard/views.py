@@ -381,11 +381,18 @@ def studentdashboard(request):
 
     #print "Activity by Platform", datetime.datetime.now()
     cursor = connection.cursor()
-    cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
-                        FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
-                        GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
-                    """ % (course_code, username))
+    if course_code == 'IFN614':
+        cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
+                            FROM clatoolkit_learningrecord
+                            WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s' AND clatoolkit_learningrecord.datetimestamp > %s
+                            GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
+                    """ % (course_code, username, '29-06-2016'))
+    else:
+        cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
+                    FROM clatoolkit_learningrecord
+                    WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
+                    GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
+            """ % (course_code, username))
     result = cursor.fetchall()
 
     activity_pie_series = ""

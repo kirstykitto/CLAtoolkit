@@ -115,6 +115,8 @@ def get_username_fromsmid(sm_id, platform):
         userprofile = UserProfile.objects.filter(github_account_name__iexact=sm_id)
     elif platform == 'trello':
         userprofile = UserProfile.objects.filter(trello_account_name__iexact=sm_id)
+    elif platform.lower() == 'blog':
+        userprofile = UserProfile.objects.filter(blog_id__iexact=sm_id)
     else:
         #platform must be = all
         userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=sm_id) | Q(fb_id__iexact=sm_id) | Q(forum_id__iexact=sm_id) | Q(google_account_name__iexact=sm_id))
