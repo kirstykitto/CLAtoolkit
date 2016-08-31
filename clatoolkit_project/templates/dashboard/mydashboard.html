@@ -614,6 +614,21 @@ $(function() {
           data : [{{ blog_timeline }}],
           id : 'dataseries5'
       }]
+      
+  }, function (chart) {
+      // Show series in the navigator (the mini-chart)
+      for(var i = 0; i < chart.options.series.length; i++) {
+        chart.addSeries({
+            data: chart.options.series[i].data,
+            isInternal: true,
+            xAxis: 1,
+            yAxis: 1,
+            name: null, 
+            enableMouseTracking: false, 
+            showInLegend: false,
+            color: chart.series[i].color
+        });
+      }
   });
 
   // Create Activity Chart
@@ -657,6 +672,21 @@ $(function() {
           data : [{{ comments_timeline }}],
           id : 'dataseries3'
       }]
+      
+  }, function (chart) {
+      // Show series in the navigator (the mini-chart)
+      for(var i = 0; i < chart.options.series.length; i++) {
+        chart.addSeries({
+            data: chart.options.series[i].data,
+            isInternal: true,
+            xAxis: 1,
+            yAxis: 1,
+            name: null, 
+            enableMouseTracking: false, 
+            showInLegend: false,
+            color: chart.series[i].color
+        });
+      }
   });
   //$('#dataTables-topcontent').DataTable({responsive: true});
 
