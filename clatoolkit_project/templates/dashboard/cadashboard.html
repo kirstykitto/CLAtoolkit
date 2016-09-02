@@ -196,6 +196,7 @@ function searchandhighlight(terms)
 }
 
 $(document).ready(function(){
+
   // Create Activity Chart
   $('#pageview_chart').highcharts('StockChart', {
 
@@ -219,6 +220,7 @@ $(document).ready(function(){
       legend: {
           enabled: true
       },
+
       series : [{
           name : 'Posts',
           data : [{{ posts_timeline }}],
@@ -236,23 +238,7 @@ $(document).ready(function(){
           data : [{{ comments_timeline }}],
           id : 'dataseries2'
       }]
-      
-  }, function (chart) {
-      // Show series in the navigator (the mini-chart)
-      for(var i = 0; i < chart.options.series.length; i++) {
-        chart.addSeries({
-            data: chart.options.series[i].data,
-            isInternal: true,
-            xAxis: 1,
-            yAxis: 1,
-            name: null, 
-            enableMouseTracking: false, 
-            showInLegend: false,
-            color: chart.series[i].color
-        });
-      }
   });
-
   $('#sentiment').highcharts({
       chart: {
           plotBackgroundColor: null,
