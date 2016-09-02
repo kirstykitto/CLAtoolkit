@@ -19,9 +19,14 @@ from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 import numpy as np
 from sklearn.cluster import AffinityPropagation
 
+from django.conf import settings
+
 import subprocess
 import igraph
 from collections import OrderedDict
+
+def getPluginKey(platform):
+    return settings.DATAINTEGRATION_PLUGINS[platform].api_config_dict['api_key']
 
 def classify(course_code, platform):
     #Calls JAR to extract and classify messages
@@ -730,7 +735,7 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     # make json for vis.js display
     # Build node json
     json_str_list.append('{"nodes": [')
-    count = 1
+    #count = 1
     for node in node_dict:
         #print node
         username = node
@@ -739,25 +744,34 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
         node_fill = node_type_colours[role]['fill']
         #json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, degree[node_dict[node]]))
         json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, node_degree_dict[node]))
-        count = count + 1
-    json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
+        #count = count + 1
+    #json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
+
+    if json_str_list[len(json_str_list)-1][-1:] == ',':
+        json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
+
     json_str_list.append("],")
+
+    #print 'SNA JSON (edges): %s' % (''.join(json_str_list))
 
     # Build edge json
 
     json_str_list.append('"edges": [')
 
-    idcount = 1;
+    idcount = 1
     for relationshiptype in dict_types:
         for edge_str in dict_types[relationshiptype]:
             edgefrom, edgeto = edge_str.split('__')
             if edgefrom in node_dict and edgeto in node_dict:
                 json_str_list.append('{"id": %d, "from": %s, "to": %s, "arrows":{"to":{"scaleFactor":0.4}}, "label":"%s", "color":"%s", "value":%d, "title": "%d" },' % (idcount, node_dict[edgefrom], node_dict[edgeto], relationshiptype, relationship_type_colours[relationshiptype], dict_types[relationshiptype][edge_str], dict_types[relationshiptype][edge_str]))
                 idcount += 1
+
+
     if json_str_list[len(json_str_list)-1][-1:] == ',':
         json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
+
     json_str_list.append("]}")
-    #print ''.join(json_str_list)
+    #print 'SNA JSON: %s' % (''.join(json_str_list))
     return ''.join(json_str_list)
 
 def sentiment_classifier(course_code):
@@ -805,7 +819,10 @@ def getNeighbours(jsonStr):
 
 def getCentrality(jsonStr):
 
-    g = _createGraphElements(json.loads(jsonStr))
+    print jsonStr
+
+    print type(jsonStr)
+    g = _createGraphElements(json.loads(str(jsonStr)))
     #print(g)
     #layout = g.layout("kk")
     #igraph.plot(g, layout=layout)
@@ -864,6 +881,7 @@ def _normaliseDegree(targetArray, numOfNodes):
     return targetArray
 
 def _roundNumbers(targetArray, digits):
+    print targetArray
     index = 0
     for num in targetArray:
         targetArray[index] = _roundNumber(num, digits)
