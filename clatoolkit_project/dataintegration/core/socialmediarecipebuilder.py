@@ -121,16 +121,17 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
             )
         taglist.append(tagobject)
 
-    if otherObjTypeName is not None:
-        otherObject = Activity(
-            id=object_id,
-            object_type=object_type,
-            definition=ActivityDefinition(
-                name=LanguageMap({'en-US': otherObjTypeName}),
-                type=objectmapper[object_type]
-            ),
-        )
-        taglist.append(otherObject)
+    # TODO: What is this code for? (for GitHub?)
+    # if otherObjTypeName is not None:
+    #     otherObject = Activity(
+    #         id=object_id,
+    #         object_type=object_type,
+    #         definition=ActivityDefinition(
+    #             name=LanguageMap({'en-US': otherObjTypeName}),
+    #             type=objectmapper[object_type]
+    #         ),
+    #     )
+    #     taglist.append(otherObject)
     if object_type == 'File':
         otherObject = Activity(
             id=grand_parent,
