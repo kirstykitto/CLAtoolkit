@@ -238,8 +238,10 @@ def refreshtwitter(request):
 
     tags = hastags.split(',')
     for tag in tags:
+        hashtag = tag if tag.startswith("#") else "#" + tag
+
         twitter_plugin = settings.DATAINTEGRATION_PLUGINS['Twitter']
-        twitter_plugin.perform_import(tag, course_code)
+        twitter_plugin.perform_import(hashtag, course_code)
 
     post_smimport(course_code, "Twitter")
 
