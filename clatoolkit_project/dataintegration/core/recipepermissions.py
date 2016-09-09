@@ -39,7 +39,10 @@ def get_userdetails(screen_name, platform):
         usr = None
 
     if usr is not None:
-        usr_dict['email'] = usr.user.email
+        if usr.user.email != "":
+            usr_dict['email'] = usr.user.email
+        else:
+            usr_dict['email'] = None
         #usr_dict['lrs_endpoint'] = usr.ll_endpoint
         #usr_dict['lrs_username'] = usr.ll_username
         #usr_dict['lrs_password'] = usr.ll_password
