@@ -39,6 +39,9 @@ class SocialMediaUpdateForm(forms.ModelForm):
         model = UserProfile
         fields = ('fb_id', 'twitter_id', 'forum_id', 'google_account_name', 'diigo_username', 'blog_id', 'github_account_name', 'trello_account_name')
 
+
+
+
 class UserProfileForm(forms.ModelForm):
     fb_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     twitter_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))

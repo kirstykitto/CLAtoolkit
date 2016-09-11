@@ -16,7 +16,7 @@ from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord,
 
 from rest_framework import authentication, permissions, viewsets, filters
 from .serializers import LearningRecordSerializer, SocialRelationshipSerializer, ClassificationSerializer, UserClassificationSerializer
-from .forms import LearningRecordFilter, SocialRelationshipFilter, ClassificationFilter, UserClassificationFilter, SocialMediaUpdateForm
+from .forms import SocialMediaUpdateForm, LearningRecordFilter, SocialRelationshipFilter, ClassificationFilter, UserClassificationFilter
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -256,10 +256,9 @@ def socialmediaaccounts(request):
     user_id = request.user.id
     usr_profile = UserProfile.objects.get(user_id=user_id)
 
-
     if request.method == 'POST':
         profile_form = SocialMediaUpdateForm(data=request.POST,instance=usr_profile)
-        units = UnitOffering.objects.filter(users=user_id)
+        units  = UnitOffering.objects.filter(users=user_id)
 
         if profile_form.is_valid():
             profile_form.save()

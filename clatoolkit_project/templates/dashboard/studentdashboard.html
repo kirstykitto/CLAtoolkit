@@ -630,10 +630,12 @@ $(function() {
     $('#datefilter2').click(function () {
       update_data("#pageview_chart");
     });
-
+    
+    {% if show_allplatforms_widgets == True %}
     var chart = $('#platform_pageview_chart').highcharts();
     start_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().min);
     end_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().max);
+    {% endif %}
 
     render_sna(sna_data);
 

@@ -1,14 +1,25 @@
 {
+  /* Set up for Active Learning Squared Utility
+  this is a beta version of the AL^2 interface. Presently,
+  to run this functionality the CLAToolkit_JavaMLWrapper-0.1.jar is required.
 
-  "server": "localhost:5432",
+  For ethical reasons we cannot release this tool publicly. However, a solution integrated
+  into the larger CLAToolkit project will be made available in the coming months.
 
-  "db_name": "new_db",
+  In the meantime, should you want access to the .jar tool, please email z.waters@qut.edu.au*/
 
+  //Host of database
+  "server": "",
 
+  //Database Name
+  "db_name": "db_name",
+
+  //Database user/pass
   "db_credentials": {
-    "username": "",
-    "password": ""
+    "username": "user",
+    "password": "pass"
   },
 
-  "model_file": "./NaiveBayes_t1.model"
+  //this field is no longer required
+  "model_file": ""
 }

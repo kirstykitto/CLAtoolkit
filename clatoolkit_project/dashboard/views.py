@@ -212,6 +212,8 @@ def dashboard(request):
     facebook_timeline = ""
     forum_timeline = ""
     youtube_timeline = ""
+    diigo_timeline = ""
+    blog_timeline = ""
 
     profiling = profiling + "| Platform Timelines %s" % (str(datetime.datetime.now()))
     platformclause = ""
@@ -381,14 +383,14 @@ def studentdashboard(request):
 
     #print "Activity by Platform", datetime.datetime.now()
     cursor = connection.cursor()
-    if course_code == 'IFN614':
-        cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
-                            FROM clatoolkit_learningrecord
-                            WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s' AND clatoolkit_learningrecord.datetimestamp > %s
-                            GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
-                    """ % (course_code, username, '29-06-2016'))
-    else:
-        cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
+    #if course_code == 'IFN614':
+    #    cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
+    #                        FROM clatoolkit_learningrecord
+    #                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s' AND clatoolkit_learningrecord.datetimestamp > '%s'
+    #                        GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
+    #                """ % (course_code, username, '29-06-2016'))
+    #else:
+    cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
                     FROM clatoolkit_learningrecord
                     WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
                     GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
@@ -436,7 +438,11 @@ def studentdashboard(request):
     topcontenttable = get_top_content_table(platform, course_code, username=username)
 
     #print "SNA", datetime.datetime.now()
-    sna_json = sna_buildjson(platform, course_code, username=username, relationshipstoinclude="'mentioned','liked','shared','commented'")
+    if course_code == 'IFN614':
+        sna_json = sna_buildjson(platform, course_code, start_date='15-06-2016', end_date='20-12-2016', relationshipstoinclude="'mentioned','liked','shared','commented'")
+    else:
+        sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
+
 
     #print "Word Cloud", datetime.datetime.now()
     tags = get_wordcloud(platform, course_code, username=username)

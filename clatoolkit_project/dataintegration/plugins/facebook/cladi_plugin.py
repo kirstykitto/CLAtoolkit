@@ -54,7 +54,7 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
 
         self.authomatic_secretkey = str(self.api_config_dict['authomatic_secretkey'])
 
-    def perform_import(self, retrieval_param, course_code, result):
+    def perform_import(self, retrieval_param, course_code, authomatic_result):
         """
         Sends formatted data to LRS
         1. Parses facebook feed
@@ -67,7 +67,7 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
         """
 
         url = 'https://graph.facebook.com/'+retrieval_param+'/feed'
-        access_response = result.provider.access(url)
+        access_response = authomatic_result.provider.access(url)
         data = access_response.data.get('data')
         paging = access_response.data.get('paging')
         while True:

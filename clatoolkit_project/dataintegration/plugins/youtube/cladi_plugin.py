@@ -10,7 +10,7 @@ import os
 
 class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServerFlowPluginMixin):
 
-    platform = "youtube"
+    platform = "YouTube"
     platform_url = "http://www.youtube.com/"
 
     xapi_verbs = ['created', 'shared', 'liked', 'commented']

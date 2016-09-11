@@ -22,8 +22,6 @@ from dataintegration.models import Video, Comment
 import os
 from clatoolkit.models import UnitOffering, UserProfile
 
-#from apiclient.discovery import build
-
 
 ##############################################
 # Extract data from YouTube via APIs

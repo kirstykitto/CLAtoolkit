@@ -76,14 +76,13 @@
                 <div class="form-group">
                   <p class="help-block">At least 1 social media account is required.</p>
                 </div>
-
-                {% if course.code == 'IFN614'  %}
+                {% if course.code == 'IFN6145'  %}
                 <div class="form-group">
                   <p class="help-block">{{ profile_form.forum_id.errors }}</p>
                   <label for="id_forum_id">IFN614 Site Username:</label> (Only required for IFN614 Students.)<br />
                   {{ profile_form.forum_id }}
                   <p>
-                    Forum posts for IFN614 students will be retrieved from <a href="http://2015.informationprograms.info/forums/" target="_blank">2015.informationprograms.info/forums/</a>
+                    Data for IFN614 students will be retrieved from <a href="http://2016.informationprograms.info" target="_blank">2016.informationprograms.info</a>
                   </p>
                 </div>
                 {% else  %}
@@ -108,6 +107,7 @@
                   <p>
                       <!---->
                     <a href='/dataintegration/get_social/?context={"platform": "facebook"}' target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
+
                   </p>
                 </div>
                 {% endif %}
@@ -136,7 +136,7 @@
                 {% endif %}
 
                 <!-- Blog -->
-                {% if 'blog' in req_platforms %}
+                {% if course.code == 'IFN614' %}
                 <div><a href="#" class="form_control" handle="blog">Attach Blog (RSS-Compatible blogs only)</a></div>
                 <div id="blog_input" class="form-group">
                   <p class="help-block">{{ profile_form.blog_id.errors }}</p>
@@ -155,7 +155,7 @@
                 {% endif %}
 
                 <!-- Trello -->
-                    {% if 'trello' in req_platforms %}
+                {% if course.code == 'UXH314' %}
                 <div class="form-group">
                   <p class="help-block">{{ profile_form.trello_account.errors }}</p>
                   <label for="id_trello_account_name">Trello:</label><br />
@@ -176,6 +176,9 @@
                       <a id="trellolink" href="#" onclick="javascript:get_and_link_trello();" target="_blank">Click here to link your trello profile</a>
                   </p>
                 </div>
+                 
+                {% endif %}
+
                     {% endif %}
                 <p>
                 By clicking the register button below, you are indicating that you:
@@ -355,7 +358,6 @@
 </div>
 <!-- /.row -->
 {% endif %}
-    {% endif %}
 {% endblock %}
 
 {% block js_block %}
