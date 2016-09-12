@@ -366,13 +366,17 @@ def studentdashboard(request):
     username_platform = request.GET.get('username_platform')
 
     #userid = get_smids_fromusername(username)
-    twitter_id, fb_id, forum_id = get_smids_fromusername(username)
+    twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id = get_smids_fromusername(username)
     sm_usernames_dict = {'Twitter': twitter_id, 'Facebook': fb_id, 'Forum': forum_id}
     sm_usernames = [twitter_id, fb_id, forum_id]
 
     sm_usernames_str = ','.join("'{0}'".format(x) for x in sm_usernames)
 
     title = "Student Dashboard: %s, (Twitter: %s, Facebook: %s, Forum: %s)" % (course_code, twitter_id, fb_id, forum_id)
+
+    if course_code == 'IFN614':
+            title = "Student Dashboard: %s, (Twitter: %s, Blog: %s)" % (course_code, twitter_id, blog_id)
+
     show_dashboardnav = True
 
     #print "Verb timelines", datetime.datetime.now()
