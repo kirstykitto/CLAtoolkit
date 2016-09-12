@@ -184,7 +184,7 @@ Server Installation
 Along with Docker we will be using:
 - Docker Compose for orchestrating a multi-container application into a single app
 
-Follow the directions [here](https://docs.docker.com/machine/#installation) to install Docker Compose.
+Follow the directions [here](https://docs.docker.com/compose/install/) to install Docker Compose.
 
 Test if docker-compose is installed:
 
