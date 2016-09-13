@@ -31,6 +31,25 @@ if os.environ.get("DEBUG") == '1':
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(",")
 
+ADMINS = os.environ.get("ADMINS").split(",")
+ADMINS = map(lambda email: email.split(":"), ADMINS)
+
+if ADMINS:
+
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+    SERVER_EMAIL = os.environ.get("SERVER_EMAIL")
+
+    EMAIL_HOST = os.environ.get("EMAIL_HOST")
+    EMAIL_PORT = os.environ.get("EMAIL_PORT")
+    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
+    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+
+    if os.environ.get("EMAIL_USE_TLS") == '1':
+        EMAIL_USE_TLS = True
+
+    if os.environ.get("EMAIL_USE_SSL") == '1':
+        EMAIL_USE_SSL = True
 
 # Application definition
 
