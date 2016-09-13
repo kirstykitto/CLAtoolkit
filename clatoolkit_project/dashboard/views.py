@@ -218,8 +218,8 @@ def dashboard(request):
     profiling = profiling + "| Platform Timelines %s" % (str(datetime.datetime.now()))
     platformclause = ""
 
-    #TODO: We've changed teaching periods to sync.. but most database entries grab from course_code.....
-    #periodclause = "AND "
+    #TODO: This will need to change upon implementation of teaching periods
+
     if platform != "all":
         platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
     else:
@@ -377,6 +377,7 @@ def studentdashboard(request):
     if course_code == 'IFN614':
             title = "Student Dashboard: %s, (Twitter: %s, Blog: %s)" % (course_code, twitter_id, blog_id)
 
+
     show_dashboardnav = True
 
     #print "Verb timelines", datetime.datetime.now()
@@ -452,7 +453,9 @@ def studentdashboard(request):
     tags = get_wordcloud(platform, course_code, username=username)
 
     sentiments = getClassifiedCounts(platform, course_code, username=username, classifier="VaderSentiment")
+
     coi = getClassifiedCounts(platform, course_code, username=username, classifier="nb_"+course_code+"_"+platform+".model")
+
 
     context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline':forum_timeline, 'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi }
 
@@ -547,7 +550,9 @@ def mydashboard(request):
     tags = get_wordcloud(platform, course_code, username=username)
 
     sentiments = getClassifiedCounts(platform, course_code, username=username, classifier="VaderSentiment")
+
     coi = getClassifiedCounts(platform, course_code, username=username, classifier="nb_"+course_code+"_"+platform+".model")
+
 
     reflections = DashboardReflection.objects.filter(username=username)
     context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 
@@ -643,4 +648,6 @@ def ccadata(request):
     #print result
 
     response = JsonResponse(result, status=status.HTTP_200_OK)
+
     return response
+

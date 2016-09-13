@@ -67,7 +67,7 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
         """
 
         url = 'https://graph.facebook.com/'+retrieval_param+'/feed'
-        access_response = authomatic_result.provider.access(url)
+        access_response = result.provider.access(url)
         data = access_response.data.get('data')
         paging = access_response.data.get('paging')
         while True:
@@ -123,7 +123,9 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
                         comment_id = comment['id']
                         if username_exists(comment_from_uid, course_code, self.platform):
                             usr_dict = get_userdetails(comment_from_uid, self.platform)
+
                             insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, self.platform, self.platform_url, shared_username=from_uid)
+
 
 registry.register(FacebookPlugin)
 

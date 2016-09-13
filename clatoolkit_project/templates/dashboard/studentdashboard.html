@@ -637,6 +637,7 @@ $(function() {
     end_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().max);
     {% endif %}
 
+
     render_sna(sna_data);
 
     $("#tag_container").jQCloud(wordcloud_data, {

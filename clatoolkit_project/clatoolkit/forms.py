@@ -40,8 +40,6 @@ class SocialMediaUpdateForm(forms.ModelForm):
         fields = ('fb_id', 'twitter_id', 'forum_id', 'google_account_name', 'diigo_username', 'blog_id', 'github_account_name', 'trello_account_name')
 
 
-
-
 class UserProfileForm(forms.ModelForm):
     fb_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     twitter_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
@@ -71,8 +69,8 @@ class UserProfileForm(forms.ModelForm):
             gh_registered = UserProfile.objects.filter(forum_id__iexact=self.cleaned_data.get('github_account_name'))
             tl_registered = UserProfile.objects.filter(trello_account_name__iexact=self.cleaned_data.get('trello_account_name'))
 
-            print 'FACEBOOK ID: %s' % (self.cleaned_data.get('fb_id'))
-            print self.cleaned_data.get('fb_id') == ''
+           #print 'FACEBOOK ID: %s' % (self.cleaned_data.get('fb_id'))
+#           print self.cleaned_data.get('fb_id') == ''
            # print self.cleaned_data.get('fb_id') is None
            # print self.cleaned_data.get('fb_id') is True
            # print self.cleaned_data.get('fb_id') is False

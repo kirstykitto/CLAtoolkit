@@ -15,6 +15,7 @@ Local Installation using VirtualEnv
 
 **CLAToolkit is built with Django. The installation is pretty standard but requires Postgres (for JSON document queries), Numpy and a range of Machine Learning Libraries such as Scikit Learn and Gensim**
 
+<<<<<<< HEAD
 If you do not have VirtualEnv installed:
 ```bash
 $ pip install virtualenv
@@ -23,20 +24,24 @@ $ mkdir ~/.virtualenvs
 $ export WORKON_HOME=~/.virtualenvs
 ```
 
-**Create a virtual environment for CLAToolkit:
+**Create a virtual environment for CLAToolkit:**
+
 
 ```bash
 $ mkvirtualenv clatoolkit
 $ workon clatoolkit
 ```
 
-**Get code from GitHub:
+
+**Get code from GitHub:**
+
 ```bash
 $ git clone https://github.com/kirstykitto/CLAtoolkit.git
 $ cd clatoolkit/clatoolkit_project/clatoolkit_project
 ```
 
-**Install Python and Django Requirements
+**Install Python and Django Requirements**
+
 
 A requirements.txt file is provided in the code repository. This will take a while especially the installation of numpy. If numpy fails you may have to find a platform specific deployment method eg using apt-get on ubuntu ($ sudo apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose).
 
@@ -44,7 +49,7 @@ A requirements.txt file is provided in the code repository. This will take a whi
 $ sudo pip install -r requirements.txt
 ```
 
-**Install Postgres
+**Install Postgres**
 
 On a Mac install postgres.app using these instructions: http://postgresapp.com/ 
 and add to path using:

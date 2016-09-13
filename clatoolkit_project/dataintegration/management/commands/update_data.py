@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from clatoolkit.models import *
 from dashboard.utils import classify
+
 from dataintegration.core.processingspipeline import post_smimport
 
 
@@ -8,7 +9,7 @@ from dataintegration.core.processingspipeline import post_smimport
 import requests
 
 def base_URI():
-    return 'http://clatoolkit.beyondlms.org/dataintegration/'
+    return 'http://localhost:8000/dataintegration/'
 
 def get_new_course_settings():
     return {
@@ -17,7 +18,7 @@ def get_new_course_settings():
         'google' : None,
         'forum' : None,
         'youtube' : None,
-	'trello' : None,
+	    'trello' : None,
         'blog' : None,
         'diigo' : None,
         'coi' : False,
@@ -85,11 +86,12 @@ class Command(BaseCommand):
                     r = requests.get(url_str)
                     if r.status_code is not 200:
                         raise CommandError('Error encountered during twitter update. HTTP Status Code: %s' % r.status_code)
-		    post_smimport(course_code, 'twitter')
-		    #post sm import may fail - naming conventions..
+
+		            post_smimport(course_code, 'twitter')
+		            #post sm import may fail - naming conventions..
 
                 if COURSE_SETTINGS['google']:
-		    pass	 
+                    pass
 
                 if COURSE_SETTINGS['facebook']:
                     context = '{ "platform" : "facebook", "course_code" : "'+course_code+'", "group" : "'+course.facebook_groups_as_list()[0]+'" }'
@@ -97,16 +99,17 @@ class Command(BaseCommand):
                     r = requests.get(url_str)
                     if r.status_code is not 200:
                         raise CommandError('Error encountered during facebook update. HTTP Status Code: %s' % r.status_code)
-		    post_smimport(course_code, 'facebook')
+
+                    post_smimport(course_code, 'facebook')
 
                 if COURSE_SETTINGS['diigo']:
-		    pass 
+		            pass
 
                 if COURSE_SETTINGS['youtube']:
-		    pass
+		            pass
 
                 if COURSE_SETTINGS['forum']:
-		    pass
+		            pass
 
                 if COURSE_SETTINGS['blog']:
                     #TODO: Modularize urls
@@ -114,7 +117,7 @@ class Command(BaseCommand):
                     r = requests.get(url_str)
                     if r.status_code is not 200:
                         raise CommandError('Error encountered during blog update. HTTP Status Code: %s' % r.status_code)
-		    post_smimport(course_code, 'blog')
+                    post_smimport(course_code, 'blog')
 
 
                 if COURSE_SETTINGS['trello']:

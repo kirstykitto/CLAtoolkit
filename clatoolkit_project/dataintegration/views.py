@@ -333,9 +333,9 @@ def dipluginauthomaticlogin(request):
                 # If there are credentials (only by AuthorizationProvider),
                 # we can _access user's protected resources.
                 if result.user.credentials:
-          	    group_id = request.session['group_id']
-		    course_code = request.session['course_code']
-		    if result.provider.name == 'fb':
+                    group_id = request.session['group_id']
+                    course_code = request.session['course_code']
+                    if result.provider.name == 'fb':
                         di_plugin.perform_import(group_id, course_code, result)
 
                         post_smimport(course_code, "facebook")

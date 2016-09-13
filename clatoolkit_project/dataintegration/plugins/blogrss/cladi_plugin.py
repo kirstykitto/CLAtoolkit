@@ -11,6 +11,7 @@ import urlparse
 import urllib
 import urllib2
 
+
 '''
 This plugin is specifically designed for the Kate Davies unit that is using Wordpress with multiple
 blog sites in Sem 1, 2016.
@@ -61,13 +62,12 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
         for memberblog_url in memberblog_urls:
             member_blogfeed = memberblog_url + 'feed/'
             #print 'getting memberblog feed: ' + member_blogfeed
+
             temp_dict = self.insert_blogposts(member_blogfeed, course_code)
             displayname_username_dict.update(temp_dict)
         for memberblog_url in memberblog_urls:
             member_commentfeed = memberblog_url + 'comments/feed/'
             self.insert_blogcomments(member_commentfeed, course_code, displayname_username_dict)
-
-
 
     def get_allmemberblogurls(self, memberlist_url, max_pages=4):
 
@@ -103,7 +103,6 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         #print memberblog_urls
         #print "BLOGS SCRAPED: %s" % len(memberblog_urls)
-
         #return ['http://2016.socialtechnologi.es/moonlo/']
         return memberblog_urls
 
@@ -144,41 +143,28 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     insert_blogpost(usr_dict, link, message, get_username_fromsmid(blog_url_name,self.platform), blog_display_name, post_date, course_code, self.platform, self.platform_url, tags=tags)
         except KeyError:
             pass
+
         return displayname_username_dict
 
     def insert_blogcomments(self, member_commentfeed, course_code, displayname_username_dict):
         d = feedparser.parse(member_commentfeed)
 
         for post in d.entries:
-            comment_link = post.link
+            link = post.link
             slash_pos = post.link.rfind("/")
-            op_link = post.link[:slash_pos+1]
-            op_path = urlparse.urlparse(op_link).path
-            op_smid = op_path.split('/')[1]
-            comment_message = post.title + " " + post.content[0]['value']
-            comment_author = post.author
-            comment_post_date = dateutil.parser.parse(post.published)
+            parent_link = post.link[:slash_pos+1]
+            path = urlparse.urlparse(parent_link).path
+            parent_username = path.split('/')[1]
+            message = post.title + " " + post.content[0]['value']
+            author = post.author
+            post_date = dateutil.parser.parse(post.published)
+            if author != "Anonymous" and author in displayname_username_dict:
+                post_username = displayname_username_dict[author]
+                post_date = dateutil.parser.parse(post.published)
 
-            #print 'comment author: %s' % comment_author
-
-            #if comment_author == 'Zak':
-                #print comment_author != "Anonymous" and comment_author in displayname_username_dict
-                #print displayname_username_dict
-
-            if comment_author != "Anonymous" and comment_author in displayname_username_dict:
-                #print "Author in Dict - seeing if they exist in system..."
-                #print 'comment author: %s\n display_username_dict[comment_author]: %s' % (comment_author, displayname_username_dict[comment_author])
-                comment_smid = displayname_username_dict[comment_author]
-                comment_post_date = dateutil.parser.parse(post.published)
-
-                if comment_author == 'Zak':
-                    print 'does username for zak exist? %s' % username_exists(comment_smid, course_code, self.platform)
-
-                if username_exists(comment_smid, course_code, self.platform):
-                    #print "BLOG_COMMENT FOUND USER on url" + comment_smid
-                    #print "ON %s" % op_smid
-                    usr_dict = get_userdetails(comment_smid, self.platform)
-                    insert_blogcomment(usr_dict, op_link, comment_link, comment_message, get_username_fromsmid(comment_smid, self.platform), comment_author, comment_post_date, course_code, self.platform, self.platform_url, get_username_fromsmid(op_smid,self.platform), get_username_fromsmid(op_smid, self.platform))
+                if username_exists(post_username, course_code, self.platform):
+                    usr_dict = get_userdetails(post_username, self.platform)
+                    insert_comment(usr_dict, parent_link, link, message, post_username, author, post_date, course_code, self.platform, self.platform_url, shared_username=parent_username)
 
 registry.register(BlogrssPlugin)
 

@@ -391,7 +391,6 @@ def get_allcontent_byplatform(platform, course_code, username=None, start_date=N
     return content_list,id_list
 
 def getClassifiedCounts(platform, course_code, username=None, start_date=None, end_date=None, classifier=None):
-
     classification_dict = None
     if classifier == "VaderSentiment":
         classification_dict = {'positive':0, 'neutral':0, 'negative':0}
@@ -403,9 +402,12 @@ def getClassifiedCounts(platform, course_code, username=None, start_date=None, e
     if classifier == "VaderSentiment":
         kwargs['classifier']=classifier
     else:
-	if course_code == 'IFN614':
-	    platform = 'Blog'
-        classifier_name = "nb_%s_%s.model" % (course_code,platform)
+	    if course_code == 'IFN614':
+	        platform = 'Blog'
+            classifier_name = "nb_%s_%s.model" % (course_code,platform)
+        else:
+            classifier_name = "nb_%s_%s.model" % (course_code,platform)
+
         kwargs['classifier']= classifier_name
     if username is not None:
         kwargs['xapistatement__username']=username
@@ -708,6 +710,7 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     node_dict = None
     edge_dict = None
     nodes_in_sna_dict = None
+    
     #if username is not None:
     #    node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
     #    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
@@ -803,6 +806,7 @@ def sentiment_classifier(course_code):
             sentiment = "Negative"
         # Save Classification
         classification_obj = Classification(xapistatement=sm_obj,classification=sentiment,classifier='VaderSentiment')#,classifier_model='VaderSentiment')
+
         classification_obj.save()
 
 """

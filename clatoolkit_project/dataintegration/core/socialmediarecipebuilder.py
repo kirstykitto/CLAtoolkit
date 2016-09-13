@@ -121,6 +121,23 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
             )
         taglist.append(tagobject)
 
+    #    if otherObjTypeName is not None:
+    #    otherObject = Activity(
+    #       id=object_id,
+    #       object_type=object_type,
+    #       definition=ActivityDefinition(
+    #           name=LanguageMap({'en-US': otherObjTypeName}),
+    #            type=objectmapper[object_type]
+    #        ),
+    #    )
+    #    taglist.append(otherObject)
+    #if object_type == 'File':
+    #    otherObject = Activity(
+    #        id=grand_parent,
+    #        object_type=object_type
+    #    )
+    #    taglist.append(otherObject)
+
     parentlist = []
     if (verb in ['liked','shared','commented','rated']):
         parentobject = Activity(
@@ -193,6 +210,7 @@ def insert_blogpost(usr_dict, post_id,message,from_name,from_uid, created_time, 
         for tag in tags:
             if tag[0]=="@":
                 socialrelationship = SocialRelationship(verb = "mentioned", fromusername=get_username_fromsmid(from_name,platform), tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
+
                 socialrelationship.save()
 
 def insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url, liked_username=None):
@@ -206,7 +224,9 @@ def insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, pl
         socialrelationship.save()
 
 def insert_blogcomment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, shared_username=None, shared_displayname=None):
-    print "1: %s\n 2: %s\n 3: %s\n 4: %s" % (comment_from_uid, comment_from_name,shared_username,shared_displayname)
+
+    #print "1: %s\n 2: %s\n 3: %s\n 4: %s" % (comment_from_uid, comment_from_name,shared_username,shared_displayname)
+
     if check_ifnotinlocallrs(course_code, platform, comment_id):
         if shared_displayname is not None:
             stm = socialmedia_builder(verb='commented', platform=platform, account_name=comment_from_uid, account_homepage=platform_url, object_type='Note', object_id=comment_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code )
@@ -414,5 +434,4 @@ course_code, platform, platform_url, shared_username=None, shared_displayname=No
             print "COMMENT SAVED!"
             socialrelationship = SocialRelationship(verb = "commented", fromusername=get_username_fromsmid(comment_from_uid,platform), tousername=get_username_fromsmid(shared_username,platform), platform=platform, message=comment_message, datetimestamp=comment_created_time, course_code=course_code, platformid=comment_id)
             socialrelationship.save()"""
-
 

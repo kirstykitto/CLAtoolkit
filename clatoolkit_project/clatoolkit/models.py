@@ -111,6 +111,7 @@ class Classification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 #    classifier_model = models.CharField(max_length=1000, blank=False)
 
+
 class UserClassification(models.Model):
     classification = models.ForeignKey(Classification)
     username = models.CharField(max_length=5000, blank=False)
@@ -135,6 +136,7 @@ class UnitOffering(models.Model):
     # determines whether COI Classifier link should be diplayed for staff and student in a unit
     enable_coi_classifier = models.BooleanField(default=False)
     #enable_group_coi_classifier = models.BooleanField(default=False)
+
     # Twitter Unit Integration Requirements
     twitter_hashtags = models.TextField(blank=False)
 

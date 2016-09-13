@@ -42,8 +42,10 @@
     <!-- jQCloud styles -->
     <link rel="stylesheet" href="http://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.css">
 
+
     <!-- jQuery UI styles -->
     <link href="{% static 'js/jquery-ui-1.11.4.custom/jquery-ui.css'%}" rel="stylesheet">
+
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -68,6 +70,7 @@
       g.arc text {
         font-size: 10px;
       }      
+
 
     </style>
 
@@ -110,7 +113,9 @@
                 <!--<li><a href="/clatoolkit/mygroups"><i class="fa fa-users" aria-hidden="true"></i> My Groups</a></li>-->
                 <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+
                         <i class="fa fa-user fa-fw"></i> {{user.username}} <i class="fa fa-caret-down"></i>
+
                     </a>
                     <ul class="dropdown-menu dropdown-user">
                         <li><a href="/clatoolkit/socialmediaaccounts"><i class="fa fa-user fa-fw"></i> Social Media Accounts</a></li>
