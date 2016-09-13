@@ -15,7 +15,7 @@ Local Installation using VirtualEnv
 
 **CLAToolkit is built with Django. The installation is pretty standard but requires Postgres (for JSON document queries), Numpy and a range of Machine Learning Libraries such as Scikit Learn and Gensim**
 
-<<<<<<< HEAD
+
 If you do not have VirtualEnv installed:
 ```bash
 $ pip install virtualenv
