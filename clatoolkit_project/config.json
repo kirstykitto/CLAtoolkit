@@ -1,14 +1,13 @@
 {
 
-  "server": "localhost:5432",
+  "server": "",
 
-  "db_name": "new_db",
-
+  "db_name": "cladjangodb",
 
   "db_credentials": {
     "username": "",
     "password": ""
   },
 
-  "model_file": "./NaiveBayes_t1.model"
+  "model_file": "nb_IFN614_Blog.model"
 }

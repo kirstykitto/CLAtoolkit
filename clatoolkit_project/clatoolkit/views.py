@@ -16,7 +16,9 @@ from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord,
 
 from rest_framework import authentication, permissions, viewsets, filters
 from .serializers import LearningRecordSerializer, SocialRelationshipSerializer, ClassificationSerializer, UserClassificationSerializer
-from .forms import LearningRecordFilter, SocialRelationshipFilter, ClassificationFilter, UserClassificationFilter
+
+from .forms import SocialMediaUpdateForm, LearningRecordFilter, SocialRelationshipFilter, ClassificationFilter, UserClassificationFilter
+
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -257,7 +259,8 @@ def socialmediaaccounts(request):
     usr_profile = UserProfile.objects.get(user_id=user_id)
 
     if request.method == 'POST':
-        profile_form = UserProfileForm(data=request.POST,instance=usr_profile)
+        profile_form = SocialMediaUpdateForm(data=request.POST,instance=usr_profile)
+        units  = UnitOffering.objects.filter(users=user_id)
 
         if profile_form.is_valid():
             profile_form.save()
@@ -271,7 +274,7 @@ def socialmediaaccounts(request):
     # Not a HTTP POST, so we render our form using two ModelForm instances.
     # These forms will be blank, ready for user input.
     else:
-        profile_form = UserProfileForm(instance=usr_profile)
+        profile_form = SocialMediaUpdateForm(instance=usr_profile)
         units = UnitOffering.objects.filter(users=user_id)
 
     # Render the template depending on the context.
