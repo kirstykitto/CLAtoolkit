@@ -402,8 +402,8 @@ def getClassifiedCounts(platform, course_code, username=None, start_date=None, e
     if classifier == "VaderSentiment":
         kwargs['classifier']=classifier
     else:
-	    if course_code == 'IFN614':
-	        platform = 'Blog'
+        if course_code == 'IFN614':
+            platform = 'Blog'
             classifier_name = "nb_%s_%s.model" % (course_code,platform)
         else:
             classifier_name = "nb_%s_%s.model" % (course_code,platform)
