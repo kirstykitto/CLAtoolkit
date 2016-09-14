@@ -34,7 +34,9 @@ YouTube Channels: {% for channel in unit.youtube_channelIds_as_list %} <a href="
 {% endif %}
 {% if unit.code == 'IFN614' %}
 <br/>
-Forums: {{unit.forum_urls}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Forum">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Forum">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Forum">Social Network Analysis</a>] | <a href="/dataintegration/refreshforum/?course_code={{unit.code}}&forumurl={{unit.forum_urls|urlencode}}">Refresh Imported Data</a>
+
+IFN614 Blog URLs: {{unit.blogmember_urls}} [<a href="/dashboard/?course_code={{unit.code}}&platform=Blog">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=Blog">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=Blog">Social Network Analysis</a>] | <a href="/dataintegration/refreshforum/?course_code={{unit.code}}&forumurl={{unit.blogmember_urls|urlencode}}">Refresh Imported Data</a>
+
 {% endif %}
 {% if unit.diigo_tags_as_list|length > 0 %}
 <br/>
@@ -51,12 +53,16 @@ GitHub URLs: {% for url in unit.github_urls_as_list %} <a href="{{url}}" target=
 
 {% if unit.enable_coi_classifier %}
 <hr/>
+
 {% if unit.code == 'IFN614' %}
+
 <a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=Forum">View Your Community of Inquiry Classifications</a>
 <br/>
 Community of Inquiry Classification Admin: <a href="/clatoolkit/classify?course_code={{unit.code}}&platform=Forum">Classify All Student Data</a>/<a href="/clatoolkit/train?course_code={{unit.code}}&platform=Forum">Train on new Student Data</a>
 {% else %}
-<a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=YouTube">View Your Community of Inquiry Classifications</a>
+
+<a href="/dashboard/myclassifications?course_code={{unit.code}}&platform=Blog">View Your Community of Inquiry Classifications</a>
+
 <br/>
 Community of Inquiry Classification Admin: <a href="/clatoolkit/classify?course_code={{unit.code}}&platform=YouTube">Classify All Student Data</a>/<a href="/clatoolkit/train?course_code={{unit.code}}&platform=YouTube">Train on new Student Data</a>
 {% endif %}

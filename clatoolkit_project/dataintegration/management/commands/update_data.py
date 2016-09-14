@@ -2,6 +2,9 @@ from django.core.management.base import BaseCommand, CommandError
 from clatoolkit.models import *
 from dashboard.utils import classify
 
+from dataintegration.core.processingspipeline import post_smimport
+
+
 #urllib2 to send update requests
 import requests
 
@@ -15,6 +18,7 @@ def get_new_course_settings():
         'google' : None,
         'forum' : None,
         'youtube' : None,
+	    'trello' : None,
         'blog' : None,
         'diigo' : None,
         'coi' : False,
@@ -52,7 +56,7 @@ class Command(BaseCommand):
                 #Check unitoffering for attached SM
                 if len(course.twitter_hashtags_as_list()) > 0:
                     #TODO: Fix Twitter AuthFlow?
-                    COURSE_SETTINGS['twitter'] = False
+                    COURSE_SETTINGS['twitter'] = True
                 if len(course.google_groups) > 0:
                     COURSE_SETTINGS['google'] = True
                 if len(course.facebook_groups_as_list()) > 0:
@@ -66,6 +70,8 @@ class Command(BaseCommand):
                     COURSE_SETTINGS['diigo'] = True
                 if len(course.blogmember_urls_as_list()) > 0:
                     COURSE_SETTINGS['blog'] = True
+                if len(course.trello_boards_as_list()) > 0:
+                    COURSE_SETTINGS['trello'] = True
                 if course.enable_coi_classifier is True:
                     COURSE_SETTINGS['coi'] = True
 
@@ -81,8 +87,11 @@ class Command(BaseCommand):
                     if r.status_code is not 200:
                         raise CommandError('Error encountered during twitter update. HTTP Status Code: %s' % r.status_code)
 
+		            post_smimport(course_code, 'twitter')
+		            #post sm import may fail - naming conventions..
+
                 if COURSE_SETTINGS['google']:
-                    raise NotImplementedError
+                    pass
 
                 if COURSE_SETTINGS['facebook']:
                     context = '{ "platform" : "facebook", "course_code" : "'+course_code+'", "group" : "'+course.facebook_groups_as_list()[0]+'" }'
@@ -91,21 +100,31 @@ class Command(BaseCommand):
                     if r.status_code is not 200:
                         raise CommandError('Error encountered during facebook update. HTTP Status Code: %s' % r.status_code)
 
+                    post_smimport(course_code, 'facebook')
+
+                if COURSE_SETTINGS['diigo']:
+		            pass
+
+                if COURSE_SETTINGS['youtube']:
+		            pass
+
+                if COURSE_SETTINGS['forum']:
+		            pass
+
                 if COURSE_SETTINGS['blog']:
                     #TODO: Modularize urls
-                    url_str = base_URI()+'refreshblog/?course_code='+course_code+'&urls=http://2016.socialtechnologi.es/student-blogs/'
+                    url_str = base_URI()+'refreshblog/?course_code='+course_code+'&urls=http://2016.informationprograms.info/student-blogs/'
                     r = requests.get(url_str)
                     if r.status_code is not 200:
                         raise CommandError('Error encountered during blog update. HTTP Status Code: %s' % r.status_code)
+                    post_smimport(course_code, 'blog')
 
-                if COURSE_SETTINGS['diigo']:
-                    raise NotImplementedError
 
-                if COURSE_SETTINGS['youtube']:
-                    raise NotImplementedError
-
-                if COURSE_SETTINGS['forum']:
-                    raise NotImplementedError
+                if COURSE_SETTINGS['trello']:
+                    url_str = base_URI()+'refreshtrello/?course_code='+course_code+'&boards='+course.trello_boards_as_list()
+                    r = requests.get(url_str)
+                    if r.status_code is not 200:
+                        raise CommandError('Error encountered during blog update. HTTP Status: %s' % r.status_code)
 
                 if COURSE_SETTINGS['coi']:
                     for platform in COURSE_SETTINGS['coi_platforms']:
