@@ -20,8 +20,6 @@ If you do not have VirtualEnv installed:
 ```bash
 $ pip install virtualenv
 $ pip install virtualenvwrapper
-$ mkdir ~/.virtualenvs
-$ export WORKON_HOME=~/.virtualenvs
 ```
 
 **Create a virtual environment for CLAToolkit:**
@@ -46,7 +44,7 @@ $ cd clatoolkit/clatoolkit_project/clatoolkit_project
 A requirements.txt file is provided in the code repository. This will take a while especially the installation of numpy. If numpy fails you may have to find a platform specific deployment method eg using apt-get on ubuntu ($ sudo apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose).
 
 ```bash
-$ sudo pip install -r requirements.txt
+$ pip install -r requirements.txt
 ```
 
 **Install Postgres**
