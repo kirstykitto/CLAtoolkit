@@ -11,7 +11,7 @@ import os
 
 class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMixin):
 
-    platform = "Facebook"
+    platform = "facebook"
     platform_url = "http://www.facebook.com/"
 
     xapi_verbs = ['created', 'shared', 'liked', 'commented']
@@ -72,7 +72,7 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
         paging = access_response.data.get('paging')
         while True:
             try:
-                insert_facebook_lrs(fb_feed=data, course_code=course_code)
+                self.insert_facebook_lrs(fb_feed=data, course_code=course_code)
                 fb_resp = requests.get(paging['next']).json()
                 data = fb_resp['data']
                 if 'paging' not in fb_resp:
@@ -123,7 +123,9 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
                         comment_id = comment['id']
                         if username_exists(comment_from_uid, course_code, self.platform):
                             usr_dict = get_userdetails(comment_from_uid, self.platform)
-                            insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, self.platform, self.platform_url, parentusername=from_uid)
+
+                            insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, self.platform, self.platform_url, shared_username=from_uid)
+
 
 registry.register(FacebookPlugin)
 

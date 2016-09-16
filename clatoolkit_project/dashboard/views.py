@@ -212,9 +212,14 @@ def dashboard(request):
     facebook_timeline = ""
     forum_timeline = ""
     youtube_timeline = ""
+    diigo_timeline = ""
+    blog_timeline = ""
 
     profiling = profiling + "| Platform Timelines %s" % (str(datetime.datetime.now()))
     platformclause = ""
+
+    #TODO: This will need to change upon implementation of teaching periods
+
     if platform != "all":
         platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
     else:
@@ -361,13 +366,18 @@ def studentdashboard(request):
     username_platform = request.GET.get('username_platform')
 
     #userid = get_smids_fromusername(username)
-    twitter_id, fb_id, forum_id = get_smids_fromusername(username)
+    twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id = get_smids_fromusername(username)
     sm_usernames_dict = {'Twitter': twitter_id, 'Facebook': fb_id, 'Forum': forum_id}
     sm_usernames = [twitter_id, fb_id, forum_id]
 
     sm_usernames_str = ','.join("'{0}'".format(x) for x in sm_usernames)
 
     title = "Student Dashboard: %s, (Twitter: %s, Facebook: %s, Forum: %s)" % (course_code, twitter_id, fb_id, forum_id)
+
+    if course_code == 'IFN614':
+            title = "Student Dashboard: %s, (Twitter: %s, Blog: %s)" % (course_code, twitter_id, blog_id)
+
+
     show_dashboardnav = True
 
     #print "Verb timelines", datetime.datetime.now()
@@ -378,11 +388,18 @@ def studentdashboard(request):
 
     #print "Activity by Platform", datetime.datetime.now()
     cursor = connection.cursor()
+    #if course_code == 'IFN614':
+    #    cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
+    #                        FROM clatoolkit_learningrecord
+    #                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s' AND clatoolkit_learningrecord.datetimestamp > '%s'
+    #                        GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
+    #                """ % (course_code, username, '29-06-2016'))
+    #else:
     cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
-                        FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
-                        GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
-                    """ % (course_code, username))
+                    FROM clatoolkit_learningrecord
+                    WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
+                    GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
+            """ % (course_code, username))
     result = cursor.fetchall()
 
     activity_pie_series = ""
@@ -426,13 +443,19 @@ def studentdashboard(request):
     topcontenttable = get_top_content_table(platform, course_code, username=username)
 
     #print "SNA", datetime.datetime.now()
-    sna_json = sna_buildjson(platform, course_code, username=username, relationshipstoinclude="'mentioned','liked','shared','commented'")
+    if course_code == 'IFN614':
+        sna_json = sna_buildjson(platform, course_code, start_date='15-06-2016', end_date='20-12-2016', relationshipstoinclude="'mentioned','liked','shared','commented'")
+    else:
+        sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
+
 
     #print "Word Cloud", datetime.datetime.now()
     tags = get_wordcloud(platform, course_code, username=username)
 
     sentiments = getClassifiedCounts(platform, course_code, username=username, classifier="VaderSentiment")
-    coi = getClassifiedCounts(platform, course_code, username=username, classifier="NaiveBayes_t1.model")
+
+    coi = getClassifiedCounts(platform, course_code, username=username, classifier="nb_"+course_code+"_"+platform+".model")
+
 
     context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline':forum_timeline, 'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi }
 
@@ -527,7 +550,9 @@ def mydashboard(request):
     tags = get_wordcloud(platform, course_code, username=username)
 
     sentiments = getClassifiedCounts(platform, course_code, username=username, classifier="VaderSentiment")
-    coi = getClassifiedCounts(platform, course_code, username=username, classifier="NaiveBayes_t1.model")
+
+    coi = getClassifiedCounts(platform, course_code, username=username, classifier="nb_"+course_code+"_"+platform+".model")
+
 
     reflections = DashboardReflection.objects.filter(username=username)
     context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 
@@ -623,4 +648,6 @@ def ccadata(request):
     #print result
 
     response = JsonResponse(result, status=status.HTTP_200_OK)
+
     return response
+

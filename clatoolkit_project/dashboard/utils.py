@@ -110,14 +110,22 @@ def get_smids_fromuid(uid):
     twitter_id = user.userprofile.twitter_id
     fb_id = user.userprofile.fb_id
     forum_id = user.userprofile.forum_id
-    return twitter_id, fb_id, forum_id
+    github_id = user.userprofile.github_account_name
+    trello_id = user.userprofile.trello_account_name
+    blog_id = user.userprofile.blog_id
+    diigo_id = user.userprofile.diigo_username
+    return twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id
 
 def get_smids_fromusername(username):
     user = User.objects.get(username=username)
     twitter_id = user.userprofile.twitter_id
     fb_id = user.userprofile.fb_id
     forum_id = user.userprofile.forum_id
-    return twitter_id, fb_id, forum_id
+    github_id = user.userprofile.github_account_name
+    trello_id = user.userprofile.trello_account_name
+    blog_id = user.userprofile.blog_id
+    diigo_id = user.userprofile.diigo_username
+    return twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id
 
 def get_timeseries(sm_verb, sm_platform, course_code, username=None):
     # more info on postgres timeseries
@@ -394,7 +402,12 @@ def getClassifiedCounts(platform, course_code, username=None, start_date=None, e
     if classifier == "VaderSentiment":
         kwargs['classifier']=classifier
     else:
-        classifier_name = "nb_%s_%s.model" % (course_code,"YouTube")
+        if course_code == 'IFN614':
+            platform = 'Blog'
+            classifier_name = "nb_%s_%s.model" % (course_code,platform)
+        else:
+            classifier_name = "nb_%s_%s.model" % (course_code,platform)
+
         kwargs['classifier']= classifier_name
     if username is not None:
         kwargs['xapistatement__username']=username
@@ -697,12 +710,13 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     node_dict = None
     edge_dict = None
     nodes_in_sna_dict = None
-    if username is not None:
-        node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
-        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
-    else:
-        node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
-        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+    
+    #if username is not None:
+    #    node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
+    #    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+    #else:
+    node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
+    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
 
     #node_dict.update(nodes_in_sna_dict)
     for key in nodes_in_sna_dict:
@@ -791,7 +805,8 @@ def sentiment_classifier(course_code):
         elif (vs['compound'] < 0):
             sentiment = "Negative"
         # Save Classification
-        classification_obj = Classification(xapistatement=sm_obj,classification=sentiment,classifier='VaderSentiment')
+        classification_obj = Classification(xapistatement=sm_obj,classification=sentiment,classifier='VaderSentiment')#,classifier_model='VaderSentiment')
+
         classification_obj.save()
 
 """

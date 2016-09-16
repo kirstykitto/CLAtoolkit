@@ -196,6 +196,7 @@ function searchandhighlight(terms)
 }
 
 $(document).ready(function(){
+
   // Create Activity Chart
   $('#pageview_chart').highcharts('StockChart', {
 
@@ -219,6 +220,7 @@ $(document).ready(function(){
       legend: {
           enabled: true
       },
+
       series : [{
           name : 'Posts',
           data : [{{ posts_timeline }}],
@@ -236,7 +238,6 @@ $(document).ready(function(){
           data : [{{ comments_timeline }}],
           id : 'dataseries2'
       }]
-      
   }, function (chart) {
       // Show series in the navigator (the mini-chart)
       for(var i = 0; i < chart.options.series.length; i++) {
@@ -252,7 +253,6 @@ $(document).ready(function(){
         });
       }
   });
-
   $('#sentiment').highcharts({
       chart: {
           plotBackgroundColor: null,
