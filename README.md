@@ -184,7 +184,7 @@ Server Installation
 Along with Docker we will be using:
 - Docker Compose for orchestrating a multi-container application into a single app
 
-Follow the directions [here](https://docs.docker.com/machine/#installation) to install Docker Compose.
+Follow the directions [here](https://docs.docker.com/compose/install/) to install Docker Compose.
 
 Test if docker-compose is installed:
 
@@ -208,6 +208,10 @@ $ docker-compose -f production.yml up -d
 ```
 
 This will take quite some time to complete the first time you run it. Subsequent builds will be far quicker as the results are cached from the first build.
+
+If you run into this error:  
+`ERROR: Couldn't connect to Docker daemon at http+docker://localunixsocket - is it running?`  
+See this [Docker doc](https://docs.docker.com/engine/installation/linux/ubuntulinux/#/create-a-docker-group) or run the command with sudo
 
 Run Django database migrations:
 
