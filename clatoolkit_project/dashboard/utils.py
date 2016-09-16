@@ -1042,5 +1042,61 @@ def getCCAData(user, course_code, platform):
             commitTotal = 0
 
     return result
-    
 
+
+def get_platform_timeseries_dataset(course_code, username=None):
+
+    #TODO: Get all platform names dynamically
+    platform_names = ["Twitter", "Facebook", "Forum", "YouTube", "Diigo", "Blog", "Trello", "GitHub"]
+    series = []
+    for platform in platform_names:
+        platformVal = OrderedDict ([
+                ('name', platform),
+                ('id', 'dataseries_' + platform),
+                ('data', get_platform_timeseries_dataset_by_platform(platform, course_code))
+        ])
+        series.append(platformVal)
+
+    return OrderedDict([ ('series', series)])
+
+
+def get_platform_timeseries_dataset_by_platform(sm_platform, course_code, username=None):
+
+    userclause = ""
+    if username is not None:
+        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
+        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+        #userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s])" % (sm_usernames_str)
+
+    cursor = connection.cursor()
+    cursor.execute("""
+    with filled_dates as (
+      select day, 0 as blank_count from
+        generate_series('2015-06-01 00:00'::timestamptz, current_date::timestamptz, '1 day')
+          as day
+    ),
+    daily_counts as (
+    select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
+    FROM clatoolkit_learningrecord
+    WHERE clatoolkit_learningrecord.xapi->'context'->>'platform'='%s' AND clatoolkit_learningrecord.course_code='%s' %s
+    group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
+    order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
+    )
+    select filled_dates.day,
+           coalesce(daily_counts.smcount, filled_dates.blank_count) as signups
+      from filled_dates
+        left outer join daily_counts on daily_counts.day = filled_dates.day
+      order by filled_dates.day;
+    """ % (sm_platform, course_code, userclause))
+    result = cursor.fetchall()
+    dataset_list = []
+    for row in result:
+        curdate = row[0] #parse(row[0])
+        datapoint = "%s,%s,%s,%s" % (curdate.year,curdate.month-1,curdate.day,row[1])
+        dataset_list.append(datapoint)
+
+    return dataset_list
+
+
+def get_platform_activity_dataset(course_code, username=None):
+    return ""

@@ -331,7 +331,8 @@ function showCentralityPopup(params)
   if(data.length == 0) {
     return;
   }
-  //console.log(data);
+  console.log("centrality data in pop-up table:");
+  console.log(data);
   
   $('#centrality-popup').dataTable().fnDestroy();
   $('#centrality-popup').DataTable( {
