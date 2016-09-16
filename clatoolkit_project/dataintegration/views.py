@@ -160,8 +160,11 @@ def ytAuthCallback(request):
     user = request.user
 
     user_channelid = youtube_getpersonalchannel(request, http)
-
+    #print user_channelid
     t = OauthFlowTemp.objects.filter(googleid='http://www.youtube.com/channel/'+user_channelid)
+  #  if not len(t):
+    #t = OauthFlowTemp.objects.filter(googleid=user_channelid)
+    #print t.all()
     course_code = t[0].course_code
     platform = t[0].platform
     channelIds = t[0].transferdata
@@ -235,8 +238,10 @@ def refreshtwitter(request):
 
     tags = hastags.split(',')
     for tag in tags:
+        hashtag = tag if tag.startswith("#") else "#" + tag
+
         twitter_plugin = settings.DATAINTEGRATION_PLUGINS['Twitter']
-        twitter_plugin.perform_import(tag, course_code)
+        twitter_plugin.perform_import(hashtag, course_code)
 
     post_smimport(course_code, "Twitter")
 
@@ -280,9 +285,23 @@ def refreshblog(request):
 
 
 def dipluginauthomaticlogin(request):
-    platform = request.GET.get('platform')
-    course_code = request.GET.get('course_code')
-    group_id = request.GET.get('group_id')
+    
+    if (request.GET.get('context') is not None):
+        request.GET = request.GET.copy()
+
+        state_dict = request.GET.pop('context')
+        state_dict = state_dict[0]
+        state_dict = json.loads(state_dict)
+
+        #print str(state_dict)
+
+        request.session['platform'] = state_dict['platform']
+        request.session['course_code'] = state_dict['course_code']
+        request.session['group_id'] = state_dict['group']
+
+    #print 'Data stored in session: %s, %s, %s' % (request.session['platform'], request.session['course_code'], request.session['group_id'])
+
+    platform = request.session['platform']
 
     html_response = HttpResponse()
 
@@ -316,10 +335,17 @@ def dipluginauthomaticlogin(request):
                 # If there are credentials (only by AuthorizationProvider),
                 # we can _access user's protected resources.
                 if result.user.credentials:
+                    group_id = request.session['group_id']
+                    course_code = request.session['course_code']
                     if result.provider.name == 'fb':
                         di_plugin.perform_import(group_id, course_code, result)
 
-                        post_smimport(course_code, "Facebook")
+                        post_smimport(course_code, "facebook")
+
+                        #Remove all data stored in session for this view to avoid cache issues
+                        del request.session['platform']
+                        del request.session['course_code']
+                        del request.session['group_id']
                         html_response.write('Updating Facebook for ' + course_code)
         else:
             html_response.write('Auth Returned no Response.')
@@ -336,8 +362,26 @@ def get_social_media_id(request):
     # We we need the response object for the adapter.
     html_response = HttpResponse()
 
+    if (request.GET.get('context') is not None):
+        request.GET = request.GET.copy()
+
+        state_dict = request.GET.pop('context')
+        state_dict = state_dict[0]
+        state_dict = json.loads(state_dict)
+
+        #print str(state_dict)
+
+        request.session['platform'] = state_dict['platform']
+        #request.session['course_code'] = state_dict['course_code']
+        #request.session['group_id'] = state_dict['group']
+
+    #print 'Data stored in session: %s, %s, %s' % (request.session['platform'], request.session['course_code'], request.session['group_id'])
+
+    platform = request.session['platform']
+
+
     #Facebook endpoints break on GET variables.....
-    platform = request.GET.get('platform')
+    #platform = request.GET.get('platform')
 
     if (platform in settings.DATAINTEGRATION_PLUGINS_INCLUDEAUTHOMATIC):
 

@@ -121,24 +121,22 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
             )
         taglist.append(tagobject)
 
-    # TODO: What is this code for? (for GitHub?)
-    # if otherObjTypeName is not None:
-    #     otherObject = Activity(
-    #         id=object_id,
-    #         object_type=object_type,
-    #         definition=ActivityDefinition(
-    #             name=LanguageMap({'en-US': otherObjTypeName}),
-    #             type=objectmapper[object_type]
-    #         ),
-    #     )
-    #     taglist.append(otherObject)
-    if object_type == 'File':
-        otherObject = Activity(
-            id=grand_parent,
-            object_type=object_type
-        )
-        taglist.append(otherObject)
-
+    #    if otherObjTypeName is not None:
+    #    otherObject = Activity(
+    #       id=object_id,
+    #       object_type=object_type,
+    #       definition=ActivityDefinition(
+    #           name=LanguageMap({'en-US': otherObjTypeName}),
+    #            type=objectmapper[object_type]
+    #        ),
+    #    )
+    #    taglist.append(otherObject)
+    #if object_type == 'File':
+    #    otherObject = Activity(
+    #        id=grand_parent,
+    #        object_type=object_type
+    #    )
+    #    taglist.append(otherObject)
 
     parentlist = []
     if (verb in ['liked','shared','commented','rated']):
@@ -202,15 +200,17 @@ def insert_post(usr_dict, post_id,message,from_name,from_uid, created_time, cour
                 socialrelationship.save()
 
 def insert_blogpost(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url, tags=[]):
+    #print 'from_name: %s\n from_uid: %s\n' % (from_name,from_uid)
     if check_ifnotinlocallrs(course_code, platform, post_id):
-        stm = socialmedia_builder(verb='created', platform=platform, account_name=from_uid, account_homepage=platform_url, object_type='Article', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_name, course_code=course_code, tags=tags)
+        stm = socialmedia_builder(verb='created', platform=platform, account_name=from_name, account_homepage=platform_url, object_type='Article', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_uid, course_code=course_code, tags=tags)
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=get_username_fromsmid(from_uid, platform), platformid=post_id, message=message, datetimestamp=created_time)
+        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=from_name, platformid=post_id, message=message, datetimestamp=created_time)
         lrs.save()
         for tag in tags:
             if tag[0]=="@":
-                socialrelationship = SocialRelationship(verb = "mentioned", fromusername=get_username_fromsmid(from_uid,platform), tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
+                socialrelationship = SocialRelationship(verb = "mentioned", fromusername=get_username_fromsmid(from_name,platform), tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
+
                 socialrelationship.save()
 
 def insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url, liked_username=None):
@@ -224,7 +224,9 @@ def insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, pl
         socialrelationship.save()
 
 def insert_blogcomment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, shared_username=None, shared_displayname=None):
-    print "Insert comment -  from %s to %s" % (comment_from_uid,shared_displayname)
+
+    #print "1: %s\n 2: %s\n 3: %s\n 4: %s" % (comment_from_uid, comment_from_name,shared_username,shared_displayname)
+
     if check_ifnotinlocallrs(course_code, platform, comment_id):
         if shared_displayname is not None:
             stm = socialmedia_builder(verb='commented', platform=platform, account_name=comment_from_uid, account_homepage=platform_url, object_type='Note', object_id=comment_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code )

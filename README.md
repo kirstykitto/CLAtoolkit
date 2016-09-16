@@ -15,19 +15,33 @@ Local Installation using VirtualEnv
 
 **CLAToolkit is built with Django. The installation is pretty standard but requires Postgres (for JSON document queries), Numpy and a range of Machine Learning Libraries such as Scikit Learn and Gensim**
 
-Create a virtual environment for CLAToolkit:
+
+If you do not have VirtualEnv installed:
+```bash
+$ pip install virtualenv
+$ pip install virtualenvwrapper
+$ mkdir ~/.virtualenvs
+$ export WORKON_HOME=~/.virtualenvs
+```
+
+**Create a virtual environment for CLAToolkit:**
+
+
 ```bash
 $ mkvirtualenv clatoolkit
 $ workon clatoolkit
 ```
 
-Get code from GitHub:
+
+**Get code from GitHub:**
+
 ```bash
 $ git clone https://github.com/kirstykitto/CLAtoolkit.git
 $ cd clatoolkit/clatoolkit_project/clatoolkit_project
 ```
 
-Install Python and Django Requirements
+**Install Python and Django Requirements**
+
 
 A requirements.txt file is provided in the code repository. This will take a while especially the installation of numpy. If numpy fails you may have to find a platform specific deployment method eg using apt-get on ubuntu ($ sudo apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose).
 
@@ -35,7 +49,8 @@ A requirements.txt file is provided in the code repository. This will take a whi
 $ sudo pip install -r requirements.txt
 ```
 
-Install Postgres
+**Install Postgres**
+
 On a Mac install postgres.app using these instructions: http://postgresapp.com/ 
 and add to path using:
 ```bash
@@ -56,9 +71,7 @@ $ sudo createdb -U username --locale=en_US.utf-8 -E utf-8 -O username newdatabas
 $ psql newdatabasename < backedupdbname.bak
 ```
 
-Edit clatoolkit_project/settings.py
-Enter secret key
-Enter database port and name in settings.py
+Edit ```.env``` and add secret key + DB details  
 
 If a new database was created, you will need to setup the database tables and create a superuser.
 ```bash

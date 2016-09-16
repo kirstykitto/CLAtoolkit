@@ -31,18 +31,21 @@
                   <label for="id_fb_id">Facebook ID:</label><br />
                   {{ profile_form.fb_id }}
                   <p>
-                    <a href="/dataintegration/get_social" target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
+
+                    <a href='/dataintegration/get_social/?context={"platform": "facebook"}' target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
                   </p>
                 </div>
                 {% if course.code == 'IFN614'  %}
-                <div class="form-group">
+                <!--<div class="form-group">
+
                   <p class="help-block">{{ profile_form.forum_id.errors }}</p>
                   <label for="id_forum_id">IFN614 Site Username:</label> (Only required for IFN614 Students.)<br />
                   {{ profile_form.forum_id }}
                   <p>
-                    Forum posts for IFN614 students will be retrieved from <a href="http://2015.informationprograms.info/forums/" target="_blank">2015.informationprograms.info/forums/</a>
+                    Forum posts for IFN614 students will be retrieved from <a href="http://2016.informationprograms.info/forums/" target="_blank">2015.informationprograms.info/forums/</a>
                   </p>
-                </div>
+                </div>-->
+
                 {% endif  %}
                 <div class="form-group">
                   <p class="help-block">{{ profile_form.google_account_name.errors }}</p>
@@ -162,3 +165,4 @@
 
 {% endautoescape %}
 {% endblock %}
+
