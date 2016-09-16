@@ -16,8 +16,6 @@ def check_ifnotinlocallrs(course_code, platform, platform_id):
     else:
         return False
 
-
-#TODO?
 def get_userdetails(screen_name, platform):
     usr_dict = {'screen_name':screen_name}
     platform_param_name = None
@@ -41,7 +39,10 @@ def get_userdetails(screen_name, platform):
         usr = None
 
     if usr is not None:
-        usr_dict['email'] = usr.user.email
+        if usr.user.email != "":
+            usr_dict['email'] = usr.user.email
+        else:
+            usr_dict['email'] = None
         #usr_dict['lrs_endpoint'] = usr.ll_endpoint
         #usr_dict['lrs_username'] = usr.ll_username
         #usr_dict['lrs_password'] = usr.ll_password
@@ -117,6 +118,9 @@ def get_username_fromsmid(sm_id, platform):
         userprofile = UserProfile.objects.filter(github_account_name__iexact=sm_id)
     elif platform == 'trello':
         userprofile = UserProfile.objects.filter(trello_account_name__iexact=sm_id)
+    elif platform.lower() == 'blog':
+        userprofile = UserProfile.objects.filter(blog_id__iexact=sm_id)
+
     else:
         #platform must be = all
         userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=sm_id) | Q(fb_id__iexact=sm_id) | Q(forum_id__iexact=sm_id) | Q(google_account_name__iexact=sm_id))
@@ -153,6 +157,4 @@ def get_smids_fromusername(username):
     google_id = user.userprofile.google_account_name
     github_id = user.userprofile.github_account_name
     return twitter_id, fb_id, forum_id, google_id, github_id
-
-
 

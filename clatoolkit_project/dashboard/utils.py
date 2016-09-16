@@ -110,14 +110,22 @@ def get_smids_fromuid(uid):
     twitter_id = user.userprofile.twitter_id
     fb_id = user.userprofile.fb_id
     forum_id = user.userprofile.forum_id
-    return twitter_id, fb_id, forum_id
+    github_id = user.userprofile.github_account_name
+    trello_id = user.userprofile.trello_account_name
+    blog_id = user.userprofile.blog_id
+    diigo_id = user.userprofile.diigo_username
+    return twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id
 
 def get_smids_fromusername(username):
     user = User.objects.get(username=username)
     twitter_id = user.userprofile.twitter_id
     fb_id = user.userprofile.fb_id
     forum_id = user.userprofile.forum_id
-    return twitter_id, fb_id, forum_id
+    github_id = user.userprofile.github_account_name
+    trello_id = user.userprofile.trello_account_name
+    blog_id = user.userprofile.blog_id
+    diigo_id = user.userprofile.diigo_username
+    return twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id
 
 def get_timeseries(sm_verb, sm_platform, course_code, username=None):
     # more info on postgres timeseries
@@ -394,7 +402,12 @@ def getClassifiedCounts(platform, course_code, username=None, start_date=None, e
     if classifier == "VaderSentiment":
         kwargs['classifier']=classifier
     else:
-        classifier_name = "nb_%s_%s.model" % (course_code,"YouTube")
+        if course_code == 'IFN614':
+            platform = 'Blog'
+            classifier_name = "nb_%s_%s.model" % (course_code,platform)
+        else:
+            classifier_name = "nb_%s_%s.model" % (course_code,platform)
+
         kwargs['classifier']= classifier_name
     if username is not None:
         kwargs['xapistatement__username']=username
@@ -697,12 +710,13 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     node_dict = None
     edge_dict = None
     nodes_in_sna_dict = None
-    if username is not None:
-        node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
-        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
-    else:
-        node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
-        edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+    
+    #if username is not None:
+    #    node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
+    #    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+    #else:
+    node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
+    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
 
     #node_dict.update(nodes_in_sna_dict)
     for key in nodes_in_sna_dict:
@@ -791,7 +805,8 @@ def sentiment_classifier(course_code):
         elif (vs['compound'] < 0):
             sentiment = "Negative"
         # Save Classification
-        classification_obj = Classification(xapistatement=sm_obj,classification=sentiment,classifier='VaderSentiment')
+        classification_obj = Classification(xapistatement=sm_obj,classification=sentiment,classifier='VaderSentiment')#,classifier_model='VaderSentiment')
+
         classification_obj.save()
 
 """
@@ -1027,5 +1042,61 @@ def getCCAData(user, course_code, platform):
             commitTotal = 0
 
     return result
-    
 
+
+def get_platform_timeseries_dataset(course_code, username=None):
+
+    #TODO: Get all platform names dynamically
+    platform_names = ["Twitter", "Facebook", "Forum", "YouTube", "Diigo", "Blog", "Trello", "GitHub"]
+    series = []
+    for platform in platform_names:
+        platformVal = OrderedDict ([
+                ('name', platform),
+                ('id', 'dataseries_' + platform),
+                ('data', get_platform_timeseries_dataset_by_platform(platform, course_code))
+        ])
+        series.append(platformVal)
+
+    return OrderedDict([ ('series', series)])
+
+
+def get_platform_timeseries_dataset_by_platform(sm_platform, course_code, username=None):
+
+    userclause = ""
+    if username is not None:
+        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
+        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+        #userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s])" % (sm_usernames_str)
+
+    cursor = connection.cursor()
+    cursor.execute("""
+    with filled_dates as (
+      select day, 0 as blank_count from
+        generate_series('2015-06-01 00:00'::timestamptz, current_date::timestamptz, '1 day')
+          as day
+    ),
+    daily_counts as (
+    select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
+    FROM clatoolkit_learningrecord
+    WHERE clatoolkit_learningrecord.xapi->'context'->>'platform'='%s' AND clatoolkit_learningrecord.course_code='%s' %s
+    group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
+    order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
+    )
+    select filled_dates.day,
+           coalesce(daily_counts.smcount, filled_dates.blank_count) as signups
+      from filled_dates
+        left outer join daily_counts on daily_counts.day = filled_dates.day
+      order by filled_dates.day;
+    """ % (sm_platform, course_code, userclause))
+    result = cursor.fetchall()
+    dataset_list = []
+    for row in result:
+        curdate = row[0] #parse(row[0])
+        datapoint = "%s,%s,%s,%s" % (curdate.year,curdate.month-1,curdate.day,row[1])
+        dataset_list.append(datapoint)
+
+    return dataset_list
+
+
+def get_platform_activity_dataset(course_code, username=None):
+    return ""

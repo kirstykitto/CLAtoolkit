@@ -40,9 +40,6 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         twitter = Twython(app_key, app_secret, oauth_token, oauth_token_secret)
 
-        # Add hash to start of hashtag
-        # hashtag = '#' + hashtag
-        # see https://dev.twitter.com/rest/reference/get/search/tweets for search options
         count = 0
         next_max_id = None
         results = None

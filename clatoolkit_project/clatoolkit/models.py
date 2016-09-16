@@ -109,6 +109,8 @@ class Classification(models.Model):
     classification = models.CharField(max_length=1000, blank=False)
     classifier = models.CharField(max_length=1000, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
+#    classifier_model = models.CharField(max_length=1000, blank=False)
+
 
 class UserClassification(models.Model):
     classification = models.ForeignKey(Classification)
@@ -132,7 +134,8 @@ class UnitOffering(models.Model):
     # determines whether unit should be displayed on EventRegistration Form
     event = models.BooleanField(blank=False, default=False)
     # determines whether COI Classifier link should be diplayed for staff and student in a unit
-    enable_coi_classifier = models.BooleanField(blank=False, default=False)
+    enable_coi_classifier = models.BooleanField(default=False)
+    #enable_group_coi_classifier = models.BooleanField(default=False)
 
     # Twitter Unit Integration Requirements
     twitter_hashtags = models.TextField(blank=False)

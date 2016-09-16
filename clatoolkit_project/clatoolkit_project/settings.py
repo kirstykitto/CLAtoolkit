@@ -15,18 +15,41 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+from dotenv import load_dotenv
+load_dotenv(os.path.join(BASE_DIR, "../.env"))
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'development'
+SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+if os.environ.get("DEBUG") == '1':
+    DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(",")
 
+ADMINS = os.environ.get("ADMINS").split(",")
+ADMINS = map(lambda email: email.split(":"), ADMINS)
+
+if ADMINS:
+
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+    SERVER_EMAIL = os.environ.get("SERVER_EMAIL")
+
+    EMAIL_HOST = os.environ.get("EMAIL_HOST")
+    EMAIL_PORT = os.environ.get("EMAIL_PORT")
+    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
+    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+
+    if os.environ.get("EMAIL_USE_TLS") == '1':
+        EMAIL_USE_TLS = True
+
+    if os.environ.get("EMAIL_USE_SSL") == '1':
+        EMAIL_USE_SSL = True
 
 # Application definition
 
@@ -93,11 +116,11 @@ WSGI_APPLICATION = 'clatoolkit_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE' : 'django.db.backends.postgresql_psycopg2',
-        'NAME' : 'cladjangodb',
-        'USER' : '',
-        'PASSWORD' : '',
-        'HOST' : 'localhost',
-        'PORT' : '5432'
+        'NAME' : os.environ.get("DB_NAME"),
+        'USER' : os.environ.get("DB_USER"),
+        'PASSWORD' : os.environ.get("DB_PASS"),
+        'HOST' : os.environ.get("DB_HOST"),
+        'PORT' : os.environ.get("DB_PORT")
     },
     
     'tweetimport': {

@@ -40,10 +40,13 @@
     <link href="{% static 'css/vis.css'%}" rel="stylesheet">
 
     <!-- jQCloud styles -->
-    <link rel="stylesheet" href="http://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.css">
+    <link rel="stylesheet" href="//mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.css">
 
-    <!-- jQuery UI -->
+
+    <!-- jQuery UI styles -->
     <link href="{% static 'js/jquery-ui-1.11.4.custom/jquery-ui.css'%}" rel="stylesheet">
+
+
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
@@ -66,11 +69,8 @@
       }
       g.arc text {
         font-size: 10px;
-      }
+      }      
 
-      #centrality-popup tbody tr .even {
-          background-color: white; !important;
-      }
 
     </style>
 
@@ -113,7 +113,9 @@
                 <!--<li><a href="/clatoolkit/mygroups"><i class="fa fa-users" aria-hidden="true"></i> My Groups</a></li>-->
                 <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                        <i class="fa fa-user fa-fw"></i>{{user.username}}  <i class="fa fa-caret-down"></i>
+
+                        <i class="fa fa-user fa-fw"></i> {{user.username}} <i class="fa fa-caret-down"></i>
+
                     </a>
                     <ul class="dropdown-menu dropdown-user">
                         <li><a href="/clatoolkit/socialmediaaccounts"><i class="fa fa-user fa-fw"></i> Social Media Accounts</a></li>
@@ -691,18 +693,19 @@
     <script src="{% static 'bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.min.js'%}"></script>
 
     <!-- Highcharts and Highstock JavaScript -->
-    <script src="http://code.highcharts.com/stock/highstock.js"></script>
-    <script src="http://code.highcharts.com/stock/modules/exporting.js"></script>
+    <script src="//code.highcharts.com/stock/highstock.js"></script>
+    <script src="//code.highcharts.com/stock/modules/exporting.js"></script>
 
     <!-- Custom Theme JavaScript -->
     <script src="{% static 'js/sb-admin-2.js'%}"></script>
 
     <!-- Trello API Helper -->
     <script src="https://api.trello.com/1/client.js?key=c908d424dda56c79d373f780a1ae26c7"></script>
+
 <script src="{% static 'js/d3/d3.min.js' %}"></script>
 <script src="{% static 'js/jquery-ui-1.11.4.custom/jquery-ui.js'%}"></script>
-
-    <script>
+   
+ <script>
     /*
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
@@ -726,3 +729,4 @@
 </body>
 
 </html>
+
