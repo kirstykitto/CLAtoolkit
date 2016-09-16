@@ -487,7 +487,7 @@ def mydashboard(request):
         platform = request.GET.get('platform')
         #username = request.GET.get('username')
 
-    twitter_id, fb_id, forum_id = get_smids_fromuid(uid)
+    twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id = get_smids_fromuid(uid)
     sm_usernames = [twitter_id, fb_id, forum_id]
     sm_usernames_str = ','.join("'{0}'".format(x) for x in sm_usernames)
 
