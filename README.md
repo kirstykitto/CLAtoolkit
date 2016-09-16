@@ -16,11 +16,17 @@ Local Installation using VirtualEnv
 **CLAToolkit is built with Django. The installation is pretty standard but requires Postgres (for JSON document queries), Numpy and a range of Machine Learning Libraries such as Scikit Learn and Gensim**
 
 
-If you do not have VirtualEnv installed:
+**If you do not have VirtualEnv installed:**
 ```bash
 $ pip install virtualenv
 $ pip install virtualenvwrapper
 ```
+Add the following line to your bash config: `~/.bashrc` on Ubuntu, `~/.bash_profile` on macOS:
+```
+. /usr/local/bin/virtualenvwrapper.sh
+```
+Then run: `$ source ~/.bashrc` OR `$ source ~/.bash_profile`  
+
 
 **Create a virtual environment for CLAToolkit:**
 
