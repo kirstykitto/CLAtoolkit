@@ -214,6 +214,8 @@ def dashboard(request):
     youtube_timeline = ""
     diigo_timeline = ""
     blog_timeline = ""
+    github_timeline = ""
+    trello_timeline = ""
 
     profiling = profiling + "| Platform Timelines %s" % (str(datetime.datetime.now()))
     platformclause = ""
@@ -229,6 +231,8 @@ def dashboard(request):
         youtube_timeline = get_timeseries_byplatform("YouTube", course_code)
         diigo_timeline = get_timeseries_byplatform("Diigo", course_code)
         blog_timeline = get_timeseries_byplatform("Blog", course_code)
+        github_timeline = get_timeseries_byplatform("GitHub", course_code)
+        trello_timeline = get_timeseries_byplatform("trello", course_code)
         show_allplatforms_widgets = True
 
     profiling = profiling + "| Pies %s" % (str(datetime.datetime.now()))
@@ -264,7 +268,15 @@ def dashboard(request):
     topcontenttable = get_cached_top_content(platform, course_code) #get_top_content_table(platform, course_code)
     profiling = profiling + "| End Top Content %s" % (str(datetime.datetime.now()))
 
-    context_dict = {'profiling': profiling, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline': forum_timeline, 'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 'show_allplatforms_widgets': show_allplatforms_widgets, 'platformactivity_pie_series': platformactivity_pie_series,  'title': title, 'activememberstable': activememberstable, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+    context_dict = {'profiling': profiling, 'show_dashboardnav':show_dashboardnav, 
+    'course_code':course_code, 'platform':platform, 
+    'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline': forum_timeline, 
+    'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 
+    'github_timeline': github_timeline, 'trello_timeline': trello_timeline,
+    'show_allplatforms_widgets': show_allplatforms_widgets, 'platformactivity_pie_series': platformactivity_pie_series, 
+    'title': title, 'activememberstable': activememberstable, 'topcontenttable': topcontenttable, 
+    'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 
+    'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
 
     return render_to_response('dashboard/dashboard.html', context_dict, context)
 
@@ -413,6 +425,8 @@ def studentdashboard(request):
     youtube_timeline = ""
     diigo_timeline = ""
     blog_timeline = ""
+    github_timeline = ""
+    trello_timeline = ""
 
     #print "Platform timelines", datetime.datetime.now()
     platformclause = ""
@@ -425,6 +439,9 @@ def studentdashboard(request):
         youtube_timeline = get_timeseries_byplatform("YouTube", course_code, username)
         diigo_timeline = get_timeseries_byplatform("Diggo", course_code, username)
         blog_timeline = get_timeseries_byplatform("Blog", course_code, username)
+        github_timeline = get_timeseries_byplatform("GitHub", course_code)
+        trello_timeline = get_timeseries_byplatform("trello", course_code)
+
         show_allplatforms_widgets = True
 
     cursor = connection.cursor()
@@ -457,7 +474,17 @@ def studentdashboard(request):
     coi = getClassifiedCounts(platform, course_code, username=username, classifier="nb_"+course_code+"_"+platform+".model")
 
 
-    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline':forum_timeline, 'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi }
+    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 
+    'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 
+    'forum_timeline':forum_timeline, 'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 
+    'blog_timeline':blog_timeline, 'github_timeline': github_timeline, 'trello_timeline': trello_timeline,
+    'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 
+    'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 
+    'platform':platform, 'username':username, 'sna_json': sna_json,  'tags': tags, 
+    'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 
+    'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 
+    'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 
+    'sentiments': sentiments, 'coi': coi }
 
     return render_to_response('dashboard/studentdashboard.html', context_dict, context)
 
