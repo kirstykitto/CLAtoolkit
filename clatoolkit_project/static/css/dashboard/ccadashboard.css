@@ -1,0 +1,17 @@
+.halfwidth {
+	width: 50%;
+	margin-right: 15px;
+	float: left;
+}
+
+.clear {
+    clear: left;
+}
+
+.tableDiv {
+	padding: 0px 5px;
+}
+
+.chart2Layout {
+	overflow-x:auto;
+}
