@@ -57,7 +57,7 @@ class UserTrelloCourseBoardMap(models.Model):
     board_id = models.CharField(max_length=5000, blank=False)
 
 class OfflinePlatformAuthToken(models.Model):
-    user = models.ForeignKey(User)
+    user_smid = models.CharField(max_length=1000, blank=False)
     token = models.CharField(max_length=1000, blank=False)
     platform = models.CharField(max_length=1000, blank=False)
 

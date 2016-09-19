@@ -4,7 +4,7 @@ from django.template import RequestContext
 from django.http import HttpResponse
 from django.db import connection
 from utils import *
-from clatoolkit.models import OauthFlowTemp, UnitOffering, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserTrelloCourseBoardMap
+from clatoolkit.models import OfflinePlatformAuthToken, UserProfile, OauthFlowTemp, UnitOffering, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserTrelloCourseBoardMap
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from functools import wraps
@@ -20,25 +20,25 @@ from rest_framework.response import Response
 
 import requests
 
-#Attach trello board
+#API endpoint to grab a list of trello boards to attach to course
 @login_required
 @api_view()
 def get_trello_boards(request):
     user_profile = UserProfile.objects.get(user=request.user)
     trello_member_id = user_profile.trello_account_name
-    token_qs = OauthFlowTemp.objects.get(googleid=trello_member_id)
-    token = token_qs.transferdata
+
+    token_qs = OfflinePlatformAuthToken.objects.get(user_smid=trello_member_id)
+    token = token_qs.token
     key = request.GET.get('key')
     course_code = request.GET.get('course_code')
 
-    print key + ' >>>>> ' + token
+    #print key + ' >>>>> ' + token
 
     trello_boardsList_url = 'https://api.trello.com/1/member/me/boards?key=%s&token=%s' % (key,token)
 
     r = requests.get(trello_boardsList_url)
-    print "got response %s" % r.json()
+    #print "got response %s" % r.json()
 
-    print 'course_code: %s' % (course_code)
     boardsList = r.json()
 
     board_namesList = []
@@ -47,6 +47,7 @@ def get_trello_boards(request):
     for board in boardsList:
         board_namesList.append('<li>')
         #board = json.load(board)
+
         #format to something nice :)
         board_name = board['name']
         board_url = board['url']
@@ -62,12 +63,13 @@ def get_trello_boards(request):
 
 @login_required
 @api_view()
+#API endpoint to allow students to attach a board to course
 def add_board_to_course(request):
     course = UnitOffering.objects.get(code=request.GET.get('course_code'))
     board_list = course.attached_trello_boards
 
-    print 'board list %s' % (board_list)
-    print 'board list is "": %s' % (board_list == '')
+    #print 'board list %s' % (board_list)
+    #print 'board list is "": %s' % (board_list == '')
 
     if board_list == '':
         new_board_list = request.GET.get('id')
@@ -133,24 +135,26 @@ def trello_remove_board(request):
 @login_required
 @api_view()
 def trello_myunits_restview(request):
+        #Get course code, and match it with the user to obtain the board ID for the user for their specified course.
         course_code = request.GET.get('course_code')
-
-
         trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, course_code=course_code)
 
+        #If a board exists for the user and it's attached to the course
         if trello_user_course_map:
+            #Get user auth token for trello
+            token_qs = OfflinePlatformAuthToken.objects.filter(user_smid=request.user.userprofile.trello_account_name)
 
-            token_qs = OauthFlowTemp.objects.filter(googleid=request.user.userprofile.trello_account_name)
+            #if the token exists, grab the board from trello on behalf of the user
             if token_qs:
                 key = getPluginKey('trello')
 
-                http = 'https://api.trello.com/1/boards/%s?key=%s&token=%s' % (trello_user_course_map[0].board_id,key,token_qs[0].transferdata)
+                http = 'https://api.trello.com/1/boards/%s?key=%s&token=%s' % (trello_user_course_map[0].board_id,key,token_qs[0].token)
 
-                print http
+                #print http
 
                 r = requests.get(http)
 
-                print 'result: %s' % (r.json())
+                #print 'result: %s' % (r.json())
 
                 board = r.json()
 
@@ -158,7 +162,8 @@ def trello_myunits_restview(request):
                             '<a href="/dashboard/removeBoard?course_code='+course_code+'">Remove</a>', 'course_code': course_code}
 
                 return Response(response)
-        else:
+
+        else: #Otherwise, we'll give the student the option to attach their trello board
             response = {'data': '<a href="#" onclick="javascript:get_and_link_board(\''+course_code+'\')">Attach a Trello Board to plan your Work!</a>'
                             '<div id="trello_board_display"></div>', 'course_code': course_code}
             return Response(response)

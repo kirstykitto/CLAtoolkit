@@ -12,7 +12,7 @@ from dataintegration.tasks import *
 from .forms import FacebookGatherForm
 import json
 from pprint import pprint
-from clatoolkit.models import UserTrelloCourseBoardMap, ApiCredentials, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp
+from clatoolkit.models import UserProfile, OfflinePlatformAuthToken, UserTrelloCourseBoardMap, ApiCredentials, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp
 from django.db import connection
 import dateutil.parser
 from dashboard.utils import *
@@ -49,10 +49,8 @@ def process_trello(request):
     member_json = r.json()
     member_id = member_json['id']
 
-    token_storage = OauthFlowTemp(googleid=member_id, transferdata=token, platform='trello')
+    token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform='trello') #OauthFlowTemp(googleid=member_id, transferdata=token, platform='trello')
     token_storage.save()
-
-    request.session['trello_memberid'] = member_id
 
     return Response(member_id)
 
@@ -66,24 +64,20 @@ def refreshtrello(request):
     course_code = request.GET.get('course_code')
     trello_courseboard_ids = request.GET.get('boards')
     trello_courseboard_ids = trello_courseboard_ids.split(',')
-    print course_code
-
-    print trello_courseboard_ids
 
     trello_plugin = settings.DATAINTEGRATION_PLUGINS['trello']
     diag_count = 0
 
     for board_id in trello_courseboard_ids:
         trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(board_id=board_id).filter(course_code=course_code)[0]
-        print 'got trello user course board map: %s' % (trello_user_course_map)
+        #print 'got trello user course board map: %s' % (trello_user_course_map)
 
         user = trello_user_course_map.user
         usr_profile = UserProfile.objects.get(user=user)
-        token = OauthFlowTemp.objects.get(googleid=usr_profile.trello_account_name)
+        usr_offline_auth = OfflinePlatformAuthToken.objects.get(user_smid=usr_profile.trello_account_name)
 
-
-        print 'Performing Trello Board Import for User: %s' % (user)
-        trello_plugin.perform_import(board_id, course_code, token=token.transferdata)
+        #print 'Performing Trello Board Import for User: %s' % (user)
+        trello_plugin.perform_import(board_id, course_code, token=usr_offline_auth.token)
         diag_count = diag_count + 1
 
     post_smimport(course_code, 'trello')
@@ -115,10 +109,13 @@ def refreshgithub(request):
 def refreshgoogleauthflow(request):
     course_code = request.GET.get('course_code')
     channelIds = request.GET.get('channelIds')
-    platform = courseId = request.GET.get('platform')
+    platform = request.GET.get('platform')
 
     user = request.user
     youtube_plugin = settings.DATAINTEGRATION_PLUGINS['YouTube']
+
+    #print 'Got youtube plugin: %s' % (youtube_plugin)
+    #print 'With client ID and Secret key: %s and %s' % (youtube_plugin.api_config_dict['CLIENT_ID'], youtube_plugin.api_config_dict['CLIENT_SECRET'])
 
     redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/ytAuthCallback'
 
