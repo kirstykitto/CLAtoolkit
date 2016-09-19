@@ -77,6 +77,15 @@ CLA Toolkit Unit Registration Link for Students: http://clatoolkit.beyondlms.org
 {% if shownocontentwarning == True %}
 <div class="alert alert-warning">
     <strong>Note:</strong> Your social media content has not been imported. Imports are scheduled overnight. Please login and check tomorrow.
+    {% if trello_attached_to_acc %}  <!-- Need to add custom filter to perform this functionality (show user their attach board) TODO:-->
+        <p>
+            <hr/>
+            <h5>Workload Management</h5>
+            <div id="{{unit.code}}" class="trello_board"></div>
+        </p>
+    {% else %}
+        <a href="/clatoolkit/socialmediaaccounts/">Add Trello to your account to plan and monitor your workload</a>
+    {% endif %}
 </div>
 
 {% else %}

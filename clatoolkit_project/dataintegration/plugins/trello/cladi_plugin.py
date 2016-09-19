@@ -77,6 +77,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
     def import_TrelloActivity(self, feed, course_code):
         #User needs to sign up username and board (board can be left out but is needed)
+        #TODO: RP
         print 'Beginning trello import!'
 
         for action in list(feed):
@@ -97,7 +98,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             #Get all 'commented' verb actions
             if (type == 'commentCard'):
                 #do stuff
-                target_obj_id = data['card']['shortLink']
+                target_obj_id = data['card']['id']
                 #date
                 comment_from_uid = u_id
                 comment_from_name = author
@@ -117,13 +118,15 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             if (type == 'createCard'): #, 'createList']):
                 #date
                 #list_id = data['list']['id']
-                task_id = data['card']['shortLink']
+                task_id = data['card']['id']
                 task_name = data['card']['name']
 
                 if username_exists(u_id, course_code, self.platform):
                     usr_dict = get_userdetails(u_id, self.platform)
                     insert_task(usr_dict, task_id, task_name, u_id, author, date,
                                 course_code, self.platform, self.platform_url) #, list_id=list_id)
+
+                    #TODO: RP
                     print 'Inserted created card!'
 
 
@@ -144,7 +147,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                 if type is 'addAttachmentToCard' and usr_dict is not None:
 
-                    target_id = data['card']['shortLink']
+                    target_id = data['card']['id']
                     attachment = data['attachment']
                     attachment_id = attachment['id']
                     attachment_data = '%s - %s' % (attachment['name'], attachment['url'])
@@ -155,11 +158,12 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                         u_id, author, date, course_code, self.platform, self.platform_url,
                                         object_type, shared_displayname=shared_displayname)
 
+                    #TODO: RP
                     print 'Added attachment!'
 
                 if type is 'addMemberToCard' and usr_dict is not None: #or 'addMemberToBoard':
 
-                    target_id = data['card']['shortLink']
+                    target_id = data['card']['id']
                     object_id = data['idMember']
                     object_data = action['memeber']['username']
                     object_type = 'Person'
@@ -169,11 +173,12 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                         course_code, self.platform, self.platform_url, object_type,
                                         shared_displayname=shared_displayname)
 
+                    #TODO: RP
                     print 'Added add member to card!'
 
                 if type is 'addChecklistToCard' and usr_dict is not None:
 
-                    target_id = data['card']['shortlink']
+                    target_id = data['card']['id']
                     object_id = data['idMember']
                     object_data = None
                     checklist_items = None
@@ -194,13 +199,14 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                         course_code, self.platform, self.platform_url, object_type,
                                         shared_displayname=shared_displayname)
 
+                    #TODO: RP
                     print 'added add checklist to card!'
 
 
-            print 'is action type an update? %s' % (type in
-                ['updateCheckItemStateOnCard', 'updateBoard',
-                 'updateCard', 'updateCheckList',
-                 'updateList', 'updateMember'])
+            #print 'is action type an update? %s' % (type in
+            #    ['updateCheckItemStateOnCard', 'updateBoard',
+            #     'updateCard', 'updateCheckList',
+            #     'updateList', 'updateMember'])
             #Get all 'updated' verbs
             if (type in
                 ['updateCheckItemStateOnCard', 'updateBoard',
@@ -222,7 +228,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                           self.platform, self.platform_url,
                                           'checklist-item', obj_parent=data['checklist']['id'],
                                           obj_parent_type='checklist')
-
+                    #TODO: RP
                     print 'add update checklist!'
 
 
@@ -230,20 +236,22 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 #type will only show 'updateCard'
                 #up to us to figure out what's being updated
                 if type == 'updateCard':
+                    #TODO: Remove Print
                     print 'data: %s' % (data)
 
                     #Get and store the values that were changed, usually it's only one
+                    #TODO: Handle support for multiple changes, if that's possible
                     try:
                         change = [changed_value for changed_value in data['old']]
                     except Exception:
                        print 'Error occurred getting changes...'
                     #assert len(change) is 1
 
+                    #TODO: Remove Print
                     print 'got changes: %s' % (change)
 
                     #Insert all updates that aren't closed
                     if change[0] == 'pos':
-
                         if 'listBefore' in data:
                             insert_updated_object(usr_dict, data['card']['id'],
                                                   'Move card from %s to %s' % (data['listBefore']['name'], data['listAfter']['name']),
@@ -258,6 +266,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                                   self.platform, self.platform_url,
                                                   'Task', obj_parent=data['list']['name'],
                                                   obj_parent_type='Collection')
+                        #TODO: RP
                         print 'added closed card!'
                     #add in close/open verbs
                     else:
@@ -269,6 +278,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                                  'Task', 'closed', obj_parent=data['list']['name'],
                                                  obj_parent_type='Collection')
 
+                            #TODO: RP
                             print 'added closed/opened card!'
 
                         elif data['old'][change[0]] is True:
@@ -279,6 +289,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                                  'Task', 'opened', obj_parent=data['list']['name'],
                                                  obj_parent_type='Collection')
 
+                            #TODO: RP
                             print 'added closed/opened card!'
 
     def get_verbs(self):
