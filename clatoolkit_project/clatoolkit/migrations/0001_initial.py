@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
             name='ApiCredentials',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('platform', models.CharField(max_length=5000)),
+                ('platform_uid', models.CharField(max_length=5000)),
                 ('credentials_json', django_pgjson.fields.JsonField()),
             ],
         ),
@@ -61,6 +61,15 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
+            name='GroupMap',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('course_code', models.CharField(max_length=5000)),
+                ('groupId', models.IntegerField()),
+                ('userId', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+            ],
+        ),
+        migrations.CreateModel(
             name='LearningRecord',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
@@ -83,18 +92,18 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('googleid', models.CharField(max_length=1000)),
-                ('platform', models.CharField(max_length=1000)),
-                ('course_code', models.CharField(max_length=1000)),
-                ('transferdata', models.CharField(max_length=1000)),
+                ('platform', models.CharField(max_length=1000, blank=True)),
+                ('course_code', models.CharField(max_length=1000, blank=True)),
+                ('transferdata', models.CharField(max_length=1000, blank=True)),
             ],
         ),
         migrations.CreateModel(
             name='OfflinePlatformAuthToken',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
                 ('token', models.CharField(max_length=1000)),
                 ('platform', models.CharField(max_length=1000)),
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -131,6 +140,7 @@ class Migration(migrations.Migration):
                 ('diigo_tags', models.TextField(blank=True)),
                 ('blogmember_urls', models.TextField(blank=True)),
                 ('github_urls', models.TextField(blank=True)),
+                ('attached_trello_boards', models.TextField(blank=True)),
                 ('coi_platforms', models.TextField(blank=True)),
                 ('ll_endpoint', models.CharField(max_length=60, blank=True)),
                 ('ll_username', models.CharField(max_length=60, blank=True)),
@@ -163,7 +173,18 @@ class Migration(migrations.Migration):
                 ('google_account_name', models.CharField(max_length=255, blank=True)),
                 ('diigo_username', models.CharField(max_length=255, blank=True)),
                 ('blog_id', models.CharField(max_length=255, blank=True)),
+                ('github_account_name', models.CharField(max_length=255, blank=True)),
+                ('trello_account_name', models.CharField(max_length=255, blank=True)),
                 ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='UserTrelloCourseBoardMap',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('course_code', models.CharField(max_length=1000)),
+                ('board_id', models.CharField(max_length=5000)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.AddField(

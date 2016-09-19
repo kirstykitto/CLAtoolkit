@@ -28,11 +28,16 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 if os.environ.get("DEBUG") == '1':
     DEBUG = True
+if os.environ.get("ALLOWED_HOSTS"):
+    ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(",")
+else:
+    ALLOWED_HOSTS=''
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(",")
-
-ADMINS = os.environ.get("ADMINS").split(",")
-ADMINS = map(lambda email: email.split(":"), ADMINS)
+if os.environ.get("ADMINS"):
+    ADMINS = os.environ.get("ADMINS").split(",")
+    ADMINS = map(lambda email: email.split(":"), ADMINS)
+else:
+    ADMINS = None
 
 if ADMINS:
 
