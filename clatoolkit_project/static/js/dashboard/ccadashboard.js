@@ -90,11 +90,9 @@ function initTimeseriesChartOptions() {
  * Show platform timeseries chart
  */
 function showPlatformTimeseries() {
-
-
 	$.ajax({
  		type: "GET",
-		url: "/dashboard/api/get_platform_timeseries/?course_code=PROJ-TEAM"
+		url: "/dashboard/api/get_platform_timeseries/?course_code=" + course_code + "&platform=" + platform
 		// url: "/static/js/test/platformtimeseries.json"
 	})
 	.fail(function(data,textStatus, errorThrown){
@@ -151,8 +149,8 @@ function showPlatformTimeseries() {
  */
 function showCharts(platform) {
 	$.ajax({
-		url: "/static/js/test/stackedbar" + platform + ".json?platform=" + platform
-		// url: "/dashboard/api/get_platform_activity/?platform=" + platform
+		// url: "/static/js/test/stackedbar" + platform + ".json"
+		url: "/dashboard/api/get_platform_activity/?course_code=" + course_code + "&platform=" + platform
 	})
 	.fail(function(data,textStatus, errorThrown){
     	console.log('Error has occurred in showCharts() function. PlatformName: ' + platform + ".\r\n" + errorThrown);
@@ -176,7 +174,8 @@ function showCharts(platform) {
  * @param {Object} data 	Chart data
  */
 function drawChart(platform, data) {
-	var chart = data["chart"];
+	// console.log(data["activities"]);
+	var chart = data["activities"][0]["chart"];
 	$('#chart-' + platform).highcharts({
 		chart: {
 			type: chart["type"]
@@ -231,8 +230,9 @@ function drawChart(platform, data) {
  */
 function showTable(platform, data) {
 
+	var chartVal = data["activities"][0]["chart"];
 	//Create data columns
-	var cate = data["chart"]["categories"];
+	var cate = chartVal["categories"];
 	var cols = [];
 	var ary = {"title": ""};
 	cols.push(ary);
@@ -243,7 +243,7 @@ function showTable(platform, data) {
 	// console.log(cols);
 
 	//Create table data
-	var series = data["chart"]["series"];
+	var series = chartVal["series"];
 	var newData = [];
 	ary = [];
 	for (var i = 0; i < series.length; i++) {
@@ -272,8 +272,6 @@ function showTable(platform, data) {
 $(document).ready(function(){
 
 	//TODO: panel-heading (platform name) needs to be set dynamically
-
-
 	//Show charts and tables
 	showPlatformTimeseries();
 

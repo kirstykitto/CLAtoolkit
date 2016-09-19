@@ -684,7 +684,17 @@ def get_platform_timeseries(request):
 
     context = RequestContext(request)
     # platform = request.GET.get('platform')
-    val = get_platform_timeseries_dataset(request.GET.get('course_code'))
+    platform_names = []
+
+    # Should all platform be shown in timeseries? or ones in the unit?
+    platform_names = ["Twitter", "Facebook", "Forum", "YouTube", "Diigo", "Blog", "trello", "GitHub"]
+    # if request.GET.get('platform') is None:
+    #     platform_names = ["Twitter", "Facebook", "Forum", "YouTube", "Diigo", "Blog", "trello", "GitHub"]
+    # else:
+    #     # TODO: Enable this code if needed. Not tested.
+    #     platform_names = request.GET.get('platform').split(',')
+
+    val = get_platform_timeseries_dataset(request.GET.get('course_code'), platform_names = platform_names)
     # return HttpResponse(json_str, content_type='application/json; charset=UTF-8', status=status)
     response = JsonResponse(val, status=status.HTTP_200_OK)
     return response
@@ -694,6 +704,14 @@ def get_platform_timeseries(request):
 def get_platform_activity(request):
     context = RequestContext(request)
     # platform = request.GET.get('platform')
-    val = get_platform_activity_dataset(request.GET.get('course_code'))
-    response = HttpResponse(val, status=status.HTTP_200_OK)
+    platform_names = []
+    if request.GET.get('platform') is None:
+        # platform_names = ["Twitter", "Facebook", "Forum", "YouTube", "Diigo", "Blog", "trello", "GitHub"]
+        platform_names = ["trello"]
+    else:
+        # TODO: Enable this code if needed. Not tested.
+        platform_names = request.GET.get('platform').split(',')
+
+    val = get_activity_dataset(request.GET.get('course_code'), platform_names)
+    response = JsonResponse(val, status=status.HTTP_200_OK)
     return response

@@ -170,7 +170,7 @@ def get_timeseries(sm_verb, sm_platform, course_code, username=None):
     dataset = ','.join(map(str, dataset_list))
     return dataset
 
-def get_timeseries_byplatform(sm_platform, course_code, username=None):
+def get_timeseries_byplatform(sm_platform, course_code, username=None, without_date_utc=False):
 
     userclause = ""
     if username is not None:
@@ -202,10 +202,19 @@ def get_timeseries_byplatform(sm_platform, course_code, username=None):
     dataset_list = []
     for row in result:
         curdate = row[0] #parse(row[0])
-        datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year,curdate.month-1,curdate.day,row[1])
+        datapoint = ""
+        if without_date_utc:
+            datapoint = "%s,%s,%s,%s" % (curdate.year,curdate.month-1,curdate.day,row[1])
+        else:
+            datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year,curdate.month-1,curdate.day,row[1])
         dataset_list.append(datapoint)
-    dataset = ','.join(map(str, dataset_list))
-    return dataset
+    
+    if without_date_utc:
+        return dataset_list
+    else:
+        dataset = ','.join(map(str, dataset_list))
+        return dataset
+
 
 def get_active_members_table(platform, course_code):
 
@@ -809,7 +818,7 @@ def sentiment_classifier(course_code):
 
         classification_obj.save()
 
-"""
+
 def getNeighbours(jsonStr):
     data = json.loads(jsonStr)
     nodes = data["nodes"]
@@ -830,7 +839,6 @@ def getNeighbours(jsonStr):
 
     allNeighbours = json.dumps(allNeighbours)
     return allNeighbours
-"""
 
 def getCentrality(jsonStr):
 
@@ -1044,59 +1052,99 @@ def getCCAData(user, course_code, platform):
     return result
 
 
-def get_platform_timeseries_dataset(course_code, username=None):
+def get_platform_timeseries_dataset(course_code, platform_names, username=None):
 
-    #TODO: Get all platform names dynamically
-    platform_names = ["Twitter", "Facebook", "Forum", "YouTube", "Diigo", "Blog", "Trello", "GitHub"]
     series = []
     for platform in platform_names:
         platformVal = OrderedDict ([
                 ('name', platform),
                 ('id', 'dataseries_' + platform),
-                ('data', get_platform_timeseries_dataset_by_platform(platform, course_code))
+                ('data', get_timeseries_byplatform(platform, course_code, without_date_utc = True))
         ])
         series.append(platformVal)
 
     return OrderedDict([ ('series', series)])
 
 
-def get_platform_timeseries_dataset_by_platform(sm_platform, course_code, username=None):
+def get_activity_dataset(course_code, platform_names, username=None):
+    
+    activities = []
+    for platform in platform_names:
+        # "T"rello gets errors...
+        if platform == 'Trello':
+            platform = platform.lower()
+        pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
+        verbs = pluginObj.get_verbs()
 
-    userclause = ""
-    if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s])" % (sm_usernames_str)
+        ## Test code for trello
+        if platform == 'trello':
+            verbs = ['created', 'updated', 'added', 'comment']
+
+        series = []
+        categories, all_verb_counts = count_verbs_by_users(verbs, platform)
+        for verb_count in all_verb_counts:
+            #TODO: date needs to be added to chart_data 
+            # so chart shows data between start date and end date that user selects on the CCA dashboard
+            chart_data = OrderedDict ([
+                ('name', verb_count['name']),
+                ('data', verb_count['data'])
+                # ('date', date)
+            ])
+            series.append(chart_data)
+
+        chartVal = OrderedDict ([
+                ('type', 'column'),
+                ('title', 'Total number of activities'),
+                ('yAxis', {'title': 'Total number of activities'}),
+                ('categories', categories),
+                ('series', series)
+        ])
+
+        val = OrderedDict ([
+                ('platform', platform),
+                ('chart', chartVal)
+        ])
+        activities.append(val)
+
+    # print activities
+    return OrderedDict([ ('activities', activities)])
+
+
+def count_verbs_by_users(verbs, platform):
+    # Count the number of verbs in LearningRecord table
+    # TODO: Is this safe from SQL injection??
+    select_sql = ""
+    for verb in verbs:
+        select_sql += """, count(CASE WHEN clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' = '%s' THEN 1 END) as %s
+        """ % (verb, verb)
 
     cursor = connection.cursor()
-    cursor.execute("""
-    with filled_dates as (
-      select day, 0 as blank_count from
-        generate_series('2015-06-01 00:00'::timestamptz, current_date::timestamptz, '1 day')
-          as day
-    ),
-    daily_counts as (
-    select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
-    FROM clatoolkit_learningrecord
-    WHERE clatoolkit_learningrecord.xapi->'context'->>'platform'='%s' AND clatoolkit_learningrecord.course_code='%s' %s
-    group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
-    order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
-    )
-    select filled_dates.day,
-           coalesce(daily_counts.smcount, filled_dates.blank_count) as signups
-      from filled_dates
-        left outer join daily_counts on daily_counts.day = filled_dates.day
-      order by filled_dates.day;
-    """ % (sm_platform, course_code, userclause))
+    cursor.execute("select username" + select_sql
+        + """from clatoolkit_learningrecord
+        where platform = %s
+        group by username
+        order by username
+        """, [platform])
+
     result = cursor.fetchall()
-    dataset_list = []
+    categories = []
+    all_verb_counts = []
+    # desc[0] is column name
+    col_names = [desc[0] for desc in cursor.description]
+
     for row in result:
-        curdate = row[0] #parse(row[0])
-        datapoint = "%s,%s,%s,%s" % (curdate.year,curdate.month-1,curdate.day,row[1])
-        dataset_list.append(datapoint)
+        categories.append(row[0])
 
-    return dataset_list
+    for i in range(1, len(col_names)):
+        verb_count = OrderedDict() # verb 
+        verb_count['name'] = col_names[i]
+        data = []
+        for row in result:
+            data.append(int(row[i]))
 
+        verb_count['data'] = data
+        all_verb_counts.append(verb_count)
 
-def get_platform_activity_dataset(course_code, username=None):
-    return ""
+    # print categories
+    # print all_verb_counts
+    return categories, all_verb_counts
