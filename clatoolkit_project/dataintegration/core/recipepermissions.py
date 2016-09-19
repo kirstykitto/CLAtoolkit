@@ -22,7 +22,7 @@ def get_userdetails(screen_name, platform):
     #usr = None
 
     try:
-        if platform=='youtube':
+        if platform.lower()=='youtube':
             platform_param_name = "google_account_name__iexact"
         elif platform == 'github':
             platform_param_name = "github_account_name__iexact"
@@ -54,7 +54,7 @@ def get_userdetails(screen_name, platform):
 def username_exists(screen_name, course_code, platform):
     tw_id_exists = False
     platform_param_name = None
-    if platform=='youtube':
+    if platform.lower()=='youtube':
         platform_param_name = "google_account_name__iexact"
     elif platform == 'github':
         platform_param_name = "github_account_name__iexact"

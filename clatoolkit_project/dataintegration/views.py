@@ -115,10 +115,13 @@ def refreshgithub(request):
 def refreshgoogleauthflow(request):
     course_code = request.GET.get('course_code')
     channelIds = request.GET.get('channelIds')
-    platform = courseId = request.GET.get('platform')
+    platform = request.GET.get('platform')
 
     user = request.user
     youtube_plugin = settings.DATAINTEGRATION_PLUGINS['YouTube']
+
+    #print 'Got youtube plugin: %s' % (youtube_plugin)
+    #print 'With client ID and Secret key: %s and %s' % (youtube_plugin.api_config_dict['CLIENT_ID'], youtube_plugin.api_config_dict['CLIENT_SECRET'])
 
     redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/ytAuthCallback'
 
