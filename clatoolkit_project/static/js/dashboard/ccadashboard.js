@@ -65,9 +65,17 @@ function initTimeseriesChartOptions() {
 		},
 		xAxis: {
 			events: {
-				setExtremes: function (e) {
-					$('#report').html('<b>Date From: </b>' + Highcharts.dateFormat('%Y-%m-%d', e.min) +
-					' To: ' + Highcharts.dateFormat('%Y-%m-%d', e.max));// + ' | e.trigger: ' + e.trigger);
+				afterSetExtremes: function (e) {
+					// startDate = Highcharts.dateFormat('%Y,%m,%d', e.min);
+					// endDate = Highcharts.dateFormat('%Y,%m,%d', e.max);
+					// e.preventDefault();
+					// console.log(startDate);
+					// console.log(endDate);
+					if(platformData != null) {
+						chartData = createChartSeries(platformData, true, e.min, e.max);
+						drawChart(platform, chartData);
+						showTable(platform, chartData);
+					}
 				}
 			}
 		},
@@ -93,7 +101,6 @@ function showPlatformTimeseries() {
 	$.ajax({
  		type: "GET",
 		url: "/dashboard/api/get_platform_timeseries/?course_code=" + course_code + "&platform=" + platform
-		// url: "/static/js/test/platformtimeseries.json"
 	})
 	.fail(function(data,textStatus, errorThrown){
     	console.log('error!\r\n' + errorThrown);
@@ -149,23 +156,83 @@ function showPlatformTimeseries() {
  */
 function showCharts(platform) {
 	$.ajax({
-		// url: "/static/js/test/stackedbar" + platform + ".json"
 		url: "/dashboard/api/get_platform_activity/?course_code=" + course_code + "&platform=" + platform
 	})
 	.fail(function(data,textStatus, errorThrown){
     	console.log('Error has occurred in showCharts() function. PlatformName: ' + platform + ".\r\n" + errorThrown);
 	})
 	.done(function( data ) {
-		drawChart(platform, data);
-		if (data["chart2"]) {
-			// showStackedBar("Trello", trData);
-			// drawChart(platform, data);
-			console.log("Log: object chart2 exists.");
-		} else {
-			showTable(platform, data);
-		}
+		chartData = createChartSeries(data, false, null, null)
+		// console.log(chartData);
+		drawChart(platform, chartData);
+		showTable(platform, chartData);
+		platformData = chartData;
 	});
 }
+
+/**
+ * Create series for charts.
+ * Sample series that will be created is shown below.
+	"series": [{
+			"name": "created", 
+			"data":[1,2,6,2,4,5,2,6,8,3]
+		}, {
+			"name": "updated", 
+			"data": [2,0,4,5,9,7,2,3,5,6]
+	}]
+ * @param  {[Object]} data JSON data for charts
+ * @param  {[boolean]} checkDate if true, data between start date and end date that user selected in the navigator 
+ *                               at the Platform Timeseries, will be returned.
+ */
+function createChartSeries(data, checkDate, start, end) {
+
+	$.each(data["platforms"], function(key, val) {
+		// $.each(val["charts"], function(key , chartVal) {
+		var chart = val["charts"][0];
+		var allSeries = [];
+		$.each(chart["seriesname"], function(key, seriesName) {
+			obj = [];
+			$.each(chart["categories"], function(key, cate) {
+				// Search current category (user name, etc.) and series (verb, etc.) in chart["data"]
+				var userData = chart["data"].filter(function(item, index){
+				  if (item["category"] == cate) return true;
+				});
+				var series = userData[0]["series"].filter(function(item, index) {
+					if (item["name"] == seriesName) return true;
+				});
+
+				var total = 0;
+				if(series.length > 0) {
+					if(checkDate) {
+						$.each(series[0]["date"], function(key, value) {
+	                        var d = value.split(",");
+	                        var utcDate = Date.UTC(d[0], (parseInt(d[1]) - 1), d[2]);
+							// Add value when startDate <= value >= endDate
+							if(parseFloat(start) <= parseFloat(utcDate) && parseFloat(end) >= parseFloat(utcDate)) {
+								total += series[0]["values"][key];
+							}
+						});
+					} else {
+						// Add up all values of the current series
+						$.each(series[0]["values"], function(key , value) {
+							total += value;
+						});	
+					}
+				}
+				obj.push(total);
+			});
+			var newSeries = {
+				"name": seriesName,
+				"data": obj
+			};
+			allSeries.push(newSeries);
+		});
+		chart["series"] = allSeries;
+		// console.log(val);
+	});
+	return data;
+}
+
 
 /**
  * Draw chart.
@@ -174,50 +241,56 @@ function showCharts(platform) {
  * @param {Object} data 	Chart data
  */
 function drawChart(platform, data) {
-	// console.log(data["activities"]);
-	var chart = data["activities"][0]["chart"];
-	$('#chart-' + platform).highcharts({
-		chart: {
-			type: chart["type"]
-		},
-		title: {
-			text: chart["title"]
-		},
-		yAxis: {
-        	min: 0,
-			allowDecimals: false,
-			title: {
-			    text: chart["yAxis"]["title"]
-			},
-            stackLabels: {
-                enabled: true,
-                style: {
-                    fontWeight: 'bold',
-                    color: (Highcharts.theme && Highcharts.theme.textColor) || 'black'
-                }
-            }
-		},
-		xAxis: {
-			categories: chart["categories"]
-		},
+	$.each(data["platforms"], function(key , val) {
+		$.each(val["charts"], function(key , chart) {
+			// console.log(chartData);
+			if ($('#chart-' + val["platform"]).highcharts()) {
+				$('#chart-' + val["platform"]).highcharts().destroy();
+			}
+			$('#chart-' + platform).highcharts({
+				chart: {
+					type: chart["type"]
+				},
+				title: {
+					text: chart["title"]
+				},
+				yAxis: {
+					min: 0,
+					allowDecimals: false,
+					title: {
+					    text: chart['yAxis']["title"]
+					},
+		            stackLabels: {
+		                enabled: true,
+		                style: {
+		                    fontWeight: 'bold',
+		                    color: (Highcharts.theme && Highcharts.theme.textColor) || 'black'
+		                }
+		            }
+				},
+				xAxis: {
+					categories: chart["categories"]
+				},
 
-        series: chart["series"],
-        tooltip: {
-            headerFormat: '<b>{point.x}</b><br/>',
-            pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}'
-        },
-        plotOptions: {
-            column: {
-                stacking: 'normal',
-                dataLabels: {
-                    enabled: true,
-                    color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white',
-                    style: {
-                        textShadow: '0 0 3px black'
-                    }
-                }
-            }
-        }
+		        series: chart["series"],
+		        tooltip: {
+		            headerFormat: '<b>{point.x}</b><br/>',
+		            pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}'
+		        },
+		        plotOptions: {
+		            column: {
+		                stacking: 'normal',
+		                dataLabels: {
+		                    enabled: true,
+		                    color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white',
+		                    style: {
+		                        textShadow: '0 0 3px black'
+		                    }
+		                }
+		            }
+		        }
+			});
+		});
 	});
 }
 
@@ -230,39 +303,46 @@ function drawChart(platform, data) {
  */
 function showTable(platform, data) {
 
-	var chartVal = data["activities"][0]["chart"];
-	//Create data columns
-	var cate = chartVal["categories"];
-	var cols = [];
-	var ary = {"title": ""};
-	cols.push(ary);
-	$.each(cate, function(key,val) {
-		ary = {"title": val};
-		cols.push(ary);
-	});
-	// console.log(cols);
-
-	//Create table data
-	var series = chartVal["series"];
-	var newData = [];
-	ary = [];
-	for (var i = 0; i < series.length; i++) {
-		ary = series[i]["data"];
-		ary.unshift(series[i]["name"]);
-		newData.push(ary);
-	}
-	// console.log("newData" + newData);
-
-	$('#datatable-' + platform).DataTable( {
-		bFilter: false,
-		bInfo: false,
-		bPaginate: false,
-		bLengthChange: false,
-		bSort: false,
-		scrollX: true,
-		// scrollY: 200, //maximum hight of the table
-		data: newData,
-		columns: cols
+	$.each(data["platforms"], function(key , val) {
+		$.each(val["tables"], function(key , table) {
+			var chartVal = val["charts"][parseInt(table["chartIndex"])];
+			//TODO: Code needs to be modified for other type of charts (it is only for stacked bar)
+			//Create data columns
+			var cate = chartVal["categories"];
+			var cols = [];
+			var ary = {"title": ""};
+			cols.push(ary);
+			$.each(cate, function(key,val) {
+				ary = {"title": val};
+				cols.push(ary);
+			});
+			//Create table data
+			var series = chartVal["series"];
+			var newData = [];
+			ary = [];
+			for (var i = 0; i < series.length; i++) {
+				ary = series[i]["data"];
+				ary.unshift(series[i]["name"]);
+				newData.push(ary);
+			}
+			console.log(val["platform"]);
+			// console.log("newData" + newData);
+			if ($('#datatable-' + val["platform"]).dataTable.isDataTable()) {
+				$('#datatable-' + val["platform"]).dataTable.fnDestroy();
+			}
+			$('#datatable-' + val["platform"]).DataTable( {
+				bFilter: false,
+				bInfo: false,
+				bPaginate: false,
+				bLengthChange: false,
+				bDestroy: true, //To reinitialise datatable, this has to be true.
+				bSort: false,
+				scrollX: true,
+				// scrollY: 200, //maximum hight of the table
+				data: newData,
+				columns: cols
+			});
+		});
 	});
 }
 
@@ -270,258 +350,13 @@ function showTable(platform, data) {
  * Load function.
  */
 $(document).ready(function(){
-
 	//TODO: panel-heading (platform name) needs to be set dynamically
 	//Show charts and tables
 	showPlatformTimeseries();
-
 	//TODO: Get platform name available in the unit from the server
-	var platforms = ["Trello"];
+	var platforms = [platform];
 	$.each(platforms, function(key,val) {
 		showCharts(val);
 	});
 
-	//TODO: Get data from the CAL toolkit server
-	// trData = getData("Trello");
-	// fbData = getData("Facebook");
-	// ghData = getData("GitHub");
-
-	// showTable("Trello", trData);
-	// showStackedBar("Trello", trData);
-	// showTable("GitHub", ghData);
-	// showStackedBar("GitHub", ghData);
-	// showStackedBar("Facebook", fbData);
-	// showPieCharts("Facebook", fbData);
-	
-	// function showTable(platformName, data) {
-	// 	console.log(data["table"]["columns"]);
-	// 	$('#datatable-' + platformName).DataTable( {
-	// 		bFilter: false,
-	// 		bInfo: false,
-	// 		bPaginate: false,
-	// 		bLengthChange: false,
-	// 		bSort: false,
-	// 		scrollX: true,
-	// 		data: data["table"]["data"],
-	// 		columns: data["table"]["columns"]
-	// 	});
-	// }
-	// $('#datatable-trello').dataTable().fnDestroy();
-
-	function showPieCharts(platformName, data) {
-		$('#pie-' + platformName).highcharts({
-
-			chart: {
-				type: 'pie', //data["chart2"]["type"]
-				// plotBorderColor: 'gray',
-				// plotBorderWidth: 1,
-				// width: $('#chart-' + platformName).width()
-				//TODO: width needs to be calculated automatically and defined.
-				//Width = 100(first pie position) + 200 * (element number(start at 0) + 1)
-				width: parseInt($('#chart-' + platformName).width()) > 900 ? parseInt($('#chart-' + platformName).width()) : 900
-			},
-			title: {
-				text: "Cognitive Presence Classifications",//data["chart2"]["title"],
-	            align: 'center',
-	            verticalAlign: 'top'
-			},
-			// When  xAxis is used, click event won't work as expected.
-			// (all items in pie chart will be disappeared at once even if you click one of them in the legend)
-			// xAxis: {
-			// 	categories: ['Triggering', 'Exploration', 'Integration', 'Resolution'];
-			// },
-	        labels: {
-	            style: {
-	                // color: '#3E576F',
-	                fontSize: '14px'
-	            },
-	            items:  [
-	            	{ html: 'Member 1', style: { left: '130px', top: '60px' }},
-	            	{ html: 'Member 2', style: { left: '360px', top: '60px' }},
-	            	{ html: 'Member 3', style: { left: '590px', top: '60px' }},
-	            	{ html: 'Member 4', style: { left: '820px', top: '60px' }},
-	            	{ html: 'Member 5', style: { left: '1050px',top: '60px' }}
-	            ]
-	            //data["chart2"]["labels"]["items"]
-	        },
-	        series: [
-	        	{
-		            type: 'pie',//data["chart2"]["type"],
-		            name: 'Member 1',//data["chart2"]["series"]["name"]
-		            center: [150, null],//[parseInt(chart2["series"]["size"]["x"]), null],
-		            size: 180,
-		            dataLabels: {
-						enabled: false
-					},
-		            showInLegend: true,
-		            data: [['Triggering', 45.0], ['Exploration', 26.8], ['Integration',12.8], ['Resolution', 8.5]]//data["chart2"]["series"]["data"]
-		         //    title: {
-			        //     // align: 'left',
-			        //     // x: 0
-			        //     style: { color: 'black' },
-			        //     align: 'center',
-			        //     text: '<b>Pie 1</b><br>Subtext',
-			        //     verticalAlign: 'top',
-			        //     y: -40
-			        // }
-	        	},{
-		            type: 'pie',
-		            name: 'Member 2',
-		            center: [380, null],
-		            size: 180,
-		            dataLabels: {
-						enabled: false
-					},
-		            data: [['Triggering', 12.0], ['Exploration', 34.2], ['Integration',22.4], ['Resolution', 31.4]]
-	        	},{
-		            type: 'pie',
-		            name: 'Member 3',
-		            center: [610, null],
-		            size: 180,
-		            dataLabels: {
-						enabled: false
-					},
-		            data: [['Triggering', 45.0], ['Exploration', 26.8], ['Integration',12.8], ['Resolution', 8.5]]
-	        	},{
-		            type: 'pie',
-		            name: 'Member 4',
-		            center: [840, null],
-		            size: 180,
-		            dataLabels: {
-						enabled: false
-					},
-		            data: [['Triggering', 67.0], ['Exploration', 18.5], ['Integration',4.7], ['Resolution', 9.8]]
-	        	},{
-		            type: 'pie',
-		            name: 'Member 5',
-		            center: [1070, null],
-		            size: 180,
-		            dataLabels: {
-						enabled: false
-					},
-		            data: [['Triggering', 29.9], ['Exploration', 32.1], ['Integration',35.4], ['Resolution', 2.6]]
-	        	}
-	        ],
-	        tooltip: {
-	        	//NOTE: point.y is actual value tha is set to the pie chart. point.percentage is automatically caluculated by highcharts.
-	            // pointFormat: '{point.name}: <b>{point.percentage:.1f}%</b>'
-	            formatter: function() {
-	            	// console.log(this.series);
-			        return '<b>' + this.series.name + '</b><br><b>' + this.point.name + ': ' + this.point.y + '</b>';
-			    }
-	        },
-	        plotOptions: {
-	            pie: {
-	                allowPointSelect: true,
-	                cursor: 'pointer'
-	            }
-	        }
-	    },function(chart) {
-	        $(chart.series[0].data).each(function(i, e) {
-	            e.legendGroup.on('click', function(event) {
-	                var legendItem=e.name;
-	                event.stopPropagation();
-	                $(chart.series).each(function(j,f){
-	                       $(this.data).each(function(k,z){
-	                           if(z.name==legendItem) {
-	                               if(z.visible) {
-	                                   z.setVisible(false);
-	                               } else {
-	                                   z.setVisible(true);
-	                               }
-	                           }
-	                       });
-	                });//End of $(chart.series).each(function(j,f)
-	            });
-	        });// End of $(chart.series[0].data).each(function(i, e)
-		});
-	}
-
-	function getData(platformName) {
-		
-		//Note: This is test data
-		//TODO: Get data from the CAL toolkit server
-		platformData = [];
-		if (platformName == "Trello") {
-			//Note: Data should be the total number of table data?
-			// table = [];
-			// table["data"] = [['Tasks responsible for', 1,2,6,2,4,5,2,6,8,3], ['Tasks resolved', 2,0,4,5,9,7,2,3,5,6]];
-			// table["columns"] = [
-			// 		{ title: ""},
-			// 		{ title: "Member 1"},
-			// 		{ title: "Member 2"},
-			// 		{ title: "Member 3"},
-			// 		{ title: "Member 4"},
-			// 		{ title: "Member 5"},
-			// 		{ title: "Member 6"},
-			// 		{ title: "Member 7"},
-			// 		{ title: "Member 8"},
-			// 		{ title: "Member 9"},
-			// 		{ title: "Member 10"}
-			// 		//
-			// 		// [""],["Member 1"], ["Member 2"], ["Member 3"], ["Member 4"], ["Member 5"],
-			// 		// ["Member 6"], ["Member 7"], ["Member 8"], ["Member 9"], ["Member 10"]
-			// 	];
-			// chart = [];
-			// chart["data"] = [{name: 'Tasks responsible for', data:[1,2,6,2,4,5,2,6,8,3]}, {name: 'Tasks resolved', data: [2,0,4,5,9,7,2,3,5,6]}];
-			// chart["categories"] = ['Member 1', 'Member 2', 'Member 3', 'Member 4', 'Member 5', 'Member 6', 'Member 7', 'Member 8', 'Member 9', 'Member 10'];
-			// chart["type"] = "column";
-			// chart["title"] = "Group 1";
-			// chart["yAxisTitle"] = "Units";
-			// // chart["name"] = "Group 1 members";
-			// platformData["table"] = table;
-			// platformData["chart"] = chart;
-		}
-		else if (platformName == "Facebook") {
-
-			//TODO: What kinda of data is shown in bar chart on FB?
-			table = [];
-			table["data"] = [['Assigned inquiry based task', 12,15,6,21,18]];
-			table["columns"] = [
-					{ title: ""},
-					{ title: "Member 1"},
-					{ title: "Member 2"},
-					{ title: "Member 3"},
-					{ title: "Member 4"},
-					{ title: "Member 5"}
-				];
-			chart = [];
-			chart["data"] = [{name: 'Assigned inquiry based task', data:[12,15,6,21,18]}];
-			chart["categories"] = ['Member 1', 'Member 2', 'Member 3', 'Member 4', 'Member 5'];
-			chart["type"] = "column";
-			chart["title"] = "Group 1";
-			chart["yAxisTitle"] = "%";
-			chart["name"] = "Group 1 members";
-			platformData["table"] = table;
-			platformData["chart"] = chart;
-		} 
-		else if (platformName == "GitHub") {
-			
-			// //Note: Data should be the total number of table data?
-			// table = [];
-			// table["data"] = [['Additions', 501,427,281,615], ['Deletions', 291,58,102,93]
-			// 				// , ['Test1',10,41,15,6], ['Test2', 32,37,49,12], ['Test3',10,41,15,6], ['Test4', 32,37,49,12]
-			// 			];
-			// table["columns"] = [
-			// 		{ title: ""},
-			// 		{ title: "Member 1"},
-			// 		{ title: "Member 2"},
-			// 		{ title: "Member 3"},
-			// 		{ title: "Member 4"}
-			// 	];
-			// chart = [];
-			// chart["data"] = [{name: 'Additions', data:[501,427,281,615]}, {name: 'Deletions', data: [291,58,102,93]}
-			// 				// ,{name: 'Test1', data:[10,41,15,6]}, {name: 'Test2', data: [32,37,49,12]},
-			// 				// {name: 'Test3', data:[10,41,15,6]}, {name: 'Test4', data: [32,37,49,12]}
-			// 			];
-			// chart["categories"] = ['Member 1', 'Member 2', 'Member 3', 'Member 4'];
-			// chart["type"] = "column";
-			// chart["title"] = "Web App Developers";
-			// chart["yAxisTitle"] = "Units";
-			// // chart["name"] = "Developers";
-			// platformData["table"] = table;
-			// platformData["chart"] = chart;
-		}
-		return platformData;
-	}
 });
