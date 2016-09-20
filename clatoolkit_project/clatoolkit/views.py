@@ -1,4 +1,4 @@
-from django.shortcuts import render_to_response
+from django.shortcuts import render, render_to_response
 from django.shortcuts import redirect
 
 from django.contrib.auth import authenticate, login
@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 
 from django.contrib.auth.models import User
-from clatoolkit.forms import UserForm, UserProfileForm
+from clatoolkit.forms import SignUpForm, UserForm, UserProfileForm
 
 from django.template import RequestContext
 
@@ -336,6 +336,26 @@ def eventregistration(request):
     return render_to_response(
         'clatoolkit/eventregistration.html',
             {'user_form': user_form, 'profile_form': profile_form, 'registered': registered,}, context)
+
+
+def signup(request):
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = SignUpForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+            # process the data in form.cleaned_data as required
+            # ...
+            # redirect to a new URL:
+            return HttpResponse(form.cleaned_data)
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form = SignUpForm()
+
+    return render(request, 'clatoolkit/signup.html', {'form': form})
+
 
 class DefaultsMixin(object):
     """Default settings for view authentication, permissions,
