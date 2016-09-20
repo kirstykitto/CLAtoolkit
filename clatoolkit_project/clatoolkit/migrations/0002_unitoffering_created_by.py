@@ -16,6 +16,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='unitoffering',
             name='created_by',
-            field=models.OneToOneField(null=True, to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True),
         ),
     ]

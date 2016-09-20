@@ -379,7 +379,11 @@ def create_offering(request):
             unit.created_by = request.user
             unit.save()
 
-            return HttpResponse("/clatoolkit/createoffering")
+            # FIX
+            unit.users.add(request.user)
+            unit.save()
+
+            return render(request, 'clatoolkit/createoffering_success.html', {'unit': unit})
 
     # if a GET (or any other method) we'll create a blank form
     else:
