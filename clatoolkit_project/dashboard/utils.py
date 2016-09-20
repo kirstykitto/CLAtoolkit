@@ -24,6 +24,7 @@ from django.conf import settings
 import subprocess
 import igraph
 from collections import OrderedDict
+import copy
 
 def getPluginKey(platform):
     return settings.DATAINTEGRATION_PLUGINS[platform].api_config_dict['api_key']
@@ -1068,7 +1069,8 @@ def get_platform_timeseries_dataset(course_code, platform_names, username=None):
 
 def get_activity_dataset(course_code, platform_names, username=None):
     
-    activities = []
+    platforms = []
+    i = 0
     for platform in platform_names:
         # "T"rello gets errors...
         if platform == 'Trello':
@@ -1081,70 +1083,118 @@ def get_activity_dataset(course_code, platform_names, username=None):
             verbs = ['created', 'updated', 'added', 'comment']
 
         series = []
-        categories, all_verb_counts = count_verbs_by_users(verbs, platform)
-        for verb_count in all_verb_counts:
-            #TODO: date needs to be added to chart_data 
-            # so chart shows data between start date and end date that user selects on the CCA dashboard
-            chart_data = OrderedDict ([
-                ('name', verb_count['name']),
-                ('data', verb_count['data'])
-                # ('date', date)
-            ])
-            series.append(chart_data)
+        all_data = []
+        categories, return_data = count_verbs_by_users(verbs, platform, course_code)
+        for data in return_data:
+            all_data.append(data)
 
+        charts = []
         chartVal = OrderedDict ([
                 ('type', 'column'),
                 ('title', 'Total number of activities'),
-                ('yAxis', {'title': 'Total number of activities'}),
                 ('categories', categories),
-                ('series', series)
+                ('seriesname', verbs),
+                ('yAxis', OrderedDict([('title', 'Total number of activities')])),
+                ('data', all_data)
         ])
+        charts.append(chartVal)
+
+        tables = []
+        tableVal = OrderedDict([('chartIndex', i)])
+        tables.append(tableVal)
 
         val = OrderedDict ([
+                ('index', i),
                 ('platform', platform),
-                ('chart', chartVal)
+                ('charts', charts),
+                ('tables', tables)
         ])
-        activities.append(val)
+        platforms.append(val)
+        i = i + 1
 
-    # print activities
-    return OrderedDict([ ('activities', activities)])
+    # print platforms
+    return OrderedDict([ ('platforms', platforms)])
 
 
-def count_verbs_by_users(verbs, platform):
-    # Count the number of verbs in LearningRecord table
-    # TODO: Is this safe from SQL injection??
-    select_sql = ""
-    for verb in verbs:
-        select_sql += """, count(CASE WHEN clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' = '%s' THEN 1 END) as %s
-        """ % (verb, verb)
-
+def count_verbs_by_users(verbs, platform, course_code):
     cursor = connection.cursor()
-    cursor.execute("select username" + select_sql
-        + """from clatoolkit_learningrecord
+    cursor.execute("""select username, verb, 
+        to_char(to_date(clatoolkit_learningrecord.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
+        , count(verb)
+        from clatoolkit_learningrecord
         where platform = %s
-        group by username
-        order by username
-        """, [platform])
+        and course_code = %s
+        group by username, verb, date_imported
+        order by username, verb, date_imported
+    """, [platform, course_code])
 
     result = cursor.fetchall()
     categories = []
-    all_verb_counts = []
-    # desc[0] is column name
-    col_names = [desc[0] for desc in cursor.description]
-
+    data = []
+    user_data = OrderedDict()
+    username = ''
+    series = []
+    verb = ''# verb
+    dates = [] # date
+    values = []
     for row in result:
-        categories.append(row[0])
+        if username == '' or username != row[0]:
+            if username != '':
+                # Save previous all verbs and its values of the user
+                obj = OrderedDict([
+                    ('name', verb), # verb
+                    ('date', copy.deepcopy(dates)),
+                    ('values', copy.deepcopy(values))
+                ])
+                series.append(obj)
+                user_data['category'] = username
+                user_data['series'] = copy.deepcopy(series)
+                data.append(user_data)
 
-    for i in range(1, len(col_names)):
-        verb_count = OrderedDict() # verb 
-        verb_count['name'] = col_names[i]
-        data = []
-        for row in result:
-            data.append(int(row[i]))
+            # Initialise all variables
+            username = row[0]
+            user_data = OrderedDict()
+            series = []
+            verb = "" # verb
+            dates = [] # date
+            values = []
+            verb = row[1] # verb
+            dates = [row[2]] # date
+            values = [int(row[3])] # number of verbs imported on the date
 
-        verb_count['data'] = data
-        all_verb_counts.append(verb_count)
+            categories.append(username)
 
+        elif username == row[0] and verb == row[1]:
+            dates.append(row[2])
+            values.append(int(row[3]))
+
+        elif username == row[0] and verb != row[1]:
+            # Save previous verb and its value
+            obj = OrderedDict([
+                ('name', verb), # verb
+                ('date', copy.deepcopy(dates)), 
+                ('values', copy.deepcopy(values))
+            ])
+            series.append(obj)
+            # Initialise with new verb, date and value
+            verb = "" # verb
+            dates = [] # date
+            values = []
+            verb = row[1] # verb
+            dates = [row[2]] # date
+            values = [int(row[3])] # number of verbs imported on the date
+
+    # Save the last one
+    obj = OrderedDict([
+        ('name', verb), # verb
+        ('date', copy.deepcopy(dates)), 
+        ('values', copy.deepcopy(values))
+    ])
+    series.append(obj)
+    user_data['category'] = username
+    user_data['series'] = copy.deepcopy(series)
+    data.append(user_data)
+
+    # print data
     # print categories
-    # print all_verb_counts
-    return categories, all_verb_counts
+    return categories, data

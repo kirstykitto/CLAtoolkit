@@ -65,9 +65,17 @@ function initTimeseriesChartOptions() {
 		},
 		xAxis: {
 			events: {
-				setExtremes: function (e) {
-					$('#report').html('<b>Date From: </b>' + Highcharts.dateFormat('%Y-%m-%d', e.min) +
-					' To: ' + Highcharts.dateFormat('%Y-%m-%d', e.max));// + ' | e.trigger: ' + e.trigger);
+				afterSetExtremes: function (e) {
+					// startDate = Highcharts.dateFormat('%Y,%m,%d', e.min);
+					// endDate = Highcharts.dateFormat('%Y,%m,%d', e.max);
+					// e.preventDefault();
+					// console.log(startDate);
+					// console.log(endDate);
+					if(platformData != null) {
+						chartData = createChartSeries(platformData, true, e.min, e.max);
+						drawChart(platform, chartData);
+						showTable(platform, chartData);
+					}
 				}
 			}
 		},
@@ -154,16 +162,77 @@ function showCharts(platform) {
     	console.log('Error has occurred in showCharts() function. PlatformName: ' + platform + ".\r\n" + errorThrown);
 	})
 	.done(function( data ) {
-		drawChart(platform, data);
-		if (data["chart2"]) {
-			// showStackedBar("Trello", trData);
-			// drawChart(platform, data);
-			console.log("Log: object chart2 exists.");
-		} else {
-			showTable(platform, data);
-		}
+		chartData = createChartSeries(data, false, null, null)
+		// console.log(chartData);
+		drawChart(platform, chartData);
+		showTable(platform, chartData);
+		platformData = chartData;
 	});
 }
+
+/**
+ * Create series for charts.
+ * Sample series that will be created is shown below.
+	"series": [{
+			"name": "created", 
+			"data":[1,2,6,2,4,5,2,6,8,3]
+		}, {
+			"name": "updated", 
+			"data": [2,0,4,5,9,7,2,3,5,6]
+	}]
+ * @param  {[Object]} data JSON data for charts
+ * @param  {[boolean]} checkDate if true, data between start date and end date that user selected in the navigator 
+ *                               at the Platform Timeseries, will be returned.
+ */
+function createChartSeries(data, checkDate, start, end) {
+
+	$.each(data["platforms"], function(key, val) {
+		// $.each(val["charts"], function(key , chartVal) {
+		var chart = val["charts"][0];
+		var allSeries = [];
+		$.each(chart["seriesname"], function(key, seriesName) {
+			obj = [];
+			$.each(chart["categories"], function(key, cate) {
+				// Search current category (user name, etc.) and series (verb, etc.) in chart["data"]
+				var userData = chart["data"].filter(function(item, index){
+				  if (item["category"] == cate) return true;
+				});
+				var series = userData[0]["series"].filter(function(item, index) {
+					if (item["name"] == seriesName) return true;
+				});
+
+				var total = 0;
+				if(series.length > 0) {
+					if(checkDate) {
+						$.each(series[0]["date"], function(key, value) {
+	                        var d = value.split(",");
+	                        var utcDate = Date.UTC(d[0], (parseInt(d[1]) - 1), d[2]);
+							// Add value when startDate <= value >= endDate
+							if(parseFloat(start) <= parseFloat(utcDate) && parseFloat(end) >= parseFloat(utcDate)) {
+								total += series[0]["values"][key];
+							}
+						});
+					} else {
+						// Add up all values of the current series
+						$.each(series[0]["values"], function(key , value) {
+							total += value;
+						});	
+					}
+				}
+				obj.push(total);
+			});
+			var newSeries = {
+				"name": seriesName,
+				"data": obj
+			};
+			allSeries.push(newSeries);
+		});
+		chart["series"] = allSeries;
+		// console.log(val);
+	});
+	return data;
+}
+
 
 /**
  * Draw chart.
@@ -172,50 +241,56 @@ function showCharts(platform) {
  * @param {Object} data 	Chart data
  */
 function drawChart(platform, data) {
-	// console.log(data["activities"]);
-	var chart = data["activities"][0]["chart"];
-	$('#chart-' + platform).highcharts({
-		chart: {
-			type: chart["type"]
-		},
-		title: {
-			text: chart["title"]
-		},
-		yAxis: {
-        	min: 0,
-			allowDecimals: false,
-			title: {
-			    text: chart["yAxis"]["title"]
-			},
-            stackLabels: {
-                enabled: true,
-                style: {
-                    fontWeight: 'bold',
-                    color: (Highcharts.theme && Highcharts.theme.textColor) || 'black'
-                }
-            }
-		},
-		xAxis: {
-			categories: chart["categories"]
-		},
+	$.each(data["platforms"], function(key , val) {
+		$.each(val["charts"], function(key , chart) {
+			// console.log(chartData);
+			if ($('#chart-' + val["platform"]).highcharts()) {
+				$('#chart-' + val["platform"]).highcharts().destroy();
+			}
+			$('#chart-' + platform).highcharts({
+				chart: {
+					type: chart["type"]
+				},
+				title: {
+					text: chart["title"]
+				},
+				yAxis: {
+					min: 0,
+					allowDecimals: false,
+					title: {
+					    text: chart['yAxis']["title"]
+					},
+		            stackLabels: {
+		                enabled: true,
+		                style: {
+		                    fontWeight: 'bold',
+		                    color: (Highcharts.theme && Highcharts.theme.textColor) || 'black'
+		                }
+		            }
+				},
+				xAxis: {
+					categories: chart["categories"]
+				},
 
-        series: chart["series"],
-        tooltip: {
-            headerFormat: '<b>{point.x}</b><br/>',
-            pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}'
-        },
-        plotOptions: {
-            column: {
-                stacking: 'normal',
-                dataLabels: {
-                    enabled: true,
-                    color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white',
-                    style: {
-                        textShadow: '0 0 3px black'
-                    }
-                }
-            }
-        }
+		        series: chart["series"],
+		        tooltip: {
+		            headerFormat: '<b>{point.x}</b><br/>',
+		            pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}'
+		        },
+		        plotOptions: {
+		            column: {
+		                stacking: 'normal',
+		                dataLabels: {
+		                    enabled: true,
+		                    color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white',
+		                    style: {
+		                        textShadow: '0 0 3px black'
+		                    }
+		                }
+		            }
+		        }
+			});
+		});
 	});
 }
 
@@ -228,39 +303,46 @@ function drawChart(platform, data) {
  */
 function showTable(platform, data) {
 
-	var chartVal = data["activities"][0]["chart"];
-	//Create data columns
-	var cate = chartVal["categories"];
-	var cols = [];
-	var ary = {"title": ""};
-	cols.push(ary);
-	$.each(cate, function(key,val) {
-		ary = {"title": val};
-		cols.push(ary);
-	});
-	// console.log(cols);
-
-	//Create table data
-	var series = chartVal["series"];
-	var newData = [];
-	ary = [];
-	for (var i = 0; i < series.length; i++) {
-		ary = series[i]["data"];
-		ary.unshift(series[i]["name"]);
-		newData.push(ary);
-	}
-	// console.log("newData" + newData);
-
-	$('#datatable-' + platform).DataTable( {
-		bFilter: false,
-		bInfo: false,
-		bPaginate: false,
-		bLengthChange: false,
-		bSort: false,
-		scrollX: true,
-		// scrollY: 200, //maximum hight of the table
-		data: newData,
-		columns: cols
+	$.each(data["platforms"], function(key , val) {
+		$.each(val["tables"], function(key , table) {
+			var chartVal = val["charts"][parseInt(table["chartIndex"])];
+			//TODO: Code needs to be modified for other type of charts (it is only for stacked bar)
+			//Create data columns
+			var cate = chartVal["categories"];
+			var cols = [];
+			var ary = {"title": ""};
+			cols.push(ary);
+			$.each(cate, function(key,val) {
+				ary = {"title": val};
+				cols.push(ary);
+			});
+			//Create table data
+			var series = chartVal["series"];
+			var newData = [];
+			ary = [];
+			for (var i = 0; i < series.length; i++) {
+				ary = series[i]["data"];
+				ary.unshift(series[i]["name"]);
+				newData.push(ary);
+			}
+			console.log(val["platform"]);
+			// console.log("newData" + newData);
+			if ($('#datatable-' + val["platform"]).dataTable.isDataTable()) {
+				$('#datatable-' + val["platform"]).dataTable.fnDestroy();
+			}
+			$('#datatable-' + val["platform"]).DataTable( {
+				bFilter: false,
+				bInfo: false,
+				bPaginate: false,
+				bLengthChange: false,
+				bDestroy: true, //To reinitialise datatable, this has to be true.
+				bSort: false,
+				scrollX: true,
+				// scrollY: 200, //maximum hight of the table
+				data: newData,
+				columns: cols
+			});
+		});
 	});
 }
 
@@ -268,14 +350,13 @@ function showTable(platform, data) {
  * Load function.
  */
 $(document).ready(function(){
-
 	//TODO: panel-heading (platform name) needs to be set dynamically
 	//Show charts and tables
 	showPlatformTimeseries();
-
 	//TODO: Get platform name available in the unit from the server
 	var platforms = [platform];
 	$.each(platforms, function(key,val) {
 		showCharts(val);
 	});
+
 });
