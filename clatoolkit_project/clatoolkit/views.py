@@ -345,10 +345,20 @@ def signup(request):
         form = SignUpForm(request.POST)
         # check whether it's valid:
         if form.is_valid():
-            # process the data in form.cleaned_data as required
-            # ...
-            # redirect to a new URL:
-            return HttpResponse(form.cleaned_data)
+            # Create user from form data
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data["password"])
+            user.save()
+
+            # Create blank user profile
+            user_profile = UserProfile(user=user)
+            user_profile.save()
+
+            # Log in as the newly signed up user
+            user = authenticate(username=form.cleaned_data['username'], password=form.cleaned_data['password'])
+            login(request, user)
+
+            return HttpResponseRedirect("/clatoolkit/createoffering")
 
     # if a GET (or any other method) we'll create a blank form
     else:
