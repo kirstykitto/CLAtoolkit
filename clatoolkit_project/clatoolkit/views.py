@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 
 from django.contrib.auth.models import User
-from clatoolkit.forms import SignUpForm, UserForm, UserProfileForm
+from clatoolkit.forms import CreateOfferingForm, SignUpForm, UserForm, UserProfileForm
 
 from django.template import RequestContext
 
@@ -365,6 +365,27 @@ def signup(request):
         form = SignUpForm()
 
     return render(request, 'clatoolkit/signup.html', {'form': form})
+
+
+@login_required
+def create_offering(request):
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = CreateOfferingForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+            unit = form.save(commit=False)
+            unit.created_by = request.user
+            unit.save()
+
+            return HttpResponse("/clatoolkit/createoffering")
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form = CreateOfferingForm()
+
+    return render(request, 'clatoolkit/createoffering.html', {'form': form})
 
 
 class DefaultsMixin(object):

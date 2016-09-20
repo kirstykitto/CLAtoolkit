@@ -26,6 +26,14 @@ class SignUpForm(forms.ModelForm):
         model = User
         fields = ("first_name", "last_name", "username", "email", "password")
 
+
+class CreateOfferingForm(forms.ModelForm):
+
+    class Meta:
+        model = UnitOffering
+        fields = ("code", "name", "semester", "description", "twitter_hashtags")
+
+
 class SocialMediaUpdateForm(forms.ModelForm):
     fb_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     twitter_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))

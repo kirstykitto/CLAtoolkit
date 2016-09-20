@@ -1,0 +1,72 @@
+{% extends "clatoolkit/base_clatoolkit.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block heading %}Create a Unit Offering{% endblock %}
+
+{% block body %}
+<div class="row">
+    <div>
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                New Offering
+            </div>
+            <div class="panel-body">
+                <form role="form" id="user_form" method="post">
+                    {% csrf_token %}
+
+                    <div class="form-errors">
+                        {% for field in form %}
+                            {% if field.errors %}
+                                {% for error in field.errors %}
+                                    <li><strong>{{ field.name }}: {{ error|escape }}</strong></li>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                        <div class="form-group">
+                            <label for={{ form.code.id_for_label }}>Unit code:</label>
+                            <br>
+                            {{ form.code }}
+                        </div>
+                <div class="form-group">
+                            <label for={{ form.name.id_for_label }}>Unit Name:</label>
+                            <br>
+                            {{ form.name }}
+                        </div>
+                <div class="form-group">
+                            <label for={{ form.semester.id_for_label }}>Semester:</label>
+                            <br>
+                            {{ form.semester }}
+                        </div>
+                <div class="form-group">
+                            <label for={{ form.description.id_for_label }}>Description:</label>
+                            <br>
+                            {{ form.description }}
+                        </div>
+                <div class="form-group">
+                            <label for={{ form.twitter_hashtags.id_for_label }}>Twitter hashtags:</label>
+                            <br>
+                            {{ form.twitter_hashtags }}
+                        </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg btn-block">Create offering</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    div .form_control {
+        line-height: 3;
+        font-weight: bold;
+    }
+</style>
+{% autoescape off %}
+
+{% endautoescape %}
+{% endblock %}
+
