@@ -123,7 +123,7 @@ class UserClassification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 class UnitOffering(models.Model):
-    created_by = models.OneToOneField(User)
+    created_by = models.OneToOneField(User, null=True)
     code = models.CharField(max_length=5000, blank=False)
     name = models.CharField(max_length=5000, blank=False)
     semester = models.CharField(max_length=5000, blank=False)
