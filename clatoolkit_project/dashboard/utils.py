@@ -1080,7 +1080,7 @@ def get_activity_dataset(course_code, platform_names, username=None):
 
         ## Test code for trello
         if platform == 'trello':
-            verbs = ['created', 'updated', 'added', 'comment']
+            verbs = ['created', 'updated', 'added', 'commented']
 
         series = []
         all_data = []
@@ -1138,6 +1138,9 @@ def count_verbs_by_users(verbs, platform, course_code):
     dates = [] # date
     values = []
     for row in result:
+        # Subtract 1 from month to avoid calculation in client side (Javascript)
+        dateAry = row[2].split(',')
+        dateString = dateAry[0] + ',' + str(int(dateAry[1]) - 1).zfill(2) + ',' + dateAry[2]
         if username == '' or username != row[0]:
             if username != '':
                 # Save previous all verbs and its values of the user
@@ -1159,13 +1162,14 @@ def count_verbs_by_users(verbs, platform, course_code):
             dates = [] # date
             values = []
             verb = row[1] # verb
-            dates = [row[2]] # date
+            dates = [dateString] # date
             values = [int(row[3])] # number of verbs imported on the date
 
             categories.append(username)
 
         elif username == row[0] and verb == row[1]:
-            dates.append(row[2])
+            # Same user and same verb.
+            dates.append(dateString)
             values.append(int(row[3]))
 
         elif username == row[0] and verb != row[1]:
@@ -1181,7 +1185,7 @@ def count_verbs_by_users(verbs, platform, course_code):
             dates = [] # date
             values = []
             verb = row[1] # verb
-            dates = [row[2]] # date
+            dates = [dateString] # date
             values = [int(row[3])] # number of verbs imported on the date
 
     # Save the last one

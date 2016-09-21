@@ -206,7 +206,11 @@ function createChartSeries(data, checkDate, start, end) {
 					if(checkDate) {
 						$.each(series[0]["date"], function(key, value) {
 	                        var d = value.split(",");
-	                        var utcDate = Date.UTC(d[0], (parseInt(d[1]) - 1), d[2]);
+	                        var utcDate = Date.UTC(d[0], d[1], d[2]);
+	                        // var str = "Start Date(" + start + "): " + new Date(start);
+	                        // str += " || Data Date(" + utcDate + "): " + new Date(utcDate);
+	                        // str += " || End Date(" + end + "): " + new Date(end);
+	                        // console.log(str);
 							// Add value when startDate <= value >= endDate
 							if(parseFloat(start) <= parseFloat(utcDate) && parseFloat(end) >= parseFloat(utcDate)) {
 								total += series[0]["values"][key];
