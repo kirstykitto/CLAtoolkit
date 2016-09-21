@@ -710,10 +710,7 @@ def get_platform_activity(request):
     context = RequestContext(request)
     # platform = request.GET.get('platform')
     platform_names = []
-    if request.GET.get('platform') is None:
-        # platform_names = ["Twitter", "Facebook", "Forum", "YouTube", "Diigo", "Blog", "trello", "GitHub"]
-        platform_names = ["trello"]
-    else:
+    if request.GET.get('platform') is not None:
         # TODO: Enable this code if needed. Not tested.
         platform_names = request.GET.get('platform').split(',')
 
