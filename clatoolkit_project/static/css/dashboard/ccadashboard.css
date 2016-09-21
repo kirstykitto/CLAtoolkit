@@ -15,3 +15,8 @@
 .chart2Layout {
 	overflow-x:auto;
 }
+
+.message {
+	color: #ff0000;
+	display: none;
+}

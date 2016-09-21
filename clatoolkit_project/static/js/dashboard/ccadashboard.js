@@ -73,8 +73,8 @@ function initTimeseriesChartOptions() {
 					// console.log(endDate);
 					if(platformData != null) {
 						chartData = createChartSeries(platformData, true, e.min, e.max);
-						drawChart(platform, chartData);
-						showTable(platform, chartData);
+						drawChart(chartData);
+						showTable(chartData);
 					}
 				}
 			}
@@ -155,6 +155,10 @@ function showPlatformTimeseries() {
  * @param {String} platform Platform name
  */
 function showCharts(platform) {
+	if(platform == undefined || platform == "None" || platform == "" || platform.length == 0) {
+		showMessage('Error. No platforms found. Charts and tables could not be generated.');
+		return;
+	}
 	$.ajax({
 		url: "/dashboard/api/get_platform_activity/?course_code=" + course_code + "&platform=" + platform
 	})
@@ -164,8 +168,8 @@ function showCharts(platform) {
 	.done(function( data ) {
 		chartData = createChartSeries(data, false, null, null)
 		// console.log(chartData);
-		drawChart(platform, chartData);
-		showTable(platform, chartData);
+		drawChart(chartData);
+		showTable(chartData);
 		platformData = chartData;
 	});
 }
@@ -206,7 +210,11 @@ function createChartSeries(data, checkDate, start, end) {
 					if(checkDate) {
 						$.each(series[0]["date"], function(key, value) {
 	                        var d = value.split(",");
-	                        var utcDate = Date.UTC(d[0], (parseInt(d[1]) - 1), d[2]);
+	                        var utcDate = Date.UTC(d[0], d[1], d[2]);
+	                        // var str = "Start Date(" + start + "): " + new Date(start);
+	                        // str += " || Data Date(" + utcDate + "): " + new Date(utcDate);
+	                        // str += " || End Date(" + end + "): " + new Date(end);
+	                        // console.log(str);
 							// Add value when startDate <= value >= endDate
 							if(parseFloat(start) <= parseFloat(utcDate) && parseFloat(end) >= parseFloat(utcDate)) {
 								total += series[0]["values"][key];
@@ -237,17 +245,16 @@ function createChartSeries(data, checkDate, start, end) {
 /**
  * Draw chart.
  * 
- * @param {String} platform Platform name
  * @param {Object} data 	Chart data
  */
-function drawChart(platform, data) {
+function drawChart(data) {
 	$.each(data["platforms"], function(key , val) {
 		$.each(val["charts"], function(key , chart) {
 			// console.log(chartData);
 			if ($('#chart-' + val["platform"]).highcharts()) {
 				$('#chart-' + val["platform"]).highcharts().destroy();
 			}
-			$('#chart-' + platform).highcharts({
+			$('#chart-' + val["platform"]).highcharts({
 				chart: {
 					type: chart["type"]
 				},
@@ -298,10 +305,9 @@ function drawChart(platform, data) {
 /**
  * Show table.
  * 
- * @param {String} platform Platform name
  * @param {Object} data 	Chart data
  */
-function showTable(platform, data) {
+function showTable(data) {
 
 	$.each(data["platforms"], function(key , val) {
 		$.each(val["tables"], function(key , table) {
@@ -325,7 +331,6 @@ function showTable(platform, data) {
 				ary.unshift(series[i]["name"]);
 				newData.push(ary);
 			}
-			console.log(val["platform"]);
 			// console.log("newData" + newData);
 			if ($('#datatable-' + val["platform"]).dataTable.isDataTable()) {
 				$('#datatable-' + val["platform"]).dataTable.fnDestroy();
@@ -347,6 +352,14 @@ function showTable(platform, data) {
 }
 
 /**
+ * Show message.
+ * @param  {[String]} message Message to show.
+ */
+function showMessage(message) {
+	$("#message").append(message);
+	$("#message").show();
+}
+/**
  * Load function.
  */
 $(document).ready(function(){
@@ -354,9 +367,8 @@ $(document).ready(function(){
 	//Show charts and tables
 	showPlatformTimeseries();
 	//TODO: Get platform name available in the unit from the server
-	var platforms = [platform];
-	$.each(platforms, function(key,val) {
+	var platformAry = platform.split(",");
+	$.each(platformAry, function(key, val) {
 		showCharts(val);
 	});
-
 });

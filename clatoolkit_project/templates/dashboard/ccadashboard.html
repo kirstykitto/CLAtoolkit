@@ -38,8 +38,8 @@ white-space: nowrap;
 </style>
 
 <link href="{% static 'css/dashboard/ccadashboard.css'%}" rel="stylesheet">
-<span id="charts">
-	<!--<div id="report">Report here </div>-->
+<span id="root">
+	<p id="message" class="message"></p>
 	<div class="row">
 	    <div class="col-lg-12">
 	        <div class="panel panel-default">
@@ -57,7 +57,6 @@ white-space: nowrap;
 	    <!-- /.col-lg-8 -->
 	</div>
 	<!-- /.row -->
-
 	<div class="row">
 	    <div class="col-lg-12">
 	        <div class="panel panel-default">
@@ -70,6 +69,26 @@ white-space: nowrap;
 	            </div>
 	            <div class="tableDiv">
 		            <table class="table table-striped table-bordered table-hover" id="datatable-trello"></table>
+	            </div>
+	            <!-- /.panel-body -->
+	        </div>
+	        <!-- /.panel -->
+	    </div>
+	    <!-- /.col-lg-8 -->
+	</div>
+	<!-- /.row -->
+	<div class="row">
+	    <div class="col-lg-12">
+	        <div class="panel panel-default">
+	            <div class="panel-heading">
+	                <i class="fa fa-bar-chart-o fa-fw"></i> Twitter
+	            </div>
+	            <!-- /.panel-heading -->
+	            <div class="panel-body scrollable">
+	                <div id="chart-Twitter"></div>
+	            </div>
+	            <div class="tableDiv">
+		            <table class="table table-striped table-bordered table-hover" id="datatable-Twitter"></table>
 	            </div>
 	            <!-- /.panel-body -->
 	        </div>
