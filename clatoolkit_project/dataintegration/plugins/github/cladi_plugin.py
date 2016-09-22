@@ -5,13 +5,13 @@ from dataintegration.core.recipepermissions import *
 import json
 import dateutil.parser
 from github import Github
-from dataintegration.plugins.github.githubLib import *
+# from dataintegration.plugins.github.githubLib import *
 from django.contrib.auth.models import User
 import os
 
 class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
-    platform = "github"
+    platform = "GitHub"
     platform_url = "https://github.com/"
 
     xapi_verbs = ['created', 'added', 'removed', 'updated', 'commented']
@@ -34,8 +34,6 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         with open(config_file) as data_file:
             self.api_config_dict = json.load(data_file)
 
-
-
     def perform_import(self, retrieval_param, course_code):
 
         # Setup Twitter API Keys
@@ -45,11 +43,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         for url in urls:
             print "GitHub data extraction URL: " + url
             # Instanciate PyGithub object
-            repoFullName = url.lstrip(STR_PLATFORM_URL_GITHUB)
-            gh = Github(token, per_page=self.parPage)
-            # Use .rstrip() to eliminate line-change cord
-
-            print "repo name = " + repoFullName.rstrip()
+            repoFullName = url[len(self.platform_url):]
+            gh = Github(login_or_token = token, per_page = self.parPage)
 
             repo = gh.get_repo(repoFullName.rstrip())
             self.importGitHubCommits(course_code, url, token, repo)
@@ -80,8 +75,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 commit = repo.get_commit(commitCom.commit_id)
                 commitURL = commit.html_url
 
-                if username_exists(author, courseCode, self.platform):
-                    usr_dict = get_userdetails(author, self.platform)
+                if username_exists(author, courseCode, self.platform.lower()):
+                    usr_dict = get_userdetails(author, self.platform.lower())
                     claUserName = get_username_fromsmid(author, self.platform)
                     insert_comment(usr_dict, commitURL, commitComURL, 
                         body, author, claUserName,
@@ -117,8 +112,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 if body is None:
                     body = ""
 
-                if username_exists(author, courseCode, self.platform):
-                    usr_dict = get_userdetails(author, self.platform)
+                if username_exists(author, courseCode, self.platform.lower()):
+                    usr_dict = get_userdetails(author, self.platform.lower())
                     claUserName = get_username_fromsmid(author, self.platform)
                     insert_comment(usr_dict, issueURL, issueComURL, 
                         body, author, claUserName,
@@ -170,8 +165,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 # Tag object should ideally be passed to insert_issue() medthod,
                 # if someone is mentioned (e.g. @kojiagile is working on this issue...)
                 # 
-                if username_exists(assignee, courseCode, self.platform):
-                    usr_dict = get_userdetails(assignee, self.platform)
+                if username_exists(assignee, courseCode, self.platform.lower()):
+                    usr_dict = get_userdetails(assignee, self.platform.lower())
                     claUserName = get_username_fromsmid(assignee, self.platform)
                     insert_issue(usr_dict, issueURL, body, assignee, claUserName,
                         date, courseCode, repoUrl, self.platform, issueURL, 
@@ -196,6 +191,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     def importGitHubCommits(self, courseCode, repoUrl, token, repo):
         count = 0
         commitList = repo.get_commits().get_page(count)
+
         # Retrieve commit data
         while True:
             for commit in commitList:
@@ -222,18 +218,28 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 date = commit.commit.committer.date
                 committerHomepage = commit.committer.html_url
 
+                print "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                print "committerName: " + committerName
+                print "courseCode: " + courseCode
+                # print "claUserName: " + claUserName
+                print "msg: " + msg
+                print "commitHtmlUR: " + commitHtmlURL
+                print date
+                print "committerHomepage: " + committerHomepage
+                print "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
                 # Import commit data
                 usr_dict = None
                 claUserName = None
-                if username_exists(committerName, courseCode, self.platform):
-                    usr_dict = get_userdetails(committerName, self.platform)
-                    claUserName = get_username_fromsmid(committerName, self.platform)
+                if username_exists(committerName, courseCode, self.platform.lower()):
+                    usr_dict = get_userdetails(committerName, self.platform.lower())
+                    claUserName = get_username_fromsmid(committerName, self.platform.lower())
                     insert_commit(usr_dict, commitHtmlURL, msg, committerName, claUserName,
                         date, courseCode, repoUrl, self.platform, commitHtmlURL, committerName)
                 else:
                     #If a user does not exist, ignore the commit data
                     continue
-            
+
                 #importGitHubCommitsFiles(commit, repoUrl)
                 # All committed files are inserted into DB
                 for file in commit.files:
@@ -247,12 +253,13 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     if file.patch is None:
                         patch = ""
 
-                    if username_exists(committerName, courseCode, self.platform):
+                    if username_exists(committerName, courseCode, self.platform.lower()):
                         #usr_dict = get_userdetails(committerName, self.platform)
                         #claUserName = get_username_fromsmid(committerName, self.platform)
                         insert_file(usr_dict, file.blob_url, patch, committerName, claUserName,
                             date, courseCode, commitHtmlURL, self.platform, file.blob_url, 
-                            commitHtmlURL, verb, repoUrl, file.additions, file.deletions, committerName)
+                            # commitHtmlURL, verb, repoUrl, file.additions, file.deletions, committerName)
+                            commitHtmlURL, verb, repoUrl, committerName)
 
             # End of for commit in commitList:
 
