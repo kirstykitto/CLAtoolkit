@@ -46,7 +46,7 @@ Diigo Tags: {% for tag in unit.diigo_tags_as_list %} <a href="https://www.diigo.
 {% if unit.github_urls_as_list|length > 0 %}
 GitHub URLs: {% for url in unit.github_urls_as_list %} <a href="{{url}}" target="_blank">{{url}}</a>  {% endfor %} [<a href="/dashboard/?course_code={{unit.code}}&platform=GitHub">Activity</a> | <a href="/dashboard/ca_dashboard?course_code={{unit.code}}&platform=GitHub">Content Analysis</a> | <a href="/dashboard/sna_dashboard?course_code={{unit.code}}&platform=GitHub">Social Network Analysis</a>] | <a href="/dataintegration/refreshgithub/?course_code={{unit.code}}&course_id={{unit.id}}&urls={{unit.github_urls|urlencode}}&platform=GitHub">Refresh Imported Data</a>
 {% endif %}
-
+<br/>
 {% if unit.trello_boards_as_list|length > 0 %}
     Trello Boards signed up: {{unit.trello_boards_as_list|length}} || <a href="/dataintegration/refreshtrello/?course_code={{unit.code}}&course_id={{unit.id}}&boards={{unit.attached_trello_boards|urlencode}}&platform=trello">Refresh Imported Data</a> <div id="trello_import_sucess"></div>
 {% endif %}
