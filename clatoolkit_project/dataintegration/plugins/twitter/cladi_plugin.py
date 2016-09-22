@@ -99,4 +99,12 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
             else:
                 insert_post(usr_dict, post_id,message,fullname,username, timestamp, course_code, self.platform, self.platform_url, tags=tags)
 
+
+    def get_verbs(self):
+        return self.xapi_verbs
+            
+    def get_objects(self):
+        return self.xapi_objects
+
+
 registry.register(TwitterPlugin)
