@@ -71,10 +71,14 @@ function initTimeseriesChartOptions() {
 					// e.preventDefault();
 					// console.log(startDate);
 					// console.log(endDate);
-					if(platformData != null) {
-						chartData = createChartSeries(platformData, true, e.min, e.max);
-						drawChart(chartData);
-						showTable(chartData);
+					if(allPlatformData != null) {
+						var platformNames = platform.split(",");
+						$.each(platformNames, function(key, val) {
+							chartData = createChartSeries(allPlatformData[val], true, e.min, e.max);
+							allPlatformData[val] = chartData;
+							drawChart(chartData);
+							showTable(chartData);
+						});
 					}
 				}
 			}
@@ -167,10 +171,10 @@ function showCharts(platform) {
 	})
 	.done(function( data ) {
 		chartData = createChartSeries(data, false, null, null)
-		// console.log(chartData);
+		allPlatformData[platform] = chartData;
 		drawChart(chartData);
 		showTable(chartData);
-		platformData = chartData;
+		// allPlatformData = chartData;
 	});
 }
 
@@ -367,8 +371,9 @@ $(document).ready(function(){
 	//Show charts and tables
 	showPlatformTimeseries();
 	//TODO: Get platform name available in the unit from the server
-	var platformAry = platform.split(",");
-	$.each(platformAry, function(key, val) {
+	var platformNames = platform.split(",");
+	$.each(platformNames, function(key, val) {
+		allPlatformData[val] = {};
 		showCharts(val);
 	});
 });
