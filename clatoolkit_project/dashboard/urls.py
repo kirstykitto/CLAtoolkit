@@ -20,4 +20,6 @@ urlpatterns = patterns('',
     url(r'^removeBoard/$', views.trello_remove_board, name='removetrelloboard'),
     #REST
     url(r'^getAttachedBoard/$', views.trello_myunits_restview, name='gettrellodashboardlink'),
+    url(r'^api/get_platform_timeseries/$', views.get_platform_timeseries, name='get_platform_timeseries'),
+    url(r'^api/get_platform_activity/$', views.get_platform_activity, name='get_platform_activity'),
 )

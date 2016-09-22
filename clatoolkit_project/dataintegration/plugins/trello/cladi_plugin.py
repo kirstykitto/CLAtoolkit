@@ -292,6 +292,11 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                             #TODO: RP
                             print 'added closed/opened card!'
 
+    def get_verbs(self):
+        return self.xapi_verbs
+            
+    def get_objects(self):
+        return self.xapi_objects
 
 registry.register(TrelloPlugin)
 
