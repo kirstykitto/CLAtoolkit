@@ -18,4 +18,9 @@ class Migration(migrations.Migration):
             name='created_by',
             field=models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True),
         ),
+        migrations.AlterField(
+            model_name='unitoffering',
+            name='enabled',
+            field=models.BooleanField(default=True),
+        ),
     ]

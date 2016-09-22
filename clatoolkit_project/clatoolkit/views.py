@@ -379,7 +379,6 @@ def create_offering(request):
             unit.created_by = request.user
             unit.save()
 
-            # FIX
             unit.users.add(request.user)
             unit.save()
 

@@ -131,7 +131,7 @@ class UnitOffering(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     users = models.ManyToManyField(User, related_name='usersinunitoffering')
     # determines whether unit should be displayed on Register form and on dashboard
-    enabled = models.BooleanField(blank=False, default=False)
+    enabled = models.BooleanField(blank=False, default=True)
     # determines whether unit should be displayed on EventRegistration Form
     event = models.BooleanField(blank=False, default=False)
     # determines whether COI Classifier link should be diplayed for staff and student in a unit
