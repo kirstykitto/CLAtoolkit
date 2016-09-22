@@ -24,17 +24,14 @@ class DiigoPlugin(DIBasePlugin, DIPluginDashboardMixin):
     xapi_verbs_to_includein_verbactivitywidget = ['created', 'commented']
 
     def __init__(self):
-        # Load api_config.json and convert to dict
-        config_file = os.path.join(os.path.dirname(__file__), 'api_config.json')
-        with open(config_file) as data_file:
-            self.api_config_dict = json.load(data_file)
+        pass
 
     def perform_import(self, retrieval_param, course_code):
 
         # Setup Twitter API Keys
-        user = self.api_config_dict['user']
-        password = self.api_config_dict['password']
-        apikey = self.api_config_dict['apikey']
+        user = os.environ.get("DIIGO_USER")
+        password = os.environ.get("DIIGO_PASSWORD")
+        apikey = os.environ.get("DIIGO_API_KEY")
 
         # call api and process bookmarks here
         # retrieval_param will contain a single tag

@@ -46,11 +46,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     token_request_url = ''
 
     def __init__(self):
-        #Load api_config.json and convert to dict
-        config_file = os.path.join(os.path.dirname(__file__), 'api_config.json')
-
-        with open(config_file) as data_file:
-            self.api_config_dict = json.load(data_file)
+       pass
 
     #retreival param is the user_id
     def perform_import(self, retreival_param, course_code, token=None):
@@ -59,7 +55,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         #self.usercontext_storage_dict = json.load(ApiCredentials.objects.get(platform=retreival_param).credentials_json)
 
         self.TrelloCient = TrelloClient(
-            api_key=self.api_config_dict['api_key'],
+            api_key=os.environ.get("TRELLO_API_KEY"),
             #api_secret=self.api_config_dict['api_secret'],
             token=token
         )
@@ -292,6 +288,11 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                             #TODO: RP
                             print 'added closed/opened card!'
 
+    def get_verbs(self):
+        return self.xapi_verbs
+            
+    def get_objects(self):
+        return self.xapi_objects
 
 registry.register(TrelloPlugin)
 

@@ -2,7 +2,6 @@ from dataintegration.core.plugins import registry
 from dataintegration.core.plugins.base import DIBasePlugin, DIPluginDashboardMixin
 from dataintegration.core.socialmediarecipebuilder import *
 from dataintegration.core.recipepermissions import *
-import json
 import dateutil.parser
 from twython import Twython
 import os
@@ -25,18 +24,15 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
     xapi_verbs_to_includein_verbactivitywidget = ['created', 'shared', 'liked', 'commented']
 
     def __init__(self):
-        # Load api_config.json and convert to dict
-        config_file = os.path.join(os.path.dirname(__file__), 'api_config.json')
-        with open(config_file) as data_file:
-            self.api_config_dict = json.load(data_file)
+        pass
 
     def perform_import(self, retrieval_param, course_code):
 
         # Setup Twitter API Keys
-        app_key = self.api_config_dict['app_key']
-        app_secret = self.api_config_dict['app_secret']
-        oauth_token = self.api_config_dict['oauth_token']
-        oauth_token_secret = self.api_config_dict['oauth_token_secret']
+        app_key = os.environ.get("TWITTER_APP_KEY")
+        app_secret = os.environ.get("TWITTER_APP_SECRET")
+        oauth_token = os.environ.get("TWITTER_OAUTH_TOKEN")
+        oauth_token_secret = os.environ.get("TWITTER_OAUTH_TOKEN_SECRET")
 
         twitter = Twython(app_key, app_secret, oauth_token, oauth_token_secret)
 
@@ -98,5 +94,13 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 insert_share(usr_dict, post_id, retweeted_id, message,username,fullname, timestamp, course_code, self.platform, self.platform_url, tags=tags, shared_username=retweeted_username)
             else:
                 insert_post(usr_dict, post_id,message,fullname,username, timestamp, course_code, self.platform, self.platform_url, tags=tags)
+
+
+    def get_verbs(self):
+        return self.xapi_verbs
+            
+    def get_objects(self):
+        return self.xapi_objects
+
 
 registry.register(TwitterPlugin)
