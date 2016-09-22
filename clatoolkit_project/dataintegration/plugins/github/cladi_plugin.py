@@ -29,17 +29,13 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     xapi_verbs_to_includein_verbactivitywidget = ['created', 'added', 'removed', 'updated', 'commented']
 
     def __init__(self):
-        # Load api_config.json and convert to dict
-        config_file = os.path.join(os.path.dirname(__file__), 'api_config.json')
-        with open(config_file) as data_file:
-            self.api_config_dict = json.load(data_file)
-
+        pass
 
 
     def perform_import(self, retrieval_param, course_code):
 
         # Setup Twitter API Keys
-        token = self.api_config_dict['token']
+        token = os.environ.get("GITHUB_TOKEN")
         urls = retrieval_param.split(os.linesep)
 
         for url in urls:
@@ -268,6 +264,6 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             #If length is 0, it means that no commit data is left.
             if len(temp) == 0:
                 #Break from while
-                break;
+                break
 
 registry.register(GithubPlugin)
