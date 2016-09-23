@@ -129,7 +129,7 @@ class Migration(migrations.Migration):
                 ('semester', models.CharField(max_length=5000)),
                 ('description', models.TextField()),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('enabled', models.BooleanField(default=False)),
+                ('enabled', models.BooleanField(default=True)),
                 ('event', models.BooleanField(default=False)),
                 ('enable_coi_classifier', models.BooleanField(default=False)),
                 ('twitter_hashtags', models.TextField()),
@@ -145,7 +145,15 @@ class Migration(migrations.Migration):
                 ('ll_endpoint', models.CharField(max_length=60, blank=True)),
                 ('ll_username', models.CharField(max_length=60, blank=True)),
                 ('ll_password', models.CharField(max_length=60, blank=True)),
-                ('users', models.ManyToManyField(related_name='usersinunitoffering', to=settings.AUTH_USER_MODEL)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='UnitOfferingMember',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('admin', models.BooleanField(default=False)),
+                ('unit', models.ForeignKey(to='clatoolkit.UnitOffering')),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -186,6 +194,11 @@ class Migration(migrations.Migration):
                 ('board_id', models.CharField(max_length=5000)),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
+        ),
+        migrations.AddField(
+            model_name='unitoffering',
+            name='users',
+            field=models.ManyToManyField(related_name='usersinunitoffering', through='clatoolkit.UnitOfferingMember', to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name='classification',

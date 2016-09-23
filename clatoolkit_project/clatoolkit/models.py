@@ -122,14 +122,14 @@ class UserClassification(models.Model):
     trained = models.BooleanField(blank=False, default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+
 class UnitOffering(models.Model):
-    created_by = models.ForeignKey(User, null=True)
     code = models.CharField(max_length=5000, blank=False)
     name = models.CharField(max_length=5000, blank=False)
     semester = models.CharField(max_length=5000, blank=False)
     description = models.TextField(blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    users = models.ManyToManyField(User, related_name='usersinunitoffering')
+    users = models.ManyToManyField(User, related_name='usersinunitoffering', through='UnitOfferingMember')
     # determines whether unit should be displayed on Register form and on dashboard
     enabled = models.BooleanField(blank=False, default=True)
     # determines whether unit should be displayed on EventRegistration Form
@@ -252,6 +252,13 @@ class UnitOffering(models.Model):
             platforms.append('trello')
 
         return platforms
+
+
+class UnitOfferingMember(models.Model):
+    user = models.ForeignKey(User)
+    unit = models.ForeignKey(UnitOffering)
+    admin = models.BooleanField(default=False)
+
 
 class ApiCredentials(models.Model):
     platform_uid = models.CharField(max_length=5000, blank=False)
