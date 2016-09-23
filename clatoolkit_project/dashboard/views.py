@@ -4,7 +4,7 @@ from django.template import RequestContext
 from django.http import HttpResponse
 from django.db import connection
 from utils import *
-from clatoolkit.models import OfflinePlatformAuthToken, UserProfile, OauthFlowTemp, UnitOffering, UnitOfferingMember, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserTrelloCourseBoardMap
+from clatoolkit.models import OfflinePlatformAuthToken, UserProfile, OauthFlowTemp, UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserTrelloCourseBoardMap
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from functools import wraps
@@ -173,7 +173,7 @@ def myunits(request):
     context = RequestContext(request)
 
     # Get a users memberships to unit offerings
-    memberships = UnitOfferingMember.objects.filter(user=request.user, unit__enabled=True).select_related('unit')
+    memberships = UnitOfferingMembership.objects.filter(user=request.user, unit__enabled=True).select_related('unit')
 
     role = request.user.userprofile.role
 

@@ -12,7 +12,7 @@ from clatoolkit.forms import CreateOfferingForm, SignUpForm, UserForm, UserProfi
 
 from django.template import RequestContext
 
-from clatoolkit.models import UnitOffering, UnitOfferingMember, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification, AccessLog
+from clatoolkit.models import UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification, AccessLog
 
 from rest_framework import authentication, permissions, viewsets, filters
 from .serializers import LearningRecordSerializer, SocialRelationshipSerializer, ClassificationSerializer, UserClassificationSerializer
@@ -378,7 +378,7 @@ def create_offering(request):
             unit = form.save(commit=False)
             unit.save()
 
-            m = UnitOfferingMember(user=request.user, unit=unit, admin=True)
+            m = UnitOfferingMembership(user=request.user, unit=unit, admin=True)
             m.save()
 
             return render(request, 'clatoolkit/createoffering_success.html', {'unit': unit})

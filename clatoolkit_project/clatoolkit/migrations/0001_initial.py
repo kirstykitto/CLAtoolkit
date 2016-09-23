@@ -148,7 +148,7 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='UnitOfferingMember',
+            name='UnitOfferingMembership',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('admin', models.BooleanField(default=False)),
@@ -198,7 +198,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='unitoffering',
             name='users',
-            field=models.ManyToManyField(related_name='usersinunitoffering', through='clatoolkit.UnitOfferingMember', to=settings.AUTH_USER_MODEL),
+            field=models.ManyToManyField(related_name='usersinunitoffering', through='clatoolkit.UnitOfferingMembership', to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name='classification',

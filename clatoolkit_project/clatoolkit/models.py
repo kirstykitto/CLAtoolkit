@@ -129,7 +129,7 @@ class UnitOffering(models.Model):
     semester = models.CharField(max_length=5000, blank=False)
     description = models.TextField(blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    users = models.ManyToManyField(User, related_name='usersinunitoffering', through='UnitOfferingMember')
+    users = models.ManyToManyField(User, related_name='usersinunitoffering', through='UnitOfferingMembership')
     # determines whether unit should be displayed on Register form and on dashboard
     enabled = models.BooleanField(blank=False, default=True)
     # determines whether unit should be displayed on EventRegistration Form
@@ -254,7 +254,7 @@ class UnitOffering(models.Model):
         return platforms
 
 
-class UnitOfferingMember(models.Model):
+class UnitOfferingMembership(models.Model):
     user = models.ForeignKey(User)
     unit = models.ForeignKey(UnitOffering)
     admin = models.BooleanField(default=False)
