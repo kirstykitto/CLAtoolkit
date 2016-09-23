@@ -26,31 +26,13 @@
                         {% endfor %}
                     </div>
 
+                    {% for field in form %}
                         <div class="form-group">
-                            <label for={{ form.code.id_for_label }}>Unit code:</label>
+                            {{ field.label_tag }}
                             <br>
-                            {{ form.code }}
+                            {{ field }}
                         </div>
-                <div class="form-group">
-                            <label for={{ form.name.id_for_label }}>Unit Name:</label>
-                            <br>
-                            {{ form.name }}
-                        </div>
-                <div class="form-group">
-                            <label for={{ form.semester.id_for_label }}>Semester:</label>
-                            <br>
-                            {{ form.semester }}
-                        </div>
-                <div class="form-group">
-                            <label for={{ form.description.id_for_label }}>Description:</label>
-                            <br>
-                            {{ form.description }}
-                        </div>
-                <div class="form-group">
-                            <label for={{ form.twitter_hashtags.id_for_label }}>Twitter hashtags:</label>
-                            <br>
-                            {{ form.twitter_hashtags }}
-                        </div>
+                    {% endfor %}
 
                     <button type="submit" class="btn btn-primary btn-lg btn-block">Create offering</button>
                 </form>

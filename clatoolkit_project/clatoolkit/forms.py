@@ -31,7 +31,7 @@ class CreateOfferingForm(forms.ModelForm):
 
     class Meta:
         model = UnitOffering
-        fields = ("code", "name", "semester", "description", "twitter_hashtags")
+        fields = ("code", "name", "semester", "description", "twitter_hashtags", "google_groups", "facebook_groups", "forum_urls", "youtube_channelIds", "diigo_tags", "blogmember_urls", "github_urls", "attached_trello_boards")
 
 
 class SocialMediaUpdateForm(forms.ModelForm):
