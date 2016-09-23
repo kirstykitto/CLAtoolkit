@@ -4,7 +4,7 @@ from django.template import RequestContext
 from django.http import HttpResponse
 from django.db import connection
 from utils import *
-from clatoolkit.models import OfflinePlatformAuthToken, UserProfile, OauthFlowTemp, UnitOffering, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserTrelloCourseBoardMap
+from clatoolkit.models import OfflinePlatformAuthToken, UserProfile, OauthFlowTemp, UnitOffering, UnitOfferingMember, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserTrelloCourseBoardMap
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from functools import wraps
@@ -171,8 +171,10 @@ def trello_myunits_restview(request):
 @login_required
 def myunits(request):
     context = RequestContext(request)
-    # Only get units that the user is assigned to to
-    units = UnitOffering.objects.filter(users=request.user, enabled=True)
+
+    # Get a users memberships to unit offerings
+    memberships = UnitOfferingMember.objects.filter(user=request.user, unit__enabled=True).select_related('unit')
+
     role = request.user.userprofile.role
 
     show_dashboardnav = False
@@ -189,7 +191,7 @@ def myunits(request):
         if LearningRecord.objects.filter(username__iexact=username).count() == 0:
             shownocontentwarning = True
 
-    context_dict = {'title': "My Units", 'units': units, 'show_dashboardnav':show_dashboardnav, 'shownocontentwarning': shownocontentwarning, 'role': role,
+    context_dict = {'title': "My Units", 'memberships': memberships, 'show_dashboardnav':show_dashboardnav, 'shownocontentwarning': shownocontentwarning, 'role': role,
                      'trello_attached_to_acc': trello_attached}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
