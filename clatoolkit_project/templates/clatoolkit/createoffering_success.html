@@ -4,7 +4,7 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block heading %}
-    {{ unit.code }} {{ unit.name }} created successfully
+    {{ unit.code }} {{ unit.name }} {{ verb }} successfully
 {% endblock %}
 
 {% block body %}
@@ -15,7 +15,7 @@
                 {{ unit.code }} {{ unit.name }} Details
             </div>
             <div class="panel-body">
-                Your unit offering has been created.
+                Your unit offering has been {{ verb }}.
 
                 Please get students to visit the link below to register for your unit on the CLAToolkit.
                 <br>

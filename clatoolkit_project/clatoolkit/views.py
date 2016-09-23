@@ -12,6 +12,8 @@ from clatoolkit.forms import CreateOfferingForm, SignUpForm, UserForm, UserProfi
 
 from django.template import RequestContext
 
+from django.core.exceptions import PermissionDenied
+
 from clatoolkit.models import UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification, AccessLog
 
 from rest_framework import authentication, permissions, viewsets, filters
@@ -358,7 +360,7 @@ def signup(request):
             user = authenticate(username=form.cleaned_data['username'], password=form.cleaned_data['password'])
             login(request, user)
 
-            return HttpResponseRedirect("/clatoolkit/createoffering")
+            return HttpResponseRedirect("/clatoolkit/unitoffering/create")
 
     # if a GET (or any other method) we'll create a blank form
     else:
@@ -381,13 +383,31 @@ def create_offering(request):
             m = UnitOfferingMembership(user=request.user, unit=unit, admin=True)
             m.save()
 
-            return render(request, 'clatoolkit/createoffering_success.html', {'unit': unit})
+            return render(request, 'clatoolkit/createoffering_success.html', {'verb': 'created', 'unit': unit})
 
     # if a GET (or any other method) we'll create a blank form
     else:
         form = CreateOfferingForm()
 
-    return render(request, 'clatoolkit/createoffering.html', {'form': form})
+    return render(request, 'clatoolkit/createoffering.html', {'verb': 'Create', 'form': form})
+
+
+@login_required
+def update_offering(request, course_code):
+    if UnitOfferingMembership.is_admin(request.user, course_code):
+        unit = UnitOffering.objects.get(code=course_code)
+        if request.method == "POST":
+            form = CreateOfferingForm(request.POST, instance=unit)
+            if form.is_valid():
+                unit = form.save()
+                return render(request, 'clatoolkit/createoffering_success.html', {'verb': 'updated', 'unit': unit})
+
+        else:
+            form = CreateOfferingForm(instance=unit)
+
+            return render(request, "clatoolkit/createoffering.html", {'verb': 'Update', 'form': form})
+    else:
+        raise PermissionDenied()
 
 
 class DefaultsMixin(object):

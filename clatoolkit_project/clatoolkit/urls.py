@@ -22,5 +22,6 @@ urlpatterns = patterns('',
     url(r'^train/$', views.MLTRAIN.as_view(), name='train'),
     url(r'^externallinklog/$', views.EXTERNALLINKLOGView.as_view(), name='externallinklog'),
     url(r'^signup/$', views.signup, name='signup'),
-    url(r'^createoffering/$', views.create_offering, name='create_offering'),
+    url(r'^unitoffering/create$', views.create_offering, name='create_offering'),
+   url(r'^unitoffering/(?P<course_code>[a-zA-Z0-9]+)/update', views.update_offering, name='update_offering')
 )
