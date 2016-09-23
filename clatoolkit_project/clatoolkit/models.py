@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django_pgjson.fields import JsonField
+from django.core.exceptions import ObjectDoesNotExist
 import os
 
 class UserProfile(models.Model):
@@ -258,6 +259,13 @@ class UnitOfferingMembership(models.Model):
     user = models.ForeignKey(User)
     unit = models.ForeignKey(UnitOffering)
     admin = models.BooleanField(default=False)
+
+    @classmethod
+    def is_admin(cls, user, course_code):
+        try:
+            return cls.objects.get(user=user, unit__code=course_code).admin
+        except ObjectDoesNotExist:
+            return False
 
 
 class ApiCredentials(models.Model):
