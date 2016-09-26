@@ -155,6 +155,7 @@
                             Registration Link for Students:
                             <a href="{% url 'register' course_code=membership.unit.code %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' course_code=membership.unit.code %}</a>
                             </p>
+                            <a href="{% url 'update_offering' membership.unit.code %}">Update unit offering</a>
                         {% else %}
                             {% if shownocontentwarning == True %}
                                 <div class="alert alert-warning">
