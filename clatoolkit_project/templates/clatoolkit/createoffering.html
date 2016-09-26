@@ -1,16 +1,17 @@
 {% extends "clatoolkit/base_clatoolkit.html" %}
 {% load static %}
+{% load field_type %}
 
 {% block title %}{{ title }}{% endblock %}
 
-{% block heading %}{{ verb }} Unit Offering{% endblock %}
+{% block heading %}{% endblock %}
 
 {% block body %}
 <div class="row">
-    <div>
+    <div class="col-md-6 col-md-offset-3">
         <div class="panel panel-info">
             <div class="panel-heading">
-                New Offering
+                {{ verb }} Unit Offering
             </div>
             <div class="panel-body">
                 <form role="form" id="user_form" method="post">
@@ -30,7 +31,11 @@
                         <div class="form-group">
                             {{ field.label_tag }}
                             <br>
-                            {{ field }}
+                            {% if field|field_type == "Textarea" %}
+                                <textarea class="form-control" name="{{ field.name }}">{% if field.value %}{{ field.value }}{% endif %}</textarea>
+                            {% else %}
+                                {{ field }}
+                            {% endif %}
                         </div>
                     {% endfor %}
 

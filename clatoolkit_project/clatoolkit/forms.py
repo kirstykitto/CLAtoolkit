@@ -28,6 +28,9 @@ class SignUpForm(forms.ModelForm):
 
 
 class CreateOfferingForm(forms.ModelForm):
+    code = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    semester = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
 
     class Meta:
         model = UnitOffering
