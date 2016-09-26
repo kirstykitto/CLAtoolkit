@@ -410,6 +410,16 @@ def update_offering(request, course_code):
         raise PermissionDenied()
 
 
+@login_required
+def offering_members(request, course_code):
+    if UnitOfferingMembership.is_admin(request.user, course_code):
+        unit = UnitOffering.objects.get(code=course_code)
+        members = unit.users.all()
+        return render(request, "clatoolkit/offering_members.html", {"members": members})
+    else:
+        raise PermissionDenied()
+
+
 class DefaultsMixin(object):
     """Default settings for view authentication, permissions,
     filtering and pagination."""
