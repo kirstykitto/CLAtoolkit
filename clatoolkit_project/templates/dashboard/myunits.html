@@ -152,8 +152,8 @@
                             <hr/>
                             <a href="/clatoolkit/unitofferings/{{ membership.unit.code }}/members">{{ membership.unit.users.count }} Members</a>
                             <br>
-                            CLA Toolkit Unit Registration Link for Students:
-                            http://clatoolkit.beyondlms.org/clatoolkit/register?course_code={{ membership.unit.code }}
+                            Registration Link for Students:
+                            <a href="{% url 'register' course_code=membership.unit.code %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' course_code=membership.unit.code %}</a>
                             </p>
                         {% else %}
                             {% if shownocontentwarning == True %}

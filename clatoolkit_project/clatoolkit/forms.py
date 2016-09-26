@@ -4,7 +4,10 @@ import django_filters
 from django.core.exceptions import ValidationError
 from clatoolkit.models import UserProfile, UnitOffering, LearningRecord, SocialRelationship, Classification, UserClassification
 
+
 class UserForm(forms.ModelForm):
+    first_name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    last_name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
     username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
     email = forms.CharField(widget=forms.EmailInput(attrs={'class': 'form-control'}))
@@ -12,7 +15,7 @@ class UserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'units')
+        fields = ('first_name', 'last_name', 'username', 'email', 'password', 'units')
 
 
 class SignUpForm(forms.ModelForm):

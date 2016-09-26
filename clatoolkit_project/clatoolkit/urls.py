@@ -11,7 +11,6 @@ router.register(r'userclassification', views.UserClassificationViewSet)
 #router.register(r'sna', views.SNARESTView, base_name="sna")
 
 urlpatterns = patterns('',
-    url(r'^register/$', views.register, name='register'),
     url(r'^eventregistration/$', views.eventregistration, name='eventregistration'),
     url(r'^socialmediaaccounts/$', views.socialmediaaccounts, name='socialmediaaccounts'),
     url(r'^sna/$', views.SNARESTView.as_view(), name='sna'),
@@ -24,5 +23,6 @@ urlpatterns = patterns('',
     url(r'^signup/$', views.signup, name='signup'),
     url(r'^unitofferings/new$', views.create_offering, name='create_offering'),
     url(r'^unitofferings/(?P<course_code>[a-zA-Z0-9]+)/update', views.update_offering, name='update_offering'),
-    url(r'^unitofferings/(?P<course_code>[a-zA-Z0-9]+)/members', views.offering_members, name='offering_members')
+    url(r'^unitofferings/(?P<course_code>[a-zA-Z0-9]+)/members', views.offering_members, name='offering_members'),
+    url(r'^unitofferings/(?P<course_code>[a-zA-Z0-9]+)/register', views.register, name='register'),
 )
