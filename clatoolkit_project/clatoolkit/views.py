@@ -360,7 +360,7 @@ def signup(request):
             user = authenticate(username=form.cleaned_data['username'], password=form.cleaned_data['password'])
             login(request, user)
 
-            return HttpResponseRedirect("/clatoolkit/unitoffering/create")
+            return HttpResponseRedirect("/clatoolkit/unitofferings/new")
 
     # if a GET (or any other method) we'll create a blank form
     else:
