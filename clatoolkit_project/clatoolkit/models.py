@@ -125,7 +125,7 @@ class UserClassification(models.Model):
 
 
 class UnitOffering(models.Model):
-    code = models.CharField(max_length=5000, blank=False, verbose_name="Unit Code")
+    code = models.CharField(max_length=5000, blank=False, verbose_name="Unit Code", unique=True)
     name = models.CharField(max_length=5000, blank=False, verbose_name="Unit Name")
     semester = models.CharField(max_length=5000, blank=False)
     description = models.TextField(blank=False)
