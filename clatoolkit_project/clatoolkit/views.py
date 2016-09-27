@@ -39,6 +39,9 @@ def home(request):
 def userlogin(request):
     context = RequestContext(request)
 
+    message = None
+    next_page = "/dashboard/myunits"
+
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
@@ -55,17 +58,12 @@ def userlogin(request):
                 #print "sending to myunits"
                 return HttpResponseRedirect(next_page)
             else:
-                # An inactive account was used - no logging in!
-                return HttpResponse("Your CLAToolkit account is disabled.")
+                message = "Your CLAToolkit account is disabled."
         else:
-            # Bad login details were provided. So we can't log the user in.
-            #print "Invalid login details: {0}, {1}".format(username, password)
-            return HttpResponse("Invalid login details supplied.")
+            message = "Invalid login details supplied."
 
     # The request is not a HTTP POST, so display the login form.
     # This scenario would most likely be a HTTP GET.
-
-    next_page = "/dashboard/myunits"
 
     if "next" in request.GET:
         next_page = request.GET["next"]
@@ -74,7 +72,7 @@ def userlogin(request):
         return redirect(next_page)
 
     else:
-        return render_to_response('clatoolkit/login.html', {next_page: next_page}, context)
+        return render_to_response('clatoolkit/login.html', {"message": message, "next_page": next_page}, context)
 
 
 #Unit management integration for staff - 13/05/16

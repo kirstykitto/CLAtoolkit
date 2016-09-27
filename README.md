@@ -89,6 +89,10 @@ Add a unit offering with hashtags (for twitter) and group id (for facebook)
 Add users with twitter id and facebook id
 Login is at http://localhost:8000/
 
+Installation on Ubuntu using Apache
+-
+Step by step instructions for installation on Ubuntu using Apache server can be found [here](docs/apache-install.md)
+
 Creating a Development VM Development with Docker
 ---------
 
