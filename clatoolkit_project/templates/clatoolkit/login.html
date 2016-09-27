@@ -18,6 +18,7 @@
             </div>
             <div class="panel-body">
                 <form role="form" action="/" method="post">
+                    <input hidden="hidden" name="next_page" value="{{ next_page }}" />
                   {% csrf_token %}
                     <fieldset>
                         <div class="form-group">

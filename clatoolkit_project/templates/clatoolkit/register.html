@@ -26,8 +26,6 @@
             </div>
             <div class="panel-body">
                 Unit: {{ course.code }} {{ course.name }}
-                <input type="hidden" id="id_units" name="units" value="{{ selected_unit }}"/>
-                <input type="hidden" name="course_code" value="{{ course.code }}"/>
                 <br/>
                 <br/>
                 Your data will be imported from the following locations:
@@ -67,8 +65,8 @@
                 {% if user %}
                     <br>
                     <div class="btn-group btn-group-justified" role="group">
-                        <div class="btn btn-primary btn-lg btn-block"><a style="color:white;text-decoration: none" href="{% url "auth_logout_next" request.path %}">Create new account</a></div>
-                        <div class="btn btn-success btn-lg btn-block"><a style="color:white;text-decoration: none" href="{% url "register_existing" course.code %}">Continue as {{ user.first_name }}</a></div>
+                        <a class="btn btn-primary btn-lg btn-block" style="color:white;text-decoration: none" href="{% url "auth_logout_next" request.path %}">Create new account</a>
+                        <a class="btn btn-success btn-lg btn-block" style="color:white;text-decoration: none" href="{% url "register_existing" course.code %}">Continue as {{ user.first_name }}</a>
                     </div>
                 {% else %}
                     <form role="form" id="user_form" method="post">
@@ -249,6 +247,9 @@
                         </p>
                         <button type="submit" class="btn btn-primary btn-lg btn-block">Register</button>
                     </form>
+                    <br>
+                    <p style="text-align:center">OR</p>
+                    <a class="btn btn-success btn-lg btn-block" style="color:white;text-decoration: none" href="existing">Login</a>
                 {% endif %}
             {# Figure out how to display IDs on register page #}
           </div>

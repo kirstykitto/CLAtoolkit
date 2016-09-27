@@ -35,13 +35,14 @@ def home(request):
     context = RequestContext(request)
     return render_to_response('clatoolkit/home.html', {}, context)
 
+
 def userlogin(request):
     context = RequestContext(request)
 
     if request.method == 'POST':
-        print "posted"
         username = request.POST['username']
         password = request.POST['password']
+        next_page = request.POST['next_page']
 
         user = authenticate(username=username, password=password)
 
@@ -52,7 +53,7 @@ def userlogin(request):
                 # We'll send the user back to the homepage.
                 login(request, user)
                 #print "sending to myunits"
-                return HttpResponseRedirect('/dashboard/myunits/')
+                return HttpResponseRedirect(next_page)
             else:
                 # An inactive account was used - no logging in!
                 return HttpResponse("Your CLAToolkit account is disabled.")
@@ -64,15 +65,16 @@ def userlogin(request):
     # The request is not a HTTP POST, so display the login form.
     # This scenario would most likely be a HTTP GET.
 
-    #if the user is found in our context, they're probably already logged in..
+    next_page = "/dashboard/myunits"
+
+    if "next" in request.GET:
+        next_page = request.GET["next"]
+
     if request.user.is_authenticated():
-        return redirect('/dashboard/myunits')
+        return redirect(next_page)
 
     else:
-        #print "ordinary get"
-        # No context variables to pass to the template system, hence the
-        # blank dictionary object...
-        return render_to_response('clatoolkit/login.html', {}, context)
+        return render_to_response('clatoolkit/login.html', {next_page: next_page}, context)
 
 
 #Unit management integration for staff - 13/05/16
@@ -175,9 +177,8 @@ def register(request, course_code):
     # Set to False initially. Code changes value to True when registration succeeds.
     registered = False
 
-    selected_unit = 0
-    course = None
-    platforms = []
+    unit = UnitOffering.objects.get(code=course_code)
+    platforms = unit.get_required_platforms()
 
     u = None
 
@@ -202,9 +203,8 @@ def register(request, course_code):
 
             user.save()
 
-            for unit in user_form.cleaned_data['units']:
-                m = UnitOfferingMembership(user=user, unit=unit, admin=False)
-                m.save()
+            m = UnitOfferingMembership(user=user, unit=unit, admin=False)
+            m.save()
 
             # Now sort out the UserProfile instance.
             # Since we need to set the user attribute ourselves, we set commit=False.
@@ -222,38 +222,24 @@ def register(request, course_code):
 
             return HttpResponseRedirect("/")
 
-        # Invalid form or forms - mistakes or something else?
-        # Print problems to the terminal.
-        # They'll also be shown to the user.
-        else:
-            if course_code is not None:
-                course = UnitOffering.objects.get(code=course_code)
-                selected_unit = course.id
-                platforms = course.get_required_platforms()
-
     # Not a HTTP POST, so we render our form using two ModelForm instances.
     # These forms will be blank, ready for user input.
     else:
-
         user_form = UserForm()
         profile_form = UserProfileForm()
-
-        course = UnitOffering.objects.get(code=course_code)
-        selected_unit = course.id
-        platforms = course.get_required_platforms()
 
     # Render the template depending on the context.
     return render_to_response(
         'clatoolkit/register.html',
-            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered,
-             'selected_unit': selected_unit, "course": course, "req_platforms": platforms, "user": u}, context)
+            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, "course": unit, "req_platforms": platforms, "user": u}, context)
 
 
 @login_required
 def register_existing(request, course_code):
     unit = UnitOffering.objects.get(code=course_code)
-    membership = UnitOfferingMembership(user=request.user, unit=unit, admin=False)
-    membership.save()
+    if not unit.users.filter(user=request.user).exists():
+        membership = UnitOfferingMembership(user=request.user, unit=unit, admin=False)
+        membership.save()
 
     return redirect("myunits")
 
