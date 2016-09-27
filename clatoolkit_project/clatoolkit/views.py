@@ -179,6 +179,11 @@ def register(request, course_code):
     course = None
     platforms = []
 
+    u = None
+
+    if request.user.is_authenticated():
+        u = request.user
+
     # If it's a HTTP POST, we're interested in processing form data.
     if request.method == 'POST':
         # Attempt to grab information from the raw form information.
@@ -229,6 +234,7 @@ def register(request, course_code):
     # Not a HTTP POST, so we render our form using two ModelForm instances.
     # These forms will be blank, ready for user input.
     else:
+
         user_form = UserForm()
         profile_form = UserProfileForm()
 
@@ -240,7 +246,16 @@ def register(request, course_code):
     return render_to_response(
         'clatoolkit/register.html',
             {'user_form': user_form, 'profile_form': profile_form, 'registered': registered,
-             'selected_unit': selected_unit, "course": course, "req_platforms": platforms}, context)
+             'selected_unit': selected_unit, "course": course, "req_platforms": platforms, "user": u}, context)
+
+
+@login_required
+def register_existing(request, course_code):
+    unit = UnitOffering.objects.get(code=course_code)
+    membership = UnitOfferingMembership(user=request.user, unit=unit, admin=False)
+    membership.save()
+
+    return redirect("myunits")
 
 
 @login_required

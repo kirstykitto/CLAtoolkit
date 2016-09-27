@@ -24,5 +24,6 @@ urlpatterns = patterns('',
     url(r'^unitofferings/new$', views.create_offering, name='create_offering'),
     url(r'^unitofferings/(?P<course_code>[a-zA-Z0-9]+)/update', views.update_offering, name='update_offering'),
     url(r'^unitofferings/(?P<course_code>[a-zA-Z0-9]+)/members', views.offering_members, name='offering_members'),
+    url(r'^unitofferings/(?P<course_code>[a-zA-Z0-9]+)/register/existing', views.register_existing, name='register_existing'),
     url(r'^unitofferings/(?P<course_code>[a-zA-Z0-9]+)/register', views.register, name='register'),
 )
