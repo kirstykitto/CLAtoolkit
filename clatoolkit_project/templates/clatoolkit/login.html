@@ -17,6 +17,9 @@
                 <h3 class="panel-title">CLAToolkit: Login</h3>
             </div>
             <div class="panel-body">
+                {% if message %}
+                    <div class="alert alert-danger" role="alert">Error: {{ message }}</div>
+                {% endif %}
                 <form role="form" action="/" method="post">
                   {% csrf_token %}
                     <fieldset>

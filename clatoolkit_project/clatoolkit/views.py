@@ -36,6 +36,8 @@ def home(request):
 def userlogin(request):
     context = RequestContext(request)
 
+    message = None
+
     if request.method == 'POST':
         print "posted"
         username = request.POST['username']
@@ -52,12 +54,9 @@ def userlogin(request):
                 #print "sending to myunits"
                 return HttpResponseRedirect('/dashboard/myunits/')
             else:
-                # An inactive account was used - no logging in!
-                return HttpResponse("Your CLAToolkit account is disabled.")
+                message = "Your CLAToolkit account is disabled."
         else:
-            # Bad login details were provided. So we can't log the user in.
-            #print "Invalid login details: {0}, {1}".format(username, password)
-            return HttpResponse("Invalid login details supplied.")
+            message = "Invalid login details supplied."
 
     # The request is not a HTTP POST, so display the login form.
     # This scenario would most likely be a HTTP GET.
@@ -70,7 +69,7 @@ def userlogin(request):
         #print "ordinary get"
         # No context variables to pass to the template system, hence the
         # blank dictionary object...
-        return render_to_response('clatoolkit/login.html', {}, context)
+        return render_to_response('clatoolkit/login.html', {"message": message}, context)
 
 
 #Unit management integration for staff - 13/05/16
