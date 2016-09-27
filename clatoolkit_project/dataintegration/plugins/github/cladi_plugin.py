@@ -36,17 +36,16 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
     def perform_import(self, retrieval_param, course_code):
 
-        # Setup Twitter API Keys
         token = self.api_config_dict['token']
         urls = retrieval_param.split(os.linesep)
 
         for url in urls:
             print "GitHub data extraction URL: " + url
             # Instanciate PyGithub object
-            repoFullName = url[len(self.platform_url):]
+            repo_name = url[len(self.platform_url):]
             gh = Github(login_or_token = token, per_page = self.parPage)
 
-            repo = gh.get_repo(repoFullName.rstrip())
+            repo = gh.get_repo(repo_name.rstrip())
             self.importGitHubCommits(course_code, url, token, repo)
             self.importGitHubIssues(course_code, url, token, repo, gh)
             self.importGitHubCommitComments(course_code, url, token, repo)
@@ -137,7 +136,9 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     def importGitHubIssues(self, courseCode, repoUrl, token, repo, githubObj):
         # Search issues including pull requests using search method
         count = 0
-        query = 'repo:kojiagile/testrepo'
+
+        repo_name = repoUrl[len(self.platform_url):]
+        query = 'repo:' + repo_name
         issueList = githubObj.search_issues(query, order = 'asc').get_page(count)
 
         # Retrieve issue data
@@ -221,7 +222,9 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 msg = commit.commit.message
                 commitHtmlURL = commit.html_url
                 date = commit.commit.author.date
-                committerHomepage = commit.committer.html_url
+                # commit.committer.html_url isn't always correct. So, don't use it.
+                # committerHomepage = commit.committer.html_url
+                committerHomepage = self.platform_url + committerName
 
                 # Import commit data
                 usr_dict = None
@@ -230,14 +233,13 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     usr_dict = get_userdetails(committerName, self.platform.lower())
                     claUserName = get_username_fromsmid(committerName, self.platform.lower())
                     insert_commit(usr_dict, commitHtmlURL, msg, committerName, claUserName,
-                        date, courseCode, repoUrl, self.platform, commitHtmlURL, committerName)
+                        date, courseCode, repoUrl, self.platform, committerHomepage, committerName)
                 else:
                     #If a user does not exist, ignore the commit data
                     continue
 
                 #importGitHubCommitsFiles(commit, repoUrl)
                 # All committed files are inserted into DB
-                print len(commit.files)
                 for file in commit.files:
                     verb = "added"
                     if file.status == "modified":
@@ -253,7 +255,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         #usr_dict = get_userdetails(committerName, self.platform)
                         #claUserName = get_username_fromsmid(committerName, self.platform)
                         insert_file(usr_dict, file.blob_url, patch, committerName, claUserName,
-                            date, courseCode, commitHtmlURL, self.platform, file.blob_url, 
+                            date, courseCode, commitHtmlURL, self.platform, committerHomepage, 
                             # commitHtmlURL, verb, repoUrl, file.additions, file.deletions, committerName)
                             commitHtmlURL, verb, repoUrl, committerName)
 
