@@ -171,7 +171,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     claUserName = get_username_fromsmid(assignee, self.platform)
                     insert_issue(usr_dict, issueURL, body, assignee, claUserName,
                         date, courseCode, repoUrl, self.platform, issueURL, 
-                        assignee)
+                        assignee, assigneeHomepage)
 
             count = count + 1
             issueList = githubObj.search_issues(query, order = 'asc').get_page(count)
@@ -233,7 +233,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     usr_dict = get_userdetails(committerName, self.platform.lower())
                     claUserName = get_username_fromsmid(committerName, self.platform.lower())
                     insert_commit(usr_dict, commitHtmlURL, msg, committerName, claUserName,
-                        date, courseCode, repoUrl, self.platform, committerHomepage, committerName)
+                        date, courseCode, repoUrl, self.platform, commitHtmlURL, committerName, committerHomepage)
                 else:
                     #If a user does not exist, ignore the commit data
                     continue
@@ -255,9 +255,9 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         #usr_dict = get_userdetails(committerName, self.platform)
                         #claUserName = get_username_fromsmid(committerName, self.platform)
                         insert_file(usr_dict, file.blob_url, patch, committerName, claUserName,
-                            date, courseCode, commitHtmlURL, self.platform, committerHomepage, 
+                            date, courseCode, commitHtmlURL, self.platform, file.blob_url, 
                             # commitHtmlURL, verb, repoUrl, file.additions, file.deletions, committerName)
-                            commitHtmlURL, verb, repoUrl, committerName)
+                            commitHtmlURL, verb, repoUrl, committerName, committerHomepage)
 
             # End of for commit in commitList:
 

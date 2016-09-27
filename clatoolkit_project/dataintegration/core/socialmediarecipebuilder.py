@@ -267,7 +267,8 @@ def insert_bookmark(usr_dict, post_id,message,from_name,from_uid, created_time, 
         lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=get_username_fromsmid(from_uid, platform), platformid=post_id, message=message, datetimestamp=created_time)
         lrs.save()
 
-def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_time, course_code, parent_id, platform, platform_id, commit_username=None, tags=[]):
+def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_time, course_code, 
+    parent_id, platform, platform_id, commit_username, account_homepage, tags=[]):
     if check_ifnotinlocallrs(course_code, platform, commit_id):
         verb = "created"
         object = "Collection"
@@ -276,7 +277,7 @@ def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_t
 
         stm = socialmedia_builder(
             verb=verb, platform=platform, account_name=from_uid, 
-            account_homepage=platform_id, object_type=object, object_id=commit_id, 
+            account_homepage=account_homepage, object_type=object, object_id=commit_id, 
             message=message, tags=tags, parent_object_type=parentObj, parent_id=parent_id, 
             timestamp=committed_time, account_email=usr_dict['email'], 
             # user_name=from_name, course_code=course_code, otherObjTypeName=otherObjTypeName)
@@ -301,14 +302,14 @@ def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_t
 
 
 def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time, course_code, 
-    parent_id, platform, platform_id, platform_parentid, verb, repoUrl, commit_username=None, tags=[]):
+    parent_id, platform, platform_id, platform_parentid, verb, repoUrl, commit_username, account_homepage, tags=[]):
     if check_ifnotinlocallrs(course_code, platform, file_id):
         object = "File"
         parentObj = "Collection"
 
         stm = socialmedia_builder(
             verb=verb, platform=platform, account_name=from_uid, 
-            account_homepage=platform_id, object_type=object, object_id=file_id, 
+            account_homepage=account_homepage, object_type=object, object_id=file_id, 
             message=message, tags=tags, parent_object_type=parentObj, parent_id=parent_id, 
             timestamp=committed_time, account_email=usr_dict['email'], 
             # user_name=from_name, course_code=course_code, grand_parent=repoUrl)
@@ -332,7 +333,8 @@ def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time,
         socialrelationship.save()
 
 
-def insert_issue(usr_dict, issue_id, message, from_name, from_uid, created_time, course_code, parent_id, platform, platform_id, assignee, tags=[]):
+def insert_issue(usr_dict, issue_id, message, from_name, from_uid, created_time, 
+    course_code, parent_id, platform, platform_id, assignee, account_homepage, tags=[]):
     if check_ifnotinlocallrs(course_code, platform, issue_id):
         verb = 'created'
         object = "Note"
@@ -340,7 +342,7 @@ def insert_issue(usr_dict, issue_id, message, from_name, from_uid, created_time,
 
         stm = socialmedia_builder(
             verb=verb, platform=platform, account_name=from_uid, 
-            account_homepage=issue_id, object_type=object, object_id=issue_id, 
+            account_homepage=account_homepage, object_type=object, object_id=issue_id, 
             message=message, parent_object_type=parentObj, parent_id=parent_id, 
             timestamp=created_time, account_email=usr_dict['email'], 
             user_name=from_name, course_code=course_code, tags=tags)
