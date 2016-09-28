@@ -30,21 +30,16 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
     authomatic_config_json = {}
 
     authomatic_config_key = 'fb'
-    authomatic_secretkey = None
+    authomatic_secretkey = os.environ.get("FACEBOOK_AUTHOMATIC_SECRET_KEY")
 
     def __init__(self):
-        # Load api_config.json and convert to dict
-        config_file = os.path.join(os.path.dirname(__file__), 'api_config.json')
-        with open(config_file) as data_file:
-            self.api_config_dict = json.load(data_file)
-
         #from AuthomaticPluginMixin
         self.authomatic_config_json = {
             # Auth information for Facebook App
             'fb': {
                 'class_': oauth2.Facebook,
-                'consumer_key': self.api_config_dict['consumer_key'],
-                'consumer_secret': self.api_config_dict['consumer_secret'],
+                'consumer_key': os.environ.get("FACEBOOK_CONSUMER_KEY"),
+                'consumer_secret': os.environ.get("FACEBOOK_CONSUMER_SECRET"),
 
                 'scope': ['user_about_me', 'email', 'user_groups'],
                 },
@@ -52,7 +47,7 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
 
         self.authomatic_config_key = 'fb'
 
-        self.authomatic_secretkey = str(self.api_config_dict['authomatic_secretkey'])
+        self.authomatic_secretkey = str(os.environ.get("FACEBOOK_AUTHOMATIC_SECRET_KEY"))
 
     def perform_import(self, retrieval_param, course_code, authomatic_result):
         """

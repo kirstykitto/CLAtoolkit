@@ -28,10 +28,7 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
     scope = 'https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtubepartner'
 
     def __init__(self):
-        # Load api_config.json and convert to dict
-        config_file = os.path.join(os.path.dirname(__file__), 'api_config.json')
-        with open(config_file) as data_file:
-            self.api_config_dict = json.load(data_file)
+        pass
 
     def perform_import(self, retrieval_param, course_code, webserverflow_result):
         print "Youtube perform_import run"
