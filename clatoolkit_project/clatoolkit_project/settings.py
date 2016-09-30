@@ -176,6 +176,8 @@ STATICFILES_FINDERS = (
 AUTH_PROFILE_MODULE = "account.userprofile"
 
 GA_TRACKING_ID = ''
+
+LOGIN_URL = "/"
 #
 #MEDIA_ROOT = os.path.join(BASE_DIR, 'static')
 #MEDIA_URL = '/static/'

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django_pgjson.fields import JsonField
+from django.core.exceptions import ObjectDoesNotExist
 import os
 
 class UserProfile(models.Model):
@@ -122,15 +123,16 @@ class UserClassification(models.Model):
     trained = models.BooleanField(blank=False, default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+
 class UnitOffering(models.Model):
-    code = models.CharField(max_length=5000, blank=False)
-    name = models.CharField(max_length=5000, blank=False)
+    code = models.CharField(max_length=5000, blank=False, verbose_name="Unit Code", unique=True)
+    name = models.CharField(max_length=5000, blank=False, verbose_name="Unit Name")
     semester = models.CharField(max_length=5000, blank=False)
     description = models.TextField(blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    users = models.ManyToManyField(User, related_name='usersinunitoffering')
+    users = models.ManyToManyField(User, related_name='usersinunitoffering', through='UnitOfferingMembership')
     # determines whether unit should be displayed on Register form and on dashboard
-    enabled = models.BooleanField(blank=False, default=False)
+    enabled = models.BooleanField(blank=False, default=True)
     # determines whether unit should be displayed on EventRegistration Form
     event = models.BooleanField(blank=False, default=False)
     # determines whether COI Classifier link should be diplayed for staff and student in a unit
@@ -138,31 +140,31 @@ class UnitOffering(models.Model):
     #enable_group_coi_classifier = models.BooleanField(default=False)
 
     # Twitter Unit Integration Requirements
-    twitter_hashtags = models.TextField(blank=False)
+    twitter_hashtags = models.TextField(blank=False,verbose_name="Twitter Hashtags")
 
     # Google Unit Integration Requirements
-    google_groups = models.TextField(blank=True)
+    google_groups = models.TextField(blank=True, verbose_name="Google Groups")
 
     # Facebook Unit Integration Requirements
-    facebook_groups = models.TextField(blank=True)
+    facebook_groups = models.TextField(blank=True, verbose_name="Facebook Groups")
 
     # Unit External Forums
-    forum_urls = models.TextField(blank=True)
+    forum_urls = models.TextField(blank=True, verbose_name="Forum URLs")
 
     # YouTube 26/08/2015
-    youtube_channelIds = models.TextField(blank=True)
+    youtube_channelIds = models.TextField(blank=True, verbose_name="Youtube Channels")
 
     # Diigo Tags
-    diigo_tags = models.TextField(blank=True)
+    diigo_tags = models.TextField(blank=True, verbose_name="Diigo Tags")
 
     # Blog Members (for blogrss plugin)
-    blogmember_urls = models.TextField(blank=True)
+    blogmember_urls = models.TextField(blank=True, verbose_name="Blog Member URLs")
 
     # GitHub Repository URLs
-    github_urls = models.TextField(blank=True)
+    github_urls = models.TextField(blank=True, verbose_name="GitHub Repos")
 
     # Trello board IDs
-    attached_trello_boards = models.TextField(blank=True)
+    attached_trello_boards = models.TextField(blank=True, verbose_name="Trello Boards")
 
     # Determines which platforms should be utilized by COI classifier
     coi_platforms = models.TextField(blank=True)
@@ -251,6 +253,20 @@ class UnitOffering(models.Model):
             platforms.append('trello')
 
         return platforms
+
+
+class UnitOfferingMembership(models.Model):
+    user = models.ForeignKey(User)
+    unit = models.ForeignKey(UnitOffering)
+    admin = models.BooleanField(default=False)
+
+    @classmethod
+    def is_admin(cls, user, course_code):
+        try:
+            return cls.objects.get(user=user, unit__code=course_code).admin
+        except ObjectDoesNotExist:
+            return False
+
 
 class ApiCredentials(models.Model):
     platform_uid = models.CharField(max_length=5000, blank=False)
