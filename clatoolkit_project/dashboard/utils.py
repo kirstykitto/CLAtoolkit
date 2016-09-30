@@ -1078,10 +1078,6 @@ def get_activity_dataset(course_code, platform_names, username=None):
         pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
         verbs = pluginObj.get_verbs()
 
-        ## Test code for trello
-        # if platform == 'trello':
-        #     verbs = ['created', 'updated', 'added', 'commented']
-
         series = []
         all_data = []
         categories, return_data = count_verbs_by_users(verbs, platform, course_code)

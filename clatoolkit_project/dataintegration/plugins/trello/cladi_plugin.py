@@ -15,6 +15,7 @@ from trello import TrelloClient
 
 #OAuth for trello
 from requests_oauthlib import OAuth1Session
+# from common.common import ClaUtil
 
 
 class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
@@ -89,6 +90,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             board_name = data['board']['name']
 
             print 'got action type: %s' % (type)
+            print 'ACTION ID ' + action['id']
 
             #print 'is action comment? %s' % (type == 'commentCard')
             #Get all 'commented' verb actions
@@ -100,6 +102,8 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 comment_from_name = author
                 comment_message = data['text']
                 comment_id = action['id']
+                # TODO: shared_username is required for insert_comment() method...
+                # card_name = data['card']['name']
 
                 if username_exists(comment_from_uid, course_code, self.platform):
                     usr_dict = get_userdetails(comment_from_uid, self.platform)
@@ -124,7 +128,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                     #TODO: RP
                     print 'Inserted created card!'
-
 
             #Get all 'add' verbs (you tecnically aren't *creating* an attachment on
             #a card so....)
@@ -233,7 +236,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 #up to us to figure out what's being updated
                 if type == 'updateCard':
                     #TODO: Remove Print
-                    print 'data: %s' % (data)
+                    # print 'data: %s' % (data)
 
                     #Get and store the values that were changed, usually it's only one
                     #TODO: Handle support for multiple changes, if that's possible
@@ -248,15 +251,16 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                     #Insert all updates that aren't closed
                     if change[0] == 'pos':
+
                         if 'listBefore' in data:
-                            insert_updated_object(usr_dict, data['card']['id'],
+                            insert_updated_object(usr_dict, action['id'],
                                                   'Move card from %s to %s' % (data['listBefore']['name'], data['listAfter']['name']),
                                                   u_id, author, date, course_code,
                                                   self.platform, self.platform_url,
                                                   'Task', obj_parent=data['list']['name'],
                                                   obj_parent_type='Collection')
                         else:
-                            insert_updated_object(usr_dict, data['card']['id'],
+                            insert_updated_object(usr_dict, action['id'],
                                                   'Move card from %s to %s' % (data['old']['pos'], data['card']['pos']),
                                                   u_id, author, date, course_code,
                                                   self.platform, self.platform_url,
@@ -295,7 +299,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         return self.xapi_objects
 
 registry.register(TrelloPlugin)
-
 
 
 
