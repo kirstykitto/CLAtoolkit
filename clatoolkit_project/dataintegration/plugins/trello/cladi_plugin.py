@@ -271,7 +271,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #add in close/open verbs
                     else:
                         if data['old'][change[0]] is False:
-                            insert_closedopen_object(usr_dict, data['card']['id'],
+                            insert_closedopen_object(usr_dict, action['id'],
                                                  '%s:%s' % ('Closed', data['card']['name']),
                                                  u_id, author, date, course_code,
                                                  self.platform, self.platform_url,
@@ -282,7 +282,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                             print 'added closed/opened card!'
 
                         elif data['old'][change[0]] is True:
-                            insert_closedopen_object(usr_dict, data['card']['id'],
+                            insert_closedopen_object(usr_dict, action['id'],
                                                  '%s:%s' % ('Opened', data['card']['name']),
                                                  u_id, author, date, course_code,
                                                  self.platform, self.platform_url,
