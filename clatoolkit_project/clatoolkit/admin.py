@@ -12,9 +12,12 @@ class UserProfileInline(admin.StackedInline):
 class UserAdmin(UserAdmin):
     inlines = (UserProfileInline, )
 
+# TODO - Fix admin
 class LearningRecordAdmin(admin.ModelAdmin):
-    list_display = ('username', 'platform', 'verb', 'course_code', 'platformid')
-    search_fields = ('username', 'course_code', 'verb', 'platform')
+    # list_display = ('user', 'platform', 'verb', 'unit', 'platformid')
+    # search_fields = ('user', 'unit', 'verb', 'platform')
+    list_display = ('user', 'platform', 'verb', 'platformid')
+    search_fields = ('user', 'verb', 'platform')
 
 class SocialRelationshipAdmin(admin.ModelAdmin):
     list_display = ('fromusername', 'tousername', 'platform', 'verb', 'course_code', 'platformid')

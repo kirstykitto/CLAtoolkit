@@ -169,6 +169,7 @@ def trello_myunits_restview(request):
                             '<div id="trello_board_display"></div>', 'course_code': course_code}
             return Response(response)
 
+
 @login_required
 def myunits(request):
     context = RequestContext(request)
@@ -186,16 +187,16 @@ def myunits(request):
 
     print trello_attached
 
-    #if student check if the student has imported data
-    if role=='Student':
-        username = request.user.username
-        if LearningRecord.objects.filter(username__iexact=username).count() == 0:
+    # if student check if the student has imported data
+    if role == 'Student':
+        if LearningRecord.objects.filter(user=request.user).count() == 0:
             shownocontentwarning = True
 
     context_dict = {'title': "My Units", 'memberships': memberships, 'show_dashboardnav':show_dashboardnav, 'shownocontentwarning': shownocontentwarning, 'role': role,
                      'trello_attached_to_acc': trello_attached}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
+
 
 @login_required
 def dashboard(request):

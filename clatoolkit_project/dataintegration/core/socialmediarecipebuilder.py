@@ -60,7 +60,7 @@ def statement_builder(actor, verb, object, context, result, timestamp=None):
         )
     return statement
 
-def socialmedia_builder(verb, platform, account_name, account_homepage, object_type, object_id, message, tags=[], parent_object_type=None, parent_id=None, rating=None, instructor_name=None, instructor_email=None, team_name=None, course_code=None, account_email=None, user_name=None, timestamp=None):
+def socialmedia_builder(verb, platform, account_name, account_homepage, object_type, object_id, message, tags=[], parent_object_type=None, parent_id=None, rating=None, instructor_name=None, instructor_email=None, team_name=None, unit=None, account_email=None, user_name=None, timestamp=None):
     verbmapper = {
                   'created': 'http://www.w3.org/ns/activitystreams#Create',
                   'shared': 'http://activitystrea.ms/schema/1.0/share',
@@ -153,12 +153,12 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
         parentlist.append(parentobject)
 
     courselist = []
-    if (course_code is not None):
+    if unit is not None:
         courseobject = Activity(
-            id=course_code,
+            id=unit.id,
             object_type='Course',
             definition=ActivityDefinition(type="http://adlnet.gov/expapi/activities/course")
-            )
+        )
         courselist.append(courseobject)
 
     instructor = None
@@ -187,12 +187,12 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
     return statement
 
 
-def insert_post(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url, tags=[]):
-    if check_ifnotinlocallrs(course_code, platform, post_id):
-        stm = socialmedia_builder(verb='created', platform=platform, account_name=from_uid, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_name, course_code=course_code, tags=tags)
+def insert_post(user, post_id,message,from_name,from_uid, created_time, unit, platform, platform_url, tags=[]):
+    if check_ifnotinlocallrs(unit, platform, post_id):
+        stm = socialmedia_builder(verb='created', platform=platform, account_name=from_uid, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, timestamp=created_time, account_email=user.email, user_name=from_name, unit=unit, tags=tags)
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=get_username_fromsmid(from_uid, platform), platformid=post_id, message=message, datetimestamp=created_time)
+        lrs = LearningRecord(xapi=stm_json, unit=unit, verb='created', platform=platform, user=user, platformid=post_id, message=message, datetimestamp=created_time)
         lrs.save()
         for tag in tags:
             if tag[0]=="@":

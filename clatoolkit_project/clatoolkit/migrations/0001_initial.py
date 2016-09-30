@@ -74,10 +74,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('xapi', django_pgjson.fields.JsonField()),
-                ('course_code', models.CharField(max_length=5000)),
                 ('platform', models.CharField(max_length=5000)),
                 ('verb', models.CharField(max_length=5000)),
-                ('username', models.CharField(max_length=5000, blank=True)),
                 ('platformid', models.CharField(max_length=5000, blank=True)),
                 ('platformparentid', models.CharField(max_length=5000, blank=True)),
                 ('parentusername', models.CharField(max_length=5000, blank=True)),
@@ -199,6 +197,16 @@ class Migration(migrations.Migration):
             model_name='unitoffering',
             name='users',
             field=models.ManyToManyField(related_name='usersinunitoffering', through='clatoolkit.UnitOfferingMembership', to=settings.AUTH_USER_MODEL),
+        ),
+        migrations.AddField(
+            model_name='learningrecord',
+            name='unit_offering',
+            field=models.ForeignKey(to='clatoolkit.UnitOffering'),
+        ),
+        migrations.AddField(
+            model_name='learningrecord',
+            name='user',
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name='classification',

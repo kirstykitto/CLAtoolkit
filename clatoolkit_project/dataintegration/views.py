@@ -1,7 +1,7 @@
 # example/simple/views.py
 from __future__ import absolute_import
 
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.shortcuts import render, render_to_response
 from authomatic import Authomatic
 from authomatic.adapters import DjangoAdapter
@@ -227,10 +227,15 @@ def home(request):
     form = FacebookGatherForm()
     return render(request, 'dataintegration/facebook.html', {'form': form})
 
-def refreshtwitter(request):
-    html_response = HttpResponse()
 
-    course_code = request.GET.get('course_code')
+def refreshtwitter(request):
+    unit_offering_id = request.GET.get('unit_offering')
+
+    try:
+        unit = UnitOffering.objects.get(id=unit_offering_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
+
     hastags = request.GET.get('hashtags')
 
     tags = hastags.split(',')
@@ -238,12 +243,13 @@ def refreshtwitter(request):
         hashtag = tag if tag.startswith("#") else "#" + tag
 
         twitter_plugin = settings.DATAINTEGRATION_PLUGINS['Twitter']
-        twitter_plugin.perform_import(hashtag, course_code)
+        twitter_plugin.perform_import(hashtag, unit)
 
-    post_smimport(course_code, "Twitter")
+    # TODO
+    # post_smimport(course_code, "Twitter")
 
-    html_response.write('Twitter Refreshed.')
-    return html_response
+    return HttpResponse('Twitter Refreshed.')
+
 
 def refreshdiigo(request):
     html_response = HttpResponse()

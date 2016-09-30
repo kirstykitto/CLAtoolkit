@@ -38,7 +38,7 @@
                                         Analysis</a> |
                                     <a href="/dashboard/sna_dashboard?course_code={{ membership.unit.code }}&platform=Twitter">Social
                                         Network Analysis</a>] |
-                                    <a href="/dataintegration/refreshtwitter/?course_code={{ membership.unit.code }}&hashtags={{ membership.unit.twitter_hashtags|urlencode }}">Refresh
+                                    <a href="/dataintegration/refreshtwitter/?unit_offering={{ membership.unit.id }}&hashtags={{ membership.unit.twitter_hashtags|urlencode }}">Refresh
                                         Imported Data</a>
                                 {% endif %}
                                 {% if membership.unit.facebook_groups_as_list|length > 0 %}

@@ -1,6 +1,7 @@
 from clatoolkit.models import CachedContent
 from dashboard.utils import *
 
+
 def post_smimport(course_code, platform):
         top_content = get_top_content_table(platform, course_code)
         active_content = get_active_members_table(platform, course_code)
