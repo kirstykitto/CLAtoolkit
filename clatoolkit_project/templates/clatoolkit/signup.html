@@ -1,0 +1,54 @@
+{% extends "clatoolkit/base_clatoolkit.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block heading %}{% endblock %}
+
+{% block body %}
+<div class="row">
+    <div class="col-md-6 col-md-offset-3">
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                Sign up to the Connected Learning Analytics Toolkit
+            </div>
+            <div class="panel-body">
+                <form role="form" id="user_form" method="post">
+                    {% csrf_token %}
+
+                    <div class="form-errors">
+                        {% for field in form %}
+                            {% if field.errors %}
+                                {% for error in field.errors %}
+                                    <li><strong>{{ field.name }}: {{ error|escape }}</strong></li>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% for field in form %}
+                    <div class="form-group">
+                        {{ field.label_tag }}
+                        <br>
+                        {{ field }}
+                    </div>
+                {% endfor %}
+
+
+                    <button type="submit" class="btn btn-primary btn-lg btn-block">Register</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    div .form_control {
+        line-height: 3;
+        font-weight: bold;
+    }
+</style>
+{% autoescape off %}
+
+{% endautoescape %}
+{% endblock %}
+
