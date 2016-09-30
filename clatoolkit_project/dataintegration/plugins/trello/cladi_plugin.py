@@ -15,6 +15,7 @@ from trello import TrelloClient
 
 #OAuth for trello
 from requests_oauthlib import OAuth1Session
+from common.common import ClaUtil
 
 
 class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
@@ -100,6 +101,8 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 comment_from_name = author
                 comment_message = data['text']
                 comment_id = action['id']
+                # TODO: shared_username is required for insert_comment() method...
+                # card_name = data['card']['name']
 
                 if username_exists(comment_from_uid, course_code, self.platform):
                     usr_dict = get_userdetails(comment_from_uid, self.platform)
@@ -125,7 +128,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #TODO: RP
                     print 'Inserted created card!'
 
-
             #Get all 'add' verbs (you tecnically aren't *creating* an attachment on
             #a card so....)
             #print 'is action an add event? %s' % (type in
@@ -137,9 +139,8 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                  'emailCard', 'addChecklistToCard'
                  , 'addMemberToCard']):
 
-                usr_dict = None
-                if username_exists(u_id, course_code, self.platform):
-                    usr_dict = get_userdetails(u_id, self.platform)
+                # Get user details from Util class
+                usr_dict = ClaUtil.get_user_details_by_smid(u_id, self.platform)
 
                 if type is 'addAttachmentToCard' and usr_dict is not None:
 
@@ -161,6 +162,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                     target_id = data['card']['id']
                     object_id = data['idMember']
+                    # object_id = action['id']
                     object_data = action['memeber']['username']
                     object_type = 'Person'
                     shared_displayname = '%sc/%s' % (self.platform_url, target_id)
@@ -233,7 +235,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 #up to us to figure out what's being updated
                 if type == 'updateCard':
                     #TODO: Remove Print
-                    print 'data: %s' % (data)
+                    # print 'data: %s' % (data)
 
                     #Get and store the values that were changed, usually it's only one
                     #TODO: Handle support for multiple changes, if that's possible
@@ -249,14 +251,14 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #Insert all updates that aren't closed
                     if change[0] == 'pos':
                         if 'listBefore' in data:
-                            insert_updated_object(usr_dict, data['card']['id'],
+                            insert_updated_object(usr_dict, action['id'],
                                                   'Move card from %s to %s' % (data['listBefore']['name'], data['listAfter']['name']),
                                                   u_id, author, date, course_code,
                                                   self.platform, self.platform_url,
                                                   'Task', obj_parent=data['list']['name'],
                                                   obj_parent_type='Collection')
                         else:
-                            insert_updated_object(usr_dict, data['card']['id'],
+                            insert_updated_object(usr_dict, action['id'],
                                                   'Move card from %s to %s' % (data['old']['pos'], data['card']['pos']),
                                                   u_id, author, date, course_code,
                                                   self.platform, self.platform_url,
@@ -267,7 +269,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #add in close/open verbs
                     else:
                         if data['old'][change[0]] is False:
-                            insert_closedopen_object(usr_dict, data['card']['id'],
+                            insert_closedopen_object(usr_dict, action['id'],
                                                  '%s:%s' % ('Closed', data['card']['name']),
                                                  u_id, author, date, course_code,
                                                  self.platform, self.platform_url,
@@ -278,7 +280,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                             print 'added closed/opened card!'
 
                         elif data['old'][change[0]] is True:
-                            insert_closedopen_object(usr_dict, data['card']['id'],
+                            insert_closedopen_object(usr_dict, action['id'],
                                                  '%s:%s' % ('Opened', data['card']['name']),
                                                  u_id, author, date, course_code,
                                                  self.platform, self.platform_url,
@@ -295,7 +297,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         return self.xapi_objects
 
 registry.register(TrelloPlugin)
-
 
 
 
