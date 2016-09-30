@@ -64,7 +64,8 @@ INSTALLED_APPS = (
     'rest_framework',
     'clatoolkit',
     'dataintegration',
-    'dashboard'
+    'dashboard',
+    'common'
 )
 
 MIDDLEWARE_CLASSES = (

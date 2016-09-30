@@ -15,7 +15,7 @@ from trello import TrelloClient
 
 #OAuth for trello
 from requests_oauthlib import OAuth1Session
-# from common.common import ClaUtil
+from common.common import ClaUtil
 
 
 class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
@@ -90,7 +90,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             board_name = data['board']['name']
 
             print 'got action type: %s' % (type)
-            print 'ACTION ID ' + action['id']
 
             #print 'is action comment? %s' % (type == 'commentCard')
             #Get all 'commented' verb actions
@@ -140,9 +139,8 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                  'emailCard', 'addChecklistToCard'
                  , 'addMemberToCard']):
 
-                usr_dict = None
-                if username_exists(u_id, course_code, self.platform):
-                    usr_dict = get_userdetails(u_id, self.platform)
+                # Get user details from Util class
+                usr_dict = ClaUtil.get_user_details_by_smid(u_id, self.platform)
 
                 if type is 'addAttachmentToCard' and usr_dict is not None:
 
@@ -164,6 +162,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                     target_id = data['card']['id']
                     object_id = data['idMember']
+                    # object_id = action['id']
                     object_data = action['memeber']['username']
                     object_type = 'Person'
                     shared_displayname = '%sc/%s' % (self.platform_url, target_id)
@@ -251,7 +250,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                     #Insert all updates that aren't closed
                     if change[0] == 'pos':
-
                         if 'listBefore' in data:
                             insert_updated_object(usr_dict, action['id'],
                                                   'Move card from %s to %s' % (data['listBefore']['name'], data['listAfter']['name']),
