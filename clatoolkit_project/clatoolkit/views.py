@@ -1,4 +1,4 @@
-from django.shortcuts import render_to_response
+from django.shortcuts import render, render_to_response
 from django.shortcuts import redirect
 
 from django.contrib.auth import authenticate, login
@@ -8,11 +8,13 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 
 from django.contrib.auth.models import User
-from clatoolkit.forms import UserForm, UserProfileForm
+from clatoolkit.forms import CreateOfferingForm, SignUpForm, UserForm, UserProfileForm
 
 from django.template import RequestContext
 
-from clatoolkit.models import UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification, AccessLog
+from django.core.exceptions import PermissionDenied
+
+from clatoolkit.models import UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification, AccessLog
 
 from rest_framework import authentication, permissions, viewsets, filters
 from .serializers import LearningRecordSerializer, SocialRelationshipSerializer, ClassificationSerializer, UserClassificationSerializer
@@ -33,15 +35,17 @@ def home(request):
     context = RequestContext(request)
     return render_to_response('clatoolkit/home.html', {}, context)
 
+
 def userlogin(request):
     context = RequestContext(request)
 
     message = None
+    next_page = "/dashboard/myunits"
 
     if request.method == 'POST':
-        print "posted"
         username = request.POST['username']
         password = request.POST['password']
+        next_page = request.POST['next_page']
 
         user = authenticate(username=username, password=password)
 
@@ -52,7 +56,7 @@ def userlogin(request):
                 # We'll send the user back to the homepage.
                 login(request, user)
                 #print "sending to myunits"
-                return HttpResponseRedirect('/dashboard/myunits/')
+                return HttpResponseRedirect(next_page)
             else:
                 message = "Your CLAToolkit account is disabled."
         else:
@@ -61,15 +65,14 @@ def userlogin(request):
     # The request is not a HTTP POST, so display the login form.
     # This scenario would most likely be a HTTP GET.
 
-    #if the user is found in our context, they're probably already logged in..
+    if "next" in request.GET:
+        next_page = request.GET["next"]
+
     if request.user.is_authenticated():
-        return redirect('/dashboard/myunits')
+        return redirect(next_page)
 
     else:
-        #print "ordinary get"
-        # No context variables to pass to the template system, hence the
-        # blank dictionary object...
-        return render_to_response('clatoolkit/login.html', {"message": message}, context)
+        return render_to_response('clatoolkit/login.html', {"message": message, "next_page": next_page}, context)
 
 
 #Unit management integration for staff - 13/05/16
@@ -163,7 +166,8 @@ def unitmanagement(request):
         context_dict, context
     )
 
-def register(request):
+
+def register(request, course_code):
     # Like before, get the request's context.
     context = RequestContext(request)
 
@@ -171,15 +175,16 @@ def register(request):
     # Set to False initially. Code changes value to True when registration succeeds.
     registered = False
 
-    # A boolean value used to determine if a unit should already be selected
-    show_units = True
-    selected_unit = 0
-    course = None
-    platforms = []
+    unit = UnitOffering.objects.get(code=course_code)
+    platforms = unit.get_required_platforms()
+
+    u = None
+
+    if request.user.is_authenticated():
+        u = request.user
 
     # If it's a HTTP POST, we're interested in processing form data.
     if request.method == 'POST':
-        #print request.POST
         # Attempt to grab information from the raw form information.
         # Note that we make use of both UserForm and UserProfileForm.
         user_form = UserForm(data=request.POST)
@@ -194,15 +199,10 @@ def register(request):
             # Once hashed, we can update the user object.
             user.set_password(user.password)
 
-            # Assign units to user
-            selectedunit = request.GET.get('selectedunit', None)
-            if selectedunit is not None:
-                user.usersinunitoffering.add(selectedunit)
-            else:
-                for unit in user_form.cleaned_data['units']:
-                    user.usersinunitoffering.add(unit)
-
             user.save()
+
+            m = UnitOfferingMembership(user=user, unit=unit, admin=False)
+            m.save()
 
             # Now sort out the UserProfile instance.
             # Since we need to set the user attribute ourselves, we set commit=False.
@@ -214,41 +214,32 @@ def register(request):
             # Now we save the UserProfile model instance.
             profile.save()
 
-            # Update our variable to tell the template registration was successful.
-            registered = True
+            # Log in as the newly signed up user
+            u = authenticate(username=user_form.cleaned_data["username"], password=user_form.cleaned_data["password"])
+            login(request, u)
 
-        # Invalid form or forms - mistakes or something else?
-        # Print problems to the terminal.
-        # They'll also be shown to the user.
-        else:
-            print user_form.errors, profile_form.errors
-            course_code = request.POST.get('course_code', None)
-            if course_code is not None:
-                course = UnitOffering.objects.get(code=course_code)
-                show_units = False
-                selected_unit = course.id
-                platforms = course.get_required_platforms()
-                #get social media to be used
+            return HttpResponseRedirect("/")
 
     # Not a HTTP POST, so we render our form using two ModelForm instances.
     # These forms will be blank, ready for user input.
     else:
-        print "loading forms"
         user_form = UserForm()
         profile_form = UserProfileForm()
-
-        course_code = request.GET.get('course_code', None)
-        if course_code is not None:
-            course = UnitOffering.objects.get(code=course_code)
-            show_units = False
-            selected_unit = course.id
-            platforms = course.get_required_platforms()
 
     # Render the template depending on the context.
     return render_to_response(
         'clatoolkit/register.html',
-            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered,
-             'show_units': show_units, 'selected_unit': selected_unit, "course": course, "req_platforms": platforms}, context)
+            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, "course": unit, "req_platforms": platforms, "user": u}, context)
+
+
+@login_required
+def register_existing(request, course_code):
+    unit = UnitOffering.objects.get(code=course_code)
+    if not unit.users.filter(user=request.user).exists():
+        membership = UnitOfferingMembership(user=request.user, unit=unit, admin=False)
+        membership.save()
+
+    return redirect("myunits")
 
 
 @login_required
@@ -335,6 +326,87 @@ def eventregistration(request):
     return render_to_response(
         'clatoolkit/eventregistration.html',
             {'user_form': user_form, 'profile_form': profile_form, 'registered': registered,}, context)
+
+
+def signup(request):
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = SignUpForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+            # Create user from form data
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data["password"])
+            user.save()
+
+            # Create blank user profile
+            user_profile = UserProfile(user=user)
+            user_profile.save()
+
+            # Log in as the newly signed up user
+            user = authenticate(username=form.cleaned_data['username'], password=form.cleaned_data['password'])
+            login(request, user)
+
+            return HttpResponseRedirect("/clatoolkit/unitofferings/new")
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form = SignUpForm()
+
+    return render(request, 'clatoolkit/signup.html', {'form': form})
+
+
+@login_required
+def create_offering(request):
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = CreateOfferingForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+            unit = form.save(commit=False)
+            unit.save()
+
+            m = UnitOfferingMembership(user=request.user, unit=unit, admin=True)
+            m.save()
+
+            return render(request, 'clatoolkit/createoffering_success.html', {'verb': 'created', 'unit': unit})
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form = CreateOfferingForm()
+
+    return render(request, 'clatoolkit/createoffering.html', {'verb': 'Create', 'form': form})
+
+
+@login_required
+def update_offering(request, course_code):
+    if UnitOfferingMembership.is_admin(request.user, course_code):
+        unit = UnitOffering.objects.get(code=course_code)
+        if request.method == "POST":
+            form = CreateOfferingForm(request.POST, instance=unit)
+            if form.is_valid():
+                unit = form.save()
+                return render(request, 'clatoolkit/createoffering_success.html', {'verb': 'updated', 'unit': unit})
+
+        else:
+            form = CreateOfferingForm(instance=unit)
+
+            return render(request, "clatoolkit/createoffering.html", {'verb': 'Update', 'form': form})
+    else:
+        raise PermissionDenied()
+
+
+@login_required
+def offering_members(request, course_code):
+    if UnitOfferingMembership.is_admin(request.user, course_code):
+        unit = UnitOffering.objects.get(code=course_code)
+        members = unit.users.all()
+        return render(request, "clatoolkit/offering_members.html", {"unit": unit, "members": members})
+    else:
+        raise PermissionDenied()
+
 
 class DefaultsMixin(object):
     """Default settings for view authentication, permissions,

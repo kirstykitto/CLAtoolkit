@@ -21,6 +21,7 @@
                     <div class="alert alert-danger" role="alert">Error: {{ message }}</div>
                 {% endif %}
                 <form role="form" action="/" method="post">
+                    <input hidden="hidden" name="next_page" value="{{ next_page }}" />
                   {% csrf_token %}
                     <fieldset>
                         <div class="form-group">
