@@ -127,7 +127,10 @@ class LearningRecordFilter(django_filters.FilterSet):
 
     class Meta:
         model = LearningRecord
-        fields = ('id', 'unit', 'platform', 'verb', 'user', 'platformid', 'platformparentid', 'parentusername', 'message', 'datetimestamp', 'senttolrs', 'datetimestamp_min', 'datetimestamp_max')
+
+        fields = ('id', 'unit', 'platform', 'verb', 'user', 'username', 'platformid', 'platformparentid', 'parent_user',
+                  'parent_username', 'message', 'datetimestamp', 'senttolrs', 'datetimestamp_min',
+                  'datetimestamp_max')
 
 class SocialRelationshipFilter(django_filters.FilterSet):
     datetimestamp_min = django_filters.DateFilter(name='datetimestamp', lookup_type='gte')
@@ -135,7 +138,9 @@ class SocialRelationshipFilter(django_filters.FilterSet):
 
     class Meta:
         model = SocialRelationship
-        fields = ('id', 'course_code', 'platform', 'verb', 'fromusername', 'tousername', 'platformid', 'message', 'datetimestamp', 'datetimestamp_min', 'datetimestamp_max')
+        fields = ('id', 'unit', 'platform', 'verb', 'from_user', 'to_user', 'to_external_user', 'platformid', 'message',
+                  'datetimestamp', 'datetimestamp_min', 'datetimestamp_max')
+
 
 class ClassificationFilter(django_filters.FilterSet):
 

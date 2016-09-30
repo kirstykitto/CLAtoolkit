@@ -206,9 +206,9 @@ class UnitOfferingMembership(models.Model):
     admin = models.BooleanField(default=False)
 
     @classmethod
-    def is_admin(cls, user, course_code):
+    def is_admin(cls, user, unit):
         try:
-            return cls.objects.get(user=user, unit__code=course_code).admin
+            return cls.objects.get(user=user, unit=unit).admin
         except ObjectDoesNotExist:
             return False
 
@@ -219,24 +219,27 @@ class LearningRecord(models.Model):
     platform = models.CharField(max_length=5000, blank=False)
     verb = models.CharField(max_length=5000, blank=False)
     user = models.ForeignKey(User)
+    username = models.CharField(max_length=5000, blank=True)
     platformid = models.CharField(max_length=5000, blank=True)
     platformparentid = models.CharField(max_length=5000, blank=True)
-    parentusername = models.CharField(max_length=5000, blank=True)
-    parentdisplayname = models.CharField(max_length=5000, blank=True)
+    parent_user = models.ForeignKey(User, null=True, related_name="parent_user")
+    parent_username = models.CharField(max_length=5000, blank=True)
     message = models.TextField(blank=True)
-    #mentions = models.TextField(blank=True)
     datetimestamp = models.DateTimeField(blank=True, null=True)
     senttolrs = models.CharField(max_length=5000, blank=True)
 
+
 class SocialRelationship(models.Model):
-    course_code = models.CharField(max_length=5000, blank=False)
+    unit = models.ForeignKey(UnitOffering)
     platform = models.CharField(max_length=5000, blank=False)
     verb = models.CharField(max_length=5000, blank=False)
-    fromusername = models.CharField(max_length=5000, blank=True)
-    tousername = models.CharField(max_length=5000, blank=True)
+    from_user = models.ForeignKey(User)
+    to_user = models.ForeignKey(User, null=True, related_name="to_user")
+    to_external_user = models.CharField(max_length=5000, blank=True)
     platformid = models.CharField(max_length=5000, blank=True)
     message = models.TextField(blank=False)
     datetimestamp = models.DateTimeField(blank=True)
+
 
 class CachedContent(models.Model):
     htmltable = models.TextField(blank=False)

@@ -202,22 +202,23 @@ def myunits(request):
 def dashboard(request):
     context = RequestContext(request)
 
-    course_code = request.GET.get('course_code')
+    unit_id = request.GET.get('unit')
+    unit = UnitOffering.objects.get(id=unit_id)
 
     # If the user is an admin for the course
-    if UnitOfferingMembership.is_admin(request.user, course_code):
+    if UnitOfferingMembership.is_admin(request.user, unit):
 
         platform = request.GET.get('platform')
 
-        title = "Activity Dashboard: %s (Platform: %s)" % (course_code, platform)
+        title = "Activity Dashboard: %s (Platform: %s)" % (unit.code, platform)
         show_dashboardnav = True
 
         profiling = ""
         profiling = profiling + "| Verb Timelines %s" % (str(datetime.datetime.now()))
-        posts_timeline = get_timeseries('created', platform, course_code)
-        shares_timeline = get_timeseries('shared', platform, course_code)
-        likes_timeline = get_timeseries('liked', platform, course_code)
-        comments_timeline = get_timeseries('commented', platform, course_code)
+        posts_timeline = get_timeseries('created', platform, unit)
+        shares_timeline = get_timeseries('shared', platform, unit)
+        likes_timeline = get_timeseries('liked', platform, unit)
+        comments_timeline = get_timeseries('commented', platform, unit)
 
         show_allplatforms_widgets = False
         twitter_timeline = ""
@@ -251,9 +252,9 @@ def dashboard(request):
         cursor = connection.cursor()
         cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
                             FROM clatoolkit_learningrecord
-                            WHERE clatoolkit_learningrecord.course_code='%s' %s
+                            WHERE clatoolkit_learningrecord.unit_id='%s' %s
                             GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
-                        """ % (course_code, platformclause))
+                        """ % (unit.id, platformclause))
         result = cursor.fetchall()
 
         activity_pie_series = ""
@@ -263,9 +264,9 @@ def dashboard(request):
         cursor = connection.cursor()
         cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'context'->>'platform' as platform, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
                             FROM clatoolkit_learningrecord
-                            WHERE clatoolkit_learningrecord.course_code='%s'
+                            WHERE clatoolkit_learningrecord.unit_id='%s'
                             GROUP BY clatoolkit_learningrecord.xapi->'context'->>'platform';
-                        """ % (course_code))
+                        """ % (unit.id))
         result = cursor.fetchall()
 
         platformactivity_pie_series = ""
@@ -274,14 +275,14 @@ def dashboard(request):
 
         #active members table
         profiling = profiling + "| Active Members %s" % (str(datetime.datetime.now()))
-        activememberstable = get_active_members_table(platform, course_code) #get_cached_active_users(platform, course_code)
+        activememberstable = get_active_members_table(platform, unit) #get_cached_active_users(platform, course_code)
 
         profiling = profiling + "| Top Content %s" % (str(datetime.datetime.now()))
-        topcontenttable = get_cached_top_content(platform, course_code) #get_top_content_table(platform, course_code)
+        topcontenttable = get_cached_top_content(platform, unit.code) #get_top_content_table(platform, course_code)
         profiling = profiling + "| End Top Content %s" % (str(datetime.datetime.now()))
 
         context_dict = {'profiling': profiling, 'show_dashboardnav':show_dashboardnav,
-        'course_code':course_code, 'platform':platform,
+        'course_code':unit.code, 'platform':platform,
         'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline': forum_timeline,
         'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline,
         'github_timeline': github_timeline, 'trello_timeline': trello_timeline,

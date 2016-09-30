@@ -131,7 +131,7 @@ def get_smids_fromusername(username):
     diigo_id = user.userprofile.diigo_username
     return twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id
 
-def get_timeseries(sm_verb, sm_platform, course_code, username=None):
+def get_timeseries(sm_verb, sm_platform, unit, username=None):
     # more info on postgres timeseries
     # http://no0p.github.io/postgresql/2014/05/08/timeseries-tips-pg.html
 
@@ -155,7 +155,7 @@ def get_timeseries(sm_verb, sm_platform, course_code, username=None):
     daily_counts as (
     select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
     FROM clatoolkit_learningrecord
-    WHERE clatoolkit_learningrecord.verb='%s' %s AND clatoolkit_learningrecord.course_code='%s' %s
+    WHERE clatoolkit_learningrecord.verb='%s' %s AND clatoolkit_learningrecord.unit_id='%s' %s
     group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
     order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
     )
@@ -164,7 +164,7 @@ def get_timeseries(sm_verb, sm_platform, course_code, username=None):
       from filled_dates
         left outer join daily_counts on daily_counts.day = filled_dates.day
       order by filled_dates.day;
-    """ % (sm_verb, platformclause, course_code, userclause))
+    """ % (sm_verb, platformclause, unit.id, userclause))
     result = cursor.fetchall()
     dataset_list = []
     for row in result:
@@ -220,7 +220,7 @@ def get_timeseries_byplatform(sm_platform, course_code, username=None, without_d
         return dataset
 
 
-def get_active_members_table(platform, course_code):
+def get_active_members_table(platform, unit):
 
     platformclause = ""
     if platform != "all":
@@ -230,8 +230,8 @@ def get_active_members_table(platform, course_code):
     cursor.execute("""
         SELECT distinct clatoolkit_learningrecord.username, clatoolkit_learningrecord.platform
         FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.course_code='%s' %s
-    """ % (course_code, platformclause))
+        WHERE clatoolkit_learningrecord.unit_id='%s' %s
+    """ % (unit.id, platformclause))
     result = cursor.fetchall()
     table = []
     for row in result:
@@ -242,17 +242,17 @@ def get_active_members_table(platform, course_code):
         if username is None:
             username = sm_userid
         '''
-        noposts = get_verbuse_byuser(username, "created", sm_platform, course_code)
-        nolikes = get_verbuse_byuser(username, "liked", sm_platform, course_code)
-        noshares = get_verbuse_byuser(username, "shared", sm_platform, course_code)
-        nocomments = get_verbuse_byuser(username, "commented", sm_platform, course_code)
+        noposts = get_verbuse_byuser(username, "created", sm_platform, unit)
+        nolikes = get_verbuse_byuser(username, "liked", sm_platform, unit)
+        noshares = get_verbuse_byuser(username, "shared", sm_platform, unit)
+        nocomments = get_verbuse_byuser(username, "commented", sm_platform, unit)
 
-        table_html = '<tr><td><a href="/dashboard/student_dashboard?course_code=%s&platform=%s&username=%s&username_platform=%s">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (course_code, platform, row[0], sm_platform, username, noposts, nolikes, noshares, nocomments, row[1])
+        table_html = '<tr><td><a href="/dashboard/student_dashboard?course_code=%s&platform=%s&username=%s&username_platform=%s">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (unit.code, platform, row[0], sm_platform, username, noposts, nolikes, noshares, nocomments, row[1])
         table.append(table_html)
     table_str = ''.join(table)
     return table_str
 
-def get_verbuse_byuser(username, verb, platform, course_code):
+def get_verbuse_byuser(username, verb, platform, unit):
 
     platformclause = ""
     if platform != "all":
@@ -262,8 +262,8 @@ def get_verbuse_byuser(username, verb, platform, course_code):
     cursor.execute("""
         select count(clatoolkit_learningrecord.username)
         FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.username='%s' AND clatoolkit_learningrecord.verb='%s' AND clatoolkit_learningrecord.course_code='%s' %s
-    """ % (username, verb, course_code, platformclause))
+        WHERE clatoolkit_learningrecord.username='%s' AND clatoolkit_learningrecord.verb='%s' AND clatoolkit_learningrecord.unit_id='%s' %s
+    """ % (username, verb, unit.id, platformclause))
     result = cursor.fetchone()
     count = result[0]
     return count
