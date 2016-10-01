@@ -235,7 +235,7 @@ def register(request, course_code):
 @login_required
 def register_existing(request, course_code):
     unit = UnitOffering.objects.get(code=course_code)
-    if not unit.users.filter(user=request.user).exists():
+    if not unit.users.filter(id = request.user.id).exists():
         membership = UnitOfferingMembership(user=request.user, unit=unit, admin=False)
         membership.save()
 
