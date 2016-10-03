@@ -23,6 +23,24 @@ def get_user_from_screen_name(screen_name, platform):
     return UserProfile.objects.get(**kwargs).user
 
 
+def get_smid(user, platform):
+    profile = user.userprofile
+
+    platform_name = platform.lower()
+
+    if platform_name == 'youtube':
+        platform_param_name = "google_account_name"
+    elif platform_name == 'github':
+        platform_param_name = "github_account_name"
+    elif platform_name == 'trello':
+        platform_param_name = "trello_account_name"
+    elif platform_name == 'facebook':
+        platform_param_name = "fb_id"
+    else:
+        platform_param_name = "{}_id".format(platform_name)
+
+    return getattr(profile, platform_param_name)
+
 
 def check_ifuserincourse(user, course_id):
     if UnitOffering.objects.filter(code=course_id, users=user).count() > 0:
@@ -39,6 +57,8 @@ def check_ifnotinlocallrs(unit, platform, platform_id):
     else:
         return False
 
+
+# TODO - remove test data
 def get_userdetails(screen_name, platform):
     usr_dict = {'screen_name':screen_name}
     platform_param_name = None

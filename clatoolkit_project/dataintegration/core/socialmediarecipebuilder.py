@@ -188,17 +188,32 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
     return statement
 
 
-def insert_post(user, post_id,message,from_name,from_uid, created_time, unit, platform, platform_url, tags=[]):
+def insert_post(user, post_id, message, created_time, unit, platform, platform_url, tags=()):
     if check_ifnotinlocallrs(unit, platform, post_id):
-        stm = socialmedia_builder(verb='created', platform=platform, account_name=from_uid, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, timestamp=created_time, account_email=user.email, user_name=from_name, unit=unit, tags=tags)
+        stm = socialmedia_builder(verb='created', platform=platform, account_name=get_smid(user, platform),
+                                  account_homepage=platform_url, object_type='Note', object_id=post_id, message=message,
+                                  timestamp=created_time, account_email=user.email, user_name=user.username, unit=unit,
+                                  tags=tags)
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, unit=unit, verb='created', platform=platform, user=user, username=from_uid, platformid=post_id, message=message, datetimestamp=created_time)
+        lrs = LearningRecord(xapi=stm_json, unit=unit, verb='created', platform=platform, user=user, platformid=post_id,
+                             message=message, datetimestamp=created_time)
         lrs.save()
         for tag in tags:
-            if tag[0]=="@":
-                socialrelationship = SocialRelationship(verb = "mentioned", fromusername=get_username_fromsmid(from_uid,platform), tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
-                socialrelationship.save()
+            if tag[0] == "@":
+                # If the user exists, use their user object else reference them as an external user
+                if username_exists(tag[1:], unit, platform):
+                    to_user = get_user_from_screen_name(tag[1:], platform)
+                    external_user = None
+                else:
+                    to_user = None
+                    external_user = tag[1:]
+
+                sr = SocialRelationship(verb="mentioned", from_user=user, to_user=to_user,
+                                        to_external_user=external_user, platform=platform, message=message,
+                                        datetimestamp=created_time, unit=unit, platformid=post_id)
+                sr.save()
+
 
 def insert_blogpost(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url, tags=[]):
     #print 'from_name: %s\n from_uid: %s\n' % (from_name,from_uid)

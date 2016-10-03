@@ -96,7 +96,7 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 else:
                     insert_share(user, post_id, retweeted_id, message, timestamp, unit, self.platform, self.platform_url, tags=tags, parent_external_user=retweeted_username)
             else:
-                insert_post(user, post_id,message,fullname,username, timestamp, unit, self.platform, self.platform_url, tags=tags)
+                insert_post(user, post_id, message, timestamp, unit, self.platform, self.platform_url, tags=tags)
 
 
     def get_verbs(self):
