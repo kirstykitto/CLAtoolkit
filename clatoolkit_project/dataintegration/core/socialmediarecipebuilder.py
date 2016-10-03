@@ -251,7 +251,7 @@ def insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_
             socialrelationship.save()
 
 
-def insert_share(user, post_id, share_id, comment_message, comment_created_time, unit, platform, platform_url, tags=[],
+def insert_share(user, post_id, share_id, comment_message, comment_created_time, unit, platform, platform_url, tags=(),
                  parent_user=None, parent_external_user=None):
     if check_ifnotinlocallrs(unit, platform, share_id):
         # TODO - re-enable xAPI
