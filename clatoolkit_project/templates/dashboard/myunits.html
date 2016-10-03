@@ -21,7 +21,7 @@
                         {% if role == "Staff" or membership.admin == True %}
                             <p>
                                 All Platforms [<a
-                                    href="/dashboard/?course_code={{ membership.unit.code }}&platform=all">Activity</a>
+                                    href="/dashboard/?unit={{ membership.unit.id }}&platform=all">Activity</a>
                                 | <a href="/dashboard/ca_dashboard?course_code={{ membership.unit.code }}&platform=all">Content
                                 Analysis</a> | <a
                                     href="/dashboard/sna_dashboard?course_code={{ membership.unit.code }}&platform=all">Social
@@ -32,7 +32,7 @@
                                     {% for hashtag in membership.unit.twitter_hashtags_as_list %}
                                         <a href="https://twitter.com/hashtag/{{ hashtag }}" target="_blank">{{ hashtag }}</a>
                                     {% endfor %}  [
-                                    <a href="/dashboard/?course_code={{ membership.unit.code }}&platform=Twitter">Activity</a>
+                                    <a href="/dashboard/?unit={{ membership.unit.id }}&platform=Twitter">Activity</a>
                                     |
                                     <a href="/dashboard/ca_dashboard?course_code={{ membership.unit.code }}&platform=Twitter">Content
                                         Analysis</a> |

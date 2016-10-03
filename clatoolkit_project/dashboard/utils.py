@@ -174,13 +174,13 @@ def get_timeseries(sm_verb, sm_platform, unit, username=None):
     dataset = ','.join(map(str, dataset_list))
     return dataset
 
-def get_timeseries_byplatform(sm_platform, course_code, username=None, without_date_utc=False):
 
+def get_timeseries_byplatform(sm_platform, unit, username=None, without_date_utc=False):
     userclause = ""
     if username is not None:
         userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s])" % (sm_usernames_str)
+        # sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+        # userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s])" % (sm_usernames_str)
 
     cursor = connection.cursor()
     cursor.execute("""
@@ -192,7 +192,7 @@ def get_timeseries_byplatform(sm_platform, course_code, username=None, without_d
     daily_counts as (
     select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
     FROM clatoolkit_learningrecord
-    WHERE clatoolkit_learningrecord.xapi->'context'->>'platform'='%s' AND clatoolkit_learningrecord.course_code='%s' %s
+    WHERE clatoolkit_learningrecord.xapi->'context'->>'platform'='%s' AND clatoolkit_learningrecord.unit_id='%s' %s
     group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
     order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
     )
@@ -201,18 +201,18 @@ def get_timeseries_byplatform(sm_platform, course_code, username=None, without_d
       from filled_dates
         left outer join daily_counts on daily_counts.day = filled_dates.day
       order by filled_dates.day;
-    """ % (sm_platform, course_code, userclause))
+    """ % (sm_platform, unit.id, userclause))
     result = cursor.fetchall()
     dataset_list = []
     for row in result:
-        curdate = row[0] #parse(row[0])
+        curdate = row[0]  # parse(row[0])
         datapoint = ""
         if without_date_utc:
-            datapoint = "%s,%s,%s,%s" % (curdate.year,curdate.month-1,curdate.day,row[1])
+            datapoint = "%s,%s,%s,%s" % (curdate.year, curdate.month - 1, curdate.day, row[1])
         else:
-            datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year,curdate.month-1,curdate.day,row[1])
+            datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year, curdate.month - 1, curdate.day, row[1])
         dataset_list.append(datapoint)
-    
+
     if without_date_utc:
         return dataset_list
     else:

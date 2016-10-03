@@ -238,14 +238,14 @@ def dashboard(request):
         if platform != "all":
             platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
         else:
-            twitter_timeline = get_timeseries_byplatform("Twitter", course_code)
-            facebook_timeline = get_timeseries_byplatform("Facebook", course_code)
-            forum_timeline = get_timeseries_byplatform("Forum", course_code)
-            youtube_timeline = get_timeseries_byplatform("YouTube", course_code)
-            diigo_timeline = get_timeseries_byplatform("Diigo", course_code)
-            blog_timeline = get_timeseries_byplatform("Blog", course_code)
-            github_timeline = get_timeseries_byplatform("GitHub", course_code)
-            trello_timeline = get_timeseries_byplatform("trello", course_code)
+            twitter_timeline = get_timeseries_byplatform("Twitter", unit)
+            facebook_timeline = get_timeseries_byplatform("Facebook", unit)
+            forum_timeline = get_timeseries_byplatform("Forum", unit)
+            youtube_timeline = get_timeseries_byplatform("YouTube", unit)
+            diigo_timeline = get_timeseries_byplatform("Diigo", unit)
+            blog_timeline = get_timeseries_byplatform("Blog", unit)
+            github_timeline = get_timeseries_byplatform("GitHub", unit)
+            trello_timeline = get_timeseries_byplatform("trello", unit)
             show_allplatforms_widgets = True
 
         profiling = profiling + "| Pies %s" % (str(datetime.datetime.now()))
