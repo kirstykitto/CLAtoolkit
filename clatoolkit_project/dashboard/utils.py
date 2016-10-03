@@ -268,7 +268,8 @@ def get_verbuse_byuser(username, verb, platform, unit):
     count = result[0]
     return count
 
-def get_top_content_table(platform, course_code, username=None):
+
+def get_top_content_table(platform, unit, username=None):
 
     platformclause = ""
     if platform != "all":
@@ -285,8 +286,8 @@ def get_top_content_table(platform, course_code, username=None):
     cursor.execute("""
     SELECT clatoolkit_learningrecord.platformid, clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.username, clatoolkit_learningrecord.xapi->>'timestamp', clatoolkit_learningrecord.platform
     FROM clatoolkit_learningrecord
-    WHERE clatoolkit_learningrecord.course_code='%s' %s %s
-    """ % (course_code, platformclause, userclause))
+    WHERE clatoolkit_learningrecord.unit_id='%s' %s %s
+    """ % (unit.id, platformclause, userclause))
     result = cursor.fetchall()
     table = []
     for row in result:
@@ -297,42 +298,44 @@ def get_top_content_table(platform, course_code, username=None):
             username = sm_userid
 
         post = row[1] #parse(row[0])
-        nolikes = contentcount_byverb(id, "liked", platform, course_code)
-        noshares = contentcount_byverb(id, "shared", platform, course_code)
-        nocomments = contentcount_byverb(id, "commented", platform, course_code)
+        nolikes = contentcount_byverb(id, "liked", platform, unit)
+        noshares = contentcount_byverb(id, "shared", platform, unit)
+        nocomments = contentcount_byverb(id, "commented", platform, unit)
         posted_on = row[3]
         table_html = "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (username, post, posted_on, nolikes, noshares, nocomments, row[4])
         table.append(table_html)
     table_str = ''.join(table)
     return table_str
 
-def get_cached_top_content(platform, course_code):
-    cached_content = None
-    if platform=="all":
-        cached_content = CachedContent.objects.filter(course_code=course_code)
+
+def get_cached_top_content(platform, unit):
+    if platform == "all":
+        cached_content = CachedContent.objects.filter(unit=unit)
     else:
-        cached_content = CachedContent.objects.filter(platform=platform,course_code=course_code)
-    #print platform, course_code, cached_content
+        cached_content = CachedContent.objects.filter(platform=platform, unit=unit)
+
     content_output = []
     for platformcontent in cached_content:
         content_output.append(platformcontent.htmltable)
     content_output_str = ''.join(content_output)
     return content_output_str
 
-def get_cached_active_users(platform, course_code):
+
+def get_cached_active_users(platform, unit):
     cached_content = None
-    if platform=="all":
-        cached_content = CachedContent.objects.filter(course_code=course_code)
+    if platform == "all":
+        cached_content = CachedContent.objects.filter(unit=unit)
     else:
-        cached_content = CachedContent.objects.filter(platform=platform,course_code=course_code)
-    #print platform, course_code, cached_content
+        cached_content = CachedContent.objects.filter(platform=platform, unit=unit)
+
     content_output = []
     for platformcontent in cached_content:
         content_output.append(platformcontent.activitytable)
     content_output_str = ''.join(content_output)
     return content_output_str
 
-def contentcount_byverb(id, verb, platform, course_code, username=None):
+
+def contentcount_byverb(id, verb, platform, unit, username=None):
 
     platformclause = ""
     if platform != "all":
@@ -353,10 +356,10 @@ def contentcount_byverb(id, verb, platform, course_code, username=None):
             FROM clatoolkit_learningrecord
             WHERE
             clatoolkit_learningrecord.verb='%s'
-            AND clatoolkit_learningrecord.course_code='%s' %s %s
+            AND clatoolkit_learningrecord.unit_id='%s' %s %s
             AND (clatoolkit_learningrecord.platformid='%s' OR
             clatoolkit_learningrecord.platformparentid='%s');
-        """ % (verb, course_code, platformclause, userclause, id, id)
+        """ % (verb, unit.id, platformclause, userclause, id, id)
     else:
         sql = """
         SELECT count(*)
@@ -801,11 +804,12 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     #print 'SNA JSON: %s' % (''.join(json_str_list))
     return ''.join(json_str_list)
 
-def sentiment_classifier(course_code):
+
+def sentiment_classifier(unit):
     # delete all previous classifications
     Classification.objects.filter(classifier='VaderSentiment').delete()
     # get messages
-    sm_objs = LearningRecord.objects.filter(course_code=course_code)
+    sm_objs = LearningRecord.objects.filter(unit=unit)
 
     for sm_obj in sm_objs:
         message = sm_obj.message.encode('utf-8', 'replace')

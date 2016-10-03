@@ -36,7 +36,6 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('htmltable', models.TextField()),
                 ('activitytable', models.TextField(blank=True)),
-                ('course_code', models.CharField(max_length=5000)),
                 ('platform', models.CharField(max_length=5000)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
             ],
@@ -218,5 +217,10 @@ class Migration(migrations.Migration):
             model_name='classification',
             name='xapistatement',
             field=models.ForeignKey(to='clatoolkit.LearningRecord'),
+        ),
+        migrations.AddField(
+            model_name='cachedcontent',
+            name='unit',
+            field=models.ForeignKey(to='clatoolkit.UnitOffering'),
         ),
     ]

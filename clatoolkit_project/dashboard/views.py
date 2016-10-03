@@ -275,10 +275,10 @@ def dashboard(request):
 
         #active members table
         profiling = profiling + "| Active Members %s" % (str(datetime.datetime.now()))
-        activememberstable = get_active_members_table(platform, unit) #get_cached_active_users(platform, course_code)
+        activememberstable = get_active_members_table(platform, unit)
 
         profiling = profiling + "| Top Content %s" % (str(datetime.datetime.now()))
-        topcontenttable = get_cached_top_content(platform, unit.code) #get_top_content_table(platform, course_code)
+        topcontenttable = get_cached_top_content(platform, unit)
         profiling = profiling + "| End Top Content %s" % (str(datetime.datetime.now()))
 
         context_dict = {'profiling': profiling, 'show_dashboardnav':show_dashboardnav,
@@ -295,6 +295,7 @@ def dashboard(request):
 
     else:
         raise PermissionDenied
+
 
 @login_required
 def cadashboard(request):

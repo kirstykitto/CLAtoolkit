@@ -244,7 +244,7 @@ class SocialRelationship(models.Model):
 class CachedContent(models.Model):
     htmltable = models.TextField(blank=False)
     activitytable = models.TextField(blank=True)
-    course_code = models.CharField(max_length=5000, blank=False)
+    unit = models.ForeignKey(UnitOffering)
     platform = models.CharField(max_length=5000, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
