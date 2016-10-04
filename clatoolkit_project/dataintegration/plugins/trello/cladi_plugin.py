@@ -75,13 +75,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     def import_TrelloActivity(self, feed, course_code):
         #User needs to sign up username and board (board can be left out but is needed)
         #TODO: RP
-
-        # for action in list(feed):
-        #     if (action['type'] == 'commentCard'):
-        #         print '=============================================================================='
-        #         print json.dumps(action)
-        #         print '=============================================================================='
-
         print 'Beginning trello import!'
 
         for action in list(feed):
