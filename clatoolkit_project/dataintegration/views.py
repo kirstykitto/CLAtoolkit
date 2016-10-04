@@ -289,20 +289,16 @@ def refreshblog(request):
 
 def dipluginauthomaticlogin(request):
     
-    if (request.GET.get('context') is not None):
+    if request.GET.get('context') is not None:
         request.GET = request.GET.copy()
 
         state_dict = request.GET.pop('context')
         state_dict = state_dict[0]
         state_dict = json.loads(state_dict)
 
-        #print str(state_dict)
-
         request.session['platform'] = state_dict['platform']
-        request.session['course_code'] = state_dict['course_code']
+        request.session['unit'] = state_dict['unit']
         request.session['group_id'] = state_dict['group']
-
-    #print 'Data stored in session: %s, %s, %s' % (request.session['platform'], request.session['course_code'], request.session['group_id'])
 
     platform = request.session['platform']
 
@@ -339,17 +335,18 @@ def dipluginauthomaticlogin(request):
                 # we can _access user's protected resources.
                 if result.user.credentials:
                     group_id = request.session['group_id']
-                    course_code = request.session['course_code']
+                    unit_id = request.session['unit']
+                    unit = UnitOffering.objects.get(id=id)
                     if result.provider.name == 'fb':
-                        di_plugin.perform_import(group_id, course_code, result)
+                        di_plugin.perform_import(group_id, unit, result)
 
-                        post_smimport(course_code, "facebook")
+                        post_smimport(unit, "facebook")
 
                         #Remove all data stored in session for this view to avoid cache issues
                         del request.session['platform']
                         del request.session['course_code']
                         del request.session['group_id']
-                        html_response.write('Updating Facebook for ' + course_code)
+                        html_response.write('Updating Facebook for {} {}'.format(unit.code, unit.name))
         else:
             html_response.write('Auth Returned no Response.')
 

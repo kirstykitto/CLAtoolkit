@@ -50,11 +50,13 @@ def check_ifuserincourse(user, course_id):
 
 
 # TODO - update all usages to unit
-def check_ifnotinlocallrs(unit, platform, platform_id):
-    count = LearningRecord.objects.filter(unit=unit, platform=platform, platformid=platform_id).count()
-    if count == 0:
-        return True
-    else:
+def check_ifnotinlocallrs(unit, platform, platform_id, user=None, verb=None):
+    try:
+        if user:
+            LearningRecord.objects.get(unit=unit, platform=platform, platformid=platform_id, user=User, verb=verb)
+        else:
+            LearningRecord.objects.get(unit=unit, platform=platform, platformid=platform_id)
+    except LearningRecord.DoesNotExist:
         return False
 
 

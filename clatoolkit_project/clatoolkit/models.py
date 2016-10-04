@@ -221,11 +221,12 @@ class LearningRecord(models.Model):
     user = models.ForeignKey(User)
     username = models.CharField(max_length=5000, blank=True)
     platformid = models.CharField(max_length=5000, blank=True)
+    # TODO - Use foreign key to link to parent learning record
     platformparentid = models.CharField(max_length=5000, blank=True)
     parent_user = models.ForeignKey(User, null=True, related_name="parent_user")
     parent_username = models.CharField(max_length=5000, blank=True)
     message = models.TextField(blank=True)
-    datetimestamp = models.DateTimeField(blank=True, null=True)
+    datetimestamp = models.DateTimeField(auto_now_add=True)
     senttolrs = models.CharField(max_length=5000, blank=True)
 
 

@@ -49,7 +49,7 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
 
         self.authomatic_secretkey = str(os.environ.get("FACEBOOK_AUTHOMATIC_SECRET_KEY"))
 
-    def perform_import(self, retrieval_param, course_code, authomatic_result):
+    def perform_import(self, retrieval_param, unit, authomatic_result):
         """
         Sends formatted data to LRS
         1. Parses facebook feed
@@ -67,7 +67,7 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
         paging = access_response.data.get('paging')
         while True:
             try:
-                self.insert_facebook_lrs(fb_feed=data, course_code=course_code)
+                self.insert_facebook_lrs(data, unit)
                 fb_resp = requests.get(paging['next']).json()
                 data = fb_resp['data']
                 if 'paging' not in fb_resp:
@@ -79,13 +79,13 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
                 # loop and end the script.
                 break
 
-    def insert_facebook_lrs(self, fb_feed, course_code):
+    def insert_facebook_lrs(self, fb_feed, unit):
         """
         1. Parses facebook feed
         2. Uses construct_tincan_statement to format data ready to send for the LRS
         3. Sends to the LRS and Saves to postgres json field
         :param fb_feed: Facebook Feed as dict
-        :param course_code: The unit offering code
+        :param unit: A UnitOffering object
         :return:
         """
         for pst in fb_feed:
@@ -96,30 +96,31 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
                 from_name = pst['from']['name']
                 post_id = pst['actions'][0]['link']
                 message = pst['message']
-                if username_exists(from_uid, course_code, self.platform):
-                    usr_dict = get_userdetails(from_uid, self.platform)
-                    insert_post(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, self.platform, self.platform_url)
+                if username_exists(from_uid, unit, self.platform):
+                    user = get_user_from_screen_name(from_uid, self.platform)
 
-                if 'likes' in pst:
-                    for like in pst['likes']['data']:
-                        like_uid = like['id']
-                        like_name = like['name']
+                    insert_post(user, post_id, message, created_time, unit, self.platform, self.platform_url)
 
-                        if username_exists(like_uid, course_code, self.platform):
-                            usr_dict = get_userdetails(like_uid, self.platform)
-                            insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, self.platform, self.platform_url, liked_username=from_uid)
+                    if 'likes' in pst:
+                        for like in pst['likes']['data']:
+                            like_uid = like['id']
 
-                if 'comments' in pst:
-                    for comment in pst['comments']['data']:
-                        comment_created_time = comment['created_time']
-                        comment_from_uid = comment['from']['id']
-                        comment_from_name = comment['from']['name']
-                        comment_message = comment['message']
-                        comment_id = comment['id']
-                        if username_exists(comment_from_uid, course_code, self.platform):
-                            usr_dict = get_userdetails(comment_from_uid, self.platform)
+                            if username_exists(like_uid, unit, self.platform):
+                                like_user = get_user_from_screen_name(from_uid, self.platform)
+                                insert_like(like_user, post_id, message, unit, self.platform, parent_user=user)
 
-                            insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, self.platform, self.platform_url, shared_username=from_uid)
+                    if 'comments' in pst:
+                        for comment in pst['comments']['data']:
+                            comment_created_time = comment['created_time']
+                            comment_from_uid = comment['from']['id']
+                            comment_from_name = comment['from']['name']
+                            comment_message = comment['message']
+                            comment_id = comment['id']
+
+                            if username_exists(comment_from_uid, unit, self.platform):
+                                comment_user = get_user_from_screen_name(comment_from_uid, self.platform)
+
+                                insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, self.platform, self.platform_url, shared_username=from_uid)
 
 
 registry.register(FacebookPlugin)
