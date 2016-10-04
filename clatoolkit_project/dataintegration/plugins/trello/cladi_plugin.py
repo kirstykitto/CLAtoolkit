@@ -75,6 +75,13 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     def import_TrelloActivity(self, feed, course_code):
         #User needs to sign up username and board (board can be left out but is needed)
         #TODO: RP
+
+        # for action in list(feed):
+        #     if (action['type'] == 'commentCard'):
+        #         print '=============================================================================='
+        #         print json.dumps(action)
+        #         print '=============================================================================='
+
         print 'Beginning trello import!'
 
         for action in list(feed):
@@ -102,14 +109,16 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 comment_message = data['text']
                 comment_id = action['id']
                 # TODO: shared_username is required for insert_comment() method...
-                # card_name = data['card']['name']
+                card_name = data['card']['name']
 
                 if username_exists(comment_from_uid, course_code, self.platform):
                     usr_dict = get_userdetails(comment_from_uid, self.platform)
                     insert_comment(usr_dict, target_obj_id, comment_id,
                                    comment_message, comment_from_uid,
                                    comment_from_name, date, course_code,
-                                   self.platform, self.platform_url)
+                                   self.platform, self.platform_url,
+                                   shared_username = target_obj_id, shared_displayname = card_name)
+
                     print 'Inserted comment!'
 
             #print 'is action card creation? %s' % (type == 'createCard')
@@ -228,8 +237,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                           obj_parent_type='checklist')
                     #TODO: RP
                     print 'add update checklist!'
-
-
 
                 #type will only show 'updateCard'
                 #up to us to figure out what's being updated
