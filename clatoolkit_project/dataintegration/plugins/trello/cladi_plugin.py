@@ -15,7 +15,7 @@ from trello import TrelloClient
 
 #OAuth for trello
 from requests_oauthlib import OAuth1Session
-from common.common import ClaUtil
+from common.common import ClaUserUtil
 
 
 class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
@@ -142,7 +142,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                  , 'addMemberToCard']):
 
                 # Get user details from Util class
-                usr_dict = ClaUtil.get_user_details_by_smid(u_id, self.platform)
+                usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
 
                 if type is 'addAttachmentToCard' and usr_dict is not None:
 

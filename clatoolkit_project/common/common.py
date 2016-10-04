@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from clatoolkit.models import UnitOffering, UserProfile
 
 
-class ClaUtil(object):
+class ClaUserUtil(object):
 	@classmethod
 	def get_smids_by_uid(self, userid):
 		if userid is None:
@@ -88,6 +88,8 @@ class ClaUtil(object):
 	@classmethod
 	def get_platform_column_name_filter_string(self, platform):
 		platform = platform.lower()
+		
+		# TODO: Platform name should not be hard-coded...
 		if platform =='youtube':
 			platform_param_name = "google_account_name"
 		elif platform == 'github':
