@@ -150,12 +150,12 @@
                             {% endif %}
                             <br/>
                             <hr/>
-                            <a href="/clatoolkit/unitofferings/{{ membership.unit.code }}/members">{{ membership.unit.users.count }} Members</a>
+                            <a href="/clatoolkit/unitofferings/{{ membership.unit.id }}/members">{{ membership.unit.users.count }} Members</a>
                             <br>
                             Registration Link for Students:
-                            <a href="{% url 'register' course_code=membership.unit.code %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' course_code=membership.unit.code %}</a>
+                            <a href="{% url 'register' unit_id=membership.unit.id %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' unit_id=membership.unit.id %}</a>
                             </p>
-                            <a href="{% url 'update_offering' membership.unit.code %}">Update unit offering</a>
+                            <a href="{% url 'update_offering' membership.unit.id %}">Update unit offering</a>
                         {% else %}
                             {% if shownocontentwarning == True %}
                                 <div class="alert alert-warning">
