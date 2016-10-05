@@ -100,7 +100,8 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
                     'File': 'http://activitystrea.ms/schema/1.0/file',
                     'Task': 'http://activitystrea.ms/specs/json/schema/activity-schema.html#task',
                     'checklist': 'http://id.tincanapi.com/activitytype/checklist',
-                    'checklist-item': 'http://id.tincanapi.com/activitytype/checklist-item'
+                    'checklist-item': 'http://id.tincanapi.com/activitytype/checklist-item',
+                    'Person': 'http://activitystrea.ms/head/activity-schema.html#person',
     }
 
     agentaccount = AgentAccount(name=account_name, home_page=account_homepage)

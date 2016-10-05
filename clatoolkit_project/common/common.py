@@ -143,8 +143,9 @@ class CLRecipe(object):
 	OBJECT_COLLECTION = 'Collection'
 	OBJECT_FILE = 'File'
 	OBJECT_TASK = 'Task'
-	OBJECT_CHECKLIST = 'checklist'
-	OBJECT_CHECKLIST_ITEM = 'checklist-item'
+	OBJECT_CHECKLIST = 'Checklist'
+	OBJECT_CHECKLIST_ITEM = 'Checklist-item'
+	OBJECT_PERSON = 'Person'
 
 	VERB_IRI_MAPPER = {
 		VERB_CREATED: 'http://www.w3.org/ns/activitystreams#Create',

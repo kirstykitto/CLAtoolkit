@@ -126,7 +126,8 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             if (type == 'createCard'): #, 'createList']):
                 #date
                 #list_id = data['list']['id']
-                task_id = data['card']['id']
+                # task_id = data['card']['id']
+                task_id = action['id']
                 task_name = data['card']['name']
 
                 if username_exists(u_id, course_code, self.platform):
@@ -168,11 +169,12 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED))
                     other_context_list = [context]
 
-                if type is 'addAttachmentToCard' and usr_dict is not None:
+                if type == 'addAttachmentToCard' and usr_dict is not None:
 
                     target_id = data['card']['id']
                     attachment = data['attachment']
-                    attachment_id = attachment['id']
+                    # attachment_id = attachment['id']
+                    object_id = action['id']
                     attachment_data = '%s - %s' % (attachment['name'], attachment['url'])
                     object_type = CLRecipe.OBJECT_FILE
                     shared_displayname = '%sc/%s' % (self.platform_url, target_id)
@@ -185,13 +187,13 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #TODO: RP
                     print 'Added attachment!'
 
-                if type is 'addMemberToCard' and usr_dict is not None: #or 'addMemberToBoard':
+                if type == 'addMemberToCard' and usr_dict is not None: #or 'addMemberToBoard':
 
                     target_id = data['card']['id']
-                    object_id = data['idMember']
-                    # object_id = action['id']
-                    object_data = action['memeber']['username']
-                    object_type = 'Person'
+                    # object_id = data['idMember']
+                    object_id = action['id']
+                    object_data = action['member']['username']
+                    object_type = CLRecipe.OBJECT_PERSON
                     shared_displayname = '%sc/%s' % (self.platform_url, target_id)
 
                     insert_added_object(usr_dict, target_id, object_id, object_data, u_id, author, date,
@@ -202,13 +204,14 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #TODO: RP
                     print 'Added add member to card!'
 
-                if type is 'addChecklistToCard' and usr_dict is not None:
+                if type == 'addChecklistToCard' and usr_dict is not None:
 
                     target_id = data['card']['id']
-                    object_id = data['idMember']
+                    # object_id = data['idMember']
+                    object_id = action['id']
                     object_data = None
                     checklist_items = None
-                    object_type = 'Collection'
+                    object_type = CLRecipe.OBJECT_COLLECTION
                     shared_displayname = '%sc/%s' % (self.platform_url, target_id)
 
                     #get checklist contents
@@ -228,7 +231,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                     #TODO: RP
                     print 'added add checklist to card!'
-
 
             #print 'is action type an update? %s' % (type in
             #    ['updateCheckItemStateOnCard', 'updateBoard',
@@ -261,6 +263,9 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 #type will only show 'updateCard'
                 #up to us to figure out what's being updated
                 if type == 'updateCard':
+                    #TODO: Remove Print
+                    # print 'data: %s' % (data)
+
                     #Get and store the values that were changed, usually it's only one
                     #TODO: Handle support for multiple changes, if that's possible
                     try:
@@ -314,7 +319,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                             #TODO: RP
                             print 'added closed/opened card!'
 
-
     def get_verbs(self):
         return self.xapi_verbs
             
@@ -322,12 +326,3 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         return self.xapi_objects
 
 registry.register(TrelloPlugin)
-
-
-
-
-
-
-
-
-
