@@ -15,7 +15,7 @@ from trello import TrelloClient
 
 #OAuth for trello
 from requests_oauthlib import OAuth1Session
-from common.common import ClaUserUtil
+from common.common import ClaUserUtil, CLRecipe
 
 
 class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
@@ -101,16 +101,23 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 comment_from_name = author
                 comment_message = data['text']
                 comment_id = action['id']
-                # TODO: shared_username is required for insert_comment() method...
                 card_name = data['card']['name']
-
+                
                 if username_exists(comment_from_uid, course_code, self.platform):
-                    usr_dict = get_userdetails(comment_from_uid, self.platform)
+                    # Create "other" contextActivity object to store original activity in xAPI
+                    card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
+                    context = get_other_contextActivity(
+                        card_details['shortUrl'], 'Verb', type, 
+                        CLRecipe.get_verb_iri(CLRecipe.VERB_COMMENTED))
+                    other_context_list = [context]
+                    usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
+
                     insert_comment(usr_dict, target_obj_id, comment_id,
                                    comment_message, comment_from_uid,
                                    comment_from_name, date, course_code,
                                    self.platform, self.platform_url,
-                                   shared_username = target_obj_id, shared_displayname = card_name)
+                                   shared_username = target_obj_id, shared_displayname = card_name,
+                                   other_contexts = other_context_list)
 
                     print 'Inserted comment!'
 
@@ -123,9 +130,16 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 task_name = data['card']['name']
 
                 if username_exists(u_id, course_code, self.platform):
-                    usr_dict = get_userdetails(u_id, self.platform)
+                    # Create "other" contextActivity object to store original activity in xAPI
+                    card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
+                    context = get_other_contextActivity(
+                        card_details['shortUrl'], 'Verb', type, 
+                        CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED))
+                    other_context_list = [context]
+                    usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
+
                     insert_task(usr_dict, task_id, task_name, u_id, author, date,
-                                course_code, self.platform, self.platform_url) #, list_id=list_id)
+                                course_code, self.platform, self.platform_url, other_contexts = other_context_list) #, list_id=list_id)
 
                     #TODO: RP
                     print 'Inserted created card!'
@@ -144,18 +158,29 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 # Get user details from Util class
                 usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
 
+                other_context_list = []
+                # TODO: Add emailCard and addMemberToBoard? Currently they aren't imported
+                if type in ['addAttachmentToCard', 'addChecklistToCard', 'addMemberToCard']:
+                    # Create "other" contextActivity object to store original activity in xAPI
+                    card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
+                    context = get_other_contextActivity(
+                        card_details['shortUrl'], 'Verb', type, 
+                        CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED))
+                    other_context_list = [context]
+
                 if type is 'addAttachmentToCard' and usr_dict is not None:
 
                     target_id = data['card']['id']
                     attachment = data['attachment']
                     attachment_id = attachment['id']
                     attachment_data = '%s - %s' % (attachment['name'], attachment['url'])
-                    object_type = 'File'
+                    object_type = CLRecipe.OBJECT_FILE
                     shared_displayname = '%sc/%s' % (self.platform_url, target_id)
 
                     insert_added_object(usr_dict, target_id, attachment_id, attachment_data,
                                         u_id, author, date, course_code, self.platform, self.platform_url,
-                                        object_type, shared_displayname=shared_displayname)
+                                        object_type, shared_displayname=shared_displayname,
+                                        other_contexts = other_context_list)
 
                     #TODO: RP
                     print 'Added attachment!'
@@ -171,7 +196,8 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                     insert_added_object(usr_dict, target_id, object_id, object_data, u_id, author, date,
                                         course_code, self.platform, self.platform_url, object_type,
-                                        shared_displayname=shared_displayname)
+                                        shared_displayname=shared_displayname,
+                                        other_contexts = other_context_list)
 
                     #TODO: RP
                     print 'Added add member to card!'
@@ -197,7 +223,8 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                     insert_added_object(usr_dict, target_id, object_id, object_data, u_id, author, date,
                                         course_code, self.platform, self.platform_url, object_type,
-                                        shared_displayname=shared_displayname)
+                                        shared_displayname=shared_displayname,
+                                        other_contexts = other_context_list)
 
                     #TODO: RP
                     print 'added add checklist to card!'
@@ -234,9 +261,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 #type will only show 'updateCard'
                 #up to us to figure out what's being updated
                 if type == 'updateCard':
-                    #TODO: Remove Print
-                    # print 'data: %s' % (data)
-
                     #Get and store the values that were changed, usually it's only one
                     #TODO: Handle support for multiple changes, if that's possible
                     try:
@@ -289,6 +313,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                             #TODO: RP
                             print 'added closed/opened card!'
+
 
     def get_verbs(self):
         return self.xapi_verbs
