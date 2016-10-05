@@ -46,6 +46,15 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     #for OAuth1 authentication
     token_request_url = ''
 
+    # Trello action type
+    # Note: MoveCard, CloseCard, OpenCard are created to identify what users really did
+    #       (The original action type of moving/closing/opening card are all same: updateCard)
+    ACTION_TYPE_MOVE_CARD = 'moveCard'
+    ACTION_TYPE_CLOSE_CARD = 'closeCard'
+    ACTION_TYPE_OPEN_CARD = 'openCard'
+    ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD = 'updateCheckItemStateOnCard'
+    ACTION_TYPE_UPDATE_CARD = 'updateCard'
+
     def __init__(self):
        pass
 
@@ -242,13 +251,16 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                  'updateCard', 'updateCheckList',
                  'updateList', 'updateMember']):
 
-                usr_dict = None
-                if username_exists(u_id, course_code, self.platform):
-                    usr_dict = get_userdetails(u_id, self.platform)
-
+                usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
                 #many checklist items will be bugged - we require webhooks!
 
                 if type == 'updateCheckItemStateOnCard' and usr_dict is not None:
+                    # Create "other" contextActivity object to store original activity in xAPI
+                    card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
+                    context = get_other_contextActivity(
+                        card_details['shortUrl'], 'Verb', type, 
+                        CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED))
+                    other_context_list = [context]
 
                     insert_updated_object(usr_dict,
                                           data['checkItem']['id'],
@@ -256,15 +268,15 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                           u_id, author, date, course_code,
                                           self.platform, self.platform_url,
                                           'checklist-item', obj_parent=data['checklist']['id'],
-                                          obj_parent_type='checklist')
+                                          obj_parent_type='checklist',
+                                          other_contexts = other_context_list)
                     #TODO: RP
                     print 'add update checklist!'
+
 
                 #type will only show 'updateCard'
                 #up to us to figure out what's being updated
                 if type == 'updateCard':
-                    #TODO: Remove Print
-                    # print 'data: %s' % (data)
 
                     #Get and store the values that were changed, usually it's only one
                     #TODO: Handle support for multiple changes, if that's possible
@@ -280,42 +292,47 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #Insert all updates that aren't closed
                     if change[0] == 'pos':
                         if 'listBefore' in data:
-                            insert_updated_object(usr_dict, action['id'],
-                                                  'Move card from %s to %s' % (data['listBefore']['name'], data['listAfter']['name']),
-                                                  u_id, author, date, course_code,
-                                                  self.platform, self.platform_url,
-                                                  'Task', obj_parent=data['list']['name'],
-                                                  obj_parent_type='Collection')
+                            object_text = 'Move card from %s to %s' % (data['listBefore']['name'], data['listAfter']['name'])
                         else:
-                            insert_updated_object(usr_dict, action['id'],
-                                                  'Move card from %s to %s' % (data['old']['pos'], data['card']['pos']),
-                                                  u_id, author, date, course_code,
-                                                  self.platform, self.platform_url,
-                                                  'Task', obj_parent=data['list']['name'],
-                                                  obj_parent_type='Collection')
+                            object_text = 'Move card from %s to %s' % (data['old']['pos'], data['card']['pos'])
+
+                        context = get_other_contextActivity(
+                            card_details['shortUrl'], 'Verb', self.ACTION_TYPE_MOVE_CARD, 
+                            CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED))
+                        other_context_list = [context]
+
+                        insert_updated_object(usr_dict, action['id'],
+                                              object_text, u_id, author, date, course_code,
+                                              self.platform, self.platform_url,
+                                              CLRecipe.OBJECT_TASK, obj_parent=data['list']['name'],
+                                              obj_parent_type = CLRecipe.OBJECT_COLLECTION,
+                                              other_contexts = other_context_list)
+
                         #TODO: RP
                         print 'added closed card!'
                     #add in close/open verbs
                     else:
-                        if data['old'][change[0]] is False:
+                        if data['old'][change[0]] is False or data['old'][change[0]] is True:
+                            verb_iri = CLRecipe.get_verb_iri(CLRecipe.VERB_CLOSED)
+                            verb = CLRecipe.VERB_CLOSED
+                            action_type = self.ACTION_TYPE_CLOSE_CARD
+                            object_text = '%s:%s' % (CLRecipe.VERB_CLOSED, data['card']['name'])
+
+                            if data['old'][change[0]] is True:
+                                verb_iri = CLRecipe.get_verb_iri(CLRecipe.VERB_OPENED)
+                                verb = CLRecipe.VERB_OPENED
+                                action_type = self.ACTION_TYPE_OPEN_CARD
+                                object_text = '%s:%s' % (CLRecipe.VERB_OPENED, data['card']['name'])
+
+                            context = get_other_contextActivity(card_details['shortUrl'], 'Verb', action_type, verb_iri)
+                            other_context_list = [context]
+
                             insert_closedopen_object(usr_dict, action['id'],
-                                                 '%s:%s' % ('Closed', data['card']['name']),
-                                                 u_id, author, date, course_code,
+                                                 object_text, u_id, author, date, course_code,
                                                  self.platform, self.platform_url,
-                                                 'Task', 'closed', obj_parent=data['list']['name'],
-                                                 obj_parent_type='Collection')
-
-                            #TODO: RP
-                            print 'added closed/opened card!'
-
-                        elif data['old'][change[0]] is True:
-                            insert_closedopen_object(usr_dict, action['id'],
-                                                 '%s:%s' % ('Opened', data['card']['name']),
-                                                 u_id, author, date, course_code,
-                                                 self.platform, self.platform_url,
-                                                 'Task', 'opened', obj_parent=data['list']['name'],
-                                                 obj_parent_type='Collection')
-
+                                                 CLRecipe.OBJECT_TASK, verb, obj_parent = data['list']['name'],
+                                                 obj_parent_type = CLRecipe.OBJECT_COLLECTION,
+                                                 other_contexts = other_context_list)
                             #TODO: RP
                             print 'added closed/opened card!'
 
