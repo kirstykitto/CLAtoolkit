@@ -47,13 +47,19 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     token_request_url = ''
 
     # Trello action type
-    # Note: MoveCard, CloseCard, OpenCard are created to identify what users really did
+    # Note: MoveCard, CloseCard, OpenCard are created for the toolkit to identify what users really did
     #       (The original action type of moving/closing/opening card are all same: updateCard)
+    ACTION_TYPE_COMMENT_CARD = 'commentCard'
+    ACTION_TYPE_CREATE_CARD = 'createCard'
+    ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD = 'updateCheckItemStateOnCard'
+    ACTION_TYPE_UPDATE_CARD = 'updateCard'
+    ACTION_TYPE_ADD_ATTACHMENT_TO_CARD = 'addAttachmentToCard'
+    ACTION_TYPE_ADD_CHECKLIST_TO_CARD = 'addChecklistToCard'
+    ACTION_TYPE_ADD_MEMBER_TO_CARD = 'addMemberToCard'
     ACTION_TYPE_MOVE_CARD = 'moveCard'
     ACTION_TYPE_CLOSE_CARD = 'closeCard'
     ACTION_TYPE_OPEN_CARD = 'openCard'
-    ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD = 'updateCheckItemStateOnCard'
-    ACTION_TYPE_UPDATE_CARD = 'updateCard'
+
 
     def __init__(self):
        pass
@@ -102,7 +108,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
             #print 'is action comment? %s' % (type == 'commentCard')
             #Get all 'commented' verb actions
-            if (type == 'commentCard'):
+            if (type == self.ACTION_TYPE_COMMENT_CARD):
                 #do stuff
                 target_obj_id = data['card']['id']
                 #date
@@ -132,7 +138,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
             #print 'is action card creation? %s' % (type == 'createCard')
             #Get all 'create' verb actions
-            if (type == 'createCard'): #, 'createList']):
+            if (type == self.ACTION_TYPE_CREATE_CARD): #, 'createList']):
                 #date
                 #list_id = data['list']['id']
                 # task_id = data['card']['id']
@@ -161,16 +167,19 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             #     'emailCard', 'addChecklistToCard'
             #     , 'addMemberToCard'])
             if (type in
-                ['addAttachmentToCard', 'addMemberToBoard',
-                 'emailCard', 'addChecklistToCard'
-                 , 'addMemberToCard']):
+                [self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, 
+                'addMemberToBoard', 'emailCard', 
+                self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD, 
+                self.ACTION_TYPE_ADD_MEMBER_TO_CARD]):
 
                 # Get user details from Util class
                 usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
 
                 other_context_list = []
                 # TODO: Add emailCard and addMemberToBoard? Currently they aren't imported
-                if type in ['addAttachmentToCard', 'addChecklistToCard', 'addMemberToCard']:
+                if type in [self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, 
+                            self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD, 
+                            self.ACTION_TYPE_ADD_MEMBER_TO_CARD]:
                     # Create "other" contextActivity object to store original activity in xAPI
                     card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
                     context = get_other_contextActivity(
@@ -178,7 +187,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED))
                     other_context_list = [context]
 
-                if type == 'addAttachmentToCard' and usr_dict is not None:
+                if type == self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD and usr_dict is not None:
 
                     target_id = data['card']['id']
                     attachment = data['attachment']
@@ -196,7 +205,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #TODO: RP
                     print 'Added attachment!'
 
-                if type == 'addMemberToCard' and usr_dict is not None: #or 'addMemberToBoard':
+                if type == self.ACTION_TYPE_ADD_MEMBER_TO_CARD and usr_dict is not None: #or 'addMemberToBoard':
 
                     target_id = data['card']['id']
                     # object_id = data['idMember']
@@ -213,7 +222,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #TODO: RP
                     print 'Added add member to card!'
 
-                if type == 'addChecklistToCard' and usr_dict is not None:
+                if type == self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD and usr_dict is not None:
 
                     target_id = data['card']['id']
                     # object_id = data['idMember']
@@ -247,14 +256,14 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             #     'updateList', 'updateMember'])
             #Get all 'updated' verbs
             if (type in
-                ['updateCheckItemStateOnCard', 'updateBoard',
-                 'updateCard', 'updateCheckList',
+                [self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD, 'updateBoard',
+                 self.ACTION_TYPE_UPDATE_CARD, 'updateCheckList',
                  'updateList', 'updateMember']):
 
                 usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
                 #many checklist items will be bugged - we require webhooks!
 
-                if type == 'updateCheckItemStateOnCard' and usr_dict is not None:
+                if type == self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD and usr_dict is not None:
                     # Create "other" contextActivity object to store original activity in xAPI
                     card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
                     context = get_other_contextActivity(
@@ -276,7 +285,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                 #type will only show 'updateCard'
                 #up to us to figure out what's being updated
-                if type == 'updateCard':
+                if type == self.ACTION_TYPE_UPDATE_CARD:
 
                     #Get and store the values that were changed, usually it's only one
                     #TODO: Handle support for multiple changes, if that's possible
