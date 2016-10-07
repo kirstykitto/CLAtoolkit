@@ -219,7 +219,6 @@ class LearningRecord(models.Model):
     platform = models.CharField(max_length=5000, blank=False)
     verb = models.CharField(max_length=5000, blank=False)
     user = models.ForeignKey(User)
-    username = models.CharField(max_length=5000, blank=True)
     platformid = models.CharField(max_length=5000, blank=True)
     # TODO - Use foreign key to link to parent learning record
     platformparentid = models.CharField(max_length=5000, blank=True)

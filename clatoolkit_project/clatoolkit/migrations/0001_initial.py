@@ -75,7 +75,6 @@ class Migration(migrations.Migration):
                 ('xapi', django_pgjson.fields.JsonField()),
                 ('platform', models.CharField(max_length=5000)),
                 ('verb', models.CharField(max_length=5000)),
-                ('username', models.CharField(max_length=5000, blank=True)),
                 ('platformid', models.CharField(max_length=5000, blank=True)),
                 ('platformparentid', models.CharField(max_length=5000, blank=True)),
                 ('parent_user_external', models.CharField(max_length=5000, null=True, blank=True)),
