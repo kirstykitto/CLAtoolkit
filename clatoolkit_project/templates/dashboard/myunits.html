@@ -34,11 +34,11 @@
                                     {% endfor %}  [
                                     <a href="/dashboard/?unit={{ membership.unit.id }}&platform=Twitter">Activity</a>
                                     |
-                                    <a href="/dashboard/ca_dashboard?course_code={{ membership.unit.code }}&platform=Twitter">Content
+                                    <a href="/dashboard/ca_dashboard?unit={{ membership.unit.id }}&platform=Twitter">Content
                                         Analysis</a> |
-                                    <a href="/dashboard/sna_dashboard?course_code={{ membership.unit.code }}&platform=Twitter">Social
+                                    <a href="/dashboard/sna_dashboard?unit={{ membership.unit.id }}&platform=Twitter">Social
                                         Network Analysis</a>] |
-                                    <a href="/dataintegration/refreshtwitter/?unit_offering={{ membership.unit.id }}&hashtags={{ membership.unit.twitter_hashtags|urlencode }}">Refresh
+                                    <a href="/dataintegration/refreshtwitter/?unit={{ membership.unit.id }}&hashtags={{ membership.unit.twitter_hashtags|urlencode }}">Refresh
                                         Imported Data</a>
                                 {% endif %}
                                 {% if membership.unit.facebook_groups_as_list|length > 0 %}

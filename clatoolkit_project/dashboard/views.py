@@ -301,40 +301,48 @@ def dashboard(request):
 def cadashboard(request):
     context = RequestContext(request)
 
-    course_code = None
     platform = None
     no_topics = 3
 
     if request.method == 'POST':
-        course_code = request.POST['course_code']
+        unit_id = request.POST['unit']
         platform = request.POST['platform']
         no_topics = int(request.POST['no_topics'])
     else:
-        course_code = request.GET.get('course_code')
+        unit_id = request.GET.get('unit')
         platform = request.GET.get('platform')
 
-    if UnitOfferingMembership.is_admin(request.user, course_code):
+    unit = UnitOffering.objects.get(id=unit_id)
 
-        title = "Content Analysis Dashboard: %s (Platform: %s)" % (course_code, platform)
+    if UnitOfferingMembership.is_admin(request.user, unit):
+
+        title = "Content Analysis Dashboard: %s (Platform: %s)" % (unit.code, platform)
         show_dashboardnav = True
 
-        posts_timeline = get_timeseries('created', platform, course_code)
-        shares_timeline = get_timeseries('shared', platform, course_code)
-        likes_timeline = get_timeseries('liked', platform, course_code)
-        comments_timeline = get_timeseries('commented', platform, course_code)
+        posts_timeline = get_timeseries('created', platform, unit)
+        shares_timeline = get_timeseries('shared', platform, unit)
+        likes_timeline = get_timeseries('liked', platform, unit)
+        comments_timeline = get_timeseries('commented', platform, unit)
 
-        tags = get_wordcloud(platform, course_code)
+        tags = get_wordcloud(platform, unit)
 
-        sentiments = getClassifiedCounts(platform, course_code, classifier="VaderSentiment")
-        coi = getClassifiedCounts(platform, course_code, classifier="NaiveBayes_t1.model")
+        sentiments = getClassifiedCounts(platform, unit, classifier="VaderSentiment")
+        coi = getClassifiedCounts(platform, unit, classifier="NaiveBayes_t1.model")
 
-        topic_model_output, sentimenttopic_piebubblesdataset = nmf(platform, no_topics, course_code, start_date=None, end_date=None)
+        topic_model_output, sentimenttopic_piebubblesdataset = nmf(platform, no_topics, unit, start_date=None, end_date=None)
 
-        context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'sentiments': sentiments, 'coi': coi, 'tags': tags, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'no_topics': no_topics, 'topic_model_output': topic_model_output, 'sentimenttopic_piebubblesdataset':sentimenttopic_piebubblesdataset }
+        context_dict = {'show_dashboardnav': show_dashboardnav, 'unit': unit, 'platform': platform, 'title': title,
+                        'sentiments': sentiments, 'coi': coi, 'tags': tags, 'posts_timeline': posts_timeline,
+                        'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline,
+                        'comments_timeline': comments_timeline, 'no_topics': no_topics,
+                        'topic_model_output': topic_model_output,
+                        'sentimenttopic_piebubblesdataset': sentimenttopic_piebubblesdataset}
+
         return render_to_response('dashboard/cadashboard.html', context_dict, context)
 
     else:
         raise PermissionDenied
+
 
 @login_required
 def snadashboard(request):

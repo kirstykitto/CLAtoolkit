@@ -229,10 +229,10 @@ def home(request):
 
 
 def refreshtwitter(request):
-    unit_offering_id = request.GET.get('unit_offering')
+    unit_id = request.GET.get('unit')
 
     try:
-        unit = UnitOffering.objects.get(id=unit_offering_id)
+        unit = UnitOffering.objects.get(id=unit_id)
     except UnitOffering.DoesNotExist:
         raise Http404
 

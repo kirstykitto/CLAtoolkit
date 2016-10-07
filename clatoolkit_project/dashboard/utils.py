@@ -371,7 +371,8 @@ def contentcount_byverb(id, verb, platform, unit, username=None):
     count = result[0]
     return count
 
-def get_allcontent_byplatform(platform, course_code, username=None, start_date=None, end_date=None):
+
+def get_allcontent_byplatform(platform, unit, username=None, start_date=None, end_date=None):
 
     dateclause = ""
     if start_date is not None:
@@ -391,8 +392,8 @@ def get_allcontent_byplatform(platform, course_code, username=None, start_date=N
     cursor.execute("""
         SELECT clatoolkit_learningrecord.message as content, clatoolkit_learningrecord.id
         FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.course_code='%s' %s %s %s
-    """ % (course_code, platformclause, userclause, dateclause))
+        WHERE clatoolkit_learningrecord.unit_id='%s' %s %s %s
+    """ % (unit.id, platformclause, userclause, dateclause))
     result = cursor.fetchall()
     content_list = []
     id_list = []
@@ -406,7 +407,8 @@ def get_allcontent_byplatform(platform, course_code, username=None, start_date=N
 
     return content_list,id_list
 
-def getClassifiedCounts(platform, course_code, username=None, start_date=None, end_date=None, classifier=None):
+
+def getClassifiedCounts(platform, unit, username=None, start_date=None, end_date=None, classifier=None):
     classification_dict = None
     if classifier == "VaderSentiment":
         classification_dict = {'positive':0, 'neutral':0, 'negative':0}
@@ -414,17 +416,13 @@ def getClassifiedCounts(platform, course_code, username=None, start_date=None, e
         classification_dict = {'Triggering':0, 'Exploration':0, 'Integration':0, 'Resolution':0, 'Other':0}
     #elif classifier == "NaiveBayes_t1.model":
 
-    kwargs = {'classifier':classifier, 'xapistatement__course_code': course_code}
+    kwargs = {'classifier':classifier, 'xapistatement__unit_id': unit.id}
     if classifier == "VaderSentiment":
         kwargs['classifier']=classifier
     else:
-        if course_code == 'IFN614':
-            platform = 'Blog'
-            classifier_name = "nb_%s_%s.model" % (course_code,platform)
-        else:
-            classifier_name = "nb_%s_%s.model" % (course_code,platform)
+        classifier_name = "nb_%s_%s.model" % (unit.id, platform)
 
-        kwargs['classifier']= classifier_name
+        kwargs['classifier'] = classifier_name
     if username is not None:
         kwargs['xapistatement__username']=username
     if start_date is not None:
@@ -583,15 +581,15 @@ def nmf(platform, no_topics, course_code, start_date=None, end_date=None):
 
     return topic_output, d3_dataset
 
-def get_wordcloud(platform, course_code, username=None, start_date=None, end_date=None):
-    #print "get_wordcloud", platform, course_code
+
+def get_wordcloud(platform, unit, username=None, start_date=None, end_date=None):
     docs = None
     ids = None
     documents = None
     if username is not None:
-        docs,ids = get_allcontent_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
+        docs,ids = get_allcontent_byplatform(platform, unit, username=username, start_date=start_date, end_date=end_date)
     else:
-        docs,ids = get_allcontent_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
+        docs,ids = get_allcontent_byplatform(platform, unit, start_date=start_date, end_date=end_date)
 
     documents = remove_stopwords(docs)
     #print documents
