@@ -84,21 +84,24 @@ def refreshtrello(request):
 
     return Response('<b>Trello refresh complete: %s users updated.</b>' % (diag_count))
 
+
 ##############################################
 # GitHub Data Extraction
 ##############################################
 def refreshgithub(request):
 
     html_response = HttpResponse()
-    course_code = request.GET.get('course_code')
+    unit_id = request.GET.get('unit')
+    try:
+        unit = UnitOffering.objects.get(id=unit_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
+
     repoUrls = request.GET.get('urls')
 
     github_plugin = settings.DATAINTEGRATION_PLUGINS['GitHub']
-    ghDataList = github_plugin.perform_import(repoUrls, course_code)
-    post_smimport(course_code, "GitHub")
-
-    #html_response.write('GitHub Refreshed.')
-    #return html_response
+    github_plugin.perform_import(repoUrls, unit)
+    post_smimport(unit, "GitHub")
 
     return render(request, 'dataintegration/githubresult.html')
 

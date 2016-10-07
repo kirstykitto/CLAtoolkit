@@ -319,91 +319,29 @@ def insert_bookmark(usr_dict, post_id,message,from_name,from_uid, created_time, 
         lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=get_username_fromsmid(from_uid, platform), platformid=post_id, message=message, datetimestamp=created_time)
         lrs.save()
 
-def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_time, course_code, 
-    parent_id, platform, platform_id, commit_username, account_homepage, tags=[], other_contexts = []):
-    if check_ifnotinlocallrs(course_code, platform, commit_id):
+
+def insert_commit(user, repo_id, commit_id, message, committed_time, unit, platform, committer=None):
+    if check_ifnotinlocallrs(unit, platform, commit_id):
         verb = "created"
-        object = "Collection"
-        parentObj = "Collection"
-        otherObjTypeName = "commit"
 
-        stm = socialmedia_builder(
-            verb=verb, platform=platform, account_name=from_uid, 
-            account_homepage=account_homepage, object_type=object, object_id=commit_id, 
-            message=message, tags=tags, parent_object_type=parentObj, parent_id=parent_id, 
-            timestamp=committed_time, account_email=usr_dict['email'], 
-            user_name=from_name, course_code=course_code, other_contexts = other_contexts)
-
-        jsn = ast.literal_eval(stm.to_json())
-        stm_json = pretty_print_json(jsn)
-        lrs = LearningRecord(
-            xapi=stm_json, course_code=course_code, verb=verb, 
-            platform=platform, username=get_username_fromsmid(from_uid, platform), 
-            platformid=platform_id, platformparentid=parent_id, 
-            parentusername=get_username_fromsmid(commit_username, platform), 
-            message=message, datetimestamp=committed_time)
+        lrs = LearningRecord(xapi=None, unit=unit, verb=verb, platform=platform, user=user, platformid=commit_id,
+                             platformparentid=repo_id, message=message, datetimestamp=committed_time)
         lrs.save()
-        socialrelationship = SocialRelationship(
-            verb = verb, 
-            fromusername=get_username_fromsmid(from_uid, platform), 
-            tousername=get_username_fromsmid(commit_username, platform), 
-            platform=platform, message=message, datetimestamp=committed_time, 
-            course_code=course_code, platformid=commit_id)
-        socialrelationship.save()
 
 
-def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time, course_code, 
-    parent_id, platform, platform_id, platform_parentid, verb, repoUrl, commit_username, account_homepage, tags=[]):
-    if check_ifnotinlocallrs(course_code, platform, file_id):
-        object = "File"
-        parentObj = "Collection"
-
-        stm = socialmedia_builder(
-            verb=verb, platform=platform, account_name=from_uid, 
-            account_homepage=account_homepage, object_type=object, object_id=file_id, 
-            message=message, tags=tags, parent_object_type=parentObj, parent_id=parent_id, 
-            timestamp=committed_time, account_email=usr_dict['email'], 
-            # user_name=from_name, course_code=course_code, grand_parent=repoUrl)
-            user_name=from_name, course_code=course_code)
-
-        jsn = ast.literal_eval(stm.to_json())
-        stm_json = pretty_print_json(jsn)
-        lrs = LearningRecord(
-            xapi=stm_json, course_code=course_code, verb=verb, 
-            platform=platform, username=get_username_fromsmid(from_uid, platform), 
-            platformid=platform_id, platformparentid=platform_parentid, 
-            parentusername=get_username_fromsmid(commit_username, platform), 
-            message=message, datetimestamp=committed_time)
+def insert_file(user, commit_id, file_id, message, committed_time, unit, platform, verb):
+    if check_ifnotinlocallrs(unit, platform, file_id):
+        lrs = LearningRecord(xapi=None, unit=unit, verb=verb, platform=platform, user=user, platformid=file_id,
+                             platformparentid=commit_id, message=message, datetimestamp=committed_time)
         lrs.save()
-        socialrelationship = SocialRelationship(
-            verb = verb, 
-            fromusername=get_username_fromsmid(from_uid, platform), 
-            tousername=get_username_fromsmid(commit_username, platform), 
-            platform=platform, message=message, datetimestamp=committed_time, 
-            course_code=course_code, platformid=file_id)
-        socialrelationship.save()
 
 
-def insert_issue(usr_dict, issue_id, message, from_name, from_uid, created_time, 
-    course_code, parent_id, platform, platform_id, assignee, account_homepage, tags=[]):
-    if check_ifnotinlocallrs(course_code, platform, issue_id):
+def insert_issue(user, repo_id, issue_id, message, created_time, unit, platform):
+    if check_ifnotinlocallrs(unit, platform, issue_id):
         verb = 'created'
-        object = "Note"
-        parentObj = "Collection"
 
-        stm = socialmedia_builder(
-            verb=verb, platform=platform, account_name=from_uid, 
-            account_homepage=account_homepage, object_type=object, object_id=issue_id, 
-            message=message, parent_object_type=parentObj, parent_id=parent_id, 
-            timestamp=created_time, account_email=usr_dict['email'], 
-            user_name=from_name, course_code=course_code, tags=tags)
-        jsn = ast.literal_eval(stm.to_json())
-        stm_json = pretty_print_json(jsn)
-        lrs = LearningRecord(
-            xapi=stm_json, course_code=course_code, verb=verb, 
-            platform=platform, username=get_username_fromsmid(from_uid, platform),
-            platformid=platform_id, platformparentid=parent_id, message=message, datetimestamp=created_time,
-            parentusername=get_username_fromsmid(assignee, platform))
+        lrs = LearningRecord(xapi=None, unit=unit, verb=verb, platform=platform, platformid=issue_id, user=user,
+                             platformparentid=repo_id, message=message, datetimestamp=created_time)
         lrs.save()
         """
         for tag in tags:
