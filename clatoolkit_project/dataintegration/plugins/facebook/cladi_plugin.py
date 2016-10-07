@@ -41,7 +41,7 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
                 'consumer_key': os.environ.get("FACEBOOK_CONSUMER_KEY"),
                 'consumer_secret': os.environ.get("FACEBOOK_CONSUMER_SECRET"),
 
-                'scope': ['user_about_me', 'email', 'user_groups'],
+                'scope': ['user_about_me', 'email', 'user_managed_groups'],
                 },
             }
 
@@ -61,8 +61,9 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
         :return:
         """
 
-        url = 'https://graph.facebook.com/'+retrieval_param+'/feed'
-        access_response = result.provider.access(url)
+        url = 'https://graph.facebook.com/v2.8/'+retrieval_param+'/feed'
+        params = {"fields": "created_time,from,message,likes,comments{created_time,from,message}"}
+        access_response = authomatic_result.provider.access(url, params=params)
         data = access_response.data.get('data')
         paging = access_response.data.get('paging')
         while True:
@@ -88,39 +89,41 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
         :param unit: A UnitOffering object
         :return:
         """
-        for pst in fb_feed:
-            if 'message' in pst:
-                post_type = pst['type']
-                created_time = dateutil.parser.parse(pst['created_time'])
-                from_uid = pst['from']['id']
-                from_name = pst['from']['name']
-                post_id = pst['actions'][0]['link']
-                message = pst['message']
+
+        for post in fb_feed:
+            if 'message' in post:
+                created_time = dateutil.parser.parse(post['created_time'])
+                from_uid = post['from']['id']
+                post_id = post['id']
+                message = post['message']
+
+                print("Post: {}".format(message))
+
                 if username_exists(from_uid, unit, self.platform):
                     user = get_user_from_screen_name(from_uid, self.platform)
+                    print("User {} exists".format(user.first_name))
 
                     insert_post(user, post_id, message, created_time, unit, self.platform, self.platform_url)
 
-                    if 'likes' in pst:
-                        for like in pst['likes']['data']:
+                    if 'likes' in post:
+                        for like in post['likes']['data']:
                             like_uid = like['id']
 
                             if username_exists(like_uid, unit, self.platform):
                                 like_user = get_user_from_screen_name(from_uid, self.platform)
-                                insert_like(like_user, post_id, message, unit, self.platform, parent_user=user)
+                                insert_like(like_user, post_id, message, unit, self.platform, created_time, parent_user=user)
 
-                    if 'comments' in pst:
-                        for comment in pst['comments']['data']:
+                    if 'comments' in post:
+                        for comment in post['comments']['data']:
                             comment_created_time = comment['created_time']
                             comment_from_uid = comment['from']['id']
-                            comment_from_name = comment['from']['name']
                             comment_message = comment['message']
                             comment_id = comment['id']
 
                             if username_exists(comment_from_uid, unit, self.platform):
                                 comment_user = get_user_from_screen_name(comment_from_uid, self.platform)
-
-                                insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, self.platform, self.platform_url, shared_username=from_uid)
+                                insert_comment(comment_user, post_id, comment_id, comment_message, comment_created_time,
+                                               unit, self.platform, self.platform_url, parent_user=user)
 
 
 registry.register(FacebookPlugin)

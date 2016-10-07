@@ -52,12 +52,18 @@ def check_ifuserincourse(user, course_id):
 # TODO - update all usages to unit
 def check_ifnotinlocallrs(unit, platform, platform_id, user=None, verb=None):
     try:
-        if user:
-            LearningRecord.objects.get(unit=unit, platform=platform, platformid=platform_id, user=User, verb=verb)
+        if user and verb:
+            LearningRecord.objects.get(unit=unit, platform=platform, platformid=platform_id, user=user, verb=verb)
+        elif user:
+            LearningRecord.objects.get(unit=unit, platform=platform, platformid=platform_id, user=user)
+        elif verb:
+            LearningRecord.objects.get(unit=unit, platform=platform, platformid=platform_id, verb=verb)
         else:
             LearningRecord.objects.get(unit=unit, platform=platform, platformid=platform_id)
     except LearningRecord.DoesNotExist:
-        return False
+        return True
+
+    return False
 
 
 # TODO - remove test data

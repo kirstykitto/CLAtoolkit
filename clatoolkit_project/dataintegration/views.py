@@ -336,7 +336,7 @@ def dipluginauthomaticlogin(request):
                 if result.user.credentials:
                     group_id = request.session['group_id']
                     unit_id = request.session['unit']
-                    unit = UnitOffering.objects.get(id=id)
+                    unit = UnitOffering.objects.get(id=unit_id)
                     if result.provider.name == 'fb':
                         di_plugin.perform_import(group_id, unit, result)
 
@@ -344,13 +344,14 @@ def dipluginauthomaticlogin(request):
 
                         #Remove all data stored in session for this view to avoid cache issues
                         del request.session['platform']
-                        del request.session['course_code']
+                        del request.session['unit']
                         del request.session['group_id']
                         html_response.write('Updating Facebook for {} {}'.format(unit.code, unit.name))
         else:
             html_response.write('Auth Returned no Response.')
 
     return html_response
+
 
 def get_social_media_id(request):
     '''

@@ -46,13 +46,13 @@
                                     Facebook Groups: {% for grp in membership.unit.facebook_groups_as_list %}
                                     <a href="https://www.facebook.com/groups/{{ grp }}" target="_blank">{{ grp }}</a>
                                 {% endfor %}  [
-                                    <a href="/dashboard/?course_code={{ membership.unit.code }}&platform=Facebook">Activity</a>
+                                    <a href="/dashboard/?unit={{ membership.unit.id }}&platform=Facebook">Activity</a>
                                     |
-                                    <a href="/dashboard/ca_dashboard?course_code={{ membership.unit.code }}&platform=Facebook">Content
+                                    <a href="/dashboard/ca_dashboard?unit={{ membership.unit.id }}&platform=Facebook">Content
                                         Analysis</a> |
-                                    <a href="/dashboard/sna_dashboard?course_code={{ membership.unit.code }}&platform=Facebook">Social
+                                    <a href="/dashboard/sna_dashboard?unit={{ membership.unit.id }}&platform=Facebook">Social
                                         Network Analysis</a>] |
-                                    <a href='/dataintegration/dipluginauthomaticlogin/?context={"platform": "facebook", "course_code": "{{ membership.unit.code }}", "group": "{{ membership.unit.facebook_groups }}"}'>Refresh
+                                    <a href='/dataintegration/dipluginauthomaticlogin/?context={"platform": "facebook", "unit": "{{ membership.unit.id }}", "group": "{{ membership.unit.facebook_groups }}"}'>Refresh
                                         Imported Data</a>
                                 {% endif %}
                                 {% if unit.youtube_channelIds_as_list|length > 0 %}
@@ -153,7 +153,7 @@
                             <a href="/clatoolkit/unitofferings/{{ membership.unit.id }}/members">{{ membership.unit.users.count }} Members</a>
                             <br>
                             Registration Link for Students:
-                            <a href="{% url 'register' unit_id=membership.unit.id %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' unit_id=membership.unit.id %}</a>
+                            <a href="{% url 'register' unit=membership.unit.id %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' unit=membership.unit.id %}</a>
                             </p>
                             <a href="{% url 'update_offering' membership.unit.id %}">Update unit offering</a>
                         {% else %}

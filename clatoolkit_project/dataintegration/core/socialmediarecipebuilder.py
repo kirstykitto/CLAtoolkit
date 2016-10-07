@@ -189,14 +189,16 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
 
 
 def insert_post(user, post_id, message, created_time, unit, platform, platform_url, tags=()):
-    if check_ifnotinlocallrs(unit, platform, post_id):
-        stm = socialmedia_builder(verb='created', platform=platform, account_name=get_smid(user, platform),
+    verb = 'created'
+
+    if check_ifnotinlocallrs(unit, platform, post_id, user, verb):
+        stm = socialmedia_builder(verb=verb, platform=platform, account_name=get_smid(user, platform),
                                   account_homepage=platform_url, object_type='Note', object_id=post_id, message=message,
                                   timestamp=created_time, account_email=user.email, user_name=user.username, unit=unit,
                                   tags=tags)
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, unit=unit, verb='created', platform=platform, user=user, platformid=post_id,
+        lrs = LearningRecord(xapi=stm_json, unit=unit, verb=verb, platform=platform, user=user, platformid=post_id,
                              message=message, datetimestamp=created_time)
         lrs.save()
         for tag in tags:
@@ -213,7 +215,6 @@ def insert_post(user, post_id, message, created_time, unit, platform, platform_u
                                         to_external_user=external_user, platform=platform, message=message,
                                         datetimestamp=created_time, unit=unit, platformid=post_id)
                 sr.save()
-
 
 def insert_blogpost(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url, tags=[]):
     #print 'from_name: %s\n from_uid: %s\n' % (from_name,from_uid)
@@ -262,7 +263,6 @@ def insert_blogcomment(usr_dict, post_id, comment_id, comment_message, comment_f
             socialrelationship.save()
 
 
-# user, post_id, message, created_time, unit, platform, platform_url, tags=()
 def insert_comment(user, post_id, comment_id, comment_message, comment_created_time, unit, platform, platform_url,
                    parent_user=None, parent_user_external=None):
 

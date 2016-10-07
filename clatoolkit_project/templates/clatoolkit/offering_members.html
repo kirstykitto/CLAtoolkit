@@ -17,7 +17,7 @@
             <div class="panel-body">
                 Total number of members: {{ members.count }}
                 <br>
-                Registration link: <a href="{% url 'register' unit_id=unit.id %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' unit_id=unit.id %}</a>
+                Registration link: <a href="{% url 'register' unit=unit.id %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' unit=unit.id %}</a>
                 <br><br>
                 <table class="table table-striped table-bordered table-hover dataTable no-footer">
                     <thead>

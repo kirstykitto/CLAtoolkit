@@ -129,7 +129,7 @@ class LearningRecordFilter(django_filters.FilterSet):
         model = LearningRecord
 
         fields = ('id', 'unit', 'platform', 'verb', 'user', 'username', 'platformid', 'platformparentid', 'parent_user',
-                  'parent_username', 'message', 'datetimestamp', 'senttolrs', 'datetimestamp_min',
+                  'parent_user_external', 'message', 'datetimestamp', 'senttolrs', 'datetimestamp_min',
                   'datetimestamp_max')
 
 class SocialRelationshipFilter(django_filters.FilterSet):

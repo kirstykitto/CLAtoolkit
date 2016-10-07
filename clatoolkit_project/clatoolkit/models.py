@@ -224,9 +224,9 @@ class LearningRecord(models.Model):
     # TODO - Use foreign key to link to parent learning record
     platformparentid = models.CharField(max_length=5000, blank=True)
     parent_user = models.ForeignKey(User, null=True, related_name="parent_user")
-    parent_username = models.CharField(max_length=5000, blank=True)
+    parent_user_external = models.CharField(max_length=5000, blank=True, null=True)
     message = models.TextField(blank=True)
-    datetimestamp = models.DateTimeField(auto_now_add=True)
+    datetimestamp = models.DateTimeField(auto_now_add=True, null=True)
     senttolrs = models.CharField(max_length=5000, blank=True)
 
 
@@ -236,7 +236,7 @@ class SocialRelationship(models.Model):
     verb = models.CharField(max_length=5000, blank=False)
     from_user = models.ForeignKey(User)
     to_user = models.ForeignKey(User, null=True, related_name="to_user")
-    to_external_user = models.CharField(max_length=5000, blank=True)
+    to_external_user = models.CharField(max_length=5000, blank=True, null=True)
     platformid = models.CharField(max_length=5000, blank=True)
     message = models.TextField(blank=False)
     datetimestamp = models.DateTimeField(blank=True)
