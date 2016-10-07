@@ -55,9 +55,9 @@
                                     <a href='/dataintegration/dipluginauthomaticlogin/?context={"platform": "facebook", "course_code": "{{ membership.unit.code }}", "group": "{{ membership.unit.facebook_groups }}"}'>Refresh
                                         Imported Data</a>
                                 {% endif %}
-                                {% if unit.youtube_channelIds_as_list|length > 0 %}
+                                {% if membership.unit.youtube_channelIds_as_list|length > 0 %}
                                     <br/>
-                                    YouTube Channels: {% for channel in unit.youtube_channelIds_as_list %}
+                                    YouTube Channels: {% for channel in membership.unit.youtube_channelIds_as_list %}
                                     <a href="https://www.youtube.com/channel/{{ channel }}"
                                        target="_blank">{{ channel }}</a>  {% endfor %} [
                                     <a href="/dashboard/?course_code={{ membership.unit.code }}&platform=YouTube">Activity</a>
@@ -69,7 +69,7 @@
                                     <a href="/dataintegration/refreshgoogleauthflow/?course_code={{ membership.unit.code }}&course_id={{ membership.unit.id }}&channelIds={{ membership.unit.youtube_channelIds|urlencode }}&platform=Youtube">Refresh
                                         Imported Data</a>
                                 {% endif %}
-                                {% if unit.code == 'IFN614' %}
+                                {% if membership.unit.code == 'IFN614' %}
                                     <br/>
 
                                     IFN614 Blog URLs: {{ membership.unit.blogmember_urls }} [
@@ -83,9 +83,9 @@
                                         Imported Data</a>
 
                                 {% endif %}
-                                {% if unit.diigo_tags_as_list|length > 0 %}
+                                {% if membership.unit.diigo_tags_as_list|length > 0 %}
                                     <br/>
-                                    Diigo Tags: {% for tag in unit.diigo_tags_as_list %}
+                                    Diigo Tags: {% for tag in membership.unit.diigo_tags_as_list %}
                                     <a href="https://www.diigo.com/tag/{{ tag }}" target="_blank">{{ tag }}</a>
                                 {% endfor %}  [
                                     <a href="/dashboard/?course_code={{ membership.unit.code }}&platform=Diigo">Activity</a>
@@ -98,8 +98,8 @@
                                         Imported Data</a>
                                 {% endif %}
                                 <br/>
-                                {% if unit.github_urls_as_list|length > 0 %}
-                                    GitHub URLs: {% for url in unit.github_urls_as_list %}
+                                {% if membership.unit.github_urls_as_list|length > 0 %}
+                                    GitHub URLs: {% for url in membership.unit.github_urls_as_list %}
                                     <a href="{{ url }}" target="_blank">{{ url }}</a>  {% endfor %} [
                                     <a href="/dashboard/?course_code={{ membership.unit.code }}&platform=GitHub">Activity</a>
                                     |
@@ -110,8 +110,8 @@
                                     <a href="/dataintegration/refreshgithub/?course_code={{ membership.unit.code }}&course_id={{ membership.unit.id }}&urls={{ membership.unit.github_urls|urlencode }}&platform=GitHub">Refresh
                                         Imported Data</a>
                                 {% endif %}
-
-                                {% if unit.trello_boards_as_list|length > 0 %}
+                                <br/>
+                                {% if membership.unit.trello_boards_as_list|length > 0 %}
                                     Trello Boards signed up: {{ membership.unit.trello_boards_as_list|length }} ||
                                     <a href="/dataintegration/refreshtrello/?course_code={{ membership.unit.code }}&course_id={{ membership.unit.id }}&boards={{ membership.unit.attached_trello_boards|urlencode }}&platform=trello">Refresh
                                         Imported Data</a>
@@ -121,7 +121,7 @@
                             {% if unit.enable_coi_classifier %}
                                 <hr/>
 
-                                {% if unit.code == 'IFN614' %}
+                                {% if membership.unit.code == 'IFN614' %}
 
                                     <a href="/dashboard/myclassifications?course_code={{ membership.unit.code }}&platform=Forum">View
                                         Your Community of Inquiry Classifications</a>
@@ -178,7 +178,7 @@
                                 <p>
                                     <a href="/dashboard/mydashboard?course_code={{ membership.unit.code }}&platform=all">Go
                                         to My Social Media Dashboard</a><br/>
-                                    {% if unit.enable_coi_classifier %}
+                                    {% if membership.unit.enable_coi_classifier %}
                                         <br/>
                                         {% if unit.code == 'IFN614' %}
                                             <a href="/dashboard/myclassifications?course_code={{ membership.unit.code }}&platform=Forum">View

@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 import django_filters
 from django.core.exceptions import ValidationError
 from clatoolkit.models import UserProfile, UnitOffering, LearningRecord, SocialRelationship, Classification, UserClassification
-
+import re
 
 class UserForm(forms.ModelForm):
     first_name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
@@ -38,6 +38,11 @@ class CreateOfferingForm(forms.ModelForm):
         model = UnitOffering
         fields = ("code", "name", "semester", "description", "twitter_hashtags", "google_groups", "facebook_groups", "forum_urls", "youtube_channelIds", "diigo_tags", "blogmember_urls", "github_urls", "attached_trello_boards")
 
+    def clean_code(self):
+        code = self.cleaned_data.get('code')
+        if not re.match(r'^[a-zA-Z0-9_-]+$', code):
+            raise forms.ValidationError("Alphabet, number, hyphen and under score are available.")
+        return code
 
 class SocialMediaUpdateForm(forms.ModelForm):
     fb_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))

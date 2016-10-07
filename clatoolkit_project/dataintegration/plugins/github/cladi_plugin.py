@@ -5,13 +5,13 @@ from dataintegration.core.recipepermissions import *
 import json
 import dateutil.parser
 from github import Github
-from dataintegration.plugins.github.githubLib import *
+# from dataintegration.plugins.github.githubLib import *
 from django.contrib.auth.models import User
 import os
 
 class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
-    platform = "github"
+    platform = "GitHub"
     platform_url = "https://github.com/"
 
     xapi_verbs = ['created', 'added', 'removed', 'updated', 'commented']
@@ -34,20 +34,17 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
     def perform_import(self, retrieval_param, course_code):
 
-        # Setup Twitter API Keys
+        # Setup GitHub token
         token = os.environ.get("GITHUB_TOKEN")
         urls = retrieval_param.split(os.linesep)
 
         for url in urls:
             print "GitHub data extraction URL: " + url
             # Instanciate PyGithub object
-            repoFullName = url.lstrip(STR_PLATFORM_URL_GITHUB)
-            gh = Github(token, per_page=self.parPage)
-            # Use .rstrip() to eliminate line-change cord
+            repo_name = url[len(self.platform_url):]
+            gh = Github(login_or_token = token, per_page = self.parPage)
 
-            print "repo name = " + repoFullName.rstrip()
-
-            repo = gh.get_repo(repoFullName.rstrip())
+            repo = gh.get_repo(repo_name.rstrip())
             self.importGitHubCommits(course_code, url, token, repo)
             self.importGitHubIssues(course_code, url, token, repo, gh)
             self.importGitHubCommitComments(course_code, url, token, repo)
@@ -76,8 +73,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 commit = repo.get_commit(commitCom.commit_id)
                 commitURL = commit.html_url
 
-                if username_exists(author, courseCode, self.platform):
-                    usr_dict = get_userdetails(author, self.platform)
+                if username_exists(author, courseCode, self.platform.lower()):
+                    usr_dict = get_userdetails(author, self.platform.lower())
                     claUserName = get_username_fromsmid(author, self.platform)
                     insert_comment(usr_dict, commitURL, commitComURL, 
                         body, author, claUserName,
@@ -113,8 +110,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 if body is None:
                     body = ""
 
-                if username_exists(author, courseCode, self.platform):
-                    usr_dict = get_userdetails(author, self.platform)
+                if username_exists(author, courseCode, self.platform.lower()):
+                    usr_dict = get_userdetails(author, self.platform.lower())
                     claUserName = get_username_fromsmid(author, self.platform)
                     insert_comment(usr_dict, issueURL, issueComURL, 
                         body, author, claUserName,
@@ -138,7 +135,9 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     def importGitHubIssues(self, courseCode, repoUrl, token, repo, githubObj):
         # Search issues including pull requests using search method
         count = 0
-        query = 'repo:kojiagile/testrepo'
+
+        repo_name = repoUrl[len(self.platform_url):]
+        query = 'repo:' + repo_name
         issueList = githubObj.search_issues(query, order = 'asc').get_page(count)
 
         # Retrieve issue data
@@ -166,12 +165,12 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 # Tag object should ideally be passed to insert_issue() medthod,
                 # if someone is mentioned (e.g. @kojiagile is working on this issue...)
                 # 
-                if username_exists(assignee, courseCode, self.platform):
-                    usr_dict = get_userdetails(assignee, self.platform)
+                if username_exists(assignee, courseCode, self.platform.lower()):
+                    usr_dict = get_userdetails(assignee, self.platform.lower())
                     claUserName = get_username_fromsmid(assignee, self.platform)
                     insert_issue(usr_dict, issueURL, body, assignee, claUserName,
                         date, courseCode, repoUrl, self.platform, issueURL, 
-                        assignee)
+                        assignee, assigneeHomepage)
 
             count = count + 1
             issueList = githubObj.search_issues(query, order = 'asc').get_page(count)
@@ -192,18 +191,19 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     def importGitHubCommits(self, courseCode, repoUrl, token, repo):
         count = 0
         commitList = repo.get_commits().get_page(count)
+
         # Retrieve commit data
         while True:
             for commit in commitList:
                 committerName = ""
                 email = ""
-                if commit.committer is None:
+                if commit.committer is None or commit.committer.login == "":
+                    # Note: What is the difference between author and committer?
                     # 
-                    # When committer's email address registered in his/her local repository does not match
-                    # to GitHub account's email, commit.committer or commit.authoer will be null in GitHub API resposen.
-                    # Thus, PyGithub object has None when that happens.
-                    # https://api.github.com/repos/luantrongtran/7colours-DementiaWatch/commits/d420df8defc273fb9acf56aa4e334377d556ec3f
-                    #print "commit.committer is null. This commit data " + commit.sha + " is ignored."
+                    # The author is the person who originally wrote the work,
+                    # whereas the committer is the person who last applied the work. 
+                    # So, if you send in a patch to a project and one of the core members applies the patch, 
+                    # both of you get credit --- you as the author and the core member as the committer.
                     print "commit.committer is null. url = " + commit.html_url
                     #committerName = commit.author.name
                     #email = commit.author.email
@@ -212,24 +212,31 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #committerName = commit.commit.committer.name
                     committerName = commit.committer.login
                     email = commit.commit.committer.email
-                #commitID = commit.sha
+
+                # Rare case but committer name does not exist in some cases 
+                if not username_exists(committerName, courseCode, self.platform.lower()):
+                    committerName = commit.commit.author.name
+                    email = commit.commit.author.email
+
                 msg = commit.commit.message
                 commitHtmlURL = commit.html_url
-                date = commit.commit.committer.date
-                committerHomepage = commit.committer.html_url
+                date = commit.commit.author.date
+                # commit.committer.html_url isn't always correct. So, don't use it.
+                # committerHomepage = commit.committer.html_url
+                committerHomepage = self.platform_url + committerName
 
                 # Import commit data
                 usr_dict = None
                 claUserName = None
-                if username_exists(committerName, courseCode, self.platform):
-                    usr_dict = get_userdetails(committerName, self.platform)
-                    claUserName = get_username_fromsmid(committerName, self.platform)
+                if username_exists(committerName, courseCode, self.platform.lower()):
+                    usr_dict = get_userdetails(committerName, self.platform.lower())
+                    claUserName = get_username_fromsmid(committerName, self.platform.lower())
                     insert_commit(usr_dict, commitHtmlURL, msg, committerName, claUserName,
-                        date, courseCode, repoUrl, self.platform, commitHtmlURL, committerName)
+                        date, courseCode, repoUrl, self.platform, commitHtmlURL, committerName, committerHomepage)
                 else:
                     #If a user does not exist, ignore the commit data
                     continue
-            
+
                 #importGitHubCommitsFiles(commit, repoUrl)
                 # All committed files are inserted into DB
                 for file in commit.files:
@@ -243,12 +250,13 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     if file.patch is None:
                         patch = ""
 
-                    if username_exists(committerName, courseCode, self.platform):
+                    if username_exists(committerName, courseCode, self.platform.lower()):
                         #usr_dict = get_userdetails(committerName, self.platform)
                         #claUserName = get_username_fromsmid(committerName, self.platform)
                         insert_file(usr_dict, file.blob_url, patch, committerName, claUserName,
                             date, courseCode, commitHtmlURL, self.platform, file.blob_url, 
-                            commitHtmlURL, verb, repoUrl, file.additions, file.deletions, committerName)
+                            # commitHtmlURL, verb, repoUrl, file.additions, file.deletions, committerName)
+                            commitHtmlURL, verb, repoUrl, committerName, committerHomepage)
 
             # End of for commit in commitList:
 
@@ -265,5 +273,13 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             if len(temp) == 0:
                 #Break from while
                 break
+
+
+    def get_verbs(self):
+        return self.xapi_verbs
+            
+    def get_objects(self):
+        return self.xapi_objects
+
 
 registry.register(GithubPlugin)
