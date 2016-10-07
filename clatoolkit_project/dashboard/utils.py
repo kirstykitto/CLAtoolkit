@@ -627,7 +627,8 @@ def get_wordcloud(platform, unit, username=None, start_date=None, end_date=None)
     #print tags
     return tags
 
-def get_nodes_byplatform(platform, course_code, username=None, start_date=None, end_date=None):
+
+def get_nodes_byplatform(platform, unit, username=None, start_date=None, end_date=None):
 
     platformclause = ""
     if platform != "all":
@@ -646,8 +647,8 @@ def get_nodes_byplatform(platform, course_code, username=None, start_date=None, 
     sql = """
             SELECT distinct clatoolkit_learningrecord.username
             FROM clatoolkit_learningrecord
-            WHERE clatoolkit_learningrecord.course_code='%s' %s %s %s
-          """ % (course_code, platformclause, userclause, dateclause)
+            WHERE clatoolkit_learningrecord.unit_id='%s' %s %s %s
+          """ % (unit.id, platformclause, userclause, dateclause)
     #print sql
     cursor = connection.cursor()
     cursor.execute(sql)
@@ -660,7 +661,8 @@ def get_nodes_byplatform(platform, course_code, username=None, start_date=None, 
     #print "node_dict", node_dict
     return node_dict
 
-def get_relationships_byplatform(platform, course_code, username=None, start_date=None, end_date=None, relationshipstoinclude=None):
+
+def get_relationships_byplatform(platform, unit, username=None, start_date=None, end_date=None, relationshipstoinclude=None):
     platformclause = ""
     if platform != "all":
         platformclause = " AND clatoolkit_socialrelationship.platform='%s'" % (platform)
@@ -683,10 +685,10 @@ def get_relationships_byplatform(platform, course_code, username=None, start_dat
     nodes_in_sna_dict = {}
 
     sql = """
-            SELECT clatoolkit_socialrelationship.fromusername, clatoolkit_socialrelationship.tousername, clatoolkit_socialrelationship.verb, clatoolkit_socialrelationship.platform
+            SELECT clatoolkit_socialrelationship.from_user_id, clatoolkit_socialrelationship.to_user_id, clatoolkit_socialrelationship.verb, clatoolkit_socialrelationship.platform
             FROM   clatoolkit_socialrelationship
-            WHERE  clatoolkit_socialrelationship.course_code='%s' %s %s %s %s
-          """ % (course_code, platformclause, userclause, dateclause, relationshipclause)
+            WHERE  clatoolkit_socialrelationship.unit_id='%s' %s %s %s %s
+          """ % (unit.id, platformclause, userclause, dateclause, relationshipclause)
     #print sql
     cursor = connection.cursor()
     cursor.execute(sql)
@@ -719,7 +721,8 @@ def get_relationships_byplatform(platform, course_code, username=None, start_dat
             count += 1
     return edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict
 
-def sna_buildjson(platform, course_code, username=None, start_date=None, end_date=None, relationshipstoinclude=None):
+
+def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None, relationshipstoinclude=None):
 
     node_dict = None
     edge_dict = None
@@ -729,8 +732,12 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     #    node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
     #    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
     #else:
-    node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
-    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+    node_dict = get_nodes_byplatform(platform, unit, start_date=start_date, end_date=end_date)
+    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform,
+                                                                                                        unit,
+                                                                                                        start_date=start_date,
+                                                                                                        end_date=end_date,
+                                                                                                        relationshipstoinclude=relationshipstoinclude)
 
     #node_dict.update(nodes_in_sna_dict)
     for key in nodes_in_sna_dict:

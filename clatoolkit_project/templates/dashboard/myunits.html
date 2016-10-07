@@ -22,9 +22,9 @@
                             <p>
                                 All Platforms [<a
                                     href="/dashboard/?unit={{ membership.unit.id }}&platform=all">Activity</a>
-                                | <a href="/dashboard/ca_dashboard?course_code={{ membership.unit.code }}&platform=all">Content
+                                | <a href="/dashboard/ca_dashboard?unit={{ membership.unit.id }}&platform=all">Content
                                 Analysis</a> | <a
-                                    href="/dashboard/sna_dashboard?course_code={{ membership.unit.code }}&platform=all">Social
+                                    href="/dashboard/sna_dashboard?unit={{ membership.unit.id }}&platform=all">Social
                                 Network Analysis</a>]
                                 {% if membership.unit.twitter_hashtags_as_list|length > 0 %}
                                     <br/>

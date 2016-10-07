@@ -348,34 +348,34 @@ def cadashboard(request):
 def snadashboard(request):
     context = RequestContext(request)
 
-    course_code = request.GET.get('course_code')
+    unit_id = request.GET.get('unit')
+    unit = UnitOffering.objects.get(id=unit_id)
 
-    if UnitOfferingMembership.is_admin(request.user, course_code):
+    if UnitOfferingMembership.is_admin(request.user, unit):
 
         platform = request.GET.get('platform')
 
-        title = "SNA Dashboard: %s (Platform: %s)" % (course_code, platform)
+        title = "SNA Dashboard: {} {} (Platform: {})".format(unit.code, unit.name, platform)
         show_dashboardnav = True
 
-        posts_timeline = get_timeseries('created', platform, course_code)
-        shares_timeline = get_timeseries('shared', platform, course_code)
-        likes_timeline = get_timeseries('liked', platform, course_code)
-        comments_timeline = get_timeseries('commented', platform, course_code)
+        posts_timeline = get_timeseries('created', platform, unit)
+        shares_timeline = get_timeseries('shared', platform, unit)
+        likes_timeline = get_timeseries('liked', platform, unit)
+        comments_timeline = get_timeseries('commented', platform, unit)
 
-        sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
+        sna_json = sna_buildjson(platform, unit, relationshipstoinclude="'mentioned','liked','shared','commented'")
         #sna_neighbours = getNeighbours(sna_json)
         centrality = getCentrality(sna_json)
-        context_dict = {
-            'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform,
-            'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline,
-            'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
-            'centrality': centrality
-        }
+        context_dict = {'show_dashboardnav': show_dashboardnav, 'unit': unit, 'platform': platform, 'title': title,
+                        'sna_json': sna_json, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline,
+                        'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
+                        'centrality': centrality}
 
         return render_to_response('dashboard/snadashboard.html', context_dict, context)
 
     else:
         raise PermissionDenied
+
 
 @check_access(required_roles=['Staff'])
 @login_required
