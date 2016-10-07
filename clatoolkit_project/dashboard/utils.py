@@ -26,9 +26,6 @@ import igraph
 from collections import OrderedDict
 import copy
 
-import logging
-logger = logging.getLogger(__name__)
-
 def getPluginKey(platform):
     return settings.DATAINTEGRATION_PLUGINS[platform].api_config_dict['api_key']
 
@@ -1081,56 +1078,46 @@ def get_platform_timeseries_dataset(course_code, platform_names, username=None):
 
 def get_activity_dataset(course_code, platform_names, username=None):
 
-    try:
-        platforms = []
-        i = 0
-        for platform in platform_names:
-            # "T"rello gets errors...
-            if platform == 'Trello':
-                platform = platform.lower()
-            pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
-            verbs = pluginObj.get_verbs()
+    platforms = []
+    i = 0
+    for platform in platform_names:
+        # "T"rello gets errors...
+        if platform == 'Trello':
+            platform = platform.lower()
+        pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
+        verbs = pluginObj.get_verbs()
 
-            ## Test code for trello
-            # if platform == 'trello':
-            #     verbs = ['created', 'updated', 'added', 'commented']
+        series = []
+        all_data = []
+        categories, return_data = count_verbs_by_users(verbs, platform, course_code)
+        for data in return_data:
+            all_data.append(data)
 
-            series = []
-            all_data = []
-            categories, return_data = count_verbs_by_users(verbs, platform, course_code)
-            for data in return_data:
-                all_data.append(data)
+        charts = []
+        chartVal = OrderedDict ([
+                ('type', 'column'),
+                ('title', 'Total number of activities'),
+                ('categories', categories),
+                ('seriesname', verbs),
+                ('yAxis', OrderedDict([('title', 'Total number of activities')])),
+                ('data', all_data)
+        ])
+        charts.append(chartVal)
 
-            charts = []
-            chartVal = OrderedDict ([
-                    ('type', 'column'),
-                    ('title', 'Total number of activities'),
-                    ('categories', categories),
-                    ('seriesname', verbs),
-                    ('yAxis', OrderedDict([('title', 'Total number of activities')])),
-                    ('data', all_data)
-            ])
-            charts.append(chartVal)
+        tables = []
+        tableVal = OrderedDict([('chartIndex', i)])
+        tables.append(tableVal)
 
-            tables = []
-            tableVal = OrderedDict([('chartIndex', i)])
-            tables.append(tableVal)
+        val = OrderedDict ([
+                ('index', i),
+                ('platform', platform),
+                ('charts', charts),
+                ('tables', tables)
+        ])
+        platforms.append(val)
+        i = i + 1
 
-            val = OrderedDict ([
-                    ('index', i),
-                    ('platform', platform),
-                    ('charts', charts),
-                    ('tables', tables)
-            ])
-            platforms.append(val)
-            i = i + 1
-
-        # print platforms
-    except Exception, e:
-        logger.info("Error has occurred ---------------")
-        logger.info(e)
-
-    logger.info("Test log message")
+    # print platforms
     return OrderedDict([ ('platforms', platforms)])
 
 

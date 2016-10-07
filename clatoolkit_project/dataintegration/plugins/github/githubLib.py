@@ -1,6 +1,0 @@
-STR_PLATFORM_NAME_GITHUB = "GitHub"
-STR_PLATFORM_URL_GITHUB = "https://github.com/"
-
-STR_EVENT_TYPE_PUSH = "PushEvent"
-STR_EVENT_TYPE_COMMIT_COMMENT = "CommitCommentEvent"
-STR_EVENT_TYPE_ISSUE_COMMENT = "IssueCommentEvent"

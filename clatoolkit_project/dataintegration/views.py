@@ -93,9 +93,9 @@ def refreshgithub(request):
     course_code = request.GET.get('course_code')
     repoUrls = request.GET.get('urls')
 
-    github_plugin = settings.DATAINTEGRATION_PLUGINS['github']
+    github_plugin = settings.DATAINTEGRATION_PLUGINS['GitHub']
     ghDataList = github_plugin.perform_import(repoUrls, course_code)
-    post_smimport(course_code, "Github")
+    post_smimport(course_code, "GitHub")
 
     #html_response.write('GitHub Refreshed.')
     #return html_response
