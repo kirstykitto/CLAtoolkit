@@ -104,7 +104,7 @@ function initTimeseriesChartOptions() {
 function showPlatformTimeseries() {
 	$.ajax({
  		type: "GET",
-		url: "/dashboard/api/get_platform_timeseries/?course_code=" + course_code + "&platform=" + platform
+		url: "/dashboard/api/get_platform_timeseries_data/?course_code=" + course_code + "&platform=" + platform
 	})
 	.fail(function(data,textStatus, errorThrown){
     	console.log('error!\r\n' + errorThrown);
@@ -164,7 +164,7 @@ function showCharts(platform) {
 		return;
 	}
 	$.ajax({
-		url: "/dashboard/api/get_platform_activity/?course_code=" + course_code + "&platform=" + platform
+		url: "/dashboard/api/get_platform_activities/?course_code=" + course_code + "&platform=" + platform
 	})
 	.fail(function(data,textStatus, errorThrown){
     	console.log('Error has occurred in showCharts() function. PlatformName: ' + platform + ".\r\n" + errorThrown);
@@ -195,52 +195,53 @@ function showCharts(platform) {
 function createChartSeries(data, checkDate, start, end) {
 
 	$.each(data["platforms"], function(key, val) {
-		// $.each(val["charts"], function(key , chartVal) {
-		var chart = val["charts"][0];
-		var allSeries = [];
-		$.each(chart["seriesname"], function(key, seriesName) {
-			obj = [];
-			$.each(chart["categories"], function(key, cate) {
-				// Search current category (user name, etc.) and series (verb, etc.) in chart["data"]
-				var userData = chart["data"].filter(function(item, index){
-				  if (item["category"] == cate) return true;
-				});
-				var series = userData[0]["series"].filter(function(item, index) {
-					if (item["name"] == seriesName) return true;
-				});
+		$.each(val["charts"], function(key, chart) {
+			// var chart = val["charts"][0];
+			var allSeries = [];
+			$.each(chart["seriesname"], function(key, seriesName) {
+				obj = [];
+				$.each(chart["categories"], function(key, cate) {
+					// Search current category (user name, etc.) and series (verb, etc.) in chart["data"]
+					var userData = chart["data"].filter(function(item, index){
+					  if (item["category"] == cate) return true;
+					});
+					var series = userData[0]["series"].filter(function(item, index) {
+						if (item["name"] == seriesName) return true;
+					});
 
-				var total = 0;
-				if(series.length > 0) {
-					if(checkDate) {
-						$.each(series[0]["date"], function(key, value) {
-	                        var d = value.split(",");
-	                        var utcDate = Date.UTC(d[0], d[1], d[2]);
-	                        // var str = "Start Date(" + start + "): " + new Date(start);
-	                        // str += " || Data Date(" + utcDate + "): " + new Date(utcDate);
-	                        // str += " || End Date(" + end + "): " + new Date(end);
-	                        // console.log(str);
-							// Add value when startDate <= value >= endDate
-							if(parseFloat(start) <= parseFloat(utcDate) && parseFloat(end) >= parseFloat(utcDate)) {
-								total += series[0]["values"][key];
-							}
-						});
-					} else {
-						// Add up all values of the current series
-						$.each(series[0]["values"], function(key , value) {
-							total += value;
-						});	
+					var total = 0;
+					if(series.length > 0) {
+						if(checkDate) {
+							$.each(series[0]["date"], function(key, value) {
+		                        var d = value.split(",");
+		                        var utcDate = Date.UTC(d[0], d[1], d[2]);
+		                        // var str = "Start Date(" + start + "): " + new Date(start);
+		                        // str += " || Data Date(" + utcDate + "): " + new Date(utcDate);
+		                        // str += " || End Date(" + end + "): " + new Date(end);
+		                        // console.log(str);
+								// Add value when startDate <= value >= endDate
+								if(parseFloat(start) <= parseFloat(utcDate) && parseFloat(end) >= parseFloat(utcDate)) {
+									total += series[0]["values"][key];
+								}
+							});
+						} else {
+							// Add up all values of the current series
+							$.each(series[0]["values"], function(key , value) {
+								total += value;
+							});	
+						}
 					}
-				}
-				obj.push(total);
+					obj.push(total);
+				});
+				var newSeries = {
+					"name": seriesName,
+					"data": obj
+				};
+				allSeries.push(newSeries);
 			});
-			var newSeries = {
-				"name": seriesName,
-				"data": obj
-			};
-			allSeries.push(newSeries);
+			chart["series"] = allSeries;
+			// console.log(val);
 		});
-		chart["series"] = allSeries;
-		// console.log(val);
 	});
 	return data;
 }
@@ -314,8 +315,12 @@ function drawChart(data) {
 function showTable(data) {
 
 	$.each(data["platforms"], function(key , val) {
-		$.each(val["tables"], function(key , table) {
-			var chartVal = val["charts"][parseInt(table["chartIndex"])];
+		$.each(val["charts"], function(key , chartVal) {
+			// In $.each(), keyword "continue" does not work. 
+			// Return anything that's not false and it will behave as a continue. 
+			// Return false, and it will behave as a break:
+			if(chartVal["showTable"] != 1) return true;
+
 			//TODO: Code needs to be modified for other type of charts (it is only for stacked bar)
 			//Create data columns
 			var cate = chartVal["categories"];

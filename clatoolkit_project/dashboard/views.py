@@ -703,7 +703,7 @@ def ccadata(request):
 
 
 @login_required
-def get_platform_timeseries(request):
+def get_platform_timeseries_data(request):
 
     context = RequestContext(request)
     # platform = request.GET.get('platform')
@@ -724,7 +724,7 @@ def get_platform_timeseries(request):
 
 
 @login_required
-def get_platform_activity(request):
+def get_platform_activities(request):
     context = RequestContext(request)
     # platform = request.GET.get('platform')
     platform_names = []
@@ -732,6 +732,6 @@ def get_platform_activity(request):
         # TODO: Enable this code if needed. Not tested.
         platform_names = request.GET.get('platform').split(',')
 
-    val = get_activity_dataset(request.GET.get('course_code'), platform_names)
+    val = get_platform_activity_dataset(request.GET.get('course_code'), platform_names)
     response = JsonResponse(val, status=status.HTTP_200_OK)
     return response

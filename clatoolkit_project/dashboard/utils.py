@@ -25,6 +25,7 @@ import subprocess
 import igraph
 from collections import OrderedDict
 import copy
+from common.CLRecipe import CLRecipe
 
 def getPluginKey(platform):
     return settings.DATAINTEGRATION_PLUGINS[platform].api_config_dict['api_key']
@@ -1067,52 +1068,109 @@ def get_platform_timeseries_dataset(course_code, platform_names, username=None):
     return OrderedDict([ ('series', series)])
 
 
-def get_activity_dataset(course_code, platform_names, username=None):
-
-    platforms = []
+def get_platform_activity_dataset(course_code, platform_names, username=None):
+    platform_dataset = []
     i = 0
     for platform in platform_names:
-        # "T"rello gets errors...
+        chart_dataset = []
+        platform_data = None
+
+        # "T"rello does not work...
         if platform == 'Trello':
             platform = platform.lower()
-        pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
-        verbs = pluginObj.get_verbs()
 
-        series = []
-        all_data = []
-        categories, return_data = count_verbs_by_users(verbs, platform, course_code)
-        for data in return_data:
-            all_data.append(data)
+        if platform == CLRecipe.PLATFORM_TRELLO:
+            # Bar chart data
+            chart_dataset.append(get_verb_count_chart_data(course_code, platform, 
+                chart_type = 'column', chart_title = 'Total number of activities', 
+                chart_yAxis_title = 'Total number of activities', show_table = 0))
+            # Pie chart data
+            # chart_dataset.append(get_verb_count_chart_data(course_code, platform, 
+            #     chart_type = 'pie', chart_title = 'Total number of activities', 
+            #     chart_yAxis_title = 'Total number of activities', show_table = 1))
 
-        charts = []
-        chartVal = OrderedDict ([
-                ('type', 'column'),
-                ('title', 'Total number of activities'),
-                ('categories', categories),
-                ('seriesname', verbs),
-                ('yAxis', OrderedDict([('title', 'Total number of activities')])),
-                ('data', all_data)
-        ])
-        charts.append(chartVal)
+            platform_data = get_platform_activity_data(course_code, platform, chart_dataset)
 
-        tables = []
+        elif platform == CLRecipe.PLATFORM_GITHUB:
+            # Bar chart data
+            chart_dataset.append(get_verb_count_chart_data(course_code, platform, 
+                chart_type = 'column', chart_title = 'Total number of activities', 
+                chart_yAxis_title = 'Total number of activities', show_table = 1))
+
+            platform_data = get_platform_activity_data(course_code, platform, chart_dataset)
+
+        platform_dataset.append(platform_data)
+
+    return OrderedDict([ ('platforms', platform_dataset)])
+
+
+def get_platform_activity_data(course_code, platform, chart_dataset):
+    # "T"rello gets errors...
+    if platform == 'Trello':
+        platform = platform.lower()
+
+    tables = []
+    i = 0
+    for chart in chart_dataset:
         tableVal = OrderedDict([('chartIndex', i)])
         tables.append(tableVal)
-
-        val = OrderedDict ([
-                ('index', i),
-                ('platform', platform),
-                ('charts', charts),
-                ('tables', tables)
-        ])
-        platforms.append(val)
         i = i + 1
 
+    val = OrderedDict ([
+            # ('index', i),
+            ('platform', platform),
+            ('charts', chart_dataset),
+            # ('tables', tables)
+    ])
+
+    return val
+
     # print platforms
-    return OrderedDict([ ('platforms', platforms)])
+    # return OrderedDict([ ('platforms', platforms)])
 
 
-def count_verbs_by_users(verbs, platform, course_code):
+
+def get_verb_count_chart_data(course_code, platform, chart_type = '', chart_title = '', 
+    chart_yAxis_title = '', show_table = 1):
+    pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
+    verbs = pluginObj.get_verbs()
+
+    all_data = []
+    categories, return_data = get_verb_count(verbs, platform, course_code)
+    for data in return_data:
+        all_data.append(data)
+
+    charts = []
+    if chart_type is None or chart_type == '':
+        chart_type = 'column'
+
+    if chart_title is None or chart_title == '':
+        chart_title = 'Total number of activities'
+
+    if chart_yAxis_title is None or chart_yAxis_title == '':
+        chart_yAxis_title = chart_title
+
+    if show_table is None or show_table != 1:
+        show_table = 0
+
+    chartVal = OrderedDict ([
+            ('type', chart_type),
+            ('title', chart_title),
+            ('categories', categories),
+            ('seriesname', verbs),
+            ('yAxis', OrderedDict([('title', chart_yAxis_title)])),
+            ('data', all_data),
+            ('showTable', show_table) # 1 = Show table with the graph, 0 = Don't show table
+    ])
+    return chartVal
+
+
+def get_verb_count(verbs, platform, course_code):
+    categories = []
+    data = []
+    if platform is None or platform == '' or course_code is None or course_code == '':
+        return categories, data
+
     cursor = connection.cursor()
     cursor.execute("""select username, verb, 
         to_char(to_date(clatoolkit_learningrecord.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
@@ -1125,8 +1183,7 @@ def count_verbs_by_users(verbs, platform, course_code):
     """, [platform, course_code])
 
     result = cursor.fetchall()
-    categories = []
-    data = []
+    
     user_data = OrderedDict()
     username = ''
     series = []
@@ -1198,3 +1255,5 @@ def count_verbs_by_users(verbs, platform, course_code):
     # print data
     # print categories
     return categories, data
+
+

@@ -94,9 +94,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         print 'Beginning trello import!'
 
         for action in list(feed):
-            #print 'action: %s' % (action)
-            #action = json.load(action)
-
             #We need to connect this with our user profile somewhere when they initially auth
             u_id = action['idMemberCreator']
             author = action['memberCreator']['username']
