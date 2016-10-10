@@ -217,53 +217,45 @@ def get_timeseries_byplatform(sm_platform, unit, username=None, without_date_utc
         return dataset
 
 
-def get_active_members_table(platform, unit):
+def get_active_members_table(unit, platform=None):
 
-    platformclause = ""
-    if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
+    users = User.objects.filter(learningrecord__unit=unit).distinct()
 
-    cursor = connection.cursor()
-    cursor.execute("""
-        SELECT distinct clatoolkit_learningrecord.username, clatoolkit_learningrecord.platform
-        FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.unit_id='%s' %s
-    """ % (unit.id, platformclause))
-    result = cursor.fetchall()
     table = []
-    for row in result:
-        #sm_userid = row[0]
-        sm_platform = row[1]
-        username = row[0] #get_username_fromsmid(sm_userid, sm_platform)
-        '''
-        if username is None:
-            username = sm_userid
-        '''
-        noposts = get_verbuse_byuser(username, "created", sm_platform, unit)
-        nolikes = get_verbuse_byuser(username, "liked", sm_platform, unit)
-        noshares = get_verbuse_byuser(username, "shared", sm_platform, unit)
-        nocomments = get_verbuse_byuser(username, "commented", sm_platform, unit)
 
-        table_html = '<tr><td><a href="/dashboard/student_dashboard?course_code=%s&platform=%s&username=%s&username_platform=%s">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (unit.code, platform, row[0], sm_platform, username, noposts, nolikes, noshares, nocomments, row[1])
+    for user in users:
+        if platform is None:
+            platforms = user.learningrecord_set.values("platform").distinct()
+            platforms = ", ".join(platforms)
+        else:
+            platforms = platform
+
+        num_posts = get_user_verb_use(user, "created", unit, platform)
+        num_likes = get_user_verb_use(user, "liked", unit, platform)
+        num_shares = get_user_verb_use(user, "shared", unit, platform)
+        num_comments = get_user_verb_use(user, "commented", unit, platform)
+
+        table_html = """"<tr>
+                            <td><a href="/dashboard/student_dashboard?unit={}&platform={}&user={}">{}</a></td>
+                            <td>{}</td>
+                            <td>{}</td>
+                            <td>{}</td>
+                            <td>{}</td>
+                            <td>{}</td>
+                        </tr>""".format(unit.id, platform, user.id, (user.first_name + user.last_name), num_posts, num_likes, num_shares, num_comments, platforms)
         table.append(table_html)
+
     table_str = ''.join(table)
     return table_str
 
-def get_verbuse_byuser(username, verb, platform, unit):
 
-    platformclause = ""
-    if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
+def get_user_verb_use(user, verb, unit, platform=None):
+    if platform:
+        return LearningRecord.objects.filter(user=user, unit=unit, verb=verb, platform=platform).count()
 
-    cursor = connection.cursor()
-    cursor.execute("""
-        select count(clatoolkit_learningrecord.username)
-        FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.username='%s' AND clatoolkit_learningrecord.verb='%s' AND clatoolkit_learningrecord.unit_id='%s' %s
-    """ % (username, verb, unit.id, platformclause))
-    result = cursor.fetchone()
-    count = result[0]
-    return count
+    return LearningRecord.objects.filter(user=user, unit=unit, verb=verb).count()
+
+
 
 
 def get_top_content_table(platform, unit, username=None):
