@@ -256,42 +256,30 @@ def get_user_verb_use(user, verb, unit, platform=None):
     return LearningRecord.objects.filter(user=user, unit=unit, verb=verb).count()
 
 
+def get_top_content_table(unit, platform=None, user=None):
 
+    if platform and user:
+        records = LearningRecord.objects.filter(unit=unit, platform=platform, user=user,
+                                                platformparentid="").prefetch_related('user')
+    elif platform:
+        records = LearningRecord.objects.filter(unit=unit, platform=platform, platformparentid="").prefetch_related(
+            'user')
+    elif user:
+        records = LearningRecord.objects.filter(unit=unit, user=user, platformparentid="").prefetch_related('user')
+    else:
+        records = LearningRecord.objects.filter(unit=unit, platformparentid="").prefetch_related('user')
 
-def get_top_content_table(platform, unit, username=None):
-
-    platformclause = ""
-    if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
-
-    userclause = ""
-    if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s]) LIMIT 20" % (sm_usernames_str)
-
-    cursor = connection.cursor()
-    # distinct
-    cursor.execute("""
-    SELECT clatoolkit_learningrecord.platformid, clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.username, clatoolkit_learningrecord.xapi->>'timestamp', clatoolkit_learningrecord.platform
-    FROM clatoolkit_learningrecord
-    WHERE clatoolkit_learningrecord.unit_id='%s' %s %s
-    """ % (unit.id, platformclause, userclause))
-    result = cursor.fetchall()
     table = []
-    for row in result:
-        id = row[0]
-        sm_userid = row[2]
-        username = get_username_fromsmid(sm_userid, platform)
-        if username is None:
-            username = sm_userid
 
-        post = row[1] #parse(row[0])
-        nolikes = contentcount_byverb(id, "liked", platform, unit)
-        noshares = contentcount_byverb(id, "shared", platform, unit)
-        nocomments = contentcount_byverb(id, "commented", platform, unit)
-        posted_on = row[3]
-        table_html = "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (username, post, posted_on, nolikes, noshares, nocomments, row[4])
+    for lr in records:
+        num_likes = child_count_by_verb(lr, "liked", unit)
+        num_shares = child_count_by_verb(lr, "shared", unit)
+        num_comments = child_count_by_verb(lr, "commented", unit)
+
+        table_html = """<tr><td>{} {}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>""".format(
+            lr.user.first_name, lr.user.last_name, lr.message, lr.datetimestamp, num_likes, num_shares, num_comments,
+            lr.platform)
+
         table.append(table_html)
     table_str = ''.join(table)
     return table_str
@@ -324,41 +312,9 @@ def get_cached_active_users(platform, unit):
     return content_output_str
 
 
-def contentcount_byverb(id, verb, platform, unit, username=None):
-
-    platformclause = ""
-    if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
-
-    userclause = ""
-    if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username IN %s" % (sm_usernames_str)
-
-    cursor = connection.cursor()
-    sql = ""
-
-    if verb =='shared':
-        sql = """
-            SELECT count(*)
-            FROM clatoolkit_learningrecord
-            WHERE
-            clatoolkit_learningrecord.verb='%s'
-            AND clatoolkit_learningrecord.unit_id='%s' %s %s
-            AND (clatoolkit_learningrecord.platformid='%s' OR
-            clatoolkit_learningrecord.platformparentid='%s');
-        """ % (verb, unit.id, platformclause, userclause, id, id)
-    else:
-        sql = """
-        SELECT count(*)
-        FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.verb='%s' %s %s AND clatoolkit_learningrecord.platformid='%s'
-        """ % (verb, platformclause, userclause, id)
-    cursor.execute(sql)
-    result = cursor.fetchone()
-    count = result[0]
-    return count
+def child_count_by_verb(lr, verb, unit):
+    return LearningRecord.objects.filter(Q(platformparentid=lr.platformid) | Q(id=lr.id), Q(verb=verb),
+                                         Q(unit=unit)).count()
 
 
 def get_allcontent_byplatform(platform, unit, username=None, start_date=None, end_date=None):

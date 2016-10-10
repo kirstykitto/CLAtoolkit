@@ -3,7 +3,7 @@ from dashboard.utils import *
 
 
 def post_smimport(unit, platform):
-        top_content = get_top_content_table(platform, unit)
+        top_content = get_top_content_table(unit, platform)
         active_content = get_active_members_table(unit, platform)
         cached_content, created = CachedContent.objects.get_or_create(unit=unit, platform=platform)
         cached_content.htmltable = top_content
