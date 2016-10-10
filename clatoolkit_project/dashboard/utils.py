@@ -570,27 +570,21 @@ def get_wordcloud(platform, unit, username=None, start_date=None, end_date=None)
     return tags
 
 
-def get_nodes_byplatform(platform, unit, username=None, start_date=None, end_date=None):
+def get_nodes_by_platform(unit, start_date=None, end_date=None, platform=None):
 
     platformclause = ""
     if platform != "all":
         platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
-
-    userclause = ""
-    if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
 
     dateclause = ""
     if start_date is not None:
         dateclause = " AND clatoolkit_learningrecord.datetimestamp BETWEEN '%s' AND '%s'" % (start_date, end_date)
 
     sql = """
-            SELECT distinct clatoolkit_learningrecord.username
+            SELECT distinct user_id
             FROM clatoolkit_learningrecord
-            WHERE clatoolkit_learningrecord.unit_id='%s' %s %s %s
-          """ % (unit.id, platformclause, userclause, dateclause)
+            WHERE unit_id='%s' %s
+          """ % (unit.id, dateclause)
     #print sql
     cursor = connection.cursor()
     cursor.execute(sql)
@@ -674,7 +668,7 @@ def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None,
     #    node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
     #    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
     #else:
-    node_dict = get_nodes_byplatform(platform, unit, start_date=start_date, end_date=end_date)
+    node_dict = get_nodes_by_platform(unit, start_date, end_date, platform)
     edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform,
                                                                                                         unit,
                                                                                                         start_date=start_date,
