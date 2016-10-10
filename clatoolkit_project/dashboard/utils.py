@@ -225,7 +225,8 @@ def get_active_members_table(unit, platform=None):
 
     for user in users:
         if platform is None:
-            platforms = user.learningrecord_set.values("platform").distinct()
+            platforms = user.learningrecord_set.values_list("platform").distinct()
+            platforms = [p[0] for p in platforms]
             platforms = ", ".join(platforms)
         else:
             platforms = platform
@@ -235,14 +236,10 @@ def get_active_members_table(unit, platform=None):
         num_shares = get_user_verb_use(user, "shared", unit, platform)
         num_comments = get_user_verb_use(user, "commented", unit, platform)
 
-        table_html = """"<tr>
-                            <td><a href="/dashboard/student_dashboard?unit={}&platform={}&user={}">{}</a></td>
-                            <td>{}</td>
-                            <td>{}</td>
-                            <td>{}</td>
-                            <td>{}</td>
-                            <td>{}</td>
-                        </tr>""".format(unit.id, platform, user.id, (user.first_name + user.last_name), num_posts, num_likes, num_shares, num_comments, platforms)
+        table_html = """<tr><td><a href="/dashboard/student_dashboard?unit={}&platform={}&user={}">{} {}</a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>""".format(
+            unit.id, platform, user.id, user.first_name, user.last_name, num_posts, num_likes, num_shares, num_comments,
+            platforms)
+
         table.append(table_html)
 
     table_str = ''.join(table)

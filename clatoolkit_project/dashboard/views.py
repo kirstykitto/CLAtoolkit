@@ -275,9 +275,9 @@ def dashboard(request):
 
         #active members table
         profiling = profiling + "| Active Members %s" % (str(datetime.datetime.now()))
-        
-        # TODO - Re-enable
-        activememberstable = ""  # get_active_members_table(platform, unit)
+
+        p = platform if platform != "all" else None
+        activememberstable = get_active_members_table(unit, p)
 
         profiling = profiling + "| Top Content %s" % (str(datetime.datetime.now()))
         topcontenttable = get_cached_top_content(platform, unit)
