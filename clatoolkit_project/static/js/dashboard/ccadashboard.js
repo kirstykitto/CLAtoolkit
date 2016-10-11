@@ -50,6 +50,37 @@ var additionalChartTag = "<div class='panel-body scrollable'>"
  */
 var clearTag = "<div class='clear'></div>";
 
+/**
+ * Inner pie chart diameter
+ * It is used for a donut pie chart.
+ * @type {Number}
+ */
+var PIE_DIAMETER_INNER = 140;
+
+/**
+ * Outer pie chart diameter
+ * It is used for a single pie chart.
+ * @type {Number}
+ */
+var PIE_DIAMETER_OUTER = 270;
+
+/**
+ * First pie chart's position X
+ * @type {Number}
+ */
+var PIE_INIT_POSITION_X = 140;
+
+/**
+ * Distance between next pie chart
+ * @type {Number}
+ */
+var PIE_OFFSET = 410;
+
+/**
+ * Brightness of chart color
+ * @type {Number}
+ */
+var CHART_COLOR_BRIGHTNESS = 0.2;
 
 /**
  * Initialise HighCharts charts options.
@@ -65,6 +96,7 @@ function initTimeseriesChartOptions() {
 		},
 		xAxis: {
 			events: {
+				// Navigator range changed event handler
 				afterSetExtremes: function (e) {
 					// startDate = Highcharts.dateFormat('%Y,%m,%d', e.min);
 					// endDate = Highcharts.dateFormat('%Y,%m,%d', e.max);
@@ -76,8 +108,8 @@ function initTimeseriesChartOptions() {
 						$.each(platformNames, function(key, val) {
 							chartData = createChartSeries(allPlatformData[val], true, e.min, e.max);
 							allPlatformData[val] = chartData;
-							drawChart(chartData);
-							showTable(chartData);
+							drawGraphs(chartData);
+							showAllTables(chartData);
 						});
 					}
 				}
@@ -160,27 +192,27 @@ function showPlatformTimeseries() {
  */
 function showCharts(platform) {
 	if(platform == undefined || platform == "None" || platform == "" || platform.length == 0) {
-		showMessage('Error. No platforms found. Charts and tables could not be generated.');
+		showMessage('Error: No platforms found. Charts and tables could not be generated.');
 		return;
 	}
 	$.ajax({
 		url: "/dashboard/api/get_platform_activities/?course_code=" + course_code + "&platform=" + platform
 	})
-	.fail(function(data,textStatus, errorThrown){
+	.fail(function(data, textStatus, errorThrown){
     	console.log('Error has occurred in showCharts() function. PlatformName: ' + platform + ".\r\n" + errorThrown);
 	})
 	.done(function( data ) {
 		chartData = createChartSeries(data, false, null, null)
 		allPlatformData[platform] = chartData;
-		drawChart(chartData);
-		showTable(chartData);
+		drawGraphs(chartData);
+		showAllTables(chartData);
 		// allPlatformData = chartData;
 	});
 }
 
 /**
  * Create series for charts.
- * Sample series that will be created is shown below.
+ * Sample series that will be created is shown below. (for bar chart)
 	"series": [{
 			"name": "created", 
 			"data":[1,2,6,2,4,5,2,6,8,3]
@@ -197,168 +229,423 @@ function createChartSeries(data, checkDate, start, end) {
 	$.each(data["platforms"], function(key, val) {
 		$.each(val["charts"], function(key, chart) {
 			// var chart = val["charts"][0];
-			var allSeries = [];
-			$.each(chart["seriesname"], function(key, seriesName) {
-				obj = [];
-				$.each(chart["categories"], function(key, cate) {
-					// Search current category (user name, etc.) and series (verb, etc.) in chart["data"]
-					var userData = chart["data"].filter(function(item, index){
-					  if (item["category"] == cate) return true;
-					});
-					var series = userData[0]["series"].filter(function(item, index) {
-						if (item["name"] == seriesName) return true;
-					});
-
-					var total = 0;
-					if(series.length > 0) {
-						if(checkDate) {
-							$.each(series[0]["date"], function(key, value) {
-		                        var d = value.split(",");
-		                        var utcDate = Date.UTC(d[0], d[1], d[2]);
-		                        // var str = "Start Date(" + start + "): " + new Date(start);
-		                        // str += " || Data Date(" + utcDate + "): " + new Date(utcDate);
-		                        // str += " || End Date(" + end + "): " + new Date(end);
-		                        // console.log(str);
-								// Add value when startDate <= value >= endDate
-								if(parseFloat(start) <= parseFloat(utcDate) && parseFloat(end) >= parseFloat(utcDate)) {
-									total += series[0]["values"][key];
-								}
-							});
-						} else {
-							// Add up all values of the current series
-							$.each(series[0]["values"], function(key , value) {
-								total += value;
-							});	
-						}
-					}
-					obj.push(total);
-				});
-				var newSeries = {
-					"name": seriesName,
-					"data": obj
-				};
-				allSeries.push(newSeries);
-			});
-			chart["series"] = allSeries;
-			// console.log(val);
+			var allSeries = null;
+			switch(chart['type']) {
+				case 'column':
+					chart["series"] = createBarChartSeries(chart, checkDate, start, end);
+					break;
+				case 'pie':
+					chart["series"] = createPieChartSeries(chart, false, checkDate, start, end);
+					break;
+				default:
+					break;
+			}
 		});
 	});
 	return data;
 }
 
 
+function createPieChartSeries(chart, isDetailChart, checkDate, start, end, colors) {
+	var allSeries = [];
+	if (colors == null || colors.length == 0) {
+		colors = createChartColors(chart["seriesName"]);
+	}
+
+	posX = PIE_INIT_POSITION_X;
+	$.each(chart["categories"], function(key, cate) {
+		if (parseInt(key) > 0) {
+			posX += PIE_OFFSET;
+		}
+
+		dataset = [];
+		$.each(chart["seriesName"], function(key, seriesName) {
+			var userData = chart["data"].filter(function(item, index){
+			  if (item["category"] == cate) return true;
+			});
+			var series = userData[0]["series"].filter(function(item, index) {
+				if (item["name"] == seriesName) return true;
+			});
+
+			var total = 0;
+			if(series.length > 0) {
+				if(checkDate) {
+					$.each(series[0]["date"], function(key, value) {
+	                    var d = value.split(",");
+	                    var utcDate = Date.UTC(d[0], d[1], d[2]);
+						// Add value when startDate <= value >= endDate
+						if(parseFloat(start) <= parseFloat(utcDate) && parseFloat(end) >= parseFloat(utcDate)) {
+							total += series[0]["values"][key];
+						}
+					});
+				} else {
+					// Add up all values of the current series
+					$.each(series[0]["values"], function(key , value) {
+						total += value;
+					});
+				}
+			}
+			
+			var newData = {
+				name: seriesName,
+				y: total
+			};
+			if(!isDetailChart) {
+				newData["color"] = getChartColorByName(colors, seriesName, true);
+			}
+			else if(isDetailChart && series.length > 0) {
+				// Color of each piece of outer pie is similar to that of collesponding inner piece
+				var verb = null;
+				$.each(chart["objectMapper"], function(key, element) {
+					if ($.inArray(seriesName, element) != -1) {
+						verb = key;
+						return true;
+					}
+				});
+
+				newData["color"] = getChartColorByName(colors, verb, false);
+			}
+			dataset.push(newData);
+		});
+		colorIndex = 0;
+		diameter = isDetailChart ? PIE_DIAMETER_OUTER : PIE_DIAMETER_INNER;
+		var newSeries = {
+			type: chart['type'],
+			name: cate,
+			center: [posX, null],
+			size: diameter,
+			// dataLabels: {enabled: false},
+			dataLabels:{
+				formatter: function () {
+					// return this.y > 0 ? '<b>' + this.point.name + '</b>' : null;
+					return this.y > 0 ? this.point.name : null;
+				},
+				distance: -20
+			},
+			data: dataset
+		}
+		if(isDetailChart) {
+			// newSeries["size"] = PIE_DIAMETER_OUTER;
+			newSeries["innerSize"] = PIE_DIAMETER_INNER;
+			newSeries["dataLabels"] = {
+				formatter: function () {
+					return this.y > 0 ? '<b>' + this.point.name + ': ' + this.y + '</b>' : null;
+				},
+				distance: -5
+			};
+		}
+		allSeries.push(newSeries);
+	});
+
+	if(chart["detailChart"]) {
+		// $.merge(allSeries, createPieChartSeries(chart["detailChart"], true, checkDate, start, end, colors));
+		chart["detailChart"]["series"] = createPieChartSeries(chart["detailChart"], true, checkDate, start, end, colors);
+	}
+	return allSeries;
+}
+
+
+function getChartColorByName(colors, seriesName, isBrighter) {
+	var series = colors.filter(function(item, index) {
+		if (item["name"] == seriesName) return true;
+	});
+	// return Highcharts.Color(series[0]["color"]).brighten(0.4).get();
+	color = series[0]["color"];
+	if(isBrighter) {
+		color = Highcharts.Color(series[0]["color"]).brighten(CHART_COLOR_BRIGHTNESS).get();
+	}
+	return color;
+}
+
+
+function createChartColors(series) {
+	var colors = Highcharts.getOptions().colors;
+	var colorIndex = 0;
+	var ret = [];
+	$.each(series, function(key, name) {
+		obj = { name: name, color: colors[colorIndex % colors.length] };
+		ret.push(obj);
+		colorIndex++;
+	});
+	return ret;
+}
+
+
+function createBarChartSeries(chart, checkDate, start, end) {
+	var allSeries = [];
+	$.each(chart["seriesName"], function(key, seriesName) {
+		obj = [];
+		$.each(chart["categories"], function(key, cate) {
+			// Search current category (user name, etc.) and series (verb, etc.) in chart["data"]
+			var userData = chart["data"].filter(function(item, index){
+			  if (item["category"] == cate) return true;
+			});
+			var series = userData[0]["series"].filter(function(item, index) {
+				if (item["name"] == seriesName) return true;
+			});
+
+			var total = 0;
+			if(series.length > 0) {
+				if(checkDate) {
+					$.each(series[0]["date"], function(key, value) {
+	                    var d = value.split(",");
+	                    var utcDate = Date.UTC(d[0], d[1], d[2]);
+						// Add value when startDate <= value >= endDate
+						if(parseFloat(start) <= parseFloat(utcDate) && parseFloat(end) >= parseFloat(utcDate)) {
+							total += series[0]["values"][key];
+						}
+					});
+				} else {
+					// Add up all values of the current series
+					$.each(series[0]["values"], function(key , value) {
+						total += value;
+					});	
+				}
+			}
+			obj.push(total);
+		});
+		var newSeries = {
+			name: seriesName,
+			data: obj
+		};
+		allSeries.push(newSeries);
+	});
+
+	return allSeries;
+}
+
 /**
- * Draw chart.
+ * Draw all .
  * 
  * @param {Object} data 	Chart data
  */
-function drawChart(data) {
+function drawGraphs(data) {
 	$.each(data["platforms"], function(key , val) {
 		$.each(val["charts"], function(key , chart) {
-			// console.log(chartData);
-			if ($('#chart-' + val["platform"]).highcharts()) {
-				$('#chart-' + val["platform"]).highcharts().destroy();
+			if ($('#' + chart['type'] + '-' + val["platform"]).highcharts()) {
+				$('#' + chart['type'] + '-' + val["platform"]).highcharts().destroy();
 			}
-			$('#chart-' + val["platform"]).highcharts({
-				chart: {
-					type: chart["type"]
-				},
-				title: {
-					text: chart["title"]
-				},
-				yAxis: {
-					min: 0,
-					allowDecimals: false,
-					title: {
-					    text: chart['yAxis']["title"]
-					},
-		            stackLabels: {
-		                enabled: true,
-		                style: {
-		                    fontWeight: 'bold',
-		                    color: (Highcharts.theme && Highcharts.theme.textColor) || 'black'
-		                }
-		            }
-				},
-				xAxis: {
-					categories: chart["categories"]
-				},
-
-		        series: chart["series"],
-		        tooltip: {
-		            headerFormat: '<b>{point.x}</b><br/>',
-		            pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}'
-		        },
-		        plotOptions: {
-		            column: {
-		                stacking: 'normal',
-		                dataLabels: {
-		                    enabled: true,
-		                    color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white',
-		                    style: {
-		                        textShadow: '0 0 3px black'
-		                    }
-		                }
-		            }
-		        }
-			});
+			switch(chart['type']) {
+				case 'column':
+					drawBarChart(chart, val["platform"]);
+					break;
+				case 'pie':
+					drawPieChart(chart, val["platform"]);
+					if(chart["detailChart"]) {
+						$.each(chart["detailChart"]["series"], function(key, series) {
+							addSeriesToChart(series, chart['type'], val["platform"]);
+						});
+					}
+					break;
+				default:
+					break;
+			}
 		});
+	});
+}
+
+function addSeriesToChart(series, chartType, platform) {
+	var chart = $('#' + chartType + '-' + platform).highcharts();
+	chart.addSeries(series);
+}
+
+
+/**
+ * Draw pie chart.
+ * @param  {[type]} chart [description]
+ * @return {[type]}       [description]
+ */
+function drawPieChart(chart, platform) {
+	$('#' + chart['type'] + '-' + platform).highcharts({
+		chart: {
+			type: chart["type"],
+            // width: parseInt($('#column-' + platform).width()) > 900 ? parseInt($('#column-' + platform).width()) : 900
+            width: 2000
+		},
+		title: {
+			text: chart["title"],
+            align: 'center',
+            verticalAlign: 'top'
+		},
+        labels: {
+            style: {
+                // color: '#3E576F',
+                fontSize: '14px'
+            },
+            // items:  [
+            //     { html: 'Member 1', style: { left: '120px', top: '20px' }},
+            //     { html: 'Member 2', style: { left: '560px', top: '20px' }}
+            //     // { html: 'Member 3', style: { left: '590px', top: '60px' }},
+            //     // { html: 'Member 4', style: { left: '820px', top: '60px' }},
+            //     // { html: 'Member 5', style: { left: '1050px',top: '60px' }}
+            // ]
+        },
+        tooltip: {
+            //NOTE: point.y is actual value tha is set to the pie chart. point.percentage is automatically caluculated by highcharts.
+            // pointFormat: '{point.name}: <b>{point.percentage:.1f}%</b>'
+            // formatter: function() {
+            //     // console.log(this.series);
+            // 	pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}'
+            //     // return '<b>' + this.point.name + ': ' + this.point.y + '</b>';
+            // }
+            // pointFormat: 'Activity: {point.name}: Total: {point.y}<br/>'
+            formatter: function() {
+				format = '<b>' + this.series.name + '</b><br>'
+				+ '<b>' + this.point.name + ': ' + this.point.y + '</b>';
+				return format;
+            }
+        },
+        plotOptions: {
+            pie: {
+                // allowPointSelect: true,
+                cursor: 'pointer'
+            }
+        },
+        series: chart["series"]
+	});
+}
+
+/**
+ * Draw bar chart.
+ * @param  {[type]} chart [description]
+ * @return {[type]}       [description]
+ */
+function drawBarChart(chart, platform) {
+	$('#' + chart['type'] + '-' + platform).highcharts({
+		chart: {
+			type: chart["type"]
+		},
+		title: {
+			text: chart["title"]
+		},
+		yAxis: {
+			min: 0,
+			allowDecimals: false,
+			title: {
+			    text: chart['yAxis']["title"]
+			},
+            stackLabels: {
+                enabled: true,
+                style: {
+                    fontWeight: 'bold',
+                    color: (Highcharts.theme && Highcharts.theme.textColor) || 'black'
+                }
+            }
+		},
+		xAxis: {
+			categories: chart["categories"]
+		},
+
+        series: chart["series"],
+        tooltip: {
+            headerFormat: '<b>{point.x}</b><br/>',
+            pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}'
+        },
+        plotOptions: {
+            column: {
+                stacking: 'normal',
+                dataLabels: {
+                    enabled: true,
+                    color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white',
+                    style: {
+                        textShadow: '0 0 3px black'
+                    }
+                }
+            }
+        }
 	});
 }
 
 
 /**
- * Show table.
+ * Show all tables in CCA dashboard.
  * 
  * @param {Object} data 	Chart data
  */
-function showTable(data) {
-
+function showAllTables(data) {
 	$.each(data["platforms"], function(key , val) {
-		$.each(val["charts"], function(key , chartVal) {
-			// In $.each(), keyword "continue" does not work. 
-			// Return anything that's not false and it will behave as a continue. 
-			// Return false, and it will behave as a break:
-			if(chartVal["showTable"] != 1) return true;
-
-			//TODO: Code needs to be modified for other type of charts (it is only for stacked bar)
-			//Create data columns
-			var cate = chartVal["categories"];
-			var cols = [];
-			var ary = {"title": ""};
-			cols.push(ary);
-			$.each(cate, function(key,val) {
-				ary = {"title": val};
-				cols.push(ary);
-			});
-			//Create table data
-			var series = chartVal["series"];
-			var newData = [];
-			ary = [];
-			for (var i = 0; i < series.length; i++) {
-				ary = series[i]["data"];
-				ary.unshift(series[i]["name"]);
-				newData.push(ary);
-			}
-			// console.log("newData" + newData);
-			if ($('#datatable-' + val["platform"]).dataTable.isDataTable()) {
-				$('#datatable-' + val["platform"]).dataTable.fnDestroy();
-			}
-			$('#datatable-' + val["platform"]).DataTable( {
-				bFilter: false,
-				bInfo: false,
-				bPaginate: false,
-				bLengthChange: false,
-				bDestroy: true, //To reinitialise datatable, this has to be true.
-				bSort: false,
-				scrollX: true,
-				// scrollY: 200, //maximum hight of the table
-				data: newData,
-				columns: cols
-			});
+		$.each(val["charts"], function(key , chart) {
+			showTable(chart, val["platform"]);
+			// Show table of details chart (outer pie, drilldown bar, etc.)
+			showTable(chart["detailChart"], val["platform"]);
 		});
 	});
 }
+
+function showTable(chart, platform) {
+	if (chart == null) return;
+	// In $.each(), keyword "continue" does not work. 
+	// Return anything that's not false and it will behave as a continue. 
+	// Return false, and it will behave as a break:
+	if(parseInt(chart["showTable"]) != 1) return true;
+
+	//TODO: Code needs to be modified for other type of charts 
+	//Create data columns
+	var cate = chart["categories"];
+	var cols = [];
+	var ary = {"title": ""};
+	cols.push(ary);
+	$.each(cate, function(key, val) {
+		ary = {"title": val};
+		cols.push(ary);
+	});
+
+	//Create table data
+	newData = getTableData(chart);
+	var elemName = chart["type"] + "-" + platform;
+	if ($('#datatable-' + elemName).dataTable.isDataTable()) {
+		$('#datatable-' + elemName).dataTable.fnDestroy();
+	}
+	$('#datatable-' + elemName).DataTable( {
+		bFilter: false,
+		bInfo: false,
+		bPaginate: false,
+		bLengthChange: false,
+		bDestroy: true, //To reinitialise datatable, this has to be true.
+		bSort: false,
+		scrollX: true,
+		// scrollY: 200, //maximum hight of the table
+		data: newData,
+		columns: cols
+	});
+}
+
+
+function getTableData(chart) {
+	var series = chart["series"];
+	var newData = [];
+	ary = [];
+	if(chart["type"] == "pie") {
+		var dataSet = {}
+		$.each(chart["seriesName"], function(key, elem) {
+			dataSet[elem] = [];
+		});
+
+		$.each(series, function(key, val) {
+			$.each(val["data"], function(key, data) {
+				values = dataSet[data["name"]];
+				values.push(data["y"]);
+				dataSet[data["name"]] = values;
+			});
+		});
+
+		$.each(dataSet, function(key, val) {
+			ary.push(key);
+			$.merge(ary, val)
+			newData.push(ary);
+			ary = [];
+		});
+	} else {
+		$.each(series, function(key, val) {
+			ary.push(val["name"]);
+			$.merge(ary, val["data"])
+			newData.push(ary);
+			ary = [];
+		});
+	}
+	return newData;
+}
+
 
 /**
  * Show message.

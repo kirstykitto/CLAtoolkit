@@ -1085,10 +1085,15 @@ def get_platform_activity_dataset(course_code, platform_names, username=None):
                 chart_type = 'column', chart_title = 'Total number of activities', 
                 chart_yAxis_title = 'Total number of activities', show_table = 0))
             # Pie chart data
-            # chart_dataset.append(get_verb_count_chart_data(course_code, platform, 
-            #     chart_type = 'pie', chart_title = 'Total number of activities', 
-            #     chart_yAxis_title = 'Total number of activities', show_table = 1))
+            chart_data = get_verb_count_chart_data(course_code, platform, 
+                chart_type = 'pie', chart_title = 'Activity details', 
+                chart_yAxis_title = 'Activity details', show_table = 0)
+            chart_data['detailChart'] = get_other_contextActivity_count_chart_data(course_code, platform, 
+                chart_type = 'pie', chart_title = 'Activity details', 
+                chart_yAxis_title = 'Activity details', show_table = 1, 
+                obj_mapper = settings.DATAINTEGRATION_PLUGINS[platform].VERB_ACTION_TYPE_MAPPER)
 
+            chart_dataset.append(chart_data)
             platform_data = get_platform_activity_data(course_code, platform, chart_dataset)
 
         elif platform == CLRecipe.PLATFORM_GITHUB:
@@ -1122,21 +1127,17 @@ def get_platform_activity_data(course_code, platform, chart_dataset):
             ('charts', chart_dataset),
             # ('tables', tables)
     ])
-
     return val
 
-    # print platforms
-    # return OrderedDict([ ('platforms', platforms)])
 
-
-
-def get_verb_count_chart_data(course_code, platform, chart_type = '', chart_title = '', 
-    chart_yAxis_title = '', show_table = 1):
+def get_other_contextActivity_count_chart_data(course_code, platform, chart_type = '', chart_title = '', 
+    chart_yAxis_title = '', obj_mapper = None, show_table = 1):
     pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
-    verbs = pluginObj.get_verbs()
+    verbs = sorted(pluginObj.get_verbs())
+    other_context_types = pluginObj.get_other_contextActivity_types(verbs)
 
     all_data = []
-    categories, return_data = get_verb_count(verbs, platform, course_code)
+    categories, return_data = get_other_contextActivity_count(platform, course_code)
     for data in return_data:
         all_data.append(data)
 
@@ -1144,28 +1145,143 @@ def get_verb_count_chart_data(course_code, platform, chart_type = '', chart_titl
     if chart_type is None or chart_type == '':
         chart_type = 'column'
 
-    if chart_title is None or chart_title == '':
-        chart_title = 'Total number of activities'
+    if show_table is None or show_table != 1:
+        show_table = 0
 
-    if chart_yAxis_title is None or chart_yAxis_title == '':
-        chart_yAxis_title = chart_title
+    return create_chart_data_obj(categories, other_context_types, all_data, chart_type = chart_type, 
+        chart_title = chart_title, chart_yAxis_title = chart_yAxis_title, obj_mapper = obj_mapper, 
+        show_table = show_table)
+
+
+def get_verb_count_chart_data(course_code, platform, chart_type = '', chart_title = '', 
+    chart_yAxis_title = '', show_table = 1):
+    pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
+    # Need to be sorted
+    verbs = sorted(pluginObj.get_verbs())
+
+    all_data = []
+    categories, return_data = get_verb_count(platform, course_code)
+    for data in return_data:
+        all_data.append(data)
+
+    charts = []
+    if chart_type is None or chart_type == '':
+        chart_type = 'column'
 
     if show_table is None or show_table != 1:
         show_table = 0
 
+    return create_chart_data_obj(categories, verbs, all_data, chart_type = chart_type, 
+        chart_title = chart_title, chart_yAxis_title = chart_yAxis_title, show_table = show_table)
+
+
+def create_chart_data_obj(categories, seriesname, data, chart_type = '', chart_title = '', 
+    chart_yAxis_title = '', obj_mapper = None, show_table = 1):
     chartVal = OrderedDict ([
             ('type', chart_type),
             ('title', chart_title),
             ('categories', categories),
-            ('seriesname', verbs),
+            ('seriesName', seriesname),
             ('yAxis', OrderedDict([('title', chart_yAxis_title)])),
-            ('data', all_data),
+            ('data', data),
             ('showTable', show_table) # 1 = Show table with the graph, 0 = Don't show table
     ])
+    if obj_mapper is not None:
+        chartVal['objectMapper'] = obj_mapper
+
     return chartVal
 
 
-def get_verb_count(verbs, platform, course_code):
+
+def get_other_contextActivity_count(platform, course_code):
+    categories = []
+    data = []
+    if platform is None or platform == '' or course_code is None or course_code == '':
+        return categories, data
+
+    cursor = connection.cursor()
+    cursor.execute("""select username
+        , json_array_elements(xapi->'context'->'contextActivities'->'other')->'definition'->'name'->>'en-US' as other_context_val
+        , to_char(to_date(cl.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
+        , count(json_array_elements(xapi->'context'->'contextActivities'->'other')->'definition'->'name'->>'en-US') as other_context_val_count
+        from clatoolkit_learningrecord as cl
+        , json_array_elements(cl.xapi->'context'->'contextActivities'->'other') other_context
+        where cl.xapi->'context'->>'platform' = %s
+        and course_code = %s
+        group by username, other_context_val, date_imported
+        order by username, other_context_val, date_imported
+    """, [platform, course_code])
+
+    result = cursor.fetchall()
+    user_data = OrderedDict()
+    username = ''
+    series = []
+    other_context_val = ''# other_context_val
+    dates = [] # date
+    values = []
+    for row in result:
+        # Subtract 1 from month to avoid calculation in client side (Javascript)
+        dateAry = row[2].split(',')
+        dateString = dateAry[0] + ',' + str(int(dateAry[1]) - 1).zfill(2) + ',' + dateAry[2]
+        if username == '' or username != row[0]:
+            if username != '':
+                # Save previous all verbs and its values of the user
+                obj = OrderedDict([
+                    ('name', other_context_val), # other_context_val
+                    ('date', copy.deepcopy(dates)),
+                    ('values', copy.deepcopy(values))
+                ])
+                series.append(obj)
+                user_data['category'] = username
+                user_data['series'] = copy.deepcopy(series)
+                data.append(user_data)
+
+            # Initialise all variables
+            username = row[0]
+            user_data = OrderedDict()
+            series = []
+            other_context_val = row[1] # other_context_val
+            dates = [dateString] # date
+            values = [int(row[3])] # number of verbs imported on the date
+            categories.append(username)
+
+        elif username == row[0] and other_context_val == row[1]:
+            # Same user and same verb.
+            dates.append(dateString)
+            values.append(int(row[3]))
+
+        elif username == row[0] and other_context_val != row[1]:
+            # Save previous verb and its value
+            obj = OrderedDict([
+                ('name', other_context_val),
+                ('date', copy.deepcopy(dates)), 
+                ('values', copy.deepcopy(values))
+            ])
+            series.append(obj)
+            # Initialise with new verb, date and value
+            verb = row[1]
+            other_context_val = row[1]
+            dates = [dateString]
+            values = [int(row[3])]
+
+    # Save the last one
+    obj = OrderedDict([
+        ('name', other_context_val),
+        ('date', copy.deepcopy(dates)), 
+        ('values', copy.deepcopy(values))
+    ])
+    series.append(obj)
+    user_data['category'] = username
+    user_data['series'] = copy.deepcopy(series)
+    data.append(user_data)
+
+    # print data
+    # print categories
+    return categories, data
+
+
+
+def get_verb_count(platform, course_code):
     categories = []
     data = []
     if platform is None or platform == '' or course_code is None or course_code == '':
@@ -1255,5 +1371,3 @@ def get_verb_count(verbs, platform, course_code):
     # print data
     # print categories
     return categories, data
-
-

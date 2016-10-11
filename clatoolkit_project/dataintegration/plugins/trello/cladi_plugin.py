@@ -61,6 +61,14 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     ACTION_TYPE_CLOSE_CARD = 'closeCard'
     ACTION_TYPE_OPEN_CARD = 'openCard'
 
+    VERB_ACTION_TYPE_MAPPER = {
+        'created': [ACTION_TYPE_CREATE_CARD],
+        'added': [ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, ACTION_TYPE_ADD_CHECKLIST_TO_CARD, ACTION_TYPE_ADD_MEMBER_TO_CARD],
+        'updated': [ACTION_TYPE_MOVE_CARD, ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD],
+        'commented': [ACTION_TYPE_COMMENT_CARD],
+        'closed': [ACTION_TYPE_CLOSE_CARD],
+        'opened': [ACTION_TYPE_OPEN_CARD]
+    }
 
     def __init__(self):
        pass
@@ -190,7 +198,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     target_id = data['card']['id']
                     attachment = data['attachment']
                     # attachment_id = attachment['id']
-                    object_id = action['id']
+                    attachment_id = action['id']
                     attachment_data = '%s - %s' % (attachment['name'], attachment['url'])
                     object_type = CLRecipe.OBJECT_FILE
                     shared_displayname = '%sc/%s' % (self.platform_url, target_id)
@@ -259,11 +267,11 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                  'updateList', 'updateMember']):
 
                 usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
+                card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
                 #many checklist items will be bugged - we require webhooks!
 
                 if type == self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD and usr_dict is not None:
                     # Create "other" contextActivity object to store original activity in xAPI
-                    card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
                     context = get_other_contextActivity(
                         card_details['shortUrl'], 'Verb', type, 
                         CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED))
@@ -348,5 +356,22 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             
     def get_objects(self):
         return self.xapi_objects
+
+    def get_other_contextActivity_types(self, verbs = []):
+        ret = []
+        if verbs is None or len(verbs) == 0:
+            ret = [self.ACTION_TYPE_COMMENT_CARD, self.ACTION_TYPE_CREATE_CARD, 
+                self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD, self.ACTION_TYPE_UPDATE_CARD, 
+                self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD, 
+                self.ACTION_TYPE_ADD_MEMBER_TO_CARD, self.ACTION_TYPE_MOVE_CARD, 
+                self.ACTION_TYPE_CLOSE_CARD, self.ACTION_TYPE_OPEN_CARD]
+        else:
+            for verb in verbs:
+                action_types = self.VERB_ACTION_TYPE_MAPPER[verb]
+                for type in action_types:
+                    ret.append(type)
+        return ret
+
+
 
 registry.register(TrelloPlugin)
