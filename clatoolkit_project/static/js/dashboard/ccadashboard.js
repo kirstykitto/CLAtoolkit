@@ -291,7 +291,7 @@ function createPieChartSeries(chart, isDetailChart, checkDate, start, end, color
 				y: total
 			};
 			if(!isDetailChart) {
-				newData["color"] = getChartColorByName(colors, seriesName, false);
+				newData["color"] = getChartColorByName(colors, seriesName, true);
 			}
 			else if(isDetailChart && series.length > 0) {
 				// Color of each piece of outer pie is similar to that of collesponding inner piece
@@ -303,7 +303,7 @@ function createPieChartSeries(chart, isDetailChart, checkDate, start, end, color
 					}
 				});
 
-				newData["color"] = getChartColorByName(colors, verb, true);
+				newData["color"] = getChartColorByName(colors, verb, false);
 			}
 			dataset.push(newData);
 		});
