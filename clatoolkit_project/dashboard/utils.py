@@ -1085,15 +1085,15 @@ def get_platform_activity_dataset(course_code, platform_names, username=None):
                 chart_type = 'column', chart_title = 'Total number of activities', 
                 chart_yAxis_title = 'Total number of activities', show_table = 0))
             # Pie chart data
-            chart_data = get_verb_count_chart_data(course_code, platform, 
+            pie_data = get_verb_count_chart_data(course_code, platform, 
                 chart_type = 'pie', chart_title = 'Activity details', 
                 chart_yAxis_title = 'Activity details', show_table = 0)
-            chart_data['detailChart'] = get_other_contextActivity_count_chart_data(course_code, platform, 
+            pie_data['detailChart'] = get_other_contextActivity_count_chart_data(course_code, platform, 
                 chart_type = 'pie', chart_title = 'Activity details', 
                 chart_yAxis_title = 'Activity details', show_table = 1, 
                 obj_mapper = settings.DATAINTEGRATION_PLUGINS[platform].VERB_ACTION_TYPE_MAPPER)
 
-            chart_dataset.append(chart_data)
+            chart_dataset.append(pie_data)
             platform_data = get_platform_activity_data(course_code, platform, chart_dataset)
 
         elif platform == CLRecipe.PLATFORM_GITHUB:
@@ -1192,7 +1192,6 @@ def create_chart_data_obj(categories, seriesname, data, chart_type = '', chart_t
     return chartVal
 
 
-
 def get_other_contextActivity_count(platform, course_code):
     categories = []
     data = []
@@ -1258,7 +1257,6 @@ def get_other_contextActivity_count(platform, course_code):
                 ('values', copy.deepcopy(values))
             ])
             series.append(obj)
-            # Initialise with new verb, date and value
             verb = row[1]
             other_context_val = row[1]
             dates = [dateString]
@@ -1275,10 +1273,7 @@ def get_other_contextActivity_count(platform, course_code):
     user_data['series'] = copy.deepcopy(series)
     data.append(user_data)
 
-    # print data
-    # print categories
     return categories, data
-
 
 
 def get_verb_count(platform, course_code):
@@ -1327,13 +1322,9 @@ def get_verb_count(platform, course_code):
             username = row[0]
             user_data = OrderedDict()
             series = []
-            verb = "" # verb
-            dates = [] # date
-            values = []
             verb = row[1] # verb
             dates = [dateString] # date
             values = [int(row[3])] # number of verbs imported on the date
-
             categories.append(username)
 
         elif username == row[0] and verb == row[1]:
@@ -1349,10 +1340,6 @@ def get_verb_count(platform, course_code):
                 ('values', copy.deepcopy(values))
             ])
             series.append(obj)
-            # Initialise with new verb, date and value
-            verb = "" # verb
-            dates = [] # date
-            values = []
             verb = row[1] # verb
             dates = [dateString] # date
             values = [int(row[3])] # number of verbs imported on the date

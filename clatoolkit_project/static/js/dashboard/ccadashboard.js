@@ -338,7 +338,6 @@ function createPieChartSeries(chart, isDetailChart, checkDate, start, end, color
 	});
 
 	if(chart["detailChart"]) {
-		// $.merge(allSeries, createPieChartSeries(chart["detailChart"], true, checkDate, start, end, colors));
 		chart["detailChart"]["series"] = createPieChartSeries(chart["detailChart"], true, checkDate, start, end, colors);
 	}
 	return allSeries;
@@ -430,9 +429,12 @@ function drawGraphs(data) {
 					drawBarChart(chart, val["platform"]);
 					break;
 				case 'pie':
+					// Draw single/inner pie chart
+					// Note that outer pie has not been drawn yet
 					drawPieChart(chart, val["platform"]);
 					if(chart["detailChart"]) {
 						$.each(chart["detailChart"]["series"], function(key, series) {
+							// To draw outer pie, add outer pie series to chart
 							addSeriesToChart(series, chart['type'], val["platform"]);
 						});
 					}
@@ -444,11 +446,21 @@ function drawGraphs(data) {
 	});
 }
 
+
 function addSeriesToChart(series, chartType, platform) {
 	var chart = $('#' + chartType + '-' + platform).highcharts();
 	chart.addSeries(series);
 }
 
+function calculateChartAreaWidth(chart) {
+	// Pie size * num of categories
+	var areaWidth = (chart["categories"].length * PIE_DIAMETER_OUTER);
+	// Add offset width between pies
+	areaWidth += (chart["categories"].length - 1) * (PIE_OFFSET - PIE_DIAMETER_OUTER);
+	// Add Initial position X and subside a little bit to adjust the width
+	areaWidth += PIE_INIT_POSITION_X - 30;
+	return areaWidth
+}
 
 /**
  * Draw pie chart.
@@ -456,11 +468,13 @@ function addSeriesToChart(series, chartType, platform) {
  * @return {[type]}       [description]
  */
 function drawPieChart(chart, platform) {
+	chartWidth = getChartAreaWidth(chart);
+	console.log(chartWidth);
 	$('#' + chart['type'] + '-' + platform).highcharts({
 		chart: {
 			type: chart["type"],
             // width: parseInt($('#column-' + platform).width()) > 900 ? parseInt($('#column-' + platform).width()) : 900
-            width: 2000
+            width: chartWidth
 		},
 		title: {
 			text: chart["title"],
