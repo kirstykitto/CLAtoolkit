@@ -429,6 +429,25 @@ function calculateChartAreaWidth(chart) {
 	return areaWidth
 }
 
+
+function getChartLabels(categories) {
+	var items = [];
+	var left = PIE_INIT_POSITION_X - 30;
+	var index = 0;
+	$.each(categories, function(key, cate) {
+		if(key > 0) {
+			left += PIE_OFFSET;
+		}
+		label = {
+			html: cate,
+			style: { left: left, top: 10 }
+		}
+		items.push(label);
+	});
+	return items;
+}
+
+
 /**
  * Draw pie chart.
  * @param  {[type]} chart [description]
@@ -436,6 +455,7 @@ function calculateChartAreaWidth(chart) {
  */
 function drawPieChart(chart, platform) {
 	chartWidth = calculateChartAreaWidth(chart);
+	labelItems = getChartLabels(chart["categories"]);
 	$('#' + chart['type'] + '-' + platform).highcharts({
 		chart: {
 			type: chart["type"],
@@ -443,22 +463,23 @@ function drawPieChart(chart, platform) {
             width: chartWidth
 		},
 		title: {
-			text: chart["title"],
+			text: " ",
             align: 'center',
             verticalAlign: 'top'
 		},
         labels: {
             style: {
                 // color: '#3E576F',
-                fontSize: '14px'
+                fontSize: '20px'
             },
             // items:  [
-            //     { html: 'Member 1', style: { left: '120px', top: '20px' }},
-            //     { html: 'Member 2', style: { left: '560px', top: '20px' }}
-            //     // { html: 'Member 3', style: { left: '590px', top: '60px' }},
+            //     { html: 'Member 1', style: { left: 120, top: 10 }},
+            //     { html: 'Member 2', style: { left: 530, top: 10 }},// left = offset - 20
+            //     { html: 'Member 3', style: { left: 940, top: 10 }},
             //     // { html: 'Member 4', style: { left: '820px', top: '60px' }},
             //     // { html: 'Member 5', style: { left: '1050px',top: '60px' }}
             // ]
+            items: labelItems
         },
         tooltip: {
             //NOTE: point.y is actual value tha is set to the pie chart. point.percentage is automatically caluculated by highcharts.
