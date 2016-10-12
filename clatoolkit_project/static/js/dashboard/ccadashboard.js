@@ -291,7 +291,7 @@ function createPieChartSeries(chart, isDetailChart, checkDate, start, end, color
 				y: total
 			};
 			if(!isDetailChart) {
-				newData["color"] = getChartColorByName(colors, seriesName, true);
+				newData["color"] = getChartColorByName(colors, seriesName, false);
 			}
 			else if(isDetailChart && series.length > 0) {
 				// Color of each piece of outer pie is similar to that of collesponding inner piece
@@ -303,7 +303,7 @@ function createPieChartSeries(chart, isDetailChart, checkDate, start, end, color
 					}
 				});
 
-				newData["color"] = getChartColorByName(colors, verb, false);
+				newData["color"] = getChartColorByName(colors, verb, true);
 			}
 			dataset.push(newData);
 		});
@@ -468,7 +468,7 @@ function calculateChartAreaWidth(chart) {
  * @return {[type]}       [description]
  */
 function drawPieChart(chart, platform) {
-	chartWidth = getChartAreaWidth(chart);
+	chartWidth = calculateChartAreaWidth(chart);
 	console.log(chartWidth);
 	$('#' + chart['type'] + '-' + platform).highcharts({
 		chart: {
