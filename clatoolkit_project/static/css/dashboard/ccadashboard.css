@@ -12,11 +12,15 @@
 	padding: 0px 5px;
 }
 
-.leargeChart {
+.largeChart {
 	overflow-x:auto;
 }
 
 .message {
 	color: #ff0000;
+	display: none;
+}
+
+.chartRoot {
 	display: none;
 }

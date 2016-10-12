@@ -5,52 +5,6 @@
  */
 
 /**
- * Chart root tags.
- * This contains all charts and tables of a platform.
- * @type {string}
- */
-var chartRootTags = "<div class='row' >"
-    			+ "<div class='col-lg-12'>"
-				+ "<div class='panel panel-default'>"
-            	+ "<div class='panel-heading'>"
-                + "<i class='fa fa-bar-chart-o fa-fw'></i> "
-            	+ "</div>"
-            	+ "<div class='panel-body scrollable'>"
-                + "<div id='chart-'></div>" //id needs to be added dynamically e.g. "chart-Facebook"
-            	+ "</div></div></div></div>";
-
-/**
- * Datatable tags.
- * These are used to show a table. 
- * When a table is required, the tags are aded to chartRootTags.
- * @type {string}
- */
-var tableTags = "<div class='tableDiv'>"
-				+ "<table class='table table-striped table-bordered table-hover' id='datatable-'></table>"
-				+ "</div>";
-
-/**
- * Second Chart tags.
- * This is used to show second 
- * @type {string}
- */
-var additionalChartTag = "<div class='panel-body scrollable'>"
-				//id needs to be added dynamically e.g. "additionalChart-Facebook". 
-				//If necessary, other attributes (class, etc.) will be added dynamically
-				+ "<div id='additionalChart-'></div>" 
-				+ "</div>";
-
-/**
- * Clear tag.
- * This clears float property in CSS.
- * This is added right before the chartRootTags to clear CSS float property
- * when previous chart is pie or the current chart is odd-numbered chart.
- *
- * @type {string}
- */
-var clearTag = "<div class='clear'></div>";
-
-/**
  * Inner pie chart diameter
  * It is used for a donut pie chart.
  * @type {Number}
@@ -107,9 +61,11 @@ function initTimeseriesChartOptions() {
 						var platformNames = platform.split(",");
 						$.each(platformNames, function(key, val) {
 							chartData = createChartSeries(allPlatformData[val], true, e.min, e.max);
-							allPlatformData[val] = chartData;
-							drawGraphs(chartData);
-							showAllTables(chartData);
+							if(chartData != null) {
+								allPlatformData[val] = chartData;
+								drawGraphs(chartData);
+								showAllTables(chartData);
+							}
 						});
 					}
 				}
@@ -225,7 +181,9 @@ function showCharts(platform) {
  *                               at the Platform Timeseries, will be returned.
  */
 function createChartSeries(data, checkDate, start, end) {
-
+	if(data == null) {
+		return data;
+	}
 	$.each(data["platforms"], function(key, val) {
 		$.each(val["charts"], function(key, chart) {
 			// var chart = val["charts"][0];
@@ -443,9 +401,18 @@ function drawGraphs(data) {
 					break;
 			}
 		});
+		// Show graph area
+		changeChartAreaVisibility(true, val["platform"]);
 	});
 }
 
+function changeChartAreaVisibility(showChartArea, platform) {
+	if(showChartArea) {
+		$("#chartRoot-" + platform).show();
+	} else {
+		$("#chartRoot-" + platform).hide();
+	}
+}
 
 function addSeriesToChart(series, chartType, platform) {
 	var chart = $('#' + chartType + '-' + platform).highcharts();
@@ -469,7 +436,6 @@ function calculateChartAreaWidth(chart) {
  */
 function drawPieChart(chart, platform) {
 	chartWidth = calculateChartAreaWidth(chart);
-	console.log(chartWidth);
 	$('#' + chart['type'] + '-' + platform).highcharts({
 		chart: {
 			type: chart["type"],
