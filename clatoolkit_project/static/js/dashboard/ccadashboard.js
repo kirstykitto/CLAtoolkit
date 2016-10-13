@@ -181,8 +181,8 @@ function showCharts(platform) {
  *                               at the Platform Timeseries, will be returned.
  */
 function createChartSeries(data, checkDate, start, end) {
-	if(data == null) {
-		return data;
+	if(data == null || data["platforms"] == null) {
+		return null;
 	}
 	$.each(data["platforms"], function(key, val) {
 		$.each(val["charts"], function(key, chart) {
@@ -379,6 +379,8 @@ function createBarChartSeries(chart, checkDate, start, end) {
 function drawGraphs(data) {
 	$.each(data["platforms"], function(key , val) {
 		$.each(val["charts"], function(key , chart) {
+			// Show graph area
+			changeChartAreaVisibility(true, val["platform"]);
 			if ($('#' + chart['type'] + '-' + val["platform"]).highcharts()) {
 				$('#' + chart['type'] + '-' + val["platform"]).highcharts().destroy();
 			}
@@ -401,8 +403,6 @@ function drawGraphs(data) {
 					break;
 			}
 		});
-		// Show graph area
-		changeChartAreaVisibility(true, val["platform"]);
 	});
 }
 
@@ -656,17 +656,16 @@ function showMessage(message) {
 	$("#message").append(message);
 	$("#message").show();
 }
+
 /**
  * Load function.
  */
 $(document).ready(function(){
-	//TODO: panel-heading (platform name) needs to be set dynamically
 	//Show charts and tables
-	showPlatformTimeseries();
-	//TODO: Get platform name available in the unit from the server
 	var platformNames = platform.split(",");
 	$.each(platformNames, function(key, val) {
 		allPlatformData[val] = {};
 		showCharts(val);
 	});
+	showPlatformTimeseries();
 });
