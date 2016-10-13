@@ -623,15 +623,13 @@ function getTableData(chart) {
 	ary = [];
 	if(chart["type"] == "pie") {
 		var dataSet = {}
-		$.each(chart["seriesName"], function(key, elem) {
-			dataSet[elem] = [];
-		});
-
 		$.each(series, function(key, val) {
 			$.each(val["data"], function(key, data) {
-				values = dataSet[data["name"]];
-				values.push(data["y"]);
-				dataSet[data["name"]] = values;
+				if(dataSet[data["name"]]) {
+					dataSet[data["name"]].push(data["y"]);
+				} else {
+					dataSet[data["name"]] = [data["y"]];
+				}
 			});
 		});
 
