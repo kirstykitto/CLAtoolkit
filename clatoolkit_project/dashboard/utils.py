@@ -1088,10 +1088,13 @@ def get_platform_activity_dataset(course_code, platform_names, username=None):
             pie_data = get_verb_count_chart_data(course_code, platform, 
                 chart_type = 'pie', chart_title = ' ', 
                 chart_yAxis_title = 'Activity details', show_table = 0)
+
+            trello_setting = settings.DATAINTEGRATION_PLUGINS[platform]
             pie_data['detailChart'] = get_other_contextActivity_count_chart_data(course_code, platform, 
                 chart_type = 'pie', chart_title = 'Activity details', 
                 chart_yAxis_title = 'Activity details', show_table = 1, 
-                obj_mapper = settings.DATAINTEGRATION_PLUGINS[platform].VERB_ACTION_TYPE_MAPPER)
+                obj_mapper = trello_setting.VERB_ACTION_TYPE_MAPPER,
+                obj_disp_names = trello_setting.getActionTypeDisplayNames(trello_setting.VERB_ACTION_TYPE_MAPPER))
 
             chart_dataset.append(pie_data)
             platform_data = get_platform_activity_data(course_code, platform, chart_dataset)
@@ -1131,7 +1134,7 @@ def get_platform_activity_data(course_code, platform, chart_dataset):
 
 
 def get_other_contextActivity_count_chart_data(course_code, platform, chart_type = '', chart_title = '', 
-    chart_yAxis_title = '', obj_mapper = None, show_table = 1):
+    chart_yAxis_title = '', obj_mapper = None, obj_disp_names = None, show_table = 1):
     pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
     verbs = sorted(pluginObj.get_verbs())
     other_context_types = pluginObj.get_other_contextActivity_types(verbs)
@@ -1150,7 +1153,7 @@ def get_other_contextActivity_count_chart_data(course_code, platform, chart_type
 
     return create_chart_data_obj(categories, other_context_types, all_data, chart_type = chart_type, 
         chart_title = chart_title, chart_yAxis_title = chart_yAxis_title, obj_mapper = obj_mapper, 
-        show_table = show_table)
+        obj_disp_names = obj_disp_names, show_table = show_table)
 
 
 def get_verb_count_chart_data(course_code, platform, chart_type = '', chart_title = '', 
@@ -1176,7 +1179,7 @@ def get_verb_count_chart_data(course_code, platform, chart_type = '', chart_titl
 
 
 def create_chart_data_obj(categories, seriesname, data, chart_type = '', chart_title = '', 
-    chart_yAxis_title = '', obj_mapper = None, show_table = 1):
+    chart_yAxis_title = '', obj_mapper = None, obj_disp_names = None, show_table = 1):
     chartVal = OrderedDict ([
             ('type', chart_type),
             ('title', chart_title),
@@ -1188,6 +1191,8 @@ def create_chart_data_obj(categories, seriesname, data, chart_type = '', chart_t
     ])
     if obj_mapper is not None:
         chartVal['objectMapper'] = obj_mapper
+    if obj_disp_names is not None:
+        chartVal['objectDisplayNames'] = obj_disp_names
 
     return chartVal
 

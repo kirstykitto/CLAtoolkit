@@ -373,5 +373,40 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         return ret
 
 
+    def getActionTypeDisplayNames(self, mapper):
+        if mapper is None:
+            return mapper
+
+        ret = {}
+        for key, val in mapper.iteritems():
+            for action in mapper[key]:
+                ret[action] = self.getActionTypeDisplayName(action)
+
+        return ret
+
+
+    def getActionTypeDisplayName(self, action):
+        if action == self.ACTION_TYPE_CREATE_CARD:
+            return 'Created card'
+        elif action == self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD:
+            return 'Added attachment to card'
+        elif action == self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD:
+            return 'Added checklist to card'
+        elif action == self.ACTION_TYPE_ADD_MEMBER_TO_CARD:
+            return 'Added member to card'
+        elif action == self.ACTION_TYPE_MOVE_CARD:
+            return 'Moved card'
+        elif action == self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD:
+            return 'Updated checklist item state'
+        elif action == self.ACTION_TYPE_COMMENT_CARD:
+            return 'Commented card'
+        elif action == self.ACTION_TYPE_CLOSE_CARD:
+            return 'Closed card'
+        elif action == self.ACTION_TYPE_OPEN_CARD:
+            return 'Opened card'
+        else:
+            return 'Unknown action type'
+
+
 
 registry.register(TrelloPlugin)

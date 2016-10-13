@@ -243,9 +243,9 @@ function createPieChartSeries(chart, isDetailChart, checkDate, start, end, color
 					});
 				}
 			}
-			
+			var dispName = getObjectDisplayName(chart["objectDisplayNames"], seriesName);
 			var newData = {
-				name: seriesName,
+				name: dispName,
 				y: total
 			};
 			if(!isDetailChart) {
@@ -299,6 +299,26 @@ function createPieChartSeries(chart, isDetailChart, checkDate, start, end, color
 		chart["detailChart"]["series"] = createPieChartSeries(chart["detailChart"], true, checkDate, start, end, colors);
 	}
 	return allSeries;
+}
+
+function getObjectDisplayName(displayNames, objectName) {
+	if(displayNames == null || objectName == null) {
+		return objectName;
+	}
+
+	var ret = objectName;
+	try {
+		$.each(displayNames, function(key, val) {
+			if(key == objectName) {
+				ret = val;
+				return true;
+			}
+		});
+	} catch(e) {
+		console.log("An exception has occurred in getObjectDisplayName() method.");
+		console.log(e);
+	}
+	return ret;
 }
 
 
