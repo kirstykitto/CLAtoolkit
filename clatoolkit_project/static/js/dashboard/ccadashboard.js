@@ -463,7 +463,7 @@ function drawPieChart(chart, platform) {
             width: chartWidth
 		},
 		title: {
-			text: " ",
+			text: chart["title"],
             align: 'center',
             verticalAlign: 'top'
 		},
@@ -472,24 +472,9 @@ function drawPieChart(chart, platform) {
                 // color: '#3E576F',
                 fontSize: '20px'
             },
-            // items:  [
-            //     { html: 'Member 1', style: { left: 120, top: 10 }},
-            //     { html: 'Member 2', style: { left: 530, top: 10 }},// left = offset - 20
-            //     { html: 'Member 3', style: { left: 940, top: 10 }},
-            //     // { html: 'Member 4', style: { left: '820px', top: '60px' }},
-            //     // { html: 'Member 5', style: { left: '1050px',top: '60px' }}
-            // ]
             items: labelItems
         },
         tooltip: {
-            //NOTE: point.y is actual value tha is set to the pie chart. point.percentage is automatically caluculated by highcharts.
-            // pointFormat: '{point.name}: <b>{point.percentage:.1f}%</b>'
-            // formatter: function() {
-            //     // console.log(this.series);
-            // 	pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}'
-            //     // return '<b>' + this.point.name + ': ' + this.point.y + '</b>';
-            // }
-            // pointFormat: 'Activity: {point.name}: Total: {point.y}<br/>'
             formatter: function() {
 				format = '<b>' + this.series.name + '</b><br>'
 				+ '<b>' + this.point.name + ': ' + this.point.y + '</b>';

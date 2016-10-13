@@ -1086,7 +1086,7 @@ def get_platform_activity_dataset(course_code, platform_names, username=None):
                 chart_yAxis_title = 'Total number of activities', show_table = 0))
             # Pie chart data
             pie_data = get_verb_count_chart_data(course_code, platform, 
-                chart_type = 'pie', chart_title = 'Activity details', 
+                chart_type = 'pie', chart_title = ' ', 
                 chart_yAxis_title = 'Activity details', show_table = 0)
             pie_data['detailChart'] = get_other_contextActivity_count_chart_data(course_code, platform, 
                 chart_type = 'pie', chart_title = 'Activity details', 
