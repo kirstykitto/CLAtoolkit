@@ -28,7 +28,7 @@ import copy
 from common.CLRecipe import CLRecipe
 
 def getPluginKey(platform):
-    return settings.DATAINTEGRATION_PLUGINS[platform].api_config_dict['api_key']
+    return os.environ.get("TRELLO_API_KEY")
 
 def classify(course_code, platform):
     #Calls JAR to extract and classify messages
