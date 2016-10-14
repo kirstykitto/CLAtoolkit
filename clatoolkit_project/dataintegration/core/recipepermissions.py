@@ -1,7 +1,46 @@
 from django.db import connection
 from django.contrib.auth.models import User
-from clatoolkit.models import UserProfile, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, Classification
+from clatoolkit.models import UserProfile, UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, Classification
 from django.db.models import Q, Count
+
+
+def get_user_from_screen_name(screen_name, platform):
+    platform_name = platform.lower()
+    platform_param_name = None
+    if platform_name == 'youtube':
+        platform_param_name = "google_account_name__iexact"
+    elif platform_name == 'github':
+        platform_param_name = "github_account_name__iexact"
+    elif platform_name == 'trello':
+        platform_param_name = "trello_account_name__iexact"
+    elif platform_name == 'facebook':
+        platform_param_name = "fb_id__iexact"
+    else:
+        platform_param_name = "%s_id__iexact" % platform_name
+
+    kwargs = {platform_param_name: screen_name}
+
+    return UserProfile.objects.get(**kwargs).user
+
+
+def get_smid(user, platform):
+    profile = user.userprofile
+
+    platform_name = platform.lower()
+
+    if platform_name == 'youtube':
+        platform_param_name = "google_account_name"
+    elif platform_name == 'github':
+        platform_param_name = "github_account_name"
+    elif platform_name == 'trello':
+        platform_param_name = "trello_account_name"
+    elif platform_name == 'facebook':
+        platform_param_name = "fb_id"
+    else:
+        platform_param_name = "{}_id".format(platform_name)
+
+    return getattr(profile, platform_param_name)
+
 
 def check_ifuserincourse(user, course_id):
     if UnitOffering.objects.filter(code=course_id, users=user).count() > 0:
@@ -9,13 +48,25 @@ def check_ifuserincourse(user, course_id):
     else:
         return False
 
-def check_ifnotinlocallrs(course_code, platform, platform_id):
-    lrs_matchingstatements = LearningRecord.objects.filter(course_code=course_code, platform=platform, platformid=platform_id)
-    if len(lrs_matchingstatements)==0:
-        return True
-    else:
-        return False
 
+# TODO - update all usages to unit
+def check_ifnotinlocallrs(unit, platform, platform_id, user=None, verb=None):
+    try:
+        if user and verb:
+            LearningRecord.objects.get(unit=unit, platform=platform, platformid=platform_id, user=user, verb=verb)
+        elif user:
+            LearningRecord.objects.get(unit=unit, platform=platform, platformid=platform_id, user=user)
+        elif verb:
+            LearningRecord.objects.get(unit=unit, platform=platform, platformid=platform_id, verb=verb)
+        else:
+            LearningRecord.objects.get(unit=unit, platform=platform, platformid=platform_id)
+    except LearningRecord.DoesNotExist:
+        return True
+
+    return False
+
+
+# TODO - remove test data
 def get_userdetails(screen_name, platform):
     usr_dict = {'screen_name':screen_name}
     platform_param_name = None
@@ -54,31 +105,17 @@ def get_userdetails(screen_name, platform):
             usr_dict['email'] = 'test@gmail.com'
     return usr_dict
 
-def username_exists(screen_name, course_code, platform):
-    tw_id_exists = False
-    platform_param_name = None
-    if platform.lower()=='youtube':
-        platform_param_name = "google_account_name__iexact"
-    elif platform == 'github':
-        platform_param_name = "github_account_name__iexact"
-    elif platform == 'trello':
-        platform_param_name = "trello_account_name__iexact"
-    elif platform == 'facebook':
-        platform_param_name = "fb_id__iexact"
-    else:
-        platform_param_name = "%s_id__iexact" % (platform.lower())
 
-    kwargs = {platform_param_name:screen_name}
-    usrs = UserProfile.objects.filter(**kwargs)
-    if len(usrs) > 0:
-        usr_prof = usrs[0]
-        usr = usr_prof.user
-        user_in_course = check_ifuserincourse(usr, course_code)
-        if user_in_course:
-            tw_id_exists = True
-        else:
-            tw_id_exists = False
-    return tw_id_exists
+# TODO - Update all usages to use unit instead
+def username_exists(screen_name, unit, platform):
+    try:
+        user = get_user_from_screen_name(screen_name, platform)
+        membership = UnitOfferingMembership.objects.get(user=user, unit=unit)
+    except (UserProfile.DoesNotExist, UnitOfferingMembership.DoesNotExist):
+        return False
+
+    return True
+
 
 def get_uid_fromsmid(username, platform):
     userprofile = None

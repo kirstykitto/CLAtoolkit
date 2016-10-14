@@ -169,6 +169,7 @@ def trello_myunits_restview(request):
                             '<div id="trello_board_display"></div>', 'course_code': course_code}
             return Response(response)
 
+
 @login_required
 def myunits(request):
     context = RequestContext(request)
@@ -184,39 +185,39 @@ def myunits(request):
 
     trello_attached = not request.user.userprofile.trello_account_name == ''
 
-    print trello_attached
-
-    #if student check if the student has imported data
-    if role=='Student':
-        username = request.user.username
-        if LearningRecord.objects.filter(username__iexact=username).count() == 0:
+    # if student check if the student has imported data
+    if role == 'Student':
+        if LearningRecord.objects.filter(user=request.user).count() == 0:
             shownocontentwarning = True
 
-    context_dict = {'title': "My Units", 'memberships': memberships, 'show_dashboardnav':show_dashboardnav, 'shownocontentwarning': shownocontentwarning, 'role': role,
-                     'trello_attached_to_acc': trello_attached}
+    context_dict = {'title': "My Units", 'memberships': memberships, 'show_dashboardnav': show_dashboardnav,
+                    'shownocontentwarning': shownocontentwarning, 'role': role,
+                    'trello_attached_to_acc': trello_attached}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
+
 
 @login_required
 def dashboard(request):
     context = RequestContext(request)
 
-    course_code = request.GET.get('course_code')
+    unit_id = request.GET.get('unit')
+    unit = UnitOffering.objects.get(id=unit_id)
 
     # If the user is an admin for the course
-    if UnitOfferingMembership.is_admin(request.user, course_code):
+    if UnitOfferingMembership.is_admin(request.user, unit):
 
         platform = request.GET.get('platform')
 
-        title = "Activity Dashboard: %s (Platform: %s)" % (course_code, platform)
+        title = "Activity Dashboard: %s (Platform: %s)" % (unit.code, platform)
         show_dashboardnav = True
 
         profiling = ""
         profiling = profiling + "| Verb Timelines %s" % (str(datetime.datetime.now()))
-        posts_timeline = get_timeseries('created', platform, course_code)
-        shares_timeline = get_timeseries('shared', platform, course_code)
-        likes_timeline = get_timeseries('liked', platform, course_code)
-        comments_timeline = get_timeseries('commented', platform, course_code)
+        posts_timeline = get_timeseries('created', platform, unit)
+        shares_timeline = get_timeseries('shared', platform, unit)
+        likes_timeline = get_timeseries('liked', platform, unit)
+        comments_timeline = get_timeseries('commented', platform, unit)
 
         show_allplatforms_widgets = False
         twitter_timeline = ""
@@ -236,23 +237,23 @@ def dashboard(request):
         if platform != "all":
             platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
         else:
-            twitter_timeline = get_timeseries_byplatform("Twitter", course_code)
-            facebook_timeline = get_timeseries_byplatform("Facebook", course_code)
-            forum_timeline = get_timeseries_byplatform("Forum", course_code)
-            youtube_timeline = get_timeseries_byplatform("YouTube", course_code)
-            diigo_timeline = get_timeseries_byplatform("Diigo", course_code)
-            blog_timeline = get_timeseries_byplatform("Blog", course_code)
-            github_timeline = get_timeseries_byplatform("GitHub", course_code)
-            trello_timeline = get_timeseries_byplatform("trello", course_code)
+            twitter_timeline = get_timeseries_byplatform("Twitter", unit)
+            facebook_timeline = get_timeseries_byplatform("Facebook", unit)
+            forum_timeline = get_timeseries_byplatform("Forum", unit)
+            youtube_timeline = get_timeseries_byplatform("YouTube", unit)
+            diigo_timeline = get_timeseries_byplatform("Diigo", unit)
+            blog_timeline = get_timeseries_byplatform("Blog", unit)
+            github_timeline = get_timeseries_byplatform("GitHub", unit)
+            trello_timeline = get_timeseries_byplatform("trello", unit)
             show_allplatforms_widgets = True
 
         profiling = profiling + "| Pies %s" % (str(datetime.datetime.now()))
         cursor = connection.cursor()
         cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
                             FROM clatoolkit_learningrecord
-                            WHERE clatoolkit_learningrecord.course_code='%s' %s
+                            WHERE clatoolkit_learningrecord.unit_id='%s' %s
                             GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
-                        """ % (course_code, platformclause))
+                        """ % (unit.id, platformclause))
         result = cursor.fetchall()
 
         activity_pie_series = ""
@@ -262,9 +263,9 @@ def dashboard(request):
         cursor = connection.cursor()
         cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'context'->>'platform' as platform, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
                             FROM clatoolkit_learningrecord
-                            WHERE clatoolkit_learningrecord.course_code='%s'
+                            WHERE clatoolkit_learningrecord.unit_id='%s'
                             GROUP BY clatoolkit_learningrecord.xapi->'context'->>'platform';
-                        """ % (course_code))
+                        """ % (unit.id))
         result = cursor.fetchall()
 
         platformactivity_pie_series = ""
@@ -273,14 +274,16 @@ def dashboard(request):
 
         #active members table
         profiling = profiling + "| Active Members %s" % (str(datetime.datetime.now()))
-        activememberstable = get_active_members_table(platform, course_code) #get_cached_active_users(platform, course_code)
+
+        p = platform if platform != "all" else None
+        activememberstable = get_active_members_table(unit, p)
 
         profiling = profiling + "| Top Content %s" % (str(datetime.datetime.now()))
-        topcontenttable = get_cached_top_content(platform, course_code) #get_top_content_table(platform, course_code)
+        topcontenttable = get_cached_top_content(platform, unit)
         profiling = profiling + "| End Top Content %s" % (str(datetime.datetime.now()))
 
         context_dict = {'profiling': profiling, 'show_dashboardnav':show_dashboardnav,
-        'course_code':course_code, 'platform':platform,
+        'course_code':unit.code, 'platform':platform,
         'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline': forum_timeline,
         'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline,
         'github_timeline': github_timeline, 'trello_timeline': trello_timeline,
@@ -294,77 +297,86 @@ def dashboard(request):
     else:
         raise PermissionDenied
 
+
 @login_required
 def cadashboard(request):
     context = RequestContext(request)
 
-    course_code = None
     platform = None
     no_topics = 3
 
     if request.method == 'POST':
-        course_code = request.POST['course_code']
+        unit_id = request.POST['unit']
         platform = request.POST['platform']
         no_topics = int(request.POST['no_topics'])
     else:
-        course_code = request.GET.get('course_code')
+        unit_id = request.GET.get('unit')
         platform = request.GET.get('platform')
 
-    if UnitOfferingMembership.is_admin(request.user, course_code):
+    unit = UnitOffering.objects.get(id=unit_id)
 
-        title = "Content Analysis Dashboard: %s (Platform: %s)" % (course_code, platform)
+    if UnitOfferingMembership.is_admin(request.user, unit):
+
+        title = "Content Analysis Dashboard: %s (Platform: %s)" % (unit.code, platform)
         show_dashboardnav = True
 
-        posts_timeline = get_timeseries('created', platform, course_code)
-        shares_timeline = get_timeseries('shared', platform, course_code)
-        likes_timeline = get_timeseries('liked', platform, course_code)
-        comments_timeline = get_timeseries('commented', platform, course_code)
+        posts_timeline = get_timeseries('created', platform, unit)
+        shares_timeline = get_timeseries('shared', platform, unit)
+        likes_timeline = get_timeseries('liked', platform, unit)
+        comments_timeline = get_timeseries('commented', platform, unit)
 
-        tags = get_wordcloud(platform, course_code)
+        tags = get_wordcloud(platform, unit)
 
-        sentiments = getClassifiedCounts(platform, course_code, classifier="VaderSentiment")
-        coi = getClassifiedCounts(platform, course_code, classifier="NaiveBayes_t1.model")
+        sentiments = getClassifiedCounts(platform, unit, classifier="VaderSentiment")
+        coi = getClassifiedCounts(platform, unit, classifier="NaiveBayes_t1.model")
 
-        topic_model_output, sentimenttopic_piebubblesdataset = nmf(platform, no_topics, course_code, start_date=None, end_date=None)
+        topic_model_output, sentimenttopic_piebubblesdataset = nmf(platform, no_topics, unit, start_date=None, end_date=None)
 
-        context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'sentiments': sentiments, 'coi': coi, 'tags': tags, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'no_topics': no_topics, 'topic_model_output': topic_model_output, 'sentimenttopic_piebubblesdataset':sentimenttopic_piebubblesdataset }
+        context_dict = {'show_dashboardnav': show_dashboardnav, 'unit': unit, 'platform': platform, 'title': title,
+                        'sentiments': sentiments, 'coi': coi, 'tags': tags, 'posts_timeline': posts_timeline,
+                        'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline,
+                        'comments_timeline': comments_timeline, 'no_topics': no_topics,
+                        'topic_model_output': topic_model_output,
+                        'sentimenttopic_piebubblesdataset': sentimenttopic_piebubblesdataset}
+
         return render_to_response('dashboard/cadashboard.html', context_dict, context)
 
     else:
         raise PermissionDenied
 
+
 @login_required
 def snadashboard(request):
     context = RequestContext(request)
 
-    course_code = request.GET.get('course_code')
+    unit_id = request.GET.get('unit')
+    unit = UnitOffering.objects.get(id=unit_id)
 
-    if UnitOfferingMembership.is_admin(request.user, course_code):
+    if UnitOfferingMembership.is_admin(request.user, unit):
 
         platform = request.GET.get('platform')
 
-        title = "SNA Dashboard: %s (Platform: %s)" % (course_code, platform)
+        title = "SNA Dashboard: {} {} (Platform: {})".format(unit.code, unit.name, platform)
         show_dashboardnav = True
 
-        posts_timeline = get_timeseries('created', platform, course_code)
-        shares_timeline = get_timeseries('shared', platform, course_code)
-        likes_timeline = get_timeseries('liked', platform, course_code)
-        comments_timeline = get_timeseries('commented', platform, course_code)
+        posts_timeline = get_timeseries('created', platform, unit)
+        shares_timeline = get_timeseries('shared', platform, unit)
+        likes_timeline = get_timeseries('liked', platform, unit)
+        comments_timeline = get_timeseries('commented', platform, unit)
 
-        sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
+        sna_json = sna_buildjson(platform, unit, relationshipstoinclude="'mentioned','liked','shared','commented'")
         #sna_neighbours = getNeighbours(sna_json)
         centrality = getCentrality(sna_json)
-        context_dict = {
-            'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform,
-            'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline,
-            'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
-            'centrality': centrality
-        }
+        context_dict = {'show_dashboardnav': show_dashboardnav, 'unit': unit, 'platform': platform, 'title': title,
+                        'sna_json': sna_json, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline,
+                        'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
+                        'centrality': centrality}
 
         return render_to_response('dashboard/snadashboard.html', context_dict, context)
 
     else:
         raise PermissionDenied
+
 
 @check_access(required_roles=['Staff'])
 @login_required

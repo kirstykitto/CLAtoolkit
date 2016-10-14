@@ -2,7 +2,7 @@ from django.shortcuts import render, render_to_response
 from django.shortcuts import redirect
 
 from django.contrib.auth import authenticate, login
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, Http404
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
@@ -167,7 +167,7 @@ def unitmanagement(request):
     )
 
 
-def register(request, course_code):
+def register(request, unit_id):
     # Like before, get the request's context.
     context = RequestContext(request)
 
@@ -175,7 +175,11 @@ def register(request, course_code):
     # Set to False initially. Code changes value to True when registration succeeds.
     registered = False
 
-    unit = UnitOffering.objects.get(code=course_code)
+    try:
+        unit = UnitOffering.objects.get(id=unit_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
+
     platforms = unit.get_required_platforms()
 
     u = None
@@ -233,9 +237,13 @@ def register(request, course_code):
 
 
 @login_required
-def register_existing(request, course_code):
-    unit = UnitOffering.objects.get(code=course_code)
-    if not unit.users.filter(id = request.user.id).exists():
+def register_existing(request, unit_id):
+    try:
+        unit = UnitOffering.objects.get(id=unit_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
+
+    if not unit.users.filter(user=request.user).exists():
         membership = UnitOfferingMembership(user=request.user, unit=unit, admin=False)
         membership.save()
 
@@ -381,9 +389,13 @@ def create_offering(request):
 
 
 @login_required
-def update_offering(request, course_code):
-    if UnitOfferingMembership.is_admin(request.user, course_code):
-        unit = UnitOffering.objects.get(code=course_code)
+def update_offering(request, unit_id):
+    try:
+        unit = UnitOffering.objects.get(id=unit_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
+
+    if UnitOfferingMembership.is_admin(request.user, unit):
         if request.method == "POST":
             form = CreateOfferingForm(request.POST, instance=unit)
             if form.is_valid():
@@ -399,9 +411,13 @@ def update_offering(request, course_code):
 
 
 @login_required
-def offering_members(request, course_code):
-    if UnitOfferingMembership.is_admin(request.user, course_code):
-        unit = UnitOffering.objects.get(code=course_code)
+def offering_members(request, unit_id):
+    try:
+        unit = UnitOffering.objects.get(id=unit_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
+
+    if UnitOfferingMembership.is_admin(request.user, unit):
         members = unit.users.all()
         return render(request, "clatoolkit/offering_members.html", {"unit": unit, "members": members})
     else:

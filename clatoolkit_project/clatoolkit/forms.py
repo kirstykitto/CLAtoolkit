@@ -126,13 +126,18 @@ class UserProfileForm(forms.ModelForm):
         model = UserProfile
         fields = ('fb_id', 'twitter_id', 'forum_id', 'google_account_name', 'diigo_username', 'blog_id', 'github_account_name', 'trello_account_name')
 
+
 class LearningRecordFilter(django_filters.FilterSet):
     datetimestamp_min = django_filters.DateFilter(name='datetimestamp', lookup_type='gte')
     datetimestamp_max = django_filters.DateFilter(name='datetimestamp', lookup_type='lte')
 
     class Meta:
         model = LearningRecord
-        fields = ('id', 'course_code', 'platform', 'verb', 'username', 'platformid', 'platformparentid', 'parentusername', 'message', 'datetimestamp', 'senttolrs', 'datetimestamp_min', 'datetimestamp_max')
+
+        fields = ('id', 'unit', 'platform', 'verb', 'user', 'platformid', 'platformparentid', 'parent_user',
+                  'parent_user_external', 'message', 'datetimestamp', 'senttolrs', 'datetimestamp_min',
+                  'datetimestamp_max')
+
 
 class SocialRelationshipFilter(django_filters.FilterSet):
     datetimestamp_min = django_filters.DateFilter(name='datetimestamp', lookup_type='gte')
@@ -140,7 +145,9 @@ class SocialRelationshipFilter(django_filters.FilterSet):
 
     class Meta:
         model = SocialRelationship
-        fields = ('id', 'course_code', 'platform', 'verb', 'fromusername', 'tousername', 'platformid', 'message', 'datetimestamp', 'datetimestamp_min', 'datetimestamp_max')
+        fields = ('id', 'unit', 'platform', 'verb', 'from_user', 'to_user', 'to_external_user', 'platformid', 'message',
+                  'datetimestamp', 'datetimestamp_min', 'datetimestamp_max')
+
 
 class ClassificationFilter(django_filters.FilterSet):
 

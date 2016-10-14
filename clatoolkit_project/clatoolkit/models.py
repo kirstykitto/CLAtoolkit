@@ -68,61 +68,6 @@ class OauthFlowTemp(models.Model):
     course_code = models.CharField(max_length=1000, blank=True)
     transferdata = models.CharField(max_length=1000, blank=True)
 
-class LearningRecord(models.Model):
-    xapi = JsonField()
-    course_code = models.CharField(max_length=5000, blank=False)
-    platform = models.CharField(max_length=5000, blank=False)
-    verb = models.CharField(max_length=5000, blank=False)
-    username = models.CharField(max_length=5000, blank=True)
-    platformid = models.CharField(max_length=5000, blank=True)
-    platformparentid = models.CharField(max_length=5000, blank=True)
-    parentusername = models.CharField(max_length=5000, blank=True)
-    parentdisplayname = models.CharField(max_length=5000, blank=True)
-    message = models.TextField(blank=True)
-    #mentions = models.TextField(blank=True)
-    datetimestamp = models.DateTimeField(blank=True, null=True)
-    senttolrs = models.CharField(max_length=5000, blank=True)
-
-class SocialRelationship(models.Model):
-    course_code = models.CharField(max_length=5000, blank=False)
-    platform = models.CharField(max_length=5000, blank=False)
-    verb = models.CharField(max_length=5000, blank=False)
-    fromusername = models.CharField(max_length=5000, blank=True)
-    tousername = models.CharField(max_length=5000, blank=True)
-    platformid = models.CharField(max_length=5000, blank=True)
-    message = models.TextField(blank=False)
-    datetimestamp = models.DateTimeField(blank=True)
-
-class CachedContent(models.Model):
-    htmltable = models.TextField(blank=False)
-    activitytable = models.TextField(blank=True)
-    course_code = models.CharField(max_length=5000, blank=False)
-    platform = models.CharField(max_length=5000, blank=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-class AccessLog(models.Model):
-    url = models.CharField(max_length=10000, blank=False)
-    userid = models.CharField(max_length=5000, blank=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-class Classification(models.Model):
-    xapistatement = models.ForeignKey(LearningRecord)
-    classification = models.CharField(max_length=1000, blank=False)
-    classifier = models.CharField(max_length=1000, blank=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-#    classifier_model = models.CharField(max_length=1000, blank=False)
-
-
-class UserClassification(models.Model):
-    classification = models.ForeignKey(Classification)
-    username = models.CharField(max_length=5000, blank=False)
-    isclassificationcorrect = models.BooleanField(blank=False)
-    userreclassification = models.CharField(max_length=1000, blank=False)
-    feedback = models.TextField(blank=True)
-    feature = models.TextField(blank=True)
-    trained = models.BooleanField(blank=False, default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
 
 class UnitOffering(models.Model):
     code = models.CharField(max_length=5000, blank=False, verbose_name="Unit Code", unique=True)
@@ -261,11 +206,70 @@ class UnitOfferingMembership(models.Model):
     admin = models.BooleanField(default=False)
 
     @classmethod
-    def is_admin(cls, user, course_code):
+    def is_admin(cls, user, unit):
         try:
-            return cls.objects.get(user=user, unit__code=course_code).admin
+            return cls.objects.get(user=user, unit=unit).admin
         except ObjectDoesNotExist:
             return False
+
+
+class LearningRecord(models.Model):
+    xapi = JsonField()
+    unit = models.ForeignKey(UnitOffering)
+    platform = models.CharField(max_length=5000, blank=False)
+    verb = models.CharField(max_length=5000, blank=False)
+    user = models.ForeignKey(User)
+    platformid = models.CharField(max_length=5000, blank=True)
+    # TODO - Use foreign key to link to parent learning record
+    platformparentid = models.CharField(max_length=5000, blank=True)
+    parent_user = models.ForeignKey(User, null=True, related_name="parent_user")
+    parent_user_external = models.CharField(max_length=5000, blank=True, null=True)
+    message = models.TextField(blank=True)
+    datetimestamp = models.DateTimeField(auto_now_add=True, null=True)
+    senttolrs = models.CharField(max_length=5000, blank=True)
+
+
+class SocialRelationship(models.Model):
+    unit = models.ForeignKey(UnitOffering)
+    platform = models.CharField(max_length=5000, blank=False)
+    verb = models.CharField(max_length=5000, blank=False)
+    from_user = models.ForeignKey(User)
+    to_user = models.ForeignKey(User, null=True, related_name="to_user")
+    to_external_user = models.CharField(max_length=5000, blank=True, null=True)
+    platformid = models.CharField(max_length=5000, blank=True)
+    message = models.TextField(blank=False)
+    datetimestamp = models.DateTimeField(blank=True)
+
+
+class CachedContent(models.Model):
+    htmltable = models.TextField(blank=False)
+    activitytable = models.TextField(blank=True)
+    unit = models.ForeignKey(UnitOffering)
+    platform = models.CharField(max_length=5000, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class AccessLog(models.Model):
+    url = models.CharField(max_length=10000, blank=False)
+    userid = models.CharField(max_length=5000, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class Classification(models.Model):
+    xapistatement = models.ForeignKey(LearningRecord)
+    classification = models.CharField(max_length=1000, blank=False)
+    classifier = models.CharField(max_length=1000, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+#    classifier_model = models.CharField(max_length=1000, blank=False)
+
+
+class UserClassification(models.Model):
+    classification = models.ForeignKey(Classification)
+    username = models.CharField(max_length=5000, blank=False)
+    isclassificationcorrect = models.BooleanField(blank=False)
+    userreclassification = models.CharField(max_length=1000, blank=False)
+    feedback = models.TextField(blank=True)
+    feature = models.TextField(blank=True)
+    trained = models.BooleanField(blank=False, default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class ApiCredentials(models.Model):

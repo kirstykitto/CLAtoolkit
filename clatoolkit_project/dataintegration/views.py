@@ -1,7 +1,7 @@
 # example/simple/views.py
 from __future__ import absolute_import
 
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.shortcuts import render, render_to_response
 from authomatic import Authomatic
 from authomatic.adapters import DjangoAdapter
@@ -84,21 +84,24 @@ def refreshtrello(request):
 
     return Response('<b>Trello refresh complete: %s users updated.</b>' % (diag_count))
 
+
 ##############################################
 # GitHub Data Extraction
 ##############################################
 def refreshgithub(request):
 
     html_response = HttpResponse()
-    course_code = request.GET.get('course_code')
+    unit_id = request.GET.get('unit')
+    try:
+        unit = UnitOffering.objects.get(id=unit_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
+
     repoUrls = request.GET.get('urls')
 
     github_plugin = settings.DATAINTEGRATION_PLUGINS['GitHub']
-    ghDataList = github_plugin.perform_import(repoUrls, course_code)
-    post_smimport(course_code, "GitHub")
-
-    #html_response.write('GitHub Refreshed.')
-    #return html_response
+    github_plugin.perform_import(repoUrls, unit)
+    post_smimport(unit, "GitHub")
 
     return render(request, 'dataintegration/githubresult.html')
 
@@ -227,10 +230,15 @@ def home(request):
     form = FacebookGatherForm()
     return render(request, 'dataintegration/facebook.html', {'form': form})
 
-def refreshtwitter(request):
-    html_response = HttpResponse()
 
-    course_code = request.GET.get('course_code')
+def refreshtwitter(request):
+    unit_id = request.GET.get('unit')
+
+    try:
+        unit = UnitOffering.objects.get(id=unit_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
+
     hastags = request.GET.get('hashtags')
 
     tags = hastags.split(',')
@@ -238,12 +246,13 @@ def refreshtwitter(request):
         hashtag = tag if tag.startswith("#") else "#" + tag
 
         twitter_plugin = settings.DATAINTEGRATION_PLUGINS['Twitter']
-        twitter_plugin.perform_import(hashtag, course_code)
+        twitter_plugin.perform_import(hashtag, unit)
 
-    post_smimport(course_code, "Twitter")
+    # TODO
+    # post_smimport(course_code, "Twitter")
 
-    html_response.write('Twitter Refreshed.')
-    return html_response
+    return HttpResponse('Twitter Refreshed.')
+
 
 def refreshdiigo(request):
     html_response = HttpResponse()
@@ -283,20 +292,16 @@ def refreshblog(request):
 
 def dipluginauthomaticlogin(request):
     
-    if (request.GET.get('context') is not None):
+    if request.GET.get('context') is not None:
         request.GET = request.GET.copy()
 
         state_dict = request.GET.pop('context')
         state_dict = state_dict[0]
         state_dict = json.loads(state_dict)
 
-        #print str(state_dict)
-
         request.session['platform'] = state_dict['platform']
-        request.session['course_code'] = state_dict['course_code']
+        request.session['unit'] = state_dict['unit']
         request.session['group_id'] = state_dict['group']
-
-    #print 'Data stored in session: %s, %s, %s' % (request.session['platform'], request.session['course_code'], request.session['group_id'])
 
     platform = request.session['platform']
 
@@ -333,21 +338,23 @@ def dipluginauthomaticlogin(request):
                 # we can _access user's protected resources.
                 if result.user.credentials:
                     group_id = request.session['group_id']
-                    course_code = request.session['course_code']
+                    unit_id = request.session['unit']
+                    unit = UnitOffering.objects.get(id=unit_id)
                     if result.provider.name == 'fb':
-                        di_plugin.perform_import(group_id, course_code, result)
+                        di_plugin.perform_import(group_id, unit, result)
 
-                        post_smimport(course_code, "facebook")
+                        post_smimport(unit, "facebook")
 
                         #Remove all data stored in session for this view to avoid cache issues
                         del request.session['platform']
-                        del request.session['course_code']
+                        del request.session['unit']
                         del request.session['group_id']
-                        html_response.write('Updating Facebook for ' + course_code)
+                        html_response.write('Updating Facebook for {} {}'.format(unit.code, unit.name))
         else:
             html_response.write('Auth Returned no Response.')
 
     return html_response
+
 
 def get_social_media_id(request):
     '''
