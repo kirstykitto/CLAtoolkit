@@ -21,7 +21,7 @@ from common.CLRecipe import CLRecipe
 
 class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
-    platform = "trello"
+    platform = "Trello"
     platform_url = "http://www.trello.com/"
 
     #created for "create" actions
@@ -122,7 +122,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 comment_id = action['id']
                 card_name = data['card']['name']
                 
-                if username_exists(comment_from_uid, course_code, self.platform):
+                if username_exists(comment_from_uid, course_code, self.platform.lower()):
                     # Create "other" contextActivity object to store original activity in xAPI
                     card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
                     context = get_other_contextActivity(
@@ -149,7 +149,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 task_id = action['id']
                 task_name = data['card']['name']
 
-                if username_exists(u_id, course_code, self.platform):
+                if username_exists(u_id, course_code, self.platform.lower()):
                     # Create "other" contextActivity object to store original activity in xAPI
                     card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
                     context = get_other_contextActivity(

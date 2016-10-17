@@ -32,6 +32,7 @@ from django.contrib.sites.shortcuts import get_current_site
 
 import os
 import requests
+from common.CLRecipe import CLRecipe
 
 ##############################################
 # Process Trello Link
@@ -65,7 +66,7 @@ def refreshtrello(request):
     trello_courseboard_ids = request.GET.get('boards')
     trello_courseboard_ids = trello_courseboard_ids.split(',')
 
-    trello_plugin = settings.DATAINTEGRATION_PLUGINS['trello']
+    trello_plugin = settings.DATAINTEGRATION_PLUGINS[CLRecipe.PLATFORM_TRELLO]
     diag_count = 0
 
     for board_id in trello_courseboard_ids:
@@ -80,7 +81,7 @@ def refreshtrello(request):
         trello_plugin.perform_import(board_id, course_code, token=usr_offline_auth.token)
         diag_count = diag_count + 1
 
-    post_smimport(course_code, 'trello')
+    post_smimport(course_code, CLRecipe.PLATFORM_TRELLO)
 
     return Response('<b>Trello refresh complete: %s users updated.</b>' % (diag_count))
 

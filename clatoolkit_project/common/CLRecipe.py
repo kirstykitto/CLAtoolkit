@@ -10,7 +10,7 @@ class CLRecipe(object):
 	PLATFORM_DIIGO = 'Diigo'
 	PLATFORM_BLOG = 'Blog'
 	PLATFORM_GITHUB = 'GitHub'
-	PLATFORM_TRELLO = 'trello' # Should it be capitalised?
+	PLATFORM_TRELLO = 'Trello' # Should it be capitalised?
 
 	# Verbs
 	VERB_CREATED = 'created'

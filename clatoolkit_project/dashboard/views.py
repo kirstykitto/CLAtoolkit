@@ -30,18 +30,13 @@ def get_trello_boards(request):
 
     token_qs = OfflinePlatformAuthToken.objects.get(user_smid=trello_member_id)
     token = token_qs.token
-    key = request.GET.get('key')
+    key = os.environ.get('TRELLO_API_KEY')
     course_code = request.GET.get('course_code')
-
-    #print key + ' >>>>> ' + token
-
     trello_boardsList_url = 'https://api.trello.com/1/member/me/boards?key=%s&token=%s' % (key,token)
-
+    
     r = requests.get(trello_boardsList_url)
     #print "got response %s" % r.json()
-
     boardsList = r.json()
-
     board_namesList = []
     board_namesList.append('<ul>')
 
@@ -53,7 +48,6 @@ def get_trello_boards(request):
         board_name = board['name']
         board_url = board['url']
         board_id = board['id']
-
         html_resp = '<a href="#" class="board_choice" onclick="javascript:add_board(\''+course_code+'\',\''+board_id+'\')">'+board_name+'</a>'
 
         board_namesList.append(html_resp)
@@ -689,7 +683,7 @@ def get_platform_timeseries_data(request):
 
     context = RequestContext(request)
     # TODO: Get available platforms in the course dynamically
-    platform_names = ["trello"]
+    platform_names = ["Trello"]
 
     val = get_platform_timeseries_dataset(request.GET.get('course_code'), platform_names = platform_names)
     # return HttpResponse(json_str, content_type='application/json; charset=UTF-8', status=status)

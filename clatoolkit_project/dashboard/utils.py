@@ -1076,8 +1076,8 @@ def get_platform_activity_dataset(course_code, platform_names, username=None):
         platform_data = None
 
         # "T"rello does not work...
-        if platform == 'Trello':
-            platform = platform.lower()
+        # if platform == 'Trello':
+        #     platform = platform.lower()
 
         if platform == CLRecipe.PLATFORM_TRELLO:
             # Bar chart data
@@ -1114,8 +1114,8 @@ def get_platform_activity_dataset(course_code, platform_names, username=None):
 
 def get_platform_activity_data(course_code, platform, chart_dataset):
     # "T"rello gets errors...
-    if platform == 'Trello':
-        platform = platform.lower()
+    # if platform == 'Trello':
+    #     platform = platform.lower()
 
     tables = []
     i = 0
