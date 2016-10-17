@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseServerError
 from django.db import connection
 from utils import *
 from clatoolkit.models import OfflinePlatformAuthToken, UserProfile, OauthFlowTemp, UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserTrelloCourseBoardMap
@@ -18,7 +18,7 @@ from django.core.exceptions import PermissionDenied
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-
+from django.core.exceptions import ObjectDoesNotExist
 import requests
 
 #API endpoint to grab a list of trello boards to attach to course
@@ -27,8 +27,20 @@ import requests
 def get_trello_boards(request):
     user_profile = UserProfile.objects.get(user=request.user)
     trello_member_id = user_profile.trello_account_name
+    token_qs = None
+    try:
+        token_qs = OfflinePlatformAuthToken.objects.get(user_smid=trello_member_id)
+    except ObjectDoesNotExist:
+        # When user smid is not found (This occurs when user hasn't registered their Trello ID yet)
+        token_qs = None
 
-    token_qs = OfflinePlatformAuthToken.objects.get(user_smid=trello_member_id)
+    # Return error message to the client
+    if token_qs is None:
+        html_tags = '<p class="no-trello-id">Your Trello account is incorrect not found.<br>'
+        html_tags = html_tags + 'Register your account in Social Media Accounts update page before attaching a Trello board.<br>'
+        html_tags = html_tags + '(Click your name (top right corner) - Social Media Accounts)</p>'
+        return Response(('').join([html_tags]))
+
     token = token_qs.token
     key = os.environ.get('TRELLO_API_KEY')
     course_code = request.GET.get('course_code')
@@ -114,17 +126,35 @@ def check_access(required_roles=None):
 def trello_remove_board(request):
     course_code = request.GET.get('course_code')
 
-    trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, course_code=course_code)
-    unit = UnitOffering.objects.get(code=course_code)
+    trello_user_course_map = None
+    unit = None
+    try:
+        trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, course_code=course_code)
+        unit = UnitOffering.objects.get(code=course_code)
+    except ObjectDoesNotExist:
+        return HttpResponseServerError('<h1>Server Error (500)</h1><p>Could not remove Trello Board.</p>')
 
-    #pythonic code below removes the ID of the attached board being removed
-    unit.attached_trello_boards = ','.join([board for board in unit.attached_trello_boards.split(',')
-                           if board is not trello_user_course_map.board_id[0]])
+    new_board_list = []
+    same_board_list = []
+    for board in unit.attached_trello_boards.split(','):
+        if board != trello_user_course_map[0].board_id:
+            new_board_list.append(board)
+        else:
+            same_board_list.append(board)
+
+    # Multiple users are likely to use the same Trello board. 
+    # So, two or more same board IDs are likely to be found in unit.attached_trello_boards column.
+    # Since we only want to delete the user's board ID, we remove one of the same board IDs from the column.
+    # 
+    # attached_trello_boards column only has board IDs.
+    # So, we cannot identify exactly which ID is the user's when multiple same IDs exist.
+    for index in range(1, len(same_board_list)):
+        # Start the for loop from 1 (not 0) to remove one of the same board IDs.
+        new_board_list.append(same_board_list[index])
+    unit.attached_trello_boards = ','.join(new_board_list)
 
     unit.save()
-
     trello_user_course_map.delete()
-
     return myunits(request)
 
 @login_required
