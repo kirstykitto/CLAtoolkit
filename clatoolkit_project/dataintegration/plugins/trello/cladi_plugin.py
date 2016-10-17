@@ -28,12 +28,16 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     #added for "add" actions
     #updated for "update" actions
     #commented for card "comment" actions
-    xapi_verbs = ['created', 'added', 'updated', 'commented', 'closed', 'opened']
+    # xapi_verbs = ['created', 'added', 'updated', 'commented', 'closed', 'opened']
+    xapi_verbs = [CLRecipe.VERB_CREATED, CLRecipe.VERB_ADDED, CLRecipe.VERB_UPDATED, 
+                CLRecipe.VERB_COMMENTED, CLRecipe.VERB_CLOSED, CLRecipe.VERB_OPENED]
 
     #Note for "commented" actions
     #Task for "created", "added", "updated", and "commented" actions
     #Collection for any "created", "added", "updated" List actions (tentative use)
-    xapi_objects = ['Note', 'Task', 'Collection', 'Person', 'File', 'checklist-item', 'checklist']
+    # xapi_objects = ['Note', 'Task', 'Collection', 'Person', 'File', 'checklist-item', 'checklist']
+    xapi_objects = [CLRecipe.OBJECT_NOTE, CLRecipe.OBJECT_TASK, CLRecipe.OBJECT_COLLECTION, 
+                    CLRecipe.OBJECT_PERSON, CLRecipe.OBJECT_FILE, CLRecipe.OBJECT_CHECKLIST_ITEM, CLRecipe.OBJECT_CHECKLIST]
 
     user_api_association_name = 'Trello UID' # eg the username for a signed up user that will appear in data extracted via a social API
     unit_api_association_name = 'Board ID' # eg hashtags or a group name
@@ -41,8 +45,9 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     config_json_keys = ['consumer_key', 'consumer_secret']
 
     #from DIPluginDashboardMixin
-    xapi_objects_to_includein_platformactivitywidget = ['Note']
-    xapi_verbs_to_includein_verbactivitywidget = ['created', 'shared', 'liked', 'commented']
+    xapi_objects_to_includein_platformactivitywidget = [CLRecipe.OBJECT_NOTE]
+    xapi_verbs_to_includein_verbactivitywidget = [CLRecipe.VERB_CREATED, CLRecipe.VERB_SHARED, 
+                                                CLRecipe.VERB_LIKED, CLRecipe.VERB_COMMENTED]
 
     #for OAuth1 authentication
     token_request_url = ''
@@ -62,12 +67,12 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     ACTION_TYPE_OPEN_CARD = 'openCard'
 
     VERB_ACTION_TYPE_MAPPER = {
-        'created': [ACTION_TYPE_CREATE_CARD],
-        'added': [ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, ACTION_TYPE_ADD_CHECKLIST_TO_CARD, ACTION_TYPE_ADD_MEMBER_TO_CARD],
-        'updated': [ACTION_TYPE_MOVE_CARD, ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD],
-        'commented': [ACTION_TYPE_COMMENT_CARD],
-        'closed': [ACTION_TYPE_CLOSE_CARD],
-        'opened': [ACTION_TYPE_OPEN_CARD]
+        CLRecipe.VERB_CREATED: [ACTION_TYPE_CREATE_CARD],
+        CLRecipe.VERB_ADDED: [ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, ACTION_TYPE_ADD_CHECKLIST_TO_CARD, ACTION_TYPE_ADD_MEMBER_TO_CARD],
+        CLRecipe.VERB_UPDATED: [ACTION_TYPE_MOVE_CARD, ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD],
+        CLRecipe.VERB_COMMENTED: [ACTION_TYPE_COMMENT_CARD],
+        CLRecipe.VERB_CLOSED: [ACTION_TYPE_CLOSE_CARD],
+        CLRecipe.VERB_OPENED: [ACTION_TYPE_OPEN_CARD]
     }
 
     def __init__(self):
@@ -77,11 +82,8 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     def perform_import(self, retreival_param, course_code, token=None):
         #from clatoolkit.models import ApiCredentials
         #Set up trello auth and API
-        #self.usercontext_storage_dict = json.load(ApiCredentials.objects.get(platform=retreival_param).credentials_json)
-
         self.TrelloCient = TrelloClient(
             api_key=os.environ.get("TRELLO_API_KEY"),
-            #api_secret=self.api_config_dict['api_secret'],
             token=token
         )
 
@@ -90,10 +92,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         #Get boards activity/action feed
         trello_board.fetch_actions('all') #fetch_actions() collects actions feed and stores to trello_board.actions
-
-        #self.key = trello_board.api_key
-        #self.token = trello_board.resource_owner_key
-
         self.import_TrelloActivity(trello_board.actions, course_code)
 
     def import_TrelloActivity(self, feed, course_code):
