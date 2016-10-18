@@ -99,8 +99,8 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
                     'Collection': 'http://activitystrea.ms/schema/1.0/collection',
                     'File': 'http://activitystrea.ms/schema/1.0/file',
                     'Task': 'http://activitystrea.ms/specs/json/schema/activity-schema.html#task',
-                    'checklist': 'http://id.tincanapi.com/activitytype/checklist',
-                    'checklist-item': 'http://id.tincanapi.com/activitytype/checklist-item',
+                    'Checklist': 'http://id.tincanapi.com/activitytype/checklist',
+                    'Checklist-item': 'http://id.tincanapi.com/activitytype/checklist-item',
                     'Person': 'http://activitystrea.ms/head/activity-schema.html#person',
     }
 

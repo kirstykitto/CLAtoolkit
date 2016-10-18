@@ -172,24 +172,18 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             #     , 'addMemberToCard'])
             if (type in
                 [self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, 
-                'addMemberToBoard', 'emailCard', 
                 self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD, 
                 self.ACTION_TYPE_ADD_MEMBER_TO_CARD]):
 
                 # Get user details from Util class
                 usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
-
                 other_context_list = []
-                # TODO: Add emailCard and addMemberToBoard? Currently they aren't imported
-                if type in [self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, 
-                            self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD, 
-                            self.ACTION_TYPE_ADD_MEMBER_TO_CARD]:
-                    # Create "other" contextActivity object to store original activity in xAPI
-                    card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
-                    context = get_other_contextActivity(
-                        card_details['shortUrl'], 'Verb', type, 
-                        CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED))
-                    other_context_list = [context]
+                # Create "other" contextActivity object to store original activity in xAPI
+                card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
+                context = get_other_contextActivity(
+                    card_details['shortUrl'], 'Verb', type, 
+                    CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED))
+                other_context_list = [context]
 
                 if type == self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD and usr_dict is not None:
 
@@ -259,11 +253,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             #     'updateCard', 'updateCheckList',
             #     'updateList', 'updateMember'])
             #Get all 'updated' verbs
-            if (type in
-                [self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD, 'updateBoard',
-                 self.ACTION_TYPE_UPDATE_CARD, 'updateCheckList',
-                 'updateList', 'updateMember']):
-
+            if (type in [self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD, self.ACTION_TYPE_UPDATE_CARD]):
                 usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
                 card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
                 #many checklist items will be bugged - we require webhooks!
@@ -276,12 +266,14 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     other_context_list = [context]
 
                     insert_updated_object(usr_dict,
-                                          data['checkItem']['id'],
+                                          # data['checkItem']['id'],
+                                          action['id'],
                                           data['checkItem']['state'],
                                           u_id, author, date, course_code,
                                           self.platform, self.platform_url,
-                                          'checklist-item', obj_parent=data['checklist']['id'],
-                                          obj_parent_type='checklist',
+                                          CLRecipe.OBJECT_CHECKLIST_ITEM, 
+                                          obj_parent = data['checklist']['id'],
+                                          obj_parent_type = CLRecipe.OBJECT_CHECKLIST,
                                           other_contexts = other_context_list)
                     #TODO: RP
                     print 'add update checklist!'
@@ -339,7 +331,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                             context = get_other_contextActivity(card_details['shortUrl'], 'Verb', action_type, verb_iri)
                             other_context_list = [context]
-
                             insert_closedopen_object(usr_dict, action['id'],
                                                  object_text, u_id, author, date, course_code,
                                                  self.platform, self.platform_url,
