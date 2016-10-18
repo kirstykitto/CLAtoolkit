@@ -138,7 +138,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                    shared_username = target_obj_id, shared_displayname = card_name,
                                    other_contexts = other_context_list)
 
-                    print 'Inserted comment!'
+                    # print 'Inserted comment!'
 
             #print 'is action card creation? %s' % (type == 'createCard')
             #Get all 'create' verb actions
@@ -162,7 +162,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                 course_code, self.platform, self.platform_url, other_contexts = other_context_list) #, list_id=list_id)
 
                     #TODO: RP
-                    print 'Inserted created card!'
+                    # print 'Inserted created card!'
 
             #Get all 'add' verbs (you tecnically aren't *creating* an attachment on
             #a card so....)
@@ -189,7 +189,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                     target_id = data['card']['id']
                     attachment = data['attachment']
-                    # attachment_id = attachment['id']
                     attachment_id = action['id']
                     attachment_data = '%s - %s' % (attachment['name'], attachment['url'])
                     object_type = CLRecipe.OBJECT_FILE
@@ -201,14 +200,13 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                         other_contexts = other_context_list)
 
                     #TODO: RP
-                    print 'Added attachment!'
+                    # print 'Added attachment!'
 
                 if type == self.ACTION_TYPE_ADD_MEMBER_TO_CARD and usr_dict is not None: #or 'addMemberToBoard':
 
                     target_id = data['card']['id']
-                    # object_id = data['idMember']
                     object_id = action['id']
-                    object_data = action['member']['username']
+                    object_data = action['member']['id']
                     object_type = CLRecipe.OBJECT_PERSON
                     shared_displayname = '%sc/%s' % (self.platform_url, target_id)
 
@@ -218,7 +216,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                         other_contexts = other_context_list)
 
                     #TODO: RP
-                    print 'Added add member to card!'
+                    # print 'Added add member to card!'
 
                 if type == self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD and usr_dict is not None:
 
@@ -246,7 +244,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                         other_contexts = other_context_list)
 
                     #TODO: RP
-                    print 'added add checklist to card!'
+                    # print 'added add checklist to card!'
 
             #print 'is action type an update? %s' % (type in
             #    ['updateCheckItemStateOnCard', 'updateBoard',
@@ -264,11 +262,10 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         card_details['shortUrl'], 'Verb', type, 
                         CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED))
                     other_context_list = [context]
+                    # Import check item ID & its state
+                    obj_val = data['checkItem']['state'] + ':' + data['checkItem']['id']
 
-                    insert_updated_object(usr_dict,
-                                          # data['checkItem']['id'],
-                                          action['id'],
-                                          data['checkItem']['state'],
+                    insert_updated_object(usr_dict, action['id'], obj_val,
                                           u_id, author, date, course_code,
                                           self.platform, self.platform_url,
                                           CLRecipe.OBJECT_CHECKLIST_ITEM, 
@@ -276,7 +273,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                           obj_parent_type = CLRecipe.OBJECT_CHECKLIST,
                                           other_contexts = other_context_list)
                     #TODO: RP
-                    print 'add update checklist!'
+                    # print 'add update checklist!'
 
 
                 #type will only show 'updateCard'
@@ -314,7 +311,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                               other_contexts = other_context_list)
 
                         #TODO: RP
-                        print 'added closed card!'
+                        # print 'added closed card!'
                     #add in close/open verbs
                     else:
                         if data['old'][change[0]] is False or data['old'][change[0]] is True:
