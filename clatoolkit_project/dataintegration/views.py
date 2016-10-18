@@ -68,9 +68,13 @@ def refreshtrello(request):
 
     trello_plugin = settings.DATAINTEGRATION_PLUGINS[CLRecipe.PLATFORM_TRELLO]
     diag_count = 0
+    previous_board_id = ''
 
     for board_id in trello_courseboard_ids:
-        trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(board_id=board_id).filter(course_code=course_code)[0]
+        # if previous_board_id == board_id:
+        #     continue
+
+        trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(course_code=course_code).filter(board_id=board_id)[0]
         #print 'got trello user course board map: %s' % (trello_user_course_map)
 
         user = trello_user_course_map.user
@@ -80,8 +84,12 @@ def refreshtrello(request):
         #print 'Performing Trello Board Import for User: %s' % (user)
         trello_plugin.perform_import(board_id, course_code, token=usr_offline_auth.token)
         diag_count = diag_count + 1
+        # previous_board_id = board_id
 
     post_smimport(course_code, CLRecipe.PLATFORM_TRELLO)
+    # for board_id in trello_courseboard_ids:
+    #     print board_id
+    #     print trello_user_course_map.user
 
     return Response('<b>Trello refresh complete: %s users updated.</b>' % (diag_count))
 

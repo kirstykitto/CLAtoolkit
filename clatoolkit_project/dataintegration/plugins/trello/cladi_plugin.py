@@ -326,16 +326,16 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #add in close/open verbs
                     else:
                         if data['old'][change[0]] is False or data['old'][change[0]] is True:
-                            verb_iri = CLRecipe.get_verb_iri(CLRecipe.VERB_CLOSED)
                             verb = CLRecipe.VERB_CLOSED
+                            verb_iri = CLRecipe.get_verb_iri(verb)
                             action_type = self.ACTION_TYPE_CLOSE_CARD
-                            object_text = '%s:%s' % (CLRecipe.VERB_CLOSED, data['card']['name'])
+                            object_text = data['card']['name']
 
+                            # When card is opened
                             if data['old'][change[0]] is True:
-                                verb_iri = CLRecipe.get_verb_iri(CLRecipe.VERB_OPENED)
                                 verb = CLRecipe.VERB_OPENED
+                                verb_iri = CLRecipe.get_verb_iri(verb)
                                 action_type = self.ACTION_TYPE_OPEN_CARD
-                                object_text = '%s:%s' % (CLRecipe.VERB_OPENED, data['card']['name'])
 
                             context = get_other_contextActivity(card_details['shortUrl'], 'Verb', action_type, verb_iri)
                             other_context_list = [context]
@@ -347,7 +347,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                                  obj_parent_type = CLRecipe.OBJECT_COLLECTION,
                                                  other_contexts = other_context_list)
                             #TODO: RP
-                            print 'added closed/opened card!'
+                            # print 'added closed/opened card!'
 
     def get_verbs(self):
         return self.xapi_verbs
