@@ -26,6 +26,7 @@ import igraph
 from collections import OrderedDict
 import copy
 from common.CLRecipe import CLRecipe
+from common.DateUtil import DateUtil
 
 def getPluginKey(platform):
     return os.environ.get("TRELLO_API_KEY")
@@ -1075,10 +1076,6 @@ def get_platform_activity_dataset(course_code, platform_names, username=None):
         chart_dataset = []
         platform_data = None
 
-        # "T"rello does not work...
-        # if platform == 'Trello':
-        #     platform = platform.lower()
-
         if platform == CLRecipe.PLATFORM_TRELLO:
             # Bar chart data
             chart_dataset.append(get_verb_count_chart_data(course_code, platform, 
@@ -1092,7 +1089,13 @@ def get_platform_activity_dataset(course_code, platform_names, username=None):
             trello_setting = settings.DATAINTEGRATION_PLUGINS[platform]
             pie_data['detailChart'] = get_other_contextActivity_count_chart_data(course_code, platform, 
                 chart_type = 'pie', chart_title = 'Activity details', 
-                chart_yAxis_title = 'Activity details', show_table = 1, 
+                chart_yAxis_title = 'Activity details', show_table = 0, 
+                obj_mapper = trello_setting.VERB_ACTION_TYPE_MAPPER,
+                obj_disp_names = trello_setting.getActionTypeDisplayNames(trello_setting.VERB_ACTION_TYPE_MAPPER))
+
+            pie_data['objValues'] = get_object_values_chart_data(course_code, platform, 
+                chart_type = 'pie', chart_title = 'Activity details', 
+                chart_yAxis_title = 'Activity details',
                 obj_mapper = trello_setting.VERB_ACTION_TYPE_MAPPER,
                 obj_disp_names = trello_setting.getActionTypeDisplayNames(trello_setting.VERB_ACTION_TYPE_MAPPER))
 
@@ -1113,10 +1116,6 @@ def get_platform_activity_dataset(course_code, platform_names, username=None):
 
 
 def get_platform_activity_data(course_code, platform, chart_dataset):
-    # "T"rello gets errors...
-    # if platform == 'Trello':
-    #     platform = platform.lower()
-
     tables = []
     i = 0
     for chart in chart_dataset:
@@ -1131,6 +1130,27 @@ def get_platform_activity_data(course_code, platform, chart_dataset):
             # ('tables', tables)
     ])
     return val
+
+
+
+def get_object_values_chart_data(course_code, platform, chart_type = '', chart_title = '', 
+    chart_yAxis_title = '', obj_mapper = None, obj_disp_names = None):
+    pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
+    verbs = sorted(pluginObj.get_verbs())
+    other_context_types = pluginObj.get_other_contextActivity_types(verbs)
+
+    all_data = []
+    categories, return_data = get_object_values(platform, course_code)
+    for data in return_data:
+        all_data.append(data)
+
+    charts = []
+    if chart_type is None or chart_type == '':
+        chart_type = 'column'
+
+    return create_chart_data_obj(categories, other_context_types, all_data, chart_type = chart_type, 
+        chart_title = chart_title, chart_yAxis_title = chart_yAxis_title, obj_mapper = obj_mapper, 
+        obj_disp_names = obj_disp_names, show_table = 0)
 
 
 def get_other_contextActivity_count_chart_data(course_code, platform, chart_type = '', chart_title = '', 
@@ -1348,6 +1368,91 @@ def get_verb_count(platform, course_code):
             verb = row[1] # verb
             dates = [dateString] # date
             values = [int(row[3])] # number of verbs imported on the date
+
+    # Save the last one
+    obj = OrderedDict([
+        ('name', verb), # verb
+        ('date', copy.deepcopy(dates)), 
+        ('values', copy.deepcopy(values))
+    ])
+    series.append(obj)
+    user_data['category'] = username
+    user_data['series'] = copy.deepcopy(series)
+    data.append(user_data)
+
+    # print data
+    # print categories
+    return categories, data
+
+
+
+def get_object_values(platform, course_code):
+    categories = []
+    data = []
+    if platform is None or platform == '' or course_code is None or course_code == '':
+        return categories, data
+
+    cursor = connection.cursor()
+    cursor.execute("""select username
+        , json_array_elements(xapi->'context'->'contextActivities'->'other')->'definition'->'name'->>'en-US' as other_context_val
+        , to_char(to_date(clatoolkit_learningrecord.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
+        , clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US' as val
+        from clatoolkit_learningrecord
+        where platform = %s
+        and course_code = %s
+        order by username, verb, date_imported
+    """, [platform, course_code])
+
+    result = cursor.fetchall()
+    user_data = OrderedDict()
+    username = ''
+    series = []
+    verb = ''
+    dates = []
+    values = []
+    for row in result:
+        # Format date 
+        comma = ','
+        dateString = DateUtil.format_date(row[2], comma, comma, True)
+
+        if username == '' or username != row[0]:
+            if username != '':
+                # Save previous all verbs and its values of the user
+                obj = OrderedDict([
+                    ('name', verb), # verb
+                    ('date', copy.deepcopy(dates)),
+                    ('values', copy.deepcopy(values))
+                ])
+                series.append(obj)
+                user_data['category'] = username
+                user_data['series'] = copy.deepcopy(series)
+                data.append(user_data)
+
+            # Initialise all variables
+            username = row[0]
+            user_data = OrderedDict()
+            series = []
+            verb = row[1]
+            dates = [dateString]
+            values = [str(row[3])]
+            categories.append(username)
+
+        elif username == row[0] and verb == row[1]:
+            # Same user and same verb.
+            dates.append(dateString)
+            values.append(str(row[3]))
+
+        elif username == row[0] and verb != row[1]:
+            # Save previous verb and its value
+            obj = OrderedDict([
+                ('name', verb), # verb
+                ('date', copy.deepcopy(dates)), 
+                ('values', copy.deepcopy(values))
+            ])
+            series.append(obj)
+            verb = row[1]
+            dates = [dateString]
+            values = [str(row[3])]
 
     # Save the last one
     obj = OrderedDict([

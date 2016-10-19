@@ -263,7 +263,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED))
                     other_context_list = [context]
                     # Import check item ID & its state
-                    obj_val = data['checkItem']['state'] + ':' + data['checkItem']['id']
+                    obj_val = data['checkItem']['name'] + ':' + data['checkItem']['id']
 
                     insert_updated_object(usr_dict, action['id'], obj_val,
                                           u_id, author, date, course_code,

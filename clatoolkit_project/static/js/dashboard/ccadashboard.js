@@ -280,7 +280,18 @@ function createPieChartSeries(chart, isDetailChart, checkDate, start, end, color
 				},
 				distance: -20
 			},
-			data: dataset
+			data: dataset,
+			point:{
+				events:{
+					click: function (event) {
+					// mouseOver: function (event) {
+						// alert(this.x + " " + this.y);
+						console.log(this);
+						console.log(event);
+						testDrawHalfPie();
+					}
+				}
+			}  
 		}
 		if(isDetailChart) {
 			// newSeries["size"] = PIE_DIAMETER_OUTER;
@@ -295,11 +306,100 @@ function createPieChartSeries(chart, isDetailChart, checkDate, start, end, color
 		allSeries.push(newSeries);
 	});
 
-	if(chart["detailChart"]) {
-		chart["detailChart"]["series"] = createPieChartSeries(chart["detailChart"], true, checkDate, start, end, colors);
+	// if(chart["detailChart"]) {
+	// 	chart["detailChart"]["series"] = createPieChartSeries(chart["detailChart"], true, checkDate, start, end, colors);
+	// }
+	if(chart["objValues"]) {
+		chart["detailChart"]["series"] = testCreatePieChartSeries(chart["objValues"], true, checkDate, start, end, colors);
 	}
+	
 	return allSeries;
 }
+
+
+function testCreatePieChartSeries(chart, isDetailChart, checkDate, start, end, colors) {
+	var allSeries = [];
+	if (colors == null || colors.length == 0) {
+		colors = createChartColors(chart["seriesName"]);
+	}
+
+	var posX = PIE_INIT_POSITION_X;
+	$.each(chart["data"], function(key, val) {
+		dataset = [];
+		if (parseInt(key) > 0) {
+			posX += PIE_OFFSET;
+		}
+		$.each(val["series"], function(key, dataSeries) {
+			var index = 0;
+			$.each(dataSeries["date"], function(key, date) {
+				canAdd = true;
+				if(checkDate) {
+					var d = date.split(",");
+                    var utcDate = Date.UTC(d[0], d[1], d[2]);
+					if( !(parseFloat(start) <= parseFloat(utcDate) && parseFloat(end) >= parseFloat(utcDate)) ) {
+						canAdd = false
+					}
+				}
+				if (!canAdd) return true;
+
+				var dispName = getObjectDisplayName(chart["objectDisplayNames"], dataSeries["name"]);
+				dispName = dispName + " (" + date + ")" + "<br>" + dataSeries["values"][index++];
+				var newData = {
+					name: dispName,
+					y: 1
+				};
+				if(!isDetailChart) {
+					newData["color"] = getChartColorByName(colors, dataSeries["name"], true);
+				}
+				else if(isDetailChart && val["series"].length > 0) {
+					// Color of each piece of outer pie is similar to that of collesponding inner piece
+					var verb = null;
+					$.each(chart["objectMapper"], function(key, element) {
+						if ($.inArray(dataSeries["name"], element) != -1) {
+							verb = key;
+							return true;
+						}
+					});
+					newData["color"] = getChartColorByName(colors, verb, false);
+					dataset.push(newData);
+				}
+			});
+		});
+
+		colorIndex = 0;
+		diameter = isDetailChart ? PIE_DIAMETER_OUTER : PIE_DIAMETER_INNER;
+		var newSeries = {
+			type: chart['type'],
+			name: val["category"],
+			center: [posX, null],
+			size: diameter,
+			dataLabels:{
+				formatter: function () {
+					// return this.y > 0 ? '<b>' + this.point.name + '</b>' : null;
+					// return this.y > 0 ? this.point.name : null;
+					return null;
+				},
+				distance: -20
+			},
+			data: dataset
+		}
+		if(isDetailChart) {
+			newSeries["innerSize"] = PIE_DIAMETER_INNER;
+			newSeries["dataLabels"] = {
+				formatter: function () {
+					// return this.y > 0 ? '<b>' + this.point.name + ': ' + this.y + '</b>' : null;
+					return null;
+				},
+				distance: -5
+				// enable: false
+			};
+		}
+		allSeries.push(newSeries);
+	});
+
+	return allSeries;
+}
+
 
 function getObjectDisplayName(displayNames, objectName) {
 	if(displayNames == null || objectName == null) {
@@ -444,7 +544,7 @@ function calculateChartAreaWidth(chart) {
 	var areaWidth = (chart["categories"].length * PIE_DIAMETER_OUTER);
 	// Add offset width between pies
 	areaWidth += (chart["categories"].length - 1) * (PIE_OFFSET - PIE_DIAMETER_OUTER);
-	// Add Initial position X and subside a little bit to adjust the width
+	// Add Initial position X and subtract a little bit to adjust the width
 	areaWidth += PIE_INIT_POSITION_X - 30;
 	return areaWidth
 }
@@ -495,9 +595,14 @@ function drawPieChart(chart, platform) {
             items: labelItems
         },
         tooltip: {
+        	style: {
+                // color: '#3E576F',
+                fontSize: '16px'
+            },
             formatter: function() {
-				format = '<b>' + this.series.name + '</b><br>'
-				+ '<b>' + this.point.name + ': ' + this.point.y + '</b>';
+				format = //'<b>' + this.series.name + '</b><br>'
+				// + '<b>' + this.point.name + ': ' + this.point.y + '</b>';
+				'<b>' + this.point.name + '</b>';
 				return format;
             }
         },
@@ -658,6 +763,83 @@ function getTableData(chart) {
 function showMessage(message) {
 	$("#message").append(message);
 	$("#message").show();
+}
+
+function testDrawHalfPie() {
+
+    $('#container').highcharts({
+        chart: {
+            plotBackgroundColor: null,
+            plotBorderWidth: 0,
+            plotShadow: false
+        },
+        title: {
+            text: 'Browser<br>shares<br>2015',
+            align: 'center',
+            verticalAlign: 'middle',
+            y: 40
+        },
+        tooltip: {
+            pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+        },
+        plotOptions: {
+            pie: {
+                dataLabels: {
+                    enabled: true,
+                    distance: -50,
+                    style: {
+                        fontWeight: 'bold',
+                        color: 'white'
+                    }
+                },
+                startAngle: -90,
+                endAngle: 90,
+                center: ['50%', '75%']
+            }
+        },
+        series: [{
+            type: 'pie',
+            name: 'Browser share',
+            size: 200,
+            innerSize: '50%',
+            data: [
+                ['Firefox',   10.38],
+                ['IE',       56.33],
+                ['Chrome', 24.03],
+                ['Safari',    4.77],
+                ['Opera',     0.91],
+                {
+                    name: 'Proprietary or Undetectable',
+                    y: 0.2,
+                    dataLabels: {
+                        enabled: false
+                    }
+                }
+            ]
+        },{
+            type: 'pie',
+            name: 'Browser share',
+            size: 400,
+            innerSize: '50%',
+            data: [
+                ['Firefox',   5.38],
+                ['Firefox',   5.00],
+                ['IE',       16.11],
+                ['IE',       25.11],
+                ['IE',       15.11],
+                ['Chrome', 24.03],
+                ['Safari',    4.77],
+                ['Opera',     0.91],
+                {
+                    name: 'Proprietary or Undetectable',
+                    y: 0.2,
+                    dataLabels: {
+                        enabled: false
+                    }
+                }
+            ]
+        }]
+    });
 }
 
 /**
