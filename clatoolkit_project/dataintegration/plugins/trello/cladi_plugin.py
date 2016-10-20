@@ -75,6 +75,9 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         CLRecipe.VERB_OPENED: [ACTION_TYPE_OPEN_CARD]
     }
 
+    SEPARATOR_COLON = ": "
+    SEPARATOR_HTML_TAG_BR = "<br>"
+
     def __init__(self):
        pass
 
@@ -142,12 +145,9 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
             #print 'is action card creation? %s' % (type == 'createCard')
             #Get all 'create' verb actions
-            if (type == self.ACTION_TYPE_CREATE_CARD): #, 'createList']):
-                #date
-                #list_id = data['list']['id']
-                # task_id = data['card']['id']
-                task_id = action['id']
-                task_name = data['card']['name']
+            if (type == self.ACTION_TYPE_CREATE_CARD):
+                action_id = action['id']
+                card_name = data['card']['name']
 
                 if username_exists(u_id, course_code, self.platform.lower()):
                     # Create "other" contextActivity object to store original activity in xAPI
@@ -158,8 +158,8 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     other_context_list = [context]
                     usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
 
-                    insert_task(usr_dict, task_id, task_name, u_id, author, date,
-                                course_code, self.platform, self.platform_url, other_contexts = other_context_list) #, list_id=list_id)
+                    insert_task(usr_dict, action_id, card_name, u_id, author, date,
+                                course_code, self.platform, self.platform_url, other_contexts = other_context_list)
 
                     #TODO: RP
                     # print 'Inserted created card!'
@@ -170,10 +170,9 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             #    ['addAttachmentToCard', 'addMemberToBoard',
             #     'emailCard', 'addChecklistToCard'
             #     , 'addMemberToCard'])
-            if (type in
-                [self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, 
-                self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD, 
-                self.ACTION_TYPE_ADD_MEMBER_TO_CARD]):
+            if (type in [self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, 
+                        self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD, 
+                        self.ACTION_TYPE_ADD_MEMBER_TO_CARD]):
 
                 # Get user details from Util class
                 usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
@@ -190,7 +189,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     target_id = data['card']['id']
                     attachment = data['attachment']
                     attachment_id = action['id']
-                    attachment_data = '%s - %s' % (attachment['name'], attachment['url'])
+                    attachment_data = attachment['name'] + self.SEPARATOR_HTML_TAG_BR + attachment['url']
                     object_type = CLRecipe.OBJECT_FILE
                     shared_displayname = '%sc/%s' % (self.platform_url, target_id)
 
@@ -206,13 +205,13 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                     target_id = data['card']['id']
                     object_id = action['id']
-                    object_data = action['member']['id']
+                    object_data = action['member']['username']
                     object_type = CLRecipe.OBJECT_PERSON
                     shared_displayname = '%sc/%s' % (self.platform_url, target_id)
 
                     insert_added_object(usr_dict, target_id, object_id, object_data, u_id, author, date,
                                         course_code, self.platform, self.platform_url, object_type,
-                                        shared_displayname=shared_displayname,
+                                        shared_displayname = shared_displayname,
                                         other_contexts = other_context_list)
 
                     #TODO: RP
@@ -221,7 +220,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 if type == self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD and usr_dict is not None:
 
                     target_id = data['card']['id']
-                    # object_id = data['idMember']
                     object_id = action['id']
                     object_data = None
                     checklist_items = None
@@ -236,8 +234,8 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         print 'Could not retrieve checklist..'
 
                     #data will be a comma separated list of checklist-item ids (e.g.: 'id1,id2,id3...')
-                    object_data = ','.join([item['id'] for item in checklist_items])
-
+                    object_data = 'Checklist: ' + data['checklist']['name'] + self.SEPARATOR_HTML_TAG_BR
+                    object_data = object_data + self.SEPARATOR_HTML_TAG_BR.join([item['name'] for item in checklist_items])
                     insert_added_object(usr_dict, target_id, object_id, object_data, u_id, author, date,
                                         course_code, self.platform, self.platform_url, object_type,
                                         shared_displayname=shared_displayname,
@@ -263,7 +261,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED))
                     other_context_list = [context]
                     # Import check item ID & its state
-                    obj_val = data['checkItem']['id'] + ':' + data['checkItem']['state']
+                    obj_val = data['checkItem']['name'] + self.SEPARATOR_COLON + data['checkItem']['state']
 
                     insert_updated_object(usr_dict, action['id'], obj_val,
                                           u_id, author, date, course_code,
@@ -291,12 +289,11 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #TODO: Remove Print
                     print 'got changes: %s' % (change)
 
-                    #Insert all updates that aren't closed
                     if change[0] == 'pos':
-                        if 'listBefore' in data:
-                            object_text = 'Move card from %s to %s' % (data['listBefore']['name'], data['listAfter']['name'])
-                        else:
-                            object_text = 'Move card from %s to %s' % (data['old']['pos'], data['card']['pos'])
+                        # When user moves card in the same list (change order)
+                        card_name = 'Card: ' + data['card']['name'] + self.SEPARATOR_HTML_TAG_BR
+                        object_text = 'Change order of card: %s to %s' % (data['old']['pos'], data['card']['pos'])
+                        object_text = card_name + object_text
 
                         context = get_other_contextActivity(
                             card_details['shortUrl'], 'Verb', self.ACTION_TYPE_MOVE_CARD, 
@@ -312,9 +309,27 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                         #TODO: RP
                         # print 'added closed card!'
-                    #add in close/open verbs
                     else:
-                        if data['old'][change[0]] is False or data['old'][change[0]] is True:
+                        # When user moves card from a list to another
+                        if data.has_key('listBefore'):
+                            card_name = 'Card: ' + data['card']['name'] + self.SEPARATOR_HTML_TAG_BR
+                            object_text = 'from %s to %s' % (data['listBefore']['name'], data['listAfter']['name'])
+                            object_text = card_name + object_text
+
+                            context = get_other_contextActivity(
+                                card_details['shortUrl'], 'Verb', self.ACTION_TYPE_MOVE_CARD, 
+                                CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED))
+                            other_context_list = [context]
+
+                            insert_updated_object(usr_dict, action['id'],
+                                                  object_text, u_id, author, date, course_code,
+                                                  self.platform, self.platform_url,
+                                                  CLRecipe.OBJECT_TASK, obj_parent=data['card']['id'],
+                                                  obj_parent_type = CLRecipe.OBJECT_COLLECTION,
+                                                  other_contexts = other_context_list)
+
+                        # When user closes (archives)/opens card
+                        elif data['old'][change[0]] is False or data['old'][change[0]] is True:
                             verb = CLRecipe.VERB_CLOSED
                             verb_iri = CLRecipe.get_verb_iri(verb)
                             action_type = self.ACTION_TYPE_CLOSE_CARD
@@ -385,7 +400,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         elif action == self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD:
             return 'Updated checklist item state'
         elif action == self.ACTION_TYPE_COMMENT_CARD:
-            return 'Commented card'
+            return 'Commented on card'
         elif action == self.ACTION_TYPE_CLOSE_CARD:
             return 'Closed card'
         elif action == self.ACTION_TYPE_OPEN_CARD:
@@ -394,35 +409,66 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             return 'Unknown action type'
 
 
-    def convertValues(self, data):
-        # self.TrelloCient = TrelloClient(
-        #     api_key=os.environ.get("TRELLO_API_KEY"),
-        #     token=token
-        # )
-        # for data in data:
-        #     for series in data['series']:
-        #         for val in series['values']:
-        #             if series["name"] == ACTION_TYPE_ADD_MEMBER_TO_CARD:
-        #                 # convert user id to username (trello account?) ??
-        #                 trello_user = getTrelloUser(val)
-        #             elif series["name"] == ACTION_TYPE_ADD_ATTACHMENT_TO_CARD:
-        #                 # convert attachment id to attachment name
-        #             elif series["name"] == ACTION_TYPE_ADD_CHECKLIST_TO_CARD:
-        #                 # convert item id to item name (and list id to list name?)
-        #             elif series["name"] == ACTION_TYPE_CREATE_CARD:
-        #                 # convert card id to name
-        #             elif series["name"] == ACTION_TYPE_OPEN_CARD:
-        #                 # convert card id to name
-        #             elif series["name"] == ACTION_TYPE_CLOSE_CARD:
-        #                 # convert card id to name
-        #             elif series["name"] == ACTION_TYPE_MOVE_CARD:
-        #                 # convert card id to name (move to and from)
-        #             elif series["name"] == ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD:
-        #                 # convert chckelist item id to name
+    # def convertValues(self, data):
+    #     for data in data:
+    #         for series in data['series']:
+    #             for val in series['values']:
+    #                 if series["name"] == self.ACTION_TYPE_ADD_MEMBER_TO_CARD:
+    #                     pass
+    #                 elif series["name"] == self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD:
+    #                     pass
+    #                 elif series["name"] == self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD:
+    #                     # convert item id to item name (and list id to list name?)
+    #                     items = val.split(self.SEPARATOR_COLON)
+    #                     checklist_id = items[0]
+    #                     items = []
+    #                     index = 1
+    #                     for items in range(1, len(items)):
+    #                         items.append(items[index])
+    #                         index = index + 1
+    #                     item_names = self.get_trello_checkitems(checklist_id, items)
 
-        return data
+    #                     alldata = 'Checklist: ' + checklist_id + self.SEPARATOR_HTML_TAG_BR
+    #                     alldata = alldata + self.SEPARATOR_HTML_TAG_BR.join(item_names)
 
-    # def getTrelloUser(val):
+    #                     print alldata
+
+    #                     val = alldata
+
+    #                 elif series["name"] == self.ACTION_TYPE_CREATE_CARD:
+    #                     # convert card id to name
+    #                     pass
+    #                 elif series["name"] == self.ACTION_TYPE_OPEN_CARD:
+    #                     # convert card id to name
+    #                     pass
+    #                 elif series["name"] == self.ACTION_TYPE_CLOSE_CARD:
+    #                     # convert card id to name
+    #                     pass
+    #                 elif series["name"] == self.ACTION_TYPE_MOVE_CARD:
+    #                     # convert card id to name (move to and from)
+    #                     pass
+    #                 elif series["name"] == self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD:
+    #                     # convert chckelist item id to name
+    #                     pass
+
+    #     return data
+
+    # def get_trello_checkitems(self, checklist_id, item_ids):
+    #     self.TrelloCient = TrelloClient(
+    #         api_key=os.environ.get("TRELLO_API_KEY")
+    #         # token=token
+    #     )
+    #     checklist = self.TrelloCient.fetch_json('/checklists/' + checklist_id,)
+    #     item_names = []
+    #     for item_id in item_ids:
+    #         for item in checklist['checkItems']:
+    #             if item_id == item['id']:
+    #                 item_names.append(item['name'])
+    #             else:
+    #                 item_names.append(item_id)
+
+    #     return item_names
+
 
 
 
