@@ -135,7 +135,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                    comment_message, comment_from_uid,
                                    comment_from_name, date, course_code,
                                    self.platform, self.platform_url,
-                                   shared_username = target_obj_id, shared_displayname = card_name,
+                                   shared_username = card_name, shared_displayname = card_name,
                                    other_contexts = other_context_list)
 
                     # print 'Inserted comment!'
@@ -263,7 +263,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED))
                     other_context_list = [context]
                     # Import check item ID & its state
-                    obj_val = data['checkItem']['name'] + ':' + data['checkItem']['id']
+                    obj_val = data['checkItem']['id'] + ':' + data['checkItem']['state']
 
                     insert_updated_object(usr_dict, action['id'], obj_val,
                                           u_id, author, date, course_code,
@@ -392,6 +392,37 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             return 'Opened card'
         else:
             return 'Unknown action type'
+
+
+    def convertValues(self, data):
+        # self.TrelloCient = TrelloClient(
+        #     api_key=os.environ.get("TRELLO_API_KEY"),
+        #     token=token
+        # )
+        # for data in data:
+        #     for series in data['series']:
+        #         for val in series['values']:
+        #             if series["name"] == ACTION_TYPE_ADD_MEMBER_TO_CARD:
+        #                 # convert user id to username (trello account?) ??
+        #                 trello_user = getTrelloUser(val)
+        #             elif series["name"] == ACTION_TYPE_ADD_ATTACHMENT_TO_CARD:
+        #                 # convert attachment id to attachment name
+        #             elif series["name"] == ACTION_TYPE_ADD_CHECKLIST_TO_CARD:
+        #                 # convert item id to item name (and list id to list name?)
+        #             elif series["name"] == ACTION_TYPE_CREATE_CARD:
+        #                 # convert card id to name
+        #             elif series["name"] == ACTION_TYPE_OPEN_CARD:
+        #                 # convert card id to name
+        #             elif series["name"] == ACTION_TYPE_CLOSE_CARD:
+        #                 # convert card id to name
+        #             elif series["name"] == ACTION_TYPE_MOVE_CARD:
+        #                 # convert card id to name (move to and from)
+        #             elif series["name"] == ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD:
+        #                 # convert chckelist item id to name
+
+        return data
+
+    def getTrelloUser(val):
 
 
 

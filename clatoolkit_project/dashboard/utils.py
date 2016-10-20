@@ -1093,6 +1093,7 @@ def get_platform_activity_dataset(course_code, platform_names, username=None):
                 obj_mapper = trello_setting.VERB_ACTION_TYPE_MAPPER,
                 obj_disp_names = trello_setting.getActionTypeDisplayNames(trello_setting.VERB_ACTION_TYPE_MAPPER))
 
+            # This contains values in object element in xapi
             pie_data['objValues'] = get_object_values_chart_data(course_code, platform, 
                 chart_type = 'pie', chart_title = 'Activity details', 
                 chart_yAxis_title = 'Activity details',
@@ -1132,6 +1133,14 @@ def get_platform_activity_data(course_code, platform, chart_dataset):
     return val
 
 
+def convertValues(original_data, platform):
+    values = original_data
+    if platform == CLRecipe.PLATFORM_TRELLO:
+        trello_setting = settings.DATAINTEGRATION_PLUGINS[platform]
+        values = trello_setting.convertValues(original_data)
+
+    return values
+
 
 def get_object_values_chart_data(course_code, platform, chart_type = '', chart_title = '', 
     chart_yAxis_title = '', obj_mapper = None, obj_disp_names = None):
@@ -1141,6 +1150,10 @@ def get_object_values_chart_data(course_code, platform, chart_type = '', chart_t
 
     all_data = []
     categories, return_data = get_object_values(platform, course_code)
+
+    # Some values (card ID, list ID, etc. in Trello) need to be converted to something else (card name, list name, etc.)
+    return_data = convertValues(return_data, platform)
+
     for data in return_data:
         all_data.append(data)
 

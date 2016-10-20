@@ -37,56 +37,6 @@ var PIE_OFFSET = 410;
 var CHART_COLOR_BRIGHTNESS = 0.2;
 
 /**
- * Initialise HighCharts charts options.
- */
-function initTimeseriesChartOptions() {
-
-	platformSeriesOps = {
-		chart: {
-			renderTo: "platform_pageview_chart"
-		},
-		rangeSelector : {
-		  selected : 1
-		},
-		xAxis: {
-			events: {
-				// Navigator range changed event handler
-				afterSetExtremes: function (e) {
-					// startDate = Highcharts.dateFormat('%Y,%m,%d', e.min);
-					// endDate = Highcharts.dateFormat('%Y,%m,%d', e.max);
-					// e.preventDefault();
-					// console.log(startDate);
-					// console.log(endDate);
-					if(allPlatformData != null) {
-						var platformNames = platform.split(",");
-						$.each(platformNames, function(key, val) {
-							chartData = createChartSeries(allPlatformData[val], true, e.min, e.max);
-							if(chartData != null) {
-								allPlatformData[val] = chartData;
-								drawGraphs(chartData);
-								showAllTables(chartData);
-							}
-						});
-					}
-				}
-			}
-		},
-		tooltip: {
-		  style: { width: '200px' },
-		  valueDecimals: 0
-		},
-		yAxis : {
-		  min: 0,
-		  title : { text : 'Activity' }
-		},
-		legend: {
-		  enabled: true
-		},
-		series: []
-	};
-}
-
-/**
  * Show platform timeseries chart
  */
 function showPlatformTimeseries() {
@@ -98,46 +48,93 @@ function showPlatformTimeseries() {
     	console.log('error!\r\n' + errorThrown);
 	})
 	.done(function( data ) {
+		drawNavigator(data);
+	});// End of .done(function( data ) {
+}
 
-		// console.log(data);
-		initTimeseriesChartOptions();
-		// Create series
-		$.each(data["series"], function(key,value) {
-            var series = { data: []};
-            // console.log(value);
-            $.each(value, function(key,val) {
-                if (key == 'name') { series.name = val; }
-                else if(key == 'id') { series.id = val; }
-                else {
-                    $.each(val, function(key,val) {
-                        var d = val.split(",");
-                        //Date needs to be converted to UTC for HighCharts...
-                        var x = Date.UTC(d[0], d[1], d[2]);
-                        series.data.push([x, parseFloat(d[3])]);
-                    });
-                }
-            });
-            platformSeriesOps.series.push(series);
-        });
 
-		//Note: StockChart() method needs to be called instead of calling Chart()
-    	new Highcharts.StockChart(platformSeriesOps, function (chart) {
-			// This code is for showing multiple series in the navigator (the mini-chart)
-			for(var i = 0; i < chart.options.series.length; i++) {
-				chart.addSeries({
-				    data: chart.options.series[i].data,
-				    isInternal: true,
-				    xAxis: 1,
-				    yAxis: 1,
-				    name: null, 
-				    enableMouseTracking: false, 
-				    showInLegend: false,
-				    color: chart.series[i].color
+function createNavigatorSeries(data) {
+	allSeries = [];
+	$.each(data["series"], function(key,value) {
+		var series = { 
+			name : '',
+			lineWidth: 0,
+			marker: {
+				enabled: false,
+				states: {
+					hover: { enabled: false }
+				}
+			},
+			data : [],
+		};
+
+		var seriesData = [];
+		$.each(value, function(key,val) {
+			if (key == 'name')   { series.name = val; }
+			else if(key == 'id') { series.id = val; }
+			else {
+				$.each(val, function(key,val) {
+					var d = val.split(",");
+					//Date needs to be converted to UTC for HighCharts...
+					var x = Date.UTC(d[0], d[1], d[2]);
+					seriesData.push([x, parseFloat(d[3])]);
 				});
+				series.data = seriesData;
 			}
 		});
+		allSeries.push(series);
+	});
+	return allSeries;
+}
 
-	});// End of .done(function( data ) {
+
+function drawNavigator(data) {
+	allSeries = createNavigatorSeries(data);
+	// Create the chart
+	new Highcharts.StockChart({
+		chart : {
+			renderTo : 'platform_pageview_chart',
+			height: 120,
+		},
+		navigator: { height: 55 },
+		exporting: { enabled: false },
+		rangeSelector : { enabled: true, selected: 0 },
+		title : { enabled: false },
+		yAxis: {
+			height: 0,
+			gridLineWidth: 0,
+			labels: { enabled: true }
+		},
+		// Note: The navigator does not show tooltip by default. 
+		// An addin can be used: http://www.highcharts.com/plugin-registry/single/44/Navigator%20tooltips
+		// tooltip: { enabled: true, valueDecimals: 2 },
+		// tooltip: {
+		// 	enabled: true, 
+		// 	crosshairs: [true, true]
+		// },
+		series: allSeries,
+		xAxis: {
+			lineWidth: 0,
+			tickLength : 0,
+			labels: { enabled: false },
+			events: {
+				// Navigator range changed event handler
+				afterSetExtremes: function (e) {
+					if(allPlatformData != null) {
+						var platformNames = platform.split(",");
+						$.each(platformNames, function(key, val) {
+							chartData = createChartSeries(allPlatformData[val], true, e.min, e.max);
+							if(chartData != null) {
+								allPlatformData[val] = chartData;
+								drawGraphs(chartData);
+								showAllTables(chartData);
+							}
+						});
+					}
+				}// End of afterSetExtremes: function (e) {
+			}
+		}// End of xAxis: {
+	});
 }
 
 /**
@@ -499,8 +496,6 @@ function createBarChartSeries(chart, checkDate, start, end) {
 function drawGraphs(data) {
 	$.each(data["platforms"], function(key , val) {
 		$.each(val["charts"], function(key , chart) {
-			// Show graph area
-			changeChartAreaVisibility(true, val["platform"]);
 			if ($('#' + chart['type'] + '-' + val["platform"]).highcharts()) {
 				$('#' + chart['type'] + '-' + val["platform"]).highcharts().destroy();
 			}
@@ -765,83 +760,6 @@ function showMessage(message) {
 	$("#message").show();
 }
 
-function testDrawHalfPie() {
-
-    $('#container').highcharts({
-        chart: {
-            plotBackgroundColor: null,
-            plotBorderWidth: 0,
-            plotShadow: false
-        },
-        title: {
-            text: 'Browser<br>shares<br>2015',
-            align: 'center',
-            verticalAlign: 'middle',
-            y: 40
-        },
-        tooltip: {
-            pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
-        },
-        plotOptions: {
-            pie: {
-                dataLabels: {
-                    enabled: true,
-                    distance: -50,
-                    style: {
-                        fontWeight: 'bold',
-                        color: 'white'
-                    }
-                },
-                startAngle: -90,
-                endAngle: 90,
-                center: ['50%', '75%']
-            }
-        },
-        series: [{
-            type: 'pie',
-            name: 'Browser share',
-            size: 200,
-            innerSize: '50%',
-            data: [
-                ['Firefox',   10.38],
-                ['IE',       56.33],
-                ['Chrome', 24.03],
-                ['Safari',    4.77],
-                ['Opera',     0.91],
-                {
-                    name: 'Proprietary or Undetectable',
-                    y: 0.2,
-                    dataLabels: {
-                        enabled: false
-                    }
-                }
-            ]
-        },{
-            type: 'pie',
-            name: 'Browser share',
-            size: 400,
-            innerSize: '50%',
-            data: [
-                ['Firefox',   5.38],
-                ['Firefox',   5.00],
-                ['IE',       16.11],
-                ['IE',       25.11],
-                ['IE',       15.11],
-                ['Chrome', 24.03],
-                ['Safari',    4.77],
-                ['Opera',     0.91],
-                {
-                    name: 'Proprietary or Undetectable',
-                    y: 0.2,
-                    dataLabels: {
-                        enabled: false
-                    }
-                }
-            ]
-        }]
-    });
-}
-
 /**
  * Load function.
  */
@@ -849,6 +767,8 @@ $(document).ready(function(){
 	//Show charts and tables
 	var platformNames = platform.split(",");
 	$.each(platformNames, function(key, val) {
+		// Show graph area
+		changeChartAreaVisibility(true, val);
 		allPlatformData[val] = {};
 		showCharts(val);
 	});
