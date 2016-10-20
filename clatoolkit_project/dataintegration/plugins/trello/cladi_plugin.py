@@ -422,7 +422,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         return data
 
-    def getTrelloUser(val):
+    # def getTrelloUser(val):
 
 
 
