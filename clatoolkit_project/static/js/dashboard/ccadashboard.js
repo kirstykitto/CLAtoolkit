@@ -34,10 +34,10 @@ CLAChart = function(renderTo, chartType, url) {
 CLAChart.DATA_TYPE_TOTAL = "total";
 CLAChart.DATA_TYPE_OVERVIEW = "overview";
 CLAChart.DATA_TYPE_DETAILS = "details";
+CLAChart.saveChartObject = function(objInstance) {
+	chartObjDict[objInstance.renderTo] = objInstance;
+};
 
-/// 
-/// These methods must be implemented in child object.
-/// 
 CLAChart.prototype.createSeries = function(data, checkDate, start, end) {
 	if(data == null) return null;
 	var charts = data["charts"];
@@ -61,7 +61,6 @@ CLAChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
 	var options = this.createOptions();
 	$("#" + this.renderTo).highcharts(options);
 };
-
 CLAChart.prototype.draw = function() {
 	var self = this;
 	// console.log(this.url);
@@ -200,7 +199,6 @@ CLANavigatorChart.prototype.createSeries = function(data) {
 	return allSeries;
 };
 
-
 /**
  * [initializeChart description]
  * @param  {[type]} data [description]
@@ -275,7 +273,6 @@ CLAPieChart.prototype.redrawByPoint = function(point, start, end) {
 		newDataType = CLAChart.DATA_TYPE_OVERVIEW; // Set details to draw double pie chart
 		chart = this.getChartData(this.selectedPlatform, CLAChart.DATA_TYPE_OVERVIEW);
 	} else {
-		// chart = this.charts[CLAChart.DATA_TYPE_TOTAL];
 		newDataType = CLAChart.DATA_TYPE_TOTAL;
 		chart = this.getChartData(null, CLAChart.DATA_TYPE_TOTAL);
 	}
@@ -300,7 +297,6 @@ CLAPieChart.prototype.getObjectDisplayName = function(objectMapper, objectName) 
 	}
 	return ret;
 };
-
 CLAPieChart.prototype.createSeriesByChart = function(chart, checkDate, start, end) {
 	return this.createSeriesWithColors(chart, checkDate, start, end, null);
 };
@@ -506,6 +502,9 @@ CLAChartOptions.prototype.getOptions = function () {
 	throw Error("Not implemented");
 };
 
+
+
+
 CLANavigatorChartOptions = function(renderTo, series) {
 	CLAChartOptions.call(this, renderTo, null);
 	this.navigatorSeries = series;
@@ -549,7 +548,6 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 	};
 	return options;
 };
-
 CLABarChartOptions = function(renderTo, chartType) {
 	if(chartType != CLABarChartOptions.CHART_TYPE_COLUMN && chartType != CLABarChartOptions.CHART_TYPE_BAR) {
 		throw Error("Invalid chart type: " + chartType);
@@ -654,7 +652,6 @@ CLAPieChartOptions.prototype.getOptions = function() {
 	}; // End of this.options
 	return options;
 };
-
 CLAPieChartOptions.getSeriesOptions = function (category, posX, diameter, dataset) {
 	var options = {
 		type: this.chartType,
@@ -687,7 +684,6 @@ CLAPieChartOptions.getChartLabels = function(categories) {
 	});
 	return items;
 };
-
 CLAPieChartOptions.calculateChartAreaWidth = function(categories) {
 	// Pie size * num of categories
 	var areaWidth = (categories.length * CLAPieChartOptions.PIE_DIAMETER_OUTER);
@@ -698,9 +694,6 @@ CLAPieChartOptions.calculateChartAreaWidth = function(categories) {
 	return areaWidth
 };
 
-CLAChart.saveChartObject = function(objInstance) {
-	chartObjDict[objInstance.renderTo] = objInstance;
-};
 $(document).ready(function(){
 	// Draw the navigator
 	var url = "/dashboard/api/get_platform_timeseries_data/?course_code=" + course_code + "&platform=" + platform;
