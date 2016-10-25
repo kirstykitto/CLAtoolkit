@@ -24,3 +24,7 @@
 .chartRoot {
 	display: none;
 }
+
+.navigator-title {
+	margin: 0px;
+}

@@ -9,6 +9,7 @@
 <link href="{% static 'css/dashboard/ccadashboard.css'%}" rel="stylesheet">
 <span id="root">
 	<p id="message" class="message"></p>
+	<h6 class="navigator-title">Chart will be updated as you change the start and end date in the navigator.</h6>
 	<div id="chartNavigator"></div>
 	<span id="activities" class="chartRoot">
 		<div class="row">
@@ -68,11 +69,10 @@
 
 var course_code = "{{course_code}}";
 var platform = "{{platform}}";
-var allPlatformData = {};
+var chartObjDict = {};
 // Date selected by user at the Platform Timeseries
-var startDate = "";
-var endDate = "";
-// var timer = new Date().getTime();
+var startUTCDate = 0;
+var endUTCDate = 0;
 
 </script>
 <script src="{% static 'js/dashboard/ccadashboard.js'%}"></script>
