@@ -1069,54 +1069,105 @@ def get_platform_timeseries_dataset(course_code, platform_names, username=None):
     return OrderedDict([ ('series', series)])
 
 
-def get_platform_activity_dataset(course_code, platform_names, username=None):
-    platform_dataset = []
-    i = 0
-    for platform in platform_names:
-        chart_dataset = []
-        platform_data = None
 
-        if platform == CLRecipe.PLATFORM_TRELLO:
-            # Bar chart data
-            chart_dataset.append(get_verb_count_chart_data(course_code, platform, 
-                chart_type = 'column', chart_title = 'Total number of activities', 
-                chart_yAxis_title = 'Total number of activities', show_table = 0))
-            # Pie chart data
-            pie_data = get_verb_count_chart_data(course_code, platform, 
-                chart_type = 'pie', chart_title = ' ', 
-                chart_yAxis_title = 'Activity details', show_table = 0)
+def get_platform_activity_dataset(course_code, platforms, username=None):
+    platform_dataset = {}
 
-            trello_setting = settings.DATAINTEGRATION_PLUGINS[platform]
-            pie_data['detailChart'] = get_other_contextActivity_count_chart_data(course_code, platform, 
-                chart_type = 'pie', chart_title = 'Activity details', 
-                chart_yAxis_title = 'Activity details', show_table = 0, 
-                obj_mapper = trello_setting.VERB_ACTION_TYPE_MAPPER,
-                obj_disp_names = trello_setting.getActionTypeDisplayNames(trello_setting.VERB_ACTION_TYPE_MAPPER))
+    platform_count_data = get_platform_count_chart_data(course_code, platforms, 
+        chart_title = 'Total number of activities', 
+        chart_yAxis_title = 'Total number of activities')
 
-            # This contains values in object element in xapi
-            pie_data['objValues'] = get_object_values_chart_data(course_code, platform, 
-                chart_type = 'pie', chart_title = 'Activity details', 
-                chart_yAxis_title = 'Activity details',
-                obj_mapper = trello_setting.VERB_ACTION_TYPE_MAPPER,
-                obj_disp_names = trello_setting.getActionTypeDisplayNames(trello_setting.VERB_ACTION_TYPE_MAPPER))
+    for platform in platforms:
+        verb_count_data = get_verb_count_chart_data(course_code, platform, 
+            chart_title = 'Total number of activities', 
+            chart_yAxis_title = 'Total number of activities', show_table = 0)
+        platform_setting = settings.DATAINTEGRATION_PLUGINS[platform]
+        detail_data = get_object_values_chart_data(course_code, platform, 
+                        chart_title = 'Activity details', 
+                        chart_yAxis_title = 'Activity details',
+                        obj_mapper = platform_setting.VERB_ACTION_TYPE_MAPPER,
+                        obj_disp_names = platform_setting.getActionTypeDisplayNames(platform_setting.VERB_ACTION_TYPE_MAPPER))
 
-            chart_dataset.append(pie_data)
-            platform_data = get_platform_activity_data(course_code, platform, chart_dataset)
+        platform_dataset[platform] = {
+            'overview': verb_count_data,
+            'details': detail_data
+        }
 
-        elif platform == CLRecipe.PLATFORM_GITHUB:
-            # Bar chart data
-            chart_dataset.append(get_verb_count_chart_data(course_code, platform, 
-                chart_type = 'column', chart_title = 'Total number of activities', 
-                chart_yAxis_title = 'Total number of activities', show_table = 1))
+    # Set total
+    platform_dataset['total'] = platform_count_data
+    ret = OrderedDict ([
+            ('platforms', platforms),
+            ('charts', platform_dataset)
+    ])
 
-            platform_data = get_platform_activity_data(course_code, platform, chart_dataset)
-
-        platform_dataset.append(platform_data)
-
-    return OrderedDict([ ('platforms', platform_dataset)])
+    return ret
 
 
-def get_platform_activity_data(course_code, platform, chart_dataset):
+
+# def get_platform_activity_dataset(course_code, platforms, username=None):
+#     platform_dataset = {}
+#     chart_type_column = 'column'
+#     chart_type_pie = 'pie'
+#     for platform in platforms:
+#         chart_dataset = {}
+#         platform_data = None
+
+#         if platform == CLRecipe.PLATFORM_TRELLO:
+#             # Bar chart data
+#             trello_chart_list = []
+#             column_data = get_verb_count_chart_data(course_code, platform, 
+#                 chart_type = chart_type_column, chart_title = 'Total number of activities', 
+#                 chart_yAxis_title = 'Total number of activities', show_table = 0)
+#             trello_chart_list.append(column_data)
+#             chart_data = {}
+#             chart_data[chart_type_column] = trello_chart_list
+#             # chart_dataset[platform] = bar_chart
+
+#             # Inner pie chart data
+#             pie_data = column_data
+#             trello_setting = settings.DATAINTEGRATION_PLUGINS[platform]
+#             # pie_data['detailChart'] = get_other_contextActivity_count_chart_data(course_code, platform, 
+#             #     chart_type = 'pie', chart_title = 'Activity details', 
+#             #     chart_yAxis_title = 'Activity details', show_table = 0, 
+#             #     obj_mapper = trello_setting.VERB_ACTION_TYPE_MAPPER,
+#             #     obj_disp_names = trello_setting.getActionTypeDisplayNames(trello_setting.VERB_ACTION_TYPE_MAPPER))
+
+#             # Outher pie chart data
+#             # This contains values in object element in xapi
+#             detail_pie_data = get_object_values_chart_data(course_code, platform, 
+#                 chart_type = chart_type_pie, chart_title = 'Activity details', 
+#                 chart_yAxis_title = 'Activity details',
+#                 obj_mapper = trello_setting.VERB_ACTION_TYPE_MAPPER,
+#                 obj_disp_names = trello_setting.getActionTypeDisplayNames(trello_setting.VERB_ACTION_TYPE_MAPPER))
+
+#             trello_chart_list = [pie_data, detail_pie_data]
+#             # pie_chart = {chart_type_pie: trello_chart_list}
+#             chart_data[chart_type_pie] = trello_chart_list
+#             # chart_dataset[platform] = pie_chart
+#             chart_dataset[platform] = chart_data
+#             # platform_data = get_platform_activity_data(course_code, platform, chart_dataset)
+
+#         elif platform == CLRecipe.PLATFORM_GITHUB:
+#             # Bar chart data
+#             chart_dataset.append(get_verb_count_chart_data(course_code, platform, 
+#                 chart_type = 'column', chart_title = 'Total number of activities', 
+#                 chart_yAxis_title = 'Total number of activities', show_table = 1))
+
+#             # platform_data = get_platform_activity_data(course_code, platform, chart_dataset)
+
+#         chart_types = []
+#         for key in chart_dataset.keys():
+#             for c_type in chart_dataset[key].keys():
+#                 if not c_type in chart_types:
+#                     chart_types.append(c_type)
+
+#         platform_data = get_platform_activity_data(course_code, platforms, chart_dataset, chart_types)
+#         platform_dataset['results'] = platform_data
+
+#     return platform_dataset
+
+
+def get_platform_activity_data(course_code, platforms, chart_dataset, chart_types):
     tables = []
     i = 0
     for chart in chart_dataset:
@@ -1126,89 +1177,84 @@ def get_platform_activity_data(course_code, platform, chart_dataset):
 
     val = OrderedDict ([
             # ('index', i),
-            ('platform', platform),
+            ('platforms', platforms),
             ('charts', chart_dataset),
-            # ('tables', tables)
+            ('chatsTypes', chart_types)
     ])
     return val
 
 
-def get_object_values_chart_data(course_code, platform, chart_type = '', chart_title = '', 
+def get_object_values_chart_data(course_code, platform, chart_title = '', 
     chart_yAxis_title = '', obj_mapper = None, obj_disp_names = None):
     pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
     verbs = sorted(pluginObj.get_verbs())
     other_context_types = pluginObj.get_other_contextActivity_types(verbs)
+    categories, all_data = get_object_values(platform, course_code)
 
-    all_data = []
-    categories, return_data = get_object_values(platform, course_code)
-
-    for data in return_data:
-        all_data.append(data)
-
-    charts = []
-    if chart_type is None or chart_type == '':
-        chart_type = 'column'
-
-    return create_chart_data_obj(categories, other_context_types, all_data, chart_type = chart_type, 
-        chart_title = chart_title, chart_yAxis_title = chart_yAxis_title, obj_mapper = obj_mapper, 
-        obj_disp_names = obj_disp_names, show_table = 0)
+    return create_chart_data_obj(categories, other_context_types, all_data, chart_title = chart_title, 
+        chart_yAxis_title = chart_yAxis_title, obj_mapper = obj_mapper, 
+        obj_disp_names = obj_disp_names, show_table = 0, countable = 0)
 
 
-def get_other_contextActivity_count_chart_data(course_code, platform, chart_type = '', chart_title = '', 
-    chart_yAxis_title = '', obj_mapper = None, obj_disp_names = None, show_table = 1):
-    pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
-    verbs = sorted(pluginObj.get_verbs())
-    other_context_types = pluginObj.get_other_contextActivity_types(verbs)
+# def get_other_contextActivity_count_chart_data(course_code, platform, chart_type = '', chart_title = '', 
+#     chart_yAxis_title = '', obj_mapper = None, obj_disp_names = None, show_table = 1):
+#     pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
+#     verbs = sorted(pluginObj.get_verbs())
+#     other_context_types = pluginObj.get_other_contextActivity_types(verbs)
 
-    all_data = []
-    categories, return_data = get_other_contextActivity_count(platform, course_code)
-    for data in return_data:
-        all_data.append(data)
+#     all_data = []
+#     categories, return_data = get_other_contextActivity_count(platform, course_code)
+#     for data in return_data:
+#         all_data.append(data)
 
-    charts = []
-    if chart_type is None or chart_type == '':
-        chart_type = 'column'
+#     charts = []
+#     if chart_type is None or chart_type == '':
+#         chart_type = 'column'
 
-    if show_table is None or show_table != 1:
-        show_table = 0
+#     if show_table is None or show_table != 1:
+#         show_table = 0
 
-    return create_chart_data_obj(categories, other_context_types, all_data, chart_type = chart_type, 
-        chart_title = chart_title, chart_yAxis_title = chart_yAxis_title, obj_mapper = obj_mapper, 
-        obj_disp_names = obj_disp_names, show_table = show_table)
+#     return create_chart_data_obj(categories, other_context_types, all_data, chart_type = chart_type, 
+#         chart_title = chart_title, chart_yAxis_title = chart_yAxis_title, obj_mapper = obj_mapper, 
+#         obj_disp_names = obj_disp_names, show_table = show_table)
 
 
-def get_verb_count_chart_data(course_code, platform, chart_type = '', chart_title = '', 
+def get_platform_count_chart_data(course_code, platforms, chart_title = '', chart_yAxis_title = ''):
+    categories, all_data = get_platform_count(platforms, course_code)
+
+    return create_chart_data_obj(categories, platforms, all_data, chart_title = chart_title, 
+        chart_yAxis_title = chart_yAxis_title, show_table = 0, countable = 1)
+
+def get_verb_count_chart_data(course_code, platform, chart_title = '', 
     chart_yAxis_title = '', show_table = 1):
     pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
     # Need to be sorted
     verbs = sorted(pluginObj.get_verbs())
-
-    all_data = []
-    categories, return_data = get_verb_count(platform, course_code)
-    for data in return_data:
-        all_data.append(data)
+    categories, all_data = get_verb_count(platform, course_code)
 
     charts = []
-    if chart_type is None or chart_type == '':
-        chart_type = 'column'
+    # if chart_type is None or chart_type == '':
+    #     chart_type = 'column'
 
     if show_table is None or show_table != 1:
         show_table = 0
 
-    return create_chart_data_obj(categories, verbs, all_data, chart_type = chart_type, 
-        chart_title = chart_title, chart_yAxis_title = chart_yAxis_title, show_table = show_table)
+    return create_chart_data_obj(categories, verbs, all_data, chart_title = chart_title, 
+        chart_yAxis_title = chart_yAxis_title, show_table = show_table, countable = 1)
 
 
-def create_chart_data_obj(categories, seriesname, data, chart_type = '', chart_title = '', 
-    chart_yAxis_title = '', obj_mapper = None, obj_disp_names = None, show_table = 1):
+def create_chart_data_obj(categories, seriesname, data, chart_title = '', 
+    chart_yAxis_title = '', obj_mapper = None, obj_disp_names = None,
+    show_table = 1, countable = 1):
     chartVal = OrderedDict ([
-            ('type', chart_type),
+            # ('type', chart_type),
             ('title', chart_title),
             ('categories', categories),
             ('seriesName', seriesname),
             ('yAxis', OrderedDict([('title', chart_yAxis_title)])),
             ('data', data),
-            ('showTable', show_table) # 1 = Show table with the graph, 0 = Don't show table
+            ('showTable', show_table), # 1 = Show table with the graph, 0 = Don't show table
+            ('countable', countable),
     ])
     if obj_mapper is not None:
         chartVal['objectMapper'] = obj_mapper
@@ -1218,93 +1264,93 @@ def create_chart_data_obj(categories, seriesname, data, chart_type = '', chart_t
     return chartVal
 
 
-def get_other_contextActivity_count(platform, course_code):
-    categories = []
-    data = []
-    if platform is None or platform == '' or course_code is None or course_code == '':
-        return categories, data
+# def get_other_contextActivity_count(platform, course_code):
+#     categories = []
+#     data = []
+#     if platform is None or platform == '' or course_code is None or course_code == '':
+#         return categories, data
 
-    cursor = connection.cursor()
-    cursor.execute("""select username
-        , json_array_elements(xapi->'context'->'contextActivities'->'other')->'definition'->'name'->>'en-US' as other_context_val
-        , to_char(to_date(cl.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
-        , count(json_array_elements(xapi->'context'->'contextActivities'->'other')->'definition'->'name'->>'en-US') as other_context_val_count
-        from clatoolkit_learningrecord as cl
-        , json_array_elements(cl.xapi->'context'->'contextActivities'->'other') other_context
-        where cl.xapi->'context'->>'platform' = %s
-        and course_code = %s
-        group by username, other_context_val, date_imported
-        order by username, other_context_val, date_imported
-    """, [platform, course_code])
+#     cursor = connection.cursor()
+#     cursor.execute("""select username
+#         , json_array_elements(xapi->'context'->'contextActivities'->'other')->'definition'->'name'->>'en-US' as other_context_val
+#         , to_char(to_date(cl.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
+#         , count(json_array_elements(xapi->'context'->'contextActivities'->'other')->'definition'->'name'->>'en-US') as other_context_val_count
+#         from clatoolkit_learningrecord as cl
+#         , json_array_elements(cl.xapi->'context'->'contextActivities'->'other') other_context
+#         where cl.xapi->'context'->>'platform' = %s
+#         and course_code = %s
+#         group by username, other_context_val, date_imported
+#         order by username, other_context_val, date_imported
+#     """, [platform, course_code])
 
-    result = cursor.fetchall()
-    user_data = OrderedDict()
-    username = ''
-    series = []
-    other_context_val = ''# other_context_val
-    dates = [] # date
-    values = []
-    for row in result:
-        # Subtract 1 from month to avoid calculation in client side (Javascript)
-        dateAry = row[2].split(',')
-        dateString = dateAry[0] + ',' + str(int(dateAry[1]) - 1).zfill(2) + ',' + dateAry[2]
-        if username == '' or username != row[0]:
-            if username != '':
-                # Save previous all verbs and its values of the user
-                obj = OrderedDict([
-                    ('name', other_context_val), # other_context_val
-                    ('date', copy.deepcopy(dates)),
-                    ('values', copy.deepcopy(values))
-                ])
-                series.append(obj)
-                user_data['category'] = username
-                user_data['series'] = copy.deepcopy(series)
-                data.append(user_data)
+#     result = cursor.fetchall()
+#     user_data = OrderedDict()
+#     username = ''
+#     series = []
+#     other_context_val = ''# other_context_val
+#     dates = [] # date
+#     values = []
+#     for row in result:
+#         # Subtract 1 from month to avoid calculation in client side (Javascript)
+#         dateAry = row[2].split(',')
+#         dateString = dateAry[0] + ',' + str(int(dateAry[1]) - 1).zfill(2) + ',' + dateAry[2]
+#         if username == '' or username != row[0]:
+#             if username != '':
+#                 # Save previous all verbs and its values of the user
+#                 obj = OrderedDict([
+#                     ('name', other_context_val), # other_context_val
+#                     ('date', copy.deepcopy(dates)),
+#                     ('values', copy.deepcopy(values))
+#                 ])
+#                 series.append(obj)
+#                 user_data['category'] = username
+#                 user_data['series'] = copy.deepcopy(series)
+#                 data.append(user_data)
 
-            # Initialise all variables
-            username = row[0]
-            user_data = OrderedDict()
-            series = []
-            other_context_val = row[1] # other_context_val
-            dates = [dateString] # date
-            values = [int(row[3])] # number of verbs imported on the date
-            categories.append(username)
+#             # Initialise all variables
+#             username = row[0]
+#             user_data = OrderedDict()
+#             series = []
+#             other_context_val = row[1] # other_context_val
+#             dates = [dateString] # date
+#             values = [int(row[3])] # number of verbs imported on the date
+#             categories.append(username)
 
-        elif username == row[0] and other_context_val == row[1]:
-            # Same user and same verb.
-            dates.append(dateString)
-            values.append(int(row[3]))
+#         elif username == row[0] and other_context_val == row[1]:
+#             # Same user and same verb.
+#             dates.append(dateString)
+#             values.append(int(row[3]))
 
-        elif username == row[0] and other_context_val != row[1]:
-            # Save previous verb and its value
-            obj = OrderedDict([
-                ('name', other_context_val),
-                ('date', copy.deepcopy(dates)), 
-                ('values', copy.deepcopy(values))
-            ])
-            series.append(obj)
-            verb = row[1]
-            other_context_val = row[1]
-            dates = [dateString]
-            values = [int(row[3])]
+#         elif username == row[0] and other_context_val != row[1]:
+#             # Save previous verb and its value
+#             obj = OrderedDict([
+#                 ('name', other_context_val),
+#                 ('date', copy.deepcopy(dates)), 
+#                 ('values', copy.deepcopy(values))
+#             ])
+#             series.append(obj)
+#             verb = row[1]
+#             other_context_val = row[1]
+#             dates = [dateString]
+#             values = [int(row[3])]
 
-    # Save the last one
-    obj = OrderedDict([
-        ('name', other_context_val),
-        ('date', copy.deepcopy(dates)), 
-        ('values', copy.deepcopy(values))
-    ])
-    series.append(obj)
-    user_data['category'] = username
-    user_data['series'] = copy.deepcopy(series)
-    data.append(user_data)
+#     # Save the last one
+#     obj = OrderedDict([
+#         ('name', other_context_val),
+#         ('date', copy.deepcopy(dates)), 
+#         ('values', copy.deepcopy(values))
+#     ])
+#     series.append(obj)
+#     user_data['category'] = username
+#     user_data['series'] = copy.deepcopy(series)
+#     data.append(user_data)
 
-    return categories, data
+#     return categories, data
 
 
 def get_verb_count(platform, course_code):
     categories = []
-    data = []
+    data = {}
     if platform is None or platform == '' or course_code is None or course_code == '':
         return categories, data
 
@@ -1316,80 +1362,48 @@ def get_verb_count(platform, course_code):
         where platform = %s
         and course_code = %s
         group by username, verb, date_imported
-        order by username, verb, date_imported
+        order by username, verb, date_imported desc
     """, [platform, course_code])
 
     result = cursor.fetchall()
-    
-    user_data = OrderedDict()
-    username = ''
-    series = []
-    verb = ''# verb
-    dates = [] # date
-    values = []
-    for row in result:
-        # Subtract 1 from month to avoid calculation in client side (Javascript)
-        dateAry = row[2].split(',')
-        dateString = dateAry[0] + ',' + str(int(dateAry[1]) - 1).zfill(2) + ',' + dateAry[2]
-        if username == '' or username != row[0]:
-            if username != '':
-                # Save previous all verbs and its values of the user
-                obj = OrderedDict([
-                    ('name', verb), # verb
-                    ('date', copy.deepcopy(dates)),
-                    ('values', copy.deepcopy(values))
-                ])
-                series.append(obj)
-                user_data['category'] = username
-                user_data['series'] = copy.deepcopy(series)
-                data.append(user_data)
-
-            # Initialise all variables
-            username = row[0]
-            user_data = OrderedDict()
-            series = []
-            verb = row[1] # verb
-            dates = [dateString] # date
-            values = [int(row[3])] # number of verbs imported on the date
-            categories.append(username)
-
-        elif username == row[0] and verb == row[1]:
-            # Same user and same verb.
-            dates.append(dateString)
-            values.append(int(row[3]))
-
-        elif username == row[0] and verb != row[1]:
-            # Save previous verb and its value
-            obj = OrderedDict([
-                ('name', verb), # verb
-                ('date', copy.deepcopy(dates)), 
-                ('values', copy.deepcopy(values))
-            ])
-            series.append(obj)
-            verb = row[1] # verb
-            dates = [dateString] # date
-            values = [int(row[3])] # number of verbs imported on the date
-
-    # Save the last one
-    obj = OrderedDict([
-        ('name', verb), # verb
-        ('date', copy.deepcopy(dates)), 
-        ('values', copy.deepcopy(values))
-    ])
-    series.append(obj)
-    user_data['category'] = username
-    user_data['series'] = copy.deepcopy(series)
-    data.append(user_data)
-
-    # print data
-    # print categories
+    categories, data = retrieve_data_from_rows(result)
     return categories, data
 
+
+def get_platform_count(platforms, course_code):
+    # categories = []
+    # data = {}
+    if platforms is None or len(platforms) == 0 or course_code is None or course_code == '':
+        return categories, data
+
+    cursor = connection.cursor()
+    platforms_str = ''
+    for p in platforms:
+        if platforms_str != '':
+            platforms_str = platforms_str + ', '
+        platforms_str = platforms_str + "'" + p + "'"
+
+    sql = """select username
+        , platform
+        , to_char(to_date(clatoolkit_learningrecord.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
+        , count(verb)
+        from clatoolkit_learningrecord
+        where platform in ({})
+        and course_code = '{}'
+        group by username, platform, date_imported
+        order by username, platform, date_imported desc
+    """.format(platforms_str, course_code)
+    cursor.execute(sql)
+
+    # print cursor.query
+    result = cursor.fetchall()
+    categories, data = retrieve_data_from_rows(result)
+    return categories, data
 
 
 def get_object_values(platform, course_code):
     categories = []
-    data = []
+    data = {}
     if platform is None or platform == '' or course_code is None or course_code == '':
         return categories, data
 
@@ -1401,13 +1415,15 @@ def get_object_values(platform, course_code):
         from clatoolkit_learningrecord
         where platform = %s
         and course_code = %s
-        order by username, verb, date_imported
+        order by username, verb, date_imported desc
     """, [platform, course_code])
 
     result = cursor.fetchall()
-    user_data = OrderedDict()
+    # categories, data = retrieve_data_from_rows(result)
+    # return categories, data
+    
     username = ''
-    series = []
+    series = {}
     verb = ''
     dates = []
     values = []
@@ -1415,7 +1431,6 @@ def get_object_values(platform, course_code):
         # Format date 
         comma = ','
         dateString = DateUtil.format_date(row[2], comma, comma, True)
-
         if username == '' or username != row[0]:
             if username != '':
                 # Save previous all verbs and its values of the user
@@ -1424,15 +1439,12 @@ def get_object_values(platform, course_code):
                     ('date', copy.deepcopy(dates)),
                     ('values', copy.deepcopy(values))
                 ])
-                series.append(obj)
-                user_data['category'] = username
-                user_data['series'] = copy.deepcopy(series)
-                data.append(user_data)
+                series[verb] = obj
+                data[username] = series
 
             # Initialise all variables
             username = row[0]
-            user_data = OrderedDict()
-            series = []
+            series = {}
             verb = row[1]
             dates = [dateString]
             values = [str(row[3])]
@@ -1450,7 +1462,8 @@ def get_object_values(platform, course_code):
                 ('date', copy.deepcopy(dates)), 
                 ('values', copy.deepcopy(values))
             ])
-            series.append(obj)
+            # series.append(obj)
+            series[verb] = obj
             verb = row[1]
             dates = [dateString]
             values = [str(row[3])]
@@ -1461,11 +1474,68 @@ def get_object_values(platform, course_code):
         ('date', copy.deepcopy(dates)), 
         ('values', copy.deepcopy(values))
     ])
-    series.append(obj)
-    user_data['category'] = username
-    user_data['series'] = copy.deepcopy(series)
-    data.append(user_data)
-
-    # print data
-    # print categories
+    series[verb] = obj
+    data[username] = series
     return categories, data
+
+
+def retrieve_data_from_rows(result):
+    categories = []
+    data = {}
+    username = ''
+    series = {}
+    val = ''# val
+    dates = [] # date
+    values = []
+    for row in result:
+        # Format date 
+        comma = ','
+        dateString = DateUtil.format_date(row[2], comma, comma, True)
+        if username == '' or username != row[0]:
+            if username != '':
+                # Save previous all vals and its values of the user
+                obj = OrderedDict([
+                    ('name', val), # val
+                    ('date', copy.deepcopy(dates)),
+                    ('values', copy.deepcopy(values))
+                ])
+                series[val] = obj
+                data[username] = series
+
+            # Initialise all variables
+            username = row[0]
+            series = {}
+            val = row[1] # val
+            dates = [dateString] # date
+            values = [int(row[3])] # number of vals imported on the date
+            categories.append(username)
+
+        elif username == row[0] and val == row[1]:
+            # Same user and same val.
+            dates.append(dateString)
+            values.append(int(row[3]))
+
+        elif username == row[0] and val != row[1]:
+            # Save previous val and its value
+            obj = OrderedDict([
+                ('name', val), # val
+                ('date', copy.deepcopy(dates)), 
+                ('values', copy.deepcopy(values))
+            ])
+            series[val] = obj
+            val = row[1] # val
+            dates = [dateString] # date
+            values = [int(row[3])] # number of vals imported on the date
+
+    # Save the last one
+    obj = OrderedDict([
+        ('name', val), # val
+        ('date', copy.deepcopy(dates)), 
+        ('values', copy.deepcopy(values))
+    ])
+    series[val] = obj
+    data[username] = series
+
+    return categories, data
+
+

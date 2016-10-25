@@ -714,9 +714,7 @@ def get_platform_timeseries_data(request):
     context = RequestContext(request)
     # TODO: Get available platforms in the course dynamically
     platform_names = ["Trello"]
-
     val = get_platform_timeseries_dataset(request.GET.get('course_code'), platform_names = platform_names)
-    # return HttpResponse(json_str, content_type='application/json; charset=UTF-8', status=status)
     response = JsonResponse(val, status=status.HTTP_200_OK)
     return response
 
@@ -724,7 +722,6 @@ def get_platform_timeseries_data(request):
 @login_required
 def get_platform_activities(request):
     context = RequestContext(request)
-    # platform = request.GET.get('platform')
     platform_names = []
     if request.GET.get('platform') is not None:
         # TODO: Enable this code if needed. Not tested.
