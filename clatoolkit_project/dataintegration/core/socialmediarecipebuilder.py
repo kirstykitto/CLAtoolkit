@@ -355,17 +355,17 @@ def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time,
         socialrelationship.save()
 
 
-def insert_issue(usr_dict, issue_id, message, from_name, from_uid, created_time, 
+def insert_issue(usr_dict, issue_id, verb, object_type, parent_object_type, message, from_name, from_uid, created_time, 
     course_code, parent_id, platform, platform_id, assignee, account_homepage, tags=[]):
     if check_ifnotinlocallrs(course_code, platform, issue_id):
-        verb = 'created'
-        object = "Note"
-        parentObj = "Collection"
+        # verb = 'created'
+        # object = "Note"
+        # parentObj = "Collection"
 
         stm = socialmedia_builder(
             verb=verb, platform=platform, account_name=from_uid, 
-            account_homepage=account_homepage, object_type=object, object_id=issue_id, 
-            message=message, parent_object_type=parentObj, parent_id=parent_id, 
+            account_homepage=account_homepage, object_type=object_type, object_id=issue_id, 
+            message=message, parent_object_type=parent_object_type, parent_id=parent_id, 
             timestamp=created_time, account_email=usr_dict['email'], 
             user_name=from_name, course_code=course_code, tags=tags)
         jsn = ast.literal_eval(stm.to_json())

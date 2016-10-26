@@ -32,6 +32,9 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     xapi_objects_to_includein_platformactivitywidget = ['Collection', 'file', 'comment']
     xapi_verbs_to_includein_verbactivitywidget = ['created', 'added', 'removed', 'updated', 'commented']
 
+    EVENT_TYPE_ISSUES = 'IssuesEvent'
+    EVENT_TYPE_PR = 'PullRequestEvent'
+
     def __init__(self):
         pass
 
@@ -50,7 +53,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
             repo = gh.get_repo(repo_name.rstrip())
             self.import_commits(course_code, url, token, repo)
-            self.import_issues(course_code, url, token, repo, gh)
+            self.import_issues(course_code, url, token, repo)
             self.import_commit_comments(course_code, url, token, repo)
             self.import_issue_comments(course_code, url, token, repo)
 
@@ -60,34 +63,34 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     #   A library PyGithub is used to interact with GitHub API.
     #   See @ http://pygithub.readthedocs.org/en/stable/index.html
     ###################################################################
-    def import_commit_comments(self, courseCode, url, token, repo):
+    def import_commit_comments(self, course_code, url, token, repo):
         count = 0
-        commitComments = repo.get_comments().get_page(count)
+        commit_comments = repo.get_comments().get_page(count)
 
         # Retrieve issue data
         while True:
-            for commitCom in commitComments:
-                authorHomepage = commitCom.user.html_url
-                author = commitCom.user.login
-                commitComURL = commitCom.html_url
-                date = commitCom.updated_at
-                body = commitCom.body
-                if body is None:
-                    body = ""
-                commit = repo.get_commit(commitCom.commit_id)
-                commitURL = commit.html_url
+            for com_comment in commit_comments:
+                author_homepage = com_comment.user.html_url
+                author = com_comment.user.login
+                com_comment_url = com_comment.html_url
+                date = com_comment.updated_at
+                comment_text = com_comment.body
+                if comment_text is None:
+                    comment_text = ""
+                commit = repo.get_commit(com_comment.commit_id)
+                commit_url = commit.html_url
 
-                if username_exists(author, courseCode, self.platform.lower()):
+                if username_exists(author, course_code, self.platform.lower()):
                     usr_dict = get_userdetails(author, self.platform.lower())
-                    claUserName = get_username_fromsmid(author, self.platform)
-                    insert_comment(usr_dict, commitURL, commitComURL, 
-                        body, author, claUserName,
-                        date, courseCode, self.platform, authorHomepage,
+                    cla_userame = get_username_fromsmid(author, self.platform)
+                    insert_comment(usr_dict, commit_url, com_comment_url, 
+                        comment_text, author, cla_userame,
+                        date, course_code, self.platform, author_homepage,
                         author, author)
 
             count = count + 1
-            commitComments = repo.get_comments().get_page(count)
-            temp = list(commitComments)
+            commit_comments = repo.get_comments().get_page(count)
+            temp = list(commit_comments)
             if len(temp) == 0:
                 #Break from while
                 break;
@@ -98,92 +101,148 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     #   A library PyGithub is used to interact with GitHub API.
     #   See @ http://pygithub.readthedocs.org/en/stable/index.html
     ###################################################################
-    def import_issue_comments(self, courseCode, url, token, repo):
+    def import_issue_comments(self, course_code, url, token, repo):
         count = 0
-        issueComments = repo.get_issues_comments().get_page(count)
+        issue_comments = repo.get_issues_comments().get_page(count)
 
         # Retrieve issue data
         while True:
-            for issueCom in issueComments:
-                authorHomepage = issueCom.user.html_url
-                author = issueCom.user.login
-                issueURL = issueCom.issue_url
-                issueComURL = issueCom.html_url
-                date = issueCom.updated_at
-                body = issueCom.body
+            for iss_comment in issue_comments:
+                author_homepage = iss_comment.user.html_url
+                author = iss_comment.user.login
+                issue_url = iss_comment.issue_url
+                iss_comment_url = iss_comment.html_url
+                date = iss_comment.updated_at
+                body = iss_comment.body
                 if body is None:
                     body = ""
 
-                if username_exists(author, courseCode, self.platform.lower()):
+                if username_exists(author, course_code, self.platform.lower()):
                     usr_dict = get_userdetails(author, self.platform.lower())
-                    claUserName = get_username_fromsmid(author, self.platform)
-                    insert_comment(usr_dict, issueURL, issueComURL, 
-                        body, author, claUserName,
-                        date, courseCode, self.platform, authorHomepage,
+                    cla_userame = get_username_fromsmid(author, self.platform)
+                    insert_comment(usr_dict, issue_url, iss_comment_url, 
+                        body, author, cla_userame,
+                        date, course_code, self.platform, author_homepage,
                         author, author)
 
             count = count + 1
-            issueComments = repo.get_issues_comments().get_page(count)
-            temp = list(issueComments)
+            issue_comments = repo.get_issues_comments().get_page(count)
+            temp = list(issue_comments)
             if len(temp) == 0:
                 #Break from while
                 break;
 
     ###################################################################
-    # Import GitHub all issues.
+    # Import GitHub all issues including pull request
     # Note that issues include pull requests.
     # 
     #   A library PyGithub is used to interact with GitHub API.
     #   See @ http://pygithub.readthedocs.org/en/stable/index.html
     ###################################################################
-    def import_issues(self, courseCode, repoUrl, token, repo, githubObj):
-        # Search issues including pull requests using search method
+    def import_issues(self, course_code, repoUrl, token, repo):
         count = 0
+        event_list = repo.get_events().get_page(count)
 
-        repo_name = repoUrl[len(self.platform_url):]
-        query = 'repo:' + repo_name
-        issueList = githubObj.search_issues(query, order = 'asc').get_page(count)
-
-        # Retrieve issue data
         while True:
-            for issue in issueList:
-                assigneeHomepage = issue.user.html_url
-                assignee = issue.user.login
-                issueURL = issue.html_url
-                date = issue.updated_at
+            for event in event_list:
+                # print 'Evet type === ' + event.type
+                if event.type == self.EVENT_TYPE_ISSUES:
 
-                body = issue.body
-                if body is None or body == "":
-                    body = issue.title
+                    issue = event.payload['issue']
 
-                # TODO:
-                # When pull request data is imported, verb needs to be shared (or sth better one).
-                # 
-                # Pull request data is retrieved only when it is open. 
-                #  Closed pull requests are not included in the get_issues() method.
-                #if issue.pull_request:
-                #    # Verb for a pull request
-                #    verb = 'shared'
+                    action = event.payload['action']
+                    author = issue['user']['login']
+                    author_homepage = issue['user']['html_url']
+                    issue_url = issue['html_url']
+                    title = issue['title']
+                    body = issue['body']
+                    if title is None:
+                        title = ''
+                    if body is None:
+                        body = ''
+                    body = title + '\n' + body
+                    if body == '\n':
+                        body = ''
 
-                #TODO:
-                # Tag object should ideally be passed to insert_issue() medthod,
-                # if someone is mentioned (e.g. @kojiagile is working on this issue...)
-                # 
-                if username_exists(assignee, courseCode, self.platform.lower()):
-                    usr_dict = get_userdetails(assignee, self.platform.lower())
-                    claUserName = get_username_fromsmid(assignee, self.platform)
-                    insert_issue(usr_dict, issueURL, body, assignee, claUserName,
-                        date, courseCode, repoUrl, self.platform, issueURL, 
-                        assignee, assigneeHomepage)
+                    verb = CLRecipe.VERB_CREATED
+                    date = issue['created_at']
+                    if action == 'reopened':
+                        verb = CLRecipe.VERB_OPENED
+                        date = issue['updated_at']
+                    elif action == 'closed':
+                        verb = CLRecipe.VERB_CLOSED
+                        date = issue['updated_at']
+
+                    if username_exists(author, course_code, self.platform.lower()):
+                        usr_dict = get_userdetails(author, self.platform.lower())
+                        cla_userame = get_username_fromsmid(author, self.platform)
+                        insert_issue(usr_dict, issue_url, verb, CLRecipe.OBJECT_NOTE, 
+                            CLRecipe.OBJECT_COLLECTION, body, author, cla_userame, date, 
+                            course_code, repoUrl, self.platform, event.id, author, author_homepage)
+
 
             count = count + 1
-            issueList = githubObj.search_issues(query, order = 'asc').get_page(count)
-            temp = list(issueList)
-            #print "# of content in githubObj.search_issues.get_page(count) = " + str(len(temp))
+            event_list = repo.get_events().get_page(count)
+            temp = list(event_list)
+            #print "# of content in repo.get_events.get_page(count) = " + str(len(temp))
             #If length is 0, it means that no commit data is left.
             if len(temp) == 0:
                 #Break from while loop
                 break;
+
+
+
+
+
+
+
+        # # Search issues including pull requests using search method
+        # count = 0
+
+        # repo_name = repoUrl[len(self.platform_url):]
+        # query = 'repo:' + repo_name
+        # issueList = githubObj.search_issues(query, order = 'asc').get_page(count)
+
+        # # Retrieve issue data
+        # while True:
+        #     for issue in issueList:
+        #         assigneeHomepage = issue.user.html_url
+        #         assignee = issue.user.login
+        #         issueURL = issue.html_url
+        #         date = issue.updated_at
+
+        #         body = issue.body
+        #         if body is None or body == "":
+        #             body = issue.title
+
+        #         # TODO:
+        #         # When pull request data is imported, verb needs to be shared (or sth better one).
+        #         # 
+        #         # Pull request data is retrieved only when it is open. 
+        #         #  Closed pull requests are not included in the get_issues() method.
+        #         #if issue.pull_request:
+        #         #    # Verb for a pull request
+        #         #    verb = 'shared'
+
+        #         #TODO:
+        #         # Tag object should ideally be passed to insert_issue() medthod,
+        #         # if someone is mentioned (e.g. @kojiagile is working on this issue...)
+        #         # 
+        #         if username_exists(assignee, courseCode, self.platform.lower()):
+        #             usr_dict = get_userdetails(assignee, self.platform.lower())
+        #             claUserName = get_username_fromsmid(assignee, self.platform)
+        #             insert_issue(usr_dict, issueURL, body, assignee, claUserName,
+        #                 date, courseCode, repoUrl, self.platform, issueURL, 
+        #                 assignee, assigneeHomepage)
+
+        #     count = count + 1
+        #     issueList = githubObj.search_issues(query, order = 'asc').get_page(count)
+        #     temp = list(issueList)
+        #     #print "# of content in githubObj.search_issues.get_page(count) = " + str(len(temp))
+        #     #If length is 0, it means that no commit data is left.
+        #     if len(temp) == 0:
+        #         #Break from while loop
+        #         break;
 
 
 
