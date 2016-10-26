@@ -324,7 +324,8 @@ def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_t
 
 
 def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time, course_code, 
-    parent_id, platform, platform_id, platform_parentid, verb, repoUrl, commit_username, account_homepage, tags=[]):
+    parent_id, platform, platform_id, platform_parentid, verb, repoUrl, commit_username, account_homepage, 
+    tags=[], other_contexts = []):
     if check_ifnotinlocallrs(course_code, platform, file_id):
         object = "File"
         parentObj = "Collection"
@@ -334,8 +335,7 @@ def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time,
             account_homepage=account_homepage, object_type=object, object_id=file_id, 
             message=message, tags=tags, parent_object_type=parentObj, parent_id=parent_id, 
             timestamp=committed_time, account_email=usr_dict['email'], 
-            # user_name=from_name, course_code=course_code, grand_parent=repoUrl)
-            user_name=from_name, course_code=course_code)
+            user_name=from_name, course_code=course_code, other_contexts = other_contexts)
 
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)

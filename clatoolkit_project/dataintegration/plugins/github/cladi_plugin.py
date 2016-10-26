@@ -8,14 +8,18 @@ from github import Github
 # from dataintegration.plugins.github.githubLib import *
 from django.contrib.auth.models import User
 import os
+from common.CLRecipe import CLRecipe
 
 class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
     platform = "GitHub"
     platform_url = "https://github.com/"
 
-    xapi_verbs = ['created', 'added', 'removed', 'updated', 'commented']
-    xapi_objects = ['Collection', 'file', 'comment']
+    # xapi_verbs = ['created', 'added', 'removed', 'updated', 'commented']
+    # xapi_objects = ['Collection', 'file', 'comment']
+    xapi_verbs = [CLRecipe.VERB_CREATED, CLRecipe.VERB_ADDED, CLRecipe.VERB_REMOVED, 
+                CLRecipe.VERB_UPDATED, CLRecipe.VERB_COMMENTED]
+    xapi_objects = [CLRecipe.OBJECT_COLLECTION, CLRecipe.OBJECT_FILE, CLRecipe.OBJECT_NOTE]
 
     user_api_association_name = 'GitHub Username' # eg the username for a signed up user that will appear in data extracted via a social API
     unit_api_association_name = 'Repository URL' # eg hashtags or a group name
@@ -45,10 +49,10 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             gh = Github(login_or_token = token, per_page = self.parPage)
 
             repo = gh.get_repo(repo_name.rstrip())
-            self.importGitHubCommits(course_code, url, token, repo)
-            self.importGitHubIssues(course_code, url, token, repo, gh)
-            self.importGitHubCommitComments(course_code, url, token, repo)
-            self.importGitHubIssueComments(course_code, url, token, repo)
+            self.import_commits(course_code, url, token, repo)
+            self.import_issues(course_code, url, token, repo, gh)
+            self.import_commit_comments(course_code, url, token, repo)
+            self.import_issue_comments(course_code, url, token, repo)
 
 
     ###################################################################
@@ -56,7 +60,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     #   A library PyGithub is used to interact with GitHub API.
     #   See @ http://pygithub.readthedocs.org/en/stable/index.html
     ###################################################################
-    def importGitHubCommitComments(self, courseCode, url, token, repo):
+    def import_commit_comments(self, courseCode, url, token, repo):
         count = 0
         commitComments = repo.get_comments().get_page(count)
 
@@ -94,7 +98,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     #   A library PyGithub is used to interact with GitHub API.
     #   See @ http://pygithub.readthedocs.org/en/stable/index.html
     ###################################################################
-    def importGitHubIssueComments(self, courseCode, url, token, repo):
+    def import_issue_comments(self, courseCode, url, token, repo):
         count = 0
         issueComments = repo.get_issues_comments().get_page(count)
 
@@ -132,7 +136,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     #   A library PyGithub is used to interact with GitHub API.
     #   See @ http://pygithub.readthedocs.org/en/stable/index.html
     ###################################################################
-    def importGitHubIssues(self, courseCode, repoUrl, token, repo, githubObj):
+    def import_issues(self, courseCode, repoUrl, token, repo, githubObj):
         # Search issues including pull requests using search method
         count = 0
 
@@ -188,16 +192,16 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     #   A library PyGithub is used to interact with GitHub API.
     #   See @ http://pygithub.readthedocs.org/en/stable/index.html
     ###################################################################
-    def importGitHubCommits(self, courseCode, repoUrl, token, repo):
+    def import_commits(self, course_code, repoUrl, token, repo):
         count = 0
         commitList = repo.get_commits().get_page(count)
 
         # Retrieve commit data
         while True:
             for commit in commitList:
-                committerName = ""
+                author = ""
                 email = ""
-                if commit.committer is None or commit.committer.login == "":
+                if commit.author is None or commit.author.login == "":
                     # Note: What is the difference between author and committer?
                     # 
                     # The author is the person who originally wrote the work,
@@ -205,58 +209,83 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     # So, if you send in a patch to a project and one of the core members applies the patch, 
                     # both of you get credit --- you as the author and the core member as the committer.
                     print "commit.committer is null. url = " + commit.html_url
-                    #committerName = commit.author.name
+                    #author = commit.author.name
                     #email = commit.author.email
+                    author = commit.committer.login
+                    email = commit.commit.committer.email
+                    date = commit.commit.committer.date
                     continue
                 else:
-                    #committerName = commit.commit.committer.name
-                    committerName = commit.committer.login
-                    email = commit.commit.committer.email
+                    author = commit.author.login
+                    email = commit.commit.author.email
+                    date = commit.commit.author.date
 
                 # Rare case but committer name does not exist in some cases 
-                if not username_exists(committerName, courseCode, self.platform.lower()):
-                    committerName = commit.commit.author.name
+                if not username_exists(author, course_code, self.platform.lower()):
+                    author = commit.commit.author.name
                     email = commit.commit.author.email
+                    date = commit.commit.author.date
 
-                msg = commit.commit.message
-                commitHtmlURL = commit.html_url
+                commit_title = commit.commit.message
+                commit_html_url = commit.html_url
                 date = commit.commit.author.date
                 # commit.committer.html_url isn't always correct. So, don't use it.
-                # committerHomepage = commit.committer.html_url
-                committerHomepage = self.platform_url + committerName
+                # author_homepage = commit.committer.html_url
+                author_homepage = self.platform_url + author
 
                 # Import commit data
                 usr_dict = None
-                claUserName = None
-                if username_exists(committerName, courseCode, self.platform.lower()):
-                    usr_dict = get_userdetails(committerName, self.platform.lower())
-                    claUserName = get_username_fromsmid(committerName, self.platform.lower())
-                    insert_commit(usr_dict, commitHtmlURL, msg, committerName, claUserName,
-                        date, courseCode, repoUrl, self.platform, commitHtmlURL, committerName, committerHomepage)
+                cla_userame = None
+                # create other context activity value
+                file_details_val = ''
+                for file in commit.files:
+                    val = '%s:%s:%s' % (file.filename, str(file.additions), str(file.deletions))
+                    if file_details_val != '':
+                        file_details_val = file_details_val + ','
+                    file_details_val = file_details_val + val
+                
+                stats = commit.stats
+                other_context_val = 'total:%s,additions:%s,deletions:%s' % (stats.total, str(stats.additions), str(stats.deletions))
+                other_context_val = other_context_val + '&' + file_details_val
+                other_context_list = get_other_contextActivity(
+                    commit_html_url, 'Verb', other_context_val, 
+                    CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED))
+                other_context_list = [other_context_list]
+
+                if username_exists(author, course_code, self.platform.lower()):
+                    usr_dict = get_userdetails(author, self.platform.lower())
+                    cla_userame = get_username_fromsmid(author, self.platform.lower())
+                    insert_commit(usr_dict, commit_html_url, commit_title, author, cla_userame,
+                        date, course_code, repoUrl, self.platform, commit_html_url, author, author_homepage,
+                        other_contexts = other_context_list)
                 else:
                     #If a user does not exist, ignore the commit data
                     continue
 
-                #importGitHubCommitsFiles(commit, repoUrl)
                 # All committed files are inserted into DB
                 for file in commit.files:
-                    verb = "added"
+                    verb = CLRecipe.VERB_ADDED
                     if file.status == "modified":
-                        verb = "updated"
+                        verb = CLRecipe.VERB_UPDATED
                     elif file.status == "removed":
-                        verb = "removed"
+                        verb = CLRecipe.VERB_REMOVED
 
                     patch = file.patch
                     if file.patch is None:
                         patch = ""
 
-                    if username_exists(committerName, courseCode, self.platform.lower()):
-                        #usr_dict = get_userdetails(committerName, self.platform)
-                        #claUserName = get_username_fromsmid(committerName, self.platform)
-                        insert_file(usr_dict, file.blob_url, patch, committerName, claUserName,
-                            date, courseCode, commitHtmlURL, self.platform, file.blob_url, 
-                            # commitHtmlURL, verb, repoUrl, file.additions, file.deletions, committerName)
-                            commitHtmlURL, verb, repoUrl, committerName, committerHomepage)
+                    file_details_val = 'name:%s,total:%s,additions:%s,deletions:%s' % (
+                        file.filename, str(file.changes), str(file.additions), str(file.deletions))
+                    other_context_list = get_other_contextActivity(
+                        commit_html_url, 'Verb', file_details_val, 
+                        CLRecipe.get_verb_iri(verb))
+                    other_context_list = [other_context_list]
+                    if username_exists(author, course_code, self.platform.lower()):
+                        insert_file(usr_dict, file.blob_url, patch, author, cla_userame,
+                            date, course_code, commit_html_url, self.platform, file.blob_url, 
+                            # commit_html_url, verb, repoUrl, file.additions, file.deletions, author)
+                            commit_html_url, verb, repoUrl, author, author_homepage,
+                            other_contexts = other_context_list)
 
             # End of for commit in commitList:
 
@@ -280,6 +309,5 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             
     def get_objects(self):
         return self.xapi_objects
-
 
 registry.register(GithubPlugin)
