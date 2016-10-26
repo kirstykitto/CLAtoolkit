@@ -43,7 +43,6 @@ CLAChart.prototype.createSeries = function(data, checkDate, start, end) {
 	var charts = data["charts"];
 	// Keep the data for later use
 	this.charts = charts;
-	// this.platforms = data["platforms"];
 	this.series = this.createSeriesByChart(charts[CLAChart.DATA_TYPE_TOTAL], checkDate, start, end);
 	this.categories = charts[CLAChart.DATA_TYPE_TOTAL]["categories"] ? charts[CLAChart.DATA_TYPE_TOTAL]["categories"] : [];
 };
@@ -207,14 +206,25 @@ CLANavigatorChart.prototype.createSeries = function(data) {
 CLANavigatorChart.prototype.initializeChart = function(data) {
 	allSeries = this.createSeries(data);
 	this.changeChartAreaVisibility(this.renderTo, true);
-	var navOpt = new CLANavigatorChartOptions(this.renderTo, allSeries);
-	var stockChart = new Highcharts.StockChart(navOpt.getOptions());
-	// To set initial start and end time, call afterSetExtremes() method
-	var args = {
-		min: stockChart.rangeSelector.minInput.HCTime,
-		max: stockChart.rangeSelector.maxInput.HCTime
-	}
-	stockChart.options.xAxis[0].events.afterSetExtremes(args);
+	var navOpt = new CLANavigatorChartOptions(this.renderTo, allSeries).getOptions();
+	navOpt.series = allSeries;
+	//Note: StockChart() method needs to be called instead of calling Chart()
+	new Highcharts.StockChart(navOpt, function (chart) {
+		// This code is for showing multiple series in the navigator
+		// Note that afterSetExtremes() method will be called as chart.addSeries() method is called.
+		for(var i = 0; i < chart.options.series.length; i++) {
+			chart.addSeries({
+				data: chart.options.series[i].data,
+				isInternal: true,
+				xAxis: 1,
+				yAxis: 1,
+				name: null, 
+				enableMouseTracking: false, 
+				showInLegend: false,
+				color: chart.series[i].color
+			});
+		}
+	});
 };
 
 
@@ -526,7 +536,7 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 			gridLineWidth: 0,
 			labels: { enabled: true }
 		},
-		series: this.navigatorSeries,
+		series: [],
 		xAxis: {
 			lineWidth: 0,
 			tickLength : 0,
