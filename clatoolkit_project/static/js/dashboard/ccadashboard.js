@@ -469,6 +469,8 @@ CLABarChart.prototype.createSeriesByChart = function(chart, checkDate, start, en
 	if(chart == null || chart["data"] == null || chart["data"].length == 0) {
 		return allSeries;
 	}
+
+	var colors = this.createChartColors(chart["seriesName"]);
 	var seriesName = chart["seriesName"];
 	var categories = chart["categories"];
 	var countable = chart["countable"];
@@ -486,6 +488,7 @@ CLABarChart.prototype.createSeriesByChart = function(chart, checkDate, start, en
 		var newSeries = {
 			name: name,
 			data: obj,
+			color: colors[i].color,
 		};
 		allSeries.push(newSeries);
 		index++;
