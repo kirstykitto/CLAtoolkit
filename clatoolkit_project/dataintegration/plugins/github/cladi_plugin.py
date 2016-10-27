@@ -18,7 +18,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     # xapi_verbs = ['created', 'added', 'removed', 'updated', 'commented']
     # xapi_objects = ['Collection', 'file', 'comment']
     xapi_verbs = [CLRecipe.VERB_CREATED, CLRecipe.VERB_ADDED, CLRecipe.VERB_REMOVED, 
-                CLRecipe.VERB_UPDATED, CLRecipe.VERB_COMMENTED]
+                CLRecipe.VERB_UPDATED, CLRecipe.VERB_COMMENTED, CLRecipe.VERB_CLOSED, CLRecipe.VERB_OPENED]
     xapi_objects = [CLRecipe.OBJECT_COLLECTION, CLRecipe.OBJECT_FILE, CLRecipe.OBJECT_NOTE]
 
     user_api_association_name = 'GitHub Username' # eg the username for a signed up user that will appear in data extracted via a social API
@@ -34,6 +34,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
     EVENT_TYPE_ISSUES = 'IssuesEvent'
     EVENT_TYPE_PR = 'PullRequestEvent'
+
+    VERB_OBJECT_MAPPER = {}
 
     def __init__(self):
         pass
@@ -368,5 +370,32 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             
     def get_objects(self):
         return self.xapi_objects
+
+    def get_other_contextActivity_types(self, verbs = []):
+        return sorted(verbs)
+
+    def get_display_names(self, mapper):
+        return mapper
+
+    def get_results_from_rows(self, result):
+        all_rows = []
+        for row in result:
+            verb, val = self.parse_contextActivities_json(row[1])
+            if val is None:
+                val = row[3]
+            single_row = [row[0], verb, row[2], val]
+            all_rows.append(single_row)
+
+        return all_rows
+        
+    def parse_contextActivities_json(self, json):
+        verb = CLRecipe.get_verb_by_iri(json['definition']['type'])
+        val = json['definition']['name']['en-US']
+        if verb == CLRecipe.VERB_COMMENTED:
+            val = None
+        
+        return verb, val
+
+
 
 registry.register(GithubPlugin)

@@ -66,7 +66,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     ACTION_TYPE_CLOSE_CARD = 'closeCard'
     ACTION_TYPE_OPEN_CARD = 'openCard'
 
-    VERB_ACTION_TYPE_MAPPER = {
+    VERB_OBJECT_MAPPER = {
         CLRecipe.VERB_CREATED: [ACTION_TYPE_CREATE_CARD],
         CLRecipe.VERB_ADDED: [ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, ACTION_TYPE_ADD_CHECKLIST_TO_CARD, ACTION_TYPE_ADD_MEMBER_TO_CARD],
         CLRecipe.VERB_UPDATED: [ACTION_TYPE_MOVE_CARD, ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD],
@@ -368,25 +368,25 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 self.ACTION_TYPE_CLOSE_CARD, self.ACTION_TYPE_OPEN_CARD]
         else:
             for verb in verbs:
-                action_types = self.VERB_ACTION_TYPE_MAPPER[verb]
+                action_types = self.VERB_OBJECT_MAPPER[verb]
                 for type in action_types:
                     ret.append(type)
         return ret
 
 
-    def getActionTypeDisplayNames(self, mapper):
+    def get_display_names(self, mapper):
         if mapper is None:
             return mapper
 
         ret = {}
         for key, val in mapper.iteritems():
             for action in mapper[key]:
-                ret[action] = self.getActionTypeDisplayName(action)
+                ret[action] = self.get_action_type_display_name(action)
 
         return ret
 
 
-    def getActionTypeDisplayName(self, action):
+    def get_action_type_display_name(self, action):
         if action == self.ACTION_TYPE_CREATE_CARD:
             return 'Created card'
         elif action == self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD:
@@ -408,67 +408,16 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         else:
             return 'Unknown action type'
 
+    def get_results_from_rows(self, result):
+        all_rows = []
+        for row in result:
+            single_row = [row[0], self.parse_contextActivities_json(row[1]), row[2], row[3]]
+            all_rows.append(single_row)
 
-    # def convertValues(self, data):
-    #     for data in data:
-    #         for series in data['series']:
-    #             for val in series['values']:
-    #                 if series["name"] == self.ACTION_TYPE_ADD_MEMBER_TO_CARD:
-    #                     pass
-    #                 elif series["name"] == self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD:
-    #                     pass
-    #                 elif series["name"] == self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD:
-    #                     # convert item id to item name (and list id to list name?)
-    #                     items = val.split(self.SEPARATOR_COLON)
-    #                     checklist_id = items[0]
-    #                     items = []
-    #                     index = 1
-    #                     for items in range(1, len(items)):
-    #                         items.append(items[index])
-    #                         index = index + 1
-    #                     item_names = self.get_trello_checkitems(checklist_id, items)
-
-    #                     alldata = 'Checklist: ' + checklist_id + self.SEPARATOR_HTML_TAG_BR
-    #                     alldata = alldata + self.SEPARATOR_HTML_TAG_BR.join(item_names)
-
-    #                     print alldata
-
-    #                     val = alldata
-
-    #                 elif series["name"] == self.ACTION_TYPE_CREATE_CARD:
-    #                     # convert card id to name
-    #                     pass
-    #                 elif series["name"] == self.ACTION_TYPE_OPEN_CARD:
-    #                     # convert card id to name
-    #                     pass
-    #                 elif series["name"] == self.ACTION_TYPE_CLOSE_CARD:
-    #                     # convert card id to name
-    #                     pass
-    #                 elif series["name"] == self.ACTION_TYPE_MOVE_CARD:
-    #                     # convert card id to name (move to and from)
-    #                     pass
-    #                 elif series["name"] == self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD:
-    #                     # convert chckelist item id to name
-    #                     pass
-
-    #     return data
-
-    # def get_trello_checkitems(self, checklist_id, item_ids):
-    #     self.TrelloCient = TrelloClient(
-    #         api_key=os.environ.get("TRELLO_API_KEY")
-    #         # token=token
-    #     )
-    #     checklist = self.TrelloCient.fetch_json('/checklists/' + checklist_id,)
-    #     item_names = []
-    #     for item_id in item_ids:
-    #         for item in checklist['checkItems']:
-    #             if item_id == item['id']:
-    #                 item_names.append(item['name'])
-    #             else:
-    #                 item_names.append(item_id)
-
-    #     return item_names
-
+        return all_rows
+        
+    def parse_contextActivities_json(self, json):
+        return json['definition']['name']['en-US']
 
 
 

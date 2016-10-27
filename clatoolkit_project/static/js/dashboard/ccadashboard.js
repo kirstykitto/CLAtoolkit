@@ -54,11 +54,44 @@ CLAChart.prototype.initializeChart = function(data) {
 };
 CLAChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
 	if(chart == null) return;
+
 	this.dataType = dataType;
 	this.series = this.createSeriesByChart(chart, checkDate, start, end);
 	this.categories = chart["categories"] ? chart["categories"] : [];
-	var options = this.createOptions();
-	$("#" + this.renderTo).highcharts(options);
+	var highChart = $("#" + this.renderTo).highcharts();
+
+	var seriesList = [];
+	for(key in this.series) {
+		seriesList.push(this.series[key]);
+	}
+
+	if(seriesList.length > highChart.series.length) {
+		for(key in seriesList) {
+			var single = highChart.series[key]
+			if(single) {
+				single.update(seriesList[key], false);
+			} else {
+				highChart.addSeries(seriesList[key], false);
+			}
+		}
+	} else {
+		var len = highChart.series.length;
+		for(var i = (len - 1); i >= 0; i--) {
+			var newSeries = null;
+			if(key < seriesList.length) {
+				newSeries = seriesList[i];
+			}
+			if(!newSeries) {
+				highChart.series[i].remove();
+				continue;
+			}
+			var single = highChart.series[i]
+			single.update(newSeries, false);
+		}
+	}
+	highChart.xAxis[0].setCategories(this.categories, false);
+	
+	highChart.redraw();
 };
 CLAChart.prototype.draw = function() {
 	var self = this;
@@ -525,16 +558,16 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 	var options = {
 		chart : {
 			renderTo: this.renderTo,
-			height: 120,
+			height: 70,
 		},
-		navigator: { height: 55 },
+		navigator: { height: 35 },
 		exporting: { enabled: false },
-		rangeSelector : { enabled: true, selected: 0, inputDateFormat: '%d/%m/%Y'},
+		rangeSelector : { enabled: false, selected: 0},//, inputDateFormat: '%d/%m/%Y'},
 		title : { enabled: false },
 		yAxis: {
 			height: 0,
 			gridLineWidth: 0,
-			labels: { enabled: true }
+			labels: { enabled: false }
 		},
 		series: [],
 		xAxis: {
@@ -670,7 +703,7 @@ CLAPieChartOptions.getSeriesOptions = function (category, posX, diameter, datase
 		size: diameter,
 		dataLabels:{
 			formatter: function () {
-				return this.y > 0 ? this.point.name : null;
+				return this.y > 0 ? this.point.name + ": " + this.y : null;
 			},
 			distance: -20
 		},
@@ -704,6 +737,21 @@ CLAPieChartOptions.calculateChartAreaWidth = function(categories) {
 	return areaWidth
 };
 
+function navigatorPositionChanger() {
+	var nav = $(".navigator");
+	var navTop = nav.offset().top;
+	$(window).scroll(function () {
+		var winTop = $(this).scrollTop();
+		if (winTop >= navTop) {
+			nav.addClass("navigator-fixed")
+			$(".navigator-title").hide();
+		} else if (winTop <= navTop) {
+			nav.removeClass("navigator-fixed")
+			$(".navigator-title").show();
+		}
+	});
+}
+
 $(document).ready(function(){
 	// Draw the navigator
 	var url = "/dashboard/api/get_platform_timeseries_data/?course_code=" + course_code + "&platform=" + platform;
@@ -718,4 +766,5 @@ $(document).ready(function(){
 	pieChart.draw();
 	navChart.changeChartAreaVisibility("activities", true);
 	navChart.draw();
+	navigatorPositionChanger();
 });

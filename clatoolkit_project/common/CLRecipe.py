@@ -72,3 +72,9 @@ class CLRecipe(object):
 	@classmethod
 	def get_object_iri(self, obj):
 		return self.OBJECT_IRI_MAPPER.get(obj)
+
+	@classmethod
+	def get_verb_by_iri(self, verb_iri):
+		for verb, iri in self.VERB_IRI_MAPPER.items():
+			if iri == verb_iri:
+				return verb

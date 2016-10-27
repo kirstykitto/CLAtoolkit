@@ -28,3 +28,14 @@
 .navigator-title {
 	margin: 0px;
 }
+
+.navigator-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0px 40px 0px 40px;
+    z-index: 100000;
+    background: #eee;
+    border-bottom: solid 1px #555;
+}

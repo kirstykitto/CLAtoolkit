@@ -1085,8 +1085,8 @@ def get_platform_activity_dataset(course_code, platforms, username=None):
         detail_data = get_object_values_chart_data(course_code, platform, 
                         chart_title = 'Activity details', 
                         chart_yAxis_title = 'Activity details',
-                        obj_mapper = platform_setting.VERB_ACTION_TYPE_MAPPER,
-                        obj_disp_names = platform_setting.getActionTypeDisplayNames(platform_setting.VERB_ACTION_TYPE_MAPPER))
+                        obj_mapper = platform_setting.VERB_OBJECT_MAPPER,
+                        obj_disp_names = platform_setting.get_display_names(platform_setting.VERB_OBJECT_MAPPER))
 
         platform_dataset[platform] = {
             'overview': verb_count_data,
@@ -1101,70 +1101,6 @@ def get_platform_activity_dataset(course_code, platforms, username=None):
     ])
 
     return ret
-
-
-
-# def get_platform_activity_dataset(course_code, platforms, username=None):
-#     platform_dataset = {}
-#     chart_type_column = 'column'
-#     chart_type_pie = 'pie'
-#     for platform in platforms:
-#         chart_dataset = {}
-#         platform_data = None
-
-#         if platform == CLRecipe.PLATFORM_TRELLO:
-#             # Bar chart data
-#             trello_chart_list = []
-#             column_data = get_verb_count_chart_data(course_code, platform, 
-#                 chart_type = chart_type_column, chart_title = 'Total number of activities', 
-#                 chart_yAxis_title = 'Total number of activities', show_table = 0)
-#             trello_chart_list.append(column_data)
-#             chart_data = {}
-#             chart_data[chart_type_column] = trello_chart_list
-#             # chart_dataset[platform] = bar_chart
-
-#             # Inner pie chart data
-#             pie_data = column_data
-#             trello_setting = settings.DATAINTEGRATION_PLUGINS[platform]
-#             # pie_data['detailChart'] = get_other_contextActivity_count_chart_data(course_code, platform, 
-#             #     chart_type = 'pie', chart_title = 'Activity details', 
-#             #     chart_yAxis_title = 'Activity details', show_table = 0, 
-#             #     obj_mapper = trello_setting.VERB_ACTION_TYPE_MAPPER,
-#             #     obj_disp_names = trello_setting.getActionTypeDisplayNames(trello_setting.VERB_ACTION_TYPE_MAPPER))
-
-#             # Outher pie chart data
-#             # This contains values in object element in xapi
-#             detail_pie_data = get_object_values_chart_data(course_code, platform, 
-#                 chart_type = chart_type_pie, chart_title = 'Activity details', 
-#                 chart_yAxis_title = 'Activity details',
-#                 obj_mapper = trello_setting.VERB_ACTION_TYPE_MAPPER,
-#                 obj_disp_names = trello_setting.getActionTypeDisplayNames(trello_setting.VERB_ACTION_TYPE_MAPPER))
-
-#             trello_chart_list = [pie_data, detail_pie_data]
-#             # pie_chart = {chart_type_pie: trello_chart_list}
-#             chart_data[chart_type_pie] = trello_chart_list
-#             # chart_dataset[platform] = pie_chart
-#             chart_dataset[platform] = chart_data
-#             # platform_data = get_platform_activity_data(course_code, platform, chart_dataset)
-
-#         elif platform == CLRecipe.PLATFORM_GITHUB:
-#             # Bar chart data
-#             chart_dataset.append(get_verb_count_chart_data(course_code, platform, 
-#                 chart_type = 'column', chart_title = 'Total number of activities', 
-#                 chart_yAxis_title = 'Total number of activities', show_table = 1))
-
-#             # platform_data = get_platform_activity_data(course_code, platform, chart_dataset)
-
-#         chart_types = []
-#         for key in chart_dataset.keys():
-#             for c_type in chart_dataset[key].keys():
-#                 if not c_type in chart_types:
-#                     chart_types.append(c_type)
-
-#         platform_data = get_platform_activity_data(course_code, platforms, chart_dataset, chart_types)
-#         platform_dataset['results'] = platform_data
-
-#     return platform_dataset
 
 
 def get_platform_activity_data(course_code, platforms, chart_dataset, chart_types):
@@ -1409,7 +1345,7 @@ def get_object_values(platform, course_code):
 
     cursor = connection.cursor()
     cursor.execute("""select username
-        , json_array_elements(xapi->'context'->'contextActivities'->'other')->'definition'->'name'->>'en-US' as other_context_val
+        , json_array_elements(xapi->'context'->'contextActivities'->'other') as other_context_val
         , to_char(to_date(clatoolkit_learningrecord.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
         , clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US' as val
         from clatoolkit_learningrecord
@@ -1419,9 +1355,9 @@ def get_object_values(platform, course_code):
     """, [platform, course_code])
 
     result = cursor.fetchall()
-    # categories, data = retrieve_data_from_rows(result)
-    # return categories, data
-    
+    platform_setting = settings.DATAINTEGRATION_PLUGINS[platform]
+    result = platform_setting.get_results_from_rows(result)
+
     username = ''
     series = {}
     verb = ''
