@@ -59,7 +59,7 @@ CLAChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
 	this.series = this.createSeriesByChart(chart, checkDate, start, end);
 	this.categories = chart["categories"] ? chart["categories"] : [];
 	var highChart = $("#" + this.renderTo).highcharts();
-
+	
 	var seriesList = [];
 	for(key in this.series) {
 		seriesList.push(this.series[key]);
@@ -191,7 +191,7 @@ CLAChart.prototype.getParentObjectName = function(objectMapper, objectName) {
 
 
 
-CLANavigatorChart = function(renderTo, courseCode, platform, url) {
+CLANavigatorChart = function(renderTo, url) {
 	CLAChart.call(this, renderTo, null, url);
 	this.name = "CLANavigatorChart";
 };
@@ -263,7 +263,7 @@ CLANavigatorChart.prototype.initializeChart = function(data) {
 
 
 
-CLAPieChart = function(renderTo, chartType, courseCode, platform, url) {
+CLAPieChart = function(renderTo, chartType, url) {
 	CLAChart.call(this, renderTo,chartType, url);
 	this.name = "CLAPieChart";
 };
@@ -286,7 +286,7 @@ CLAPieChart.prototype.getPointOptions = function(dataType) {
 			events: {
 				click: function() {
 					self.selectedPlatform = this.name;
-					self.redrawByPoint(this, startDate, endDate); //this = point object
+					self.redrawByPoint(this, startUTCDate, endUTCDate); //this = point object
 				}
 			}
 		}
@@ -457,9 +457,10 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 
 
 
-CLABarChart = function(renderTo, chartType, courseCode, platform, url) {
+CLABarChart = function(renderTo, chartType, stacking, url) {
 	CLAChart.call(this, renderTo, chartType, url);
 	this.name = "CLABarChart";
+	this.stacking = stacking;
 };
 // Inherit CLAChart
 Common.inherit(CLABarChart, CLAChart);
@@ -497,7 +498,7 @@ CLABarChart.prototype.createSeriesByChart = function(chart, checkDate, start, en
 	return allSeries;
 };
 CLABarChart.prototype.createOptions = function() {
-	var options = new CLABarChartOptions(this.renderTo, this.chartType).getOptions();
+	var options = new CLABarChartOptions(this.renderTo, this.chartType, this.stacking).getOptions();
 	options.title.text = "Details of activities";
 	options.yAxis.title.text = "Details of activities";
 	options.xAxis.categories = this.categories;
@@ -512,7 +513,7 @@ CLABarChart.prototype.getPointOptions = function(dataType) {
 		events: {
 			click: function () {
 				self.selectedPlatform = this.series.name;
-				self.redrawByPoint(this, startDate, endDate);
+				self.redrawByPoint(this, startUTCDate, endUTCDate);
 			}
 		}
 	}
@@ -580,8 +581,8 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 			events: {
 				// Navigator range selector changed event handler
 				afterSetExtremes: function (e) {
-					startDate = e.min;
-					endDate = e.max;
+					startUTCDate = e.min;
+					endUTCDate = e.max;
 					for(key in chartObjDict) {
 						var chartObj = chartObjDict[key];
 						var chart = chartObj.getChartData(chartObj.selectedPlatform, chartObj.dataType);
@@ -594,10 +595,11 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 	};
 	return options;
 };
-CLABarChartOptions = function(renderTo, chartType) {
+CLABarChartOptions = function(renderTo, chartType, stacking) {
 	if(chartType != CLABarChartOptions.CHART_TYPE_COLUMN && chartType != CLABarChartOptions.CHART_TYPE_BAR) {
 		throw Error("Invalid chart type: " + chartType);
 	}
+	this.stacking = stacking;
 	CLAChartOptions.call(this, renderTo, chartType);
 };
 /**
@@ -610,6 +612,10 @@ CLABarChartOptions.CHART_TYPE_COLUMN = "column";
  * @type {String}
  */
 CLABarChartOptions.CHART_TYPE_BAR = "bar";
+
+CLABarChartOptions.STACK_TYPE_NONE = null;
+CLABarChartOptions.STACK_TYPE_NORMAL = "normal"
+CLABarChartOptions.STACK_TYPE_PERCENT = "percent";
 
 // Inherit CLAChartOptions
 Common.inherit(CLABarChartOptions, CLAChartOptions);
@@ -631,7 +637,8 @@ CLABarChartOptions.prototype.getOptions = function () {
 					fontWeight: 'bold',
 					color: (Highcharts.theme && Highcharts.theme.textColor) || 'black'
 				}
-			}
+			},
+			reversedStacks: false,
 		},
 		tooltip: {
 			headerFormat: '<b>{point.x}</b><br/>',
@@ -639,7 +646,7 @@ CLABarChartOptions.prototype.getOptions = function () {
 		},
 		plotOptions: {
 			column: {
-				stacking: 'normal',
+				stacking: this.stacking,
 				dataLabels: {
 					enabled: true,
 					color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white',
@@ -758,10 +765,10 @@ function navigatorPositionChanger() {
 $(document).ready(function(){
 	// Draw the navigator
 	var url = "/dashboard/api/get_platform_timeseries_data/?course_code=" + course_code + "&platform=" + platform;
-	var navChart = new CLANavigatorChart("chartNavigator", "PROJ-TEAM2", "Trello", url);
+	var navChart = new CLANavigatorChart("chartNavigator", url);
 	url = "/dashboard/api/get_platform_activities/?course_code=" + course_code + "&platform=" + platform;
-	var barChart = new CLABarChart("activityColumn", CLABarChartOptions.CHART_TYPE_COLUMN, "PROJ-TEAM2", "Trello", url);
-	var pieChart = new CLAPieChart("activityPie", CLAPieChartOptions.CHART_TYPE_PIE, "PROJ-TEAM2", "Trello", url);
+	var barChart = new CLABarChart("activityColumn", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NORMAL, url);
+	var pieChart = new CLAPieChart("activityPie", CLAPieChartOptions.CHART_TYPE_PIE, url);
 	CLAChart.saveChartObject(barChart);
 	CLAChart.saveChartObject(pieChart);
 

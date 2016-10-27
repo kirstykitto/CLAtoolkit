@@ -356,7 +356,7 @@ def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time,
 
 
 def insert_issue(usr_dict, issue_id, verb, object_type, parent_object_type, message, from_name, from_uid, created_time, 
-    course_code, parent_id, platform, platform_id, assignee, account_homepage, tags=[]):
+    course_code, parent_id, platform, platform_id, assignee, account_homepage, tags=[], other_contexts = []):
     if check_ifnotinlocallrs(course_code, platform, issue_id):
         # verb = 'created'
         # object = "Note"
@@ -367,7 +367,7 @@ def insert_issue(usr_dict, issue_id, verb, object_type, parent_object_type, mess
             account_homepage=account_homepage, object_type=object_type, object_id=issue_id, 
             message=message, parent_object_type=parent_object_type, parent_id=parent_id, 
             timestamp=created_time, account_email=usr_dict['email'], 
-            user_name=from_name, course_code=course_code, tags=tags)
+            user_name=from_name, course_code=course_code, tags=tags, other_contexts = other_contexts)
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
         lrs = LearningRecord(

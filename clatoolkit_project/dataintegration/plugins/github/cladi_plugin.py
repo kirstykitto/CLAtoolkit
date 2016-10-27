@@ -82,6 +82,11 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 commit = repo.get_commit(com_comment.commit_id)
                 commit_url = commit.html_url
 
+                other_context_list = get_other_contextActivity(
+                    com_comment_url, 'Verb', comment_text, 
+                    CLRecipe.get_verb_iri(CLRecipe.VERB_COMMENTED))
+                other_context_list = [other_context_list]
+
                 if username_exists(author, course_code, self.platform.lower()):
                     usr_dict = get_userdetails(author, self.platform.lower())
                     cla_userame = get_username_fromsmid(author, self.platform)
@@ -119,13 +124,18 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 if body is None:
                     body = ""
 
+                other_context_list = get_other_contextActivity(
+                    iss_comment_url, 'Verb', body, 
+                    CLRecipe.get_verb_iri(CLRecipe.VERB_COMMENTED))
+                other_context_list = [other_context_list]
+
                 if username_exists(author, course_code, self.platform.lower()):
                     usr_dict = get_userdetails(author, self.platform.lower())
                     cla_userame = get_username_fromsmid(author, self.platform)
                     insert_comment(usr_dict, issue_url, iss_comment_url, 
                         body, author, cla_userame,
                         date, course_code, self.platform, author_homepage,
-                        author, author)
+                        author, author, other_contexts = other_context_list)
 
             count = count + 1
             issue_comments = repo.get_issues_comments().get_page(count)
@@ -175,12 +185,18 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         verb = CLRecipe.VERB_CLOSED
                         date = issue['updated_at']
 
+                    other_context_list = get_other_contextActivity(
+                        issue_url, 'Verb', body, 
+                        CLRecipe.get_verb_iri(verb))
+                    other_context_list = [other_context_list]
+
                     if username_exists(author, course_code, self.platform.lower()):
                         usr_dict = get_userdetails(author, self.platform.lower())
                         cla_userame = get_username_fromsmid(author, self.platform)
                         insert_issue(usr_dict, issue_url, verb, CLRecipe.OBJECT_NOTE, 
                             CLRecipe.OBJECT_COLLECTION, body, author, cla_userame, date, 
-                            course_code, repoUrl, self.platform, event.id, author, author_homepage)
+                            course_code, repoUrl, self.platform, event.id, author, author_homepage,
+                            other_contexts = other_context_list)
 
 
             count = count + 1
