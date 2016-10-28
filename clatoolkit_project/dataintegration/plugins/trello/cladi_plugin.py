@@ -111,7 +111,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             date = action['date']
             board_name = data['board']['name']
 
-            print 'got action type: %s' % (type)
+            # print 'got action type: %s' % (type)
 
             #print 'is action comment? %s' % (type == 'commentCard')
             #Get all 'commented' verb actions
@@ -287,7 +287,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #assert len(change) is 1
 
                     #TODO: Remove Print
-                    print 'got changes: %s' % (change)
+                    # print 'got changes: %s' % (change)
 
                     if change[0] == 'pos':
                         # When user moves card in the same list (change order)
@@ -303,7 +303,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         insert_updated_object(usr_dict, action['id'],
                                               object_text, u_id, author, date, course_code,
                                               self.platform, self.platform_url,
-                                              CLRecipe.OBJECT_TASK, obj_parent=data['list']['name'],
+                                              CLRecipe.OBJECT_TASK, obj_parent=data['list']['id'],
                                               obj_parent_type = CLRecipe.OBJECT_COLLECTION,
                                               other_contexts = other_context_list)
 
@@ -346,7 +346,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                             insert_closedopen_object(usr_dict, action['id'],
                                                  object_text, u_id, author, date, course_code,
                                                  self.platform, self.platform_url,
-                                                 CLRecipe.OBJECT_TASK, verb, obj_parent = data['list']['name'],
+                                                 CLRecipe.OBJECT_TASK, verb, obj_parent = data['list']['id'],
                                                  obj_parent_type = CLRecipe.OBJECT_COLLECTION,
                                                  other_contexts = other_context_list)
                             #TODO: RP
