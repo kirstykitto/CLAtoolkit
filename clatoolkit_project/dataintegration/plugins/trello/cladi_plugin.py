@@ -77,6 +77,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
     SEPARATOR_COLON = ": "
     SEPARATOR_HTML_TAG_BR = "<br>"
+    MESSAGE_CARD_POSITION_CHANGED = 'Card position was changed.'
 
     def __init__(self):
        pass
@@ -250,12 +251,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     except Exception:
                         print 'Could not retrieve checklist..'
 
-                    #data will be a comma separated list of checklist-item ids (e.g.: 'id1,id2,id3...')
                     object_data = data['checklist']['name']
-                    # object_data = object_data + self.SEPARATOR_HTML_TAG_BR.join([item['name'] for item in checklist_items])
-                    other_context_list.append(get_other_contextActivity(
-                        card_details['shortUrl'], 'Object', data['checklist']['name'], 
-                        CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
                     for item in checklist_items:
                         # items are stored individually in other contextActivities
                         other_context_list.append(get_other_contextActivity(
@@ -331,7 +327,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                             card_details['shortUrl'], 'Verb', self.ACTION_TYPE_MOVE_CARD, 
                             CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED)))
                         other_context_list.append(get_other_contextActivity(
-                            card_details['shortUrl'], 'Object', 'Card position was changed.', 
+                            card_details['shortUrl'], 'Object', self.MESSAGE_CARD_POSITION_CHANGED,
                             CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED)))
                         other_context_list.append(get_other_contextActivity(
                             card_details['shortUrl'], 'Object', str(data['old']['pos']), 
@@ -457,17 +453,99 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         else:
             return 'Unknown action type'
 
-    def get_results_from_rows(self, result):
+    def get_detail_values_by_fetch_results(self, result):
         all_rows = []
         for row in result:
-            single_row = [row[0], self.parse_contextActivities_json(row[1]), row[2], row[3]]
+            single_row = []
+            single_row.append(row[0]) # user name
+            single_row.append(self.get_action_type_from_context(row[2])) # verb or Trello action type
+            single_row.append(row[3]) # date
+            single_row.append(self.get_object_values_from_context(row)) # object values
             all_rows.append(single_row)
 
         return all_rows
         
-    def parse_contextActivities_json(self, json):
-        return json['definition']['name']['en-US']
+    def get_action_type_from_context(self, json):
+        return json[0]['definition']['name']['en-US']
 
 
+    def get_object_values_from_context(self, row):
+        action = self.get_action_type_from_context(row[2])
+        if len(row[2]) <= 1:
+            return row[4]
+
+        object_val = row[4]
+        contexts = row[2]
+        value = ''
+        index = 1
+        if action == self.ACTION_TYPE_CREATE_CARD:
+            value = "%s was created in %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+            # value = value + self.SEPARATOR_HTML_TAG_BR
+            # value = value + contexts[index]['id']
+
+        elif action == self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD:
+            value = "%s was attached to %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+            value = value + self.SEPARATOR_HTML_TAG_BR
+            index = index + 1
+            value = value + contexts[index]['definition']['name']['en-US']
+
+        elif action == self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD:
+            value = "%s was added to %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+            value = value + self.SEPARATOR_HTML_TAG_BR
+            index = index + 1
+            for key in range(index, len(contexts)):
+                value = value + ' ' + contexts[key]['definition']['name']['en-US'] + self.SEPARATOR_HTML_TAG_BR
+
+            # value = value + contexts[index]['id']
+
+        elif action == self.ACTION_TYPE_ADD_MEMBER_TO_CARD:
+            value = "%s was added to %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+            value = value + self.SEPARATOR_HTML_TAG_BR
+            # index = index + 1
+            # value = value + contexts[index]['id']
+
+        elif action == self.ACTION_TYPE_MOVE_CARD:
+            if contexts[index] == self.MESSAGE_CARD_POSITION_CHANGED:
+                value = self.contexts[index]
+                value = value + self.SEPARATOR_HTML_TAG_BR
+                value = value + self.italicize(object_val)
+                # value = value + "from %s to %s" % (contexts[3]['definition']['name']['en-US'], contexts[4]['definition']['name']['en-US'])
+            else:
+                value = "%s was moved from %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+                value = value + self.SEPARATOR_HTML_TAG_BR
+                index = index + 1
+                value = value + " to %s" % (self.italicize(contexts[index]['definition']['name']['en-US']))
+                # value = value + self.SEPARATOR_HTML_TAG_BR
+                # value = value + contexts[index]['id']
+            
+        elif action == self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD:
+            value = "%s: %s" % (self.italicize(contexts[index]['definition']['name']['en-US']), self.italicize(object_val))
+
+        elif action == self.ACTION_TYPE_COMMENT_CARD:
+            value = 'Comment in %s' % self.italicize(contexts[index]['definition']['name']['en-US'])
+            value = value + self.SEPARATOR_HTML_TAG_BR
+            value = value + self.italicize(self.replace_linechange_with_br_tag(object_val))
+            # value = value + contexts[0]['id']
+
+        elif action == self.ACTION_TYPE_CLOSE_CARD:
+            value = "%s was closed in %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+            # value = value + self.SEPARATOR_HTML_TAG_BR
+            # value = value + contexts[index]['id']
+
+        elif action == self.ACTION_TYPE_OPEN_CARD:
+            value = "%s was opened in %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+            # value = value + self.SEPARATOR_HTML_TAG_BR
+            # value = value + contexts[index]['id']
+
+        else:
+            value = self.italicize(object_val)
+
+        return value
+
+    def italicize(self, value):
+        return '<i>%s</i>' % (value)
+
+    def replace_linechange_with_br_tag(self, target):
+        return target.replace('\n','<br>')
 
 registry.register(TrelloPlugin)

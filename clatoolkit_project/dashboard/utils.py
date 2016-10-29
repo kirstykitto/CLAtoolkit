@@ -1345,7 +1345,8 @@ def get_object_values(platform, course_code):
 
     cursor = connection.cursor()
     cursor.execute("""select username
-        , json_array_elements(xapi->'context'->'contextActivities'->'other') as other_context_val
+        , verb
+        , xapi->'context'->'contextActivities'->'other' as other_context
         , to_char(to_date(clatoolkit_learningrecord.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
         , clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US' as val
         from clatoolkit_learningrecord
@@ -1356,7 +1357,7 @@ def get_object_values(platform, course_code):
 
     result = cursor.fetchall()
     platform_setting = settings.DATAINTEGRATION_PLUGINS[platform]
-    result = platform_setting.get_results_from_rows(result)
+    result = platform_setting.get_detail_values_by_fetch_results(result)
 
     username = ''
     series = {}
