@@ -267,7 +267,7 @@ def dashboard(request):
             diigo_timeline = get_timeseries_byplatform("Diigo", course_code)
             blog_timeline = get_timeseries_byplatform("Blog", course_code)
             github_timeline = get_timeseries_byplatform("GitHub", course_code)
-            trello_timeline = get_timeseries_byplatform("trello", course_code)
+            trello_timeline = get_timeseries_byplatform("Trello", course_code)
             show_allplatforms_widgets = True
 
         profiling = profiling + "| Pies %s" % (str(datetime.datetime.now()))
@@ -487,7 +487,7 @@ def studentdashboard(request):
         diigo_timeline = get_timeseries_byplatform("Diggo", course_code, username)
         blog_timeline = get_timeseries_byplatform("Blog", course_code, username)
         github_timeline = get_timeseries_byplatform("GitHub", course_code)
-        trello_timeline = get_timeseries_byplatform("trello", course_code)
+        trello_timeline = get_timeseries_byplatform("Trello", course_code)
 
         show_allplatforms_widgets = True
 

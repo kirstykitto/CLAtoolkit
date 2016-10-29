@@ -269,7 +269,10 @@ def insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_
                 platformparentid=post_id, parentusername=get_username_fromsmid(shared_username,platform), 
                 parentdisplayname=shared_displayname, message=comment_message, datetimestamp=comment_created_time)
             lrs.save()
-            socialrelationship = SocialRelationship(verb = "commented", fromusername=get_username_fromsmid(comment_from_uid,platform), tousername=get_username_fromsmid(shared_username,platform), platform=platform, message=comment_message, datetimestamp=comment_created_time, course_code=course_code, platformid=comment_id)
+            socialrelationship = SocialRelationship(verb = "commented", 
+                fromusername=get_username_fromsmid(comment_from_uid,platform), 
+                tousername=get_username_fromsmid(shared_username,platform), 
+                platform=platform, message=comment_message, datetimestamp=comment_created_time, course_code=course_code, platformid=comment_id)
             socialrelationship.save()
 
 def insert_share(usr_dict, post_id, share_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, tags=[], shared_username=None):
@@ -403,7 +406,7 @@ def insert_task(usr_dict, task_id, task_name, task_from_uid, task_from_name, tas
         #maybe we can capture commenting behaviours between user/caard somehow?
 
 def insert_added_object(usr_dict, target_id, object_id, object_text, obj_from_uid, obj_from_name, obj_created_time,
-                        course_code, platform, platform_url, obj_type, shared_usrname=None, shared_displayname=None, 
+                        course_code, platform, platform_url, obj_type, shared_username=None, shared_displayname=None, 
                         other_contexts = []):
     if check_ifnotinlocallrs(course_code, platform, object_id):
         if shared_displayname is not None:
