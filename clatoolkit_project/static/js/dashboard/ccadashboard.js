@@ -13,6 +13,79 @@ Common.inherit = function(childCtor, parentCtor) {
   /** @override */
   childCtor.prototype.constructor = childCtor;
 };
+Common.HTML_TAG_RADIO = '<input type="radio" name="platform" value="">';
+Common.HTML_TAG_LABEL = '<label></label>';
+Common.HTML_TAG_SPAN = '<span class="platform-radio" ></span>';
+Common.initialise = function() {
+	Common.navigatorPositionChanger();
+	Common.insertRadioButtonTags();
+};
+Common.navigatorPositionChanger = function() {
+	var nav = $(".navigator");
+	var navTop = nav.offset().top;
+	$(window).scroll(function () {
+		var winTop = $(this).scrollTop();
+		if (winTop >= navTop) {
+			nav.addClass("navigator-fixed")
+			$(".navigator-title").hide();
+		} else if (winTop <= navTop) {
+			nav.removeClass("navigator-fixed")
+			$(".navigator-title").show();
+		}
+	});
+};
+Common.insertRadioButtonTags = function() {
+	if(platform.split(',').length > 1) {
+		var radio = Common.createRadioButtonTag(CLAChart.DATA_TYPE_TOTAL, CLAChart.DATA_TYPE_TOTAL);
+		var label = Common.createLabelTag(CLAChart.DATA_TYPE_TOTAL, "Total");
+		Common.setRadioButtonCheckedChangeEventHandler(CLAChart.DATA_TYPE_TOTAL);
+		var spanTag = $(Common.HTML_TAG_SPAN);
+		$(spanTag).append(radio);
+		$(spanTag).append(label);
+		$("#platform-changer").append(spanTag);
+		$("#" + CLAChart.DATA_TYPE_TOTAL).attr("checked", true);
+
+		// Insert radio button for platform
+		var platforms = platform.split(',');
+		for(key in platforms) {
+			var radio = Common.createRadioButtonTag(platforms[key], platforms[key]);
+			var label = Common.createLabelTag(platforms[key], platforms[key]);
+			spanTag = $(Common.HTML_TAG_SPAN);
+			$(spanTag).append(radio);
+			$(spanTag).append(label);
+			Common.setRadioButtonCheckedChangeEventHandler(platforms[key]);
+			$("#platform-changer").append(spanTag);
+		}
+	}
+};
+Common.createRadioButtonTag = function(value, idVal) {
+	var radio = $(Common.HTML_TAG_RADIO);
+	$(radio).attr("value", value);
+	$(radio).attr("id", idVal);
+	return radio;
+};
+Common.createLabelTag = function(name, value) {
+	var label = $(Common.HTML_TAG_LABEL);
+	$(label).attr("for", name);
+	$(label).html(value);
+	return label;
+};
+Common.setRadioButtonCheckedChangeEventHandler = function (tagId) {
+	$("#" + tagId).change(function(){
+		Common.redrawAll(this);
+	});
+};
+Common.redrawAll = function (input) {
+	var platform = input.value;
+	for(key in chartObjDict) {
+		var chartObj = chartObjDict[key];
+		var chart = chartObj.getChartData(platform, chartObj.dataType);
+		chartObj.redraw(chart, chartObj.dataType, true, startUTCDate, endUTCDate);
+	}
+	var chart = chartObjDict[platform];
+	var chart = chartObj.getChartData(platform, chartObj.dataType);
+	chartObj.redraw(chart, chartObj.dataType, true, startUTCDate, endUTCDate);
+};
 
 /**
  * CLAChart Constructor
@@ -43,8 +116,17 @@ CLAChart.prototype.createSeries = function(data, checkDate, start, end) {
 	var charts = data["charts"];
 	// Keep the data for later use
 	this.charts = charts;
-	this.series = this.createSeriesByChart(charts[CLAChart.DATA_TYPE_TOTAL], checkDate, start, end);
-	this.categories = charts[CLAChart.DATA_TYPE_TOTAL]["categories"] ? charts[CLAChart.DATA_TYPE_TOTAL]["categories"] : [];
+	var platforms = platform.split(',');
+	if (platforms.length > 1) {
+		this.series = this.createSeriesByChart(charts[CLAChart.DATA_TYPE_TOTAL], checkDate, start, end);
+		this.categories = charts[CLAChart.DATA_TYPE_TOTAL]["categories"] ? charts[CLAChart.DATA_TYPE_TOTAL]["categories"] : [];
+	} else {
+		var name = platforms[0];
+		this.dataType = CLAChart.DATA_TYPE_OVERVIEW;
+		this.selectedPlatform = name;
+		this.series = this.createSeriesByChart(this.charts[name][this.dataType], checkDate, start, end);
+		this.categories = charts[name][this.dataType]["categories"] ? charts[name][this.dataType]["categories"] : [];
+	}
 };
 CLAChart.prototype.initializeChart = function(data) {		
 	this.createSeries(data, false, null, null);
@@ -185,7 +267,20 @@ CLAChart.prototype.getParentObjectName = function(objectMapper, objectName) {
 	}
 	return verb;
 };
+CLAChart.prototype.getChartData = function(platform, dataType) {
+	var data = [];
+	if(dataType == "") data;
 
+	if(dataType == CLAChart.DATA_TYPE_TOTAL) {
+		data = this.charts[dataType];
+	} else {
+		if(platform == "") {
+			return data;
+		}
+		data = this.charts[platform][dataType];
+	}
+	return data;
+};
 
 
 
@@ -276,7 +371,7 @@ CLAPieChart.prototype.createOptions = function() {
 	options.chart.width = CLAPieChartOptions.calculateChartAreaWidth(this.categories);
 	options.labels.items = CLAPieChartOptions.getChartLabels(this.categories);
 	options.series = this.series;
-	options.plotOptions.series = this.getPointOptions(this.dataType);
+	// options.plotOptions.series = this.getPointOptions(this.dataType);
 	return options;
 };
 CLAPieChart.prototype.getPointOptions = function(dataType) {
@@ -292,20 +387,6 @@ CLAPieChart.prototype.getPointOptions = function(dataType) {
 		}
 	}
 	return options;
-};
-CLAChart.prototype.getChartData = function(platform, dataType) {
-	var data = [];
-	if(dataType == "") data;
-
-	if(dataType == CLAChart.DATA_TYPE_TOTAL) {
-		data = this.charts[dataType];
-	} else {
-		if(platform == "") {
-			return data;
-		}
-		data = this.charts[platform][dataType];
-	}
-	return data;
 };
 CLAPieChart.prototype.redrawByPoint = function(point, start, end) {
 	var chart = null;
@@ -504,7 +585,7 @@ CLABarChart.prototype.createOptions = function() {
 	options.xAxis.categories = this.categories;
 	options.series = this.series;
 	options.plotOptions.column.cursor = 'pointer';
-	options.plotOptions.column.point = this.getPointOptions(this.dataType);
+	// options.plotOptions.column.point = this.getPointOptions(this.dataType);
 	return options;
 };
 CLABarChart.prototype.getPointOptions = function(dataType) {
@@ -747,21 +828,6 @@ CLAPieChartOptions.calculateChartAreaWidth = function(categories) {
 	return areaWidth
 };
 
-function navigatorPositionChanger() {
-	var nav = $(".navigator");
-	var navTop = nav.offset().top;
-	$(window).scroll(function () {
-		var winTop = $(this).scrollTop();
-		if (winTop >= navTop) {
-			nav.addClass("navigator-fixed")
-			$(".navigator-title").hide();
-		} else if (winTop <= navTop) {
-			nav.removeClass("navigator-fixed")
-			$(".navigator-title").show();
-		}
-	});
-}
-
 $(document).ready(function(){
 	// Draw the navigator
 	var url = "/dashboard/api/get_platform_timeseries_data/?course_code=" + course_code + "&platform=" + platform;
@@ -776,5 +842,5 @@ $(document).ready(function(){
 	pieChart.draw();
 	navChart.changeChartAreaVisibility("activities", true);
 	navChart.draw();
-	navigatorPositionChanger();
+	Common.initialise();
 });

@@ -39,3 +39,7 @@
     background: #eee;
     border-bottom: solid 1px #555;
 }
+
+.platform-radio {
+	padding-right: 5px;
+}
