@@ -131,9 +131,12 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     context = get_other_contextActivity(
                         card_details['shortUrl'], 'Verb', type, 
                         CLRecipe.get_verb_iri(CLRecipe.VERB_COMMENTED))
-                    other_context_list = [context]
-                    usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
+                    context2 = get_other_contextActivity(
+                        card_details['shortUrl'], 'Object', data['card']['name'], 
+                        CLRecipe.get_verb_iri(CLRecipe.VERB_COMMENTED))
+                    other_context_list = [context, context2]
 
+                    usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
                     insert_comment(usr_dict, target_obj_id, comment_id,
                                    comment_message, comment_from_uid,
                                    comment_from_name, date, course_code,
@@ -155,8 +158,12 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     context = get_other_contextActivity(
                         card_details['shortUrl'], 'Verb', type, 
                         CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED))
-                    other_context_list = [context]
+                    context2 = get_other_contextActivity(
+                        card_details['shortUrl'], 'Object', data['list']['name'], 
+                        CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED))
+                    other_context_list = [context, context2]
                     usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
+
 
                     insert_task(usr_dict, action_id, card_name, u_id, author, date,
                                 course_code, self.platform, self.platform_url, other_contexts = other_context_list)
@@ -176,22 +183,30 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                 # Get user details from Util class
                 usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
-                other_context_list = []
+                
                 # Create "other" contextActivity object to store original activity in xAPI
+                other_context_list = []
                 card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
                 context = get_other_contextActivity(
                     card_details['shortUrl'], 'Verb', type, 
                     CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED))
-                other_context_list = [context]
+                other_context_list.append(context)
+                context2 = get_other_contextActivity(
+                    card_details['shortUrl'], 'Object', data['card']['name'], 
+                    CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED))
+                other_context_list = [context, context2]
 
                 if type == self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD and usr_dict is not None:
 
                     target_id = data['card']['id']
                     attachment = data['attachment']
                     attachment_id = action['id']
-                    attachment_data = attachment['name'] + self.SEPARATOR_HTML_TAG_BR + attachment['url']
+                    attachment_data = attachment['name']
                     object_type = CLRecipe.OBJECT_FILE
                     shared_displayname = '%sc/%s' % (self.platform_url, target_id)
+                    other_context_list.append(get_other_contextActivity(
+                        card_details['shortUrl'], 'Object', attachment['url'], 
+                        CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
 
                     insert_added_object(usr_dict, target_id, attachment_id, attachment_data,
                                         u_id, author, date, course_code, self.platform, self.platform_url,
@@ -214,6 +229,8 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                         shared_displayname = shared_displayname,
                                         other_contexts = other_context_list)
 
+                    # Put the card name in other context
+
                     #TODO: RP
                     # print 'Added add member to card!'
 
@@ -234,8 +251,17 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         print 'Could not retrieve checklist..'
 
                     #data will be a comma separated list of checklist-item ids (e.g.: 'id1,id2,id3...')
-                    object_data = 'Checklist: ' + data['checklist']['name'] + self.SEPARATOR_HTML_TAG_BR
-                    object_data = object_data + self.SEPARATOR_HTML_TAG_BR.join([item['name'] for item in checklist_items])
+                    object_data = data['checklist']['name']
+                    # object_data = object_data + self.SEPARATOR_HTML_TAG_BR.join([item['name'] for item in checklist_items])
+                    other_context_list.append(get_other_contextActivity(
+                        card_details['shortUrl'], 'Object', data['checklist']['name'], 
+                        CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
+                    for item in checklist_items:
+                        # items are stored individually in other contextActivities
+                        other_context_list.append(get_other_contextActivity(
+                            card_details['shortUrl'], 'Object', item['name'], 
+                            CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
+
                     insert_added_object(usr_dict, target_id, object_id, object_data, u_id, author, date,
                                         course_code, self.platform, self.platform_url, object_type,
                                         shared_displayname=shared_displayname,
@@ -255,13 +281,20 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 #many checklist items will be bugged - we require webhooks!
 
                 if type == self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD and usr_dict is not None:
-                    # Create "other" contextActivity object to store original activity in xAPI
-                    context = get_other_contextActivity(
-                        card_details['shortUrl'], 'Verb', type, 
-                        CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED))
-                    other_context_list = [context]
                     # Import check item ID & its state
-                    obj_val = data['checkItem']['name'] + self.SEPARATOR_COLON + data['checkItem']['state']
+                    obj_val = data['checkItem']['state']
+                    
+                    # Create "other" contextActivity object to store original activity in xAPI
+                    other_context_list = []
+                    other_context_list.append(get_other_contextActivity(
+                        data['checklist']['id'], 'Verb', type, 
+                        CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED)))
+                    other_context_list.append(get_other_contextActivity(
+                        card_details['shortUrl'], 'Object', data['checkItem']['name'], 
+                        CLRecipe.get_verb_iri(CLRecipe.OBJECT_CHECKLIST_ITEM)))
+                    other_context_list.append(get_other_contextActivity(
+                        card_details['shortUrl'], 'Object', data['card']['name'], 
+                        CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED)))
 
                     insert_updated_object(usr_dict, action['id'], obj_val,
                                           u_id, author, date, course_code,
@@ -288,17 +321,24 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                     #TODO: Remove Print
                     # print 'got changes: %s' % (change)
-
                     if change[0] == 'pos':
                         # When user moves card in the same list (change order)
-                        card_name = 'Card: ' + data['card']['name'] + self.SEPARATOR_HTML_TAG_BR
-                        object_text = 'Change order of card: %s to %s' % (data['old']['pos'], data['card']['pos'])
-                        object_text = card_name + object_text
-
-                        context = get_other_contextActivity(
+                        object_text = data['card']['name']
+                        # object_text = 'Change order of card: %s to %s' % (data['old']['pos'], data['card']['pos'])
+                        # object_text = card_name + object_text
+                        other_context_list = []
+                        other_context_list.append(get_other_contextActivity(
                             card_details['shortUrl'], 'Verb', self.ACTION_TYPE_MOVE_CARD, 
-                            CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED))
-                        other_context_list = [context]
+                            CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED)))
+                        other_context_list.append(get_other_contextActivity(
+                            card_details['shortUrl'], 'Object', 'Card position was changed.', 
+                            CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED)))
+                        other_context_list.append(get_other_contextActivity(
+                            card_details['shortUrl'], 'Object', str(data['old']['pos']), 
+                            CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED)))
+                        other_context_list.append(get_other_contextActivity(
+                            card_details['shortUrl'], 'Object', str(data['card']['pos']), 
+                            CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED)))
 
                         insert_updated_object(usr_dict, action['id'],
                                               object_text, u_id, author, date, course_code,
@@ -312,14 +352,19 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     else:
                         # When user moves card from a list to another
                         if data.has_key('listBefore'):
-                            card_name = 'Card: ' + data['card']['name'] + self.SEPARATOR_HTML_TAG_BR
-                            object_text = 'from %s to %s' % (data['listBefore']['name'], data['listAfter']['name'])
-                            object_text = card_name + object_text
-
-                            context = get_other_contextActivity(
-                                card_details['shortUrl'], 'Verb', self.ACTION_TYPE_MOVE_CARD, 
-                                CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED))
-                            other_context_list = [context]
+                            object_text = data['card']['name']
+                            # object_text = 'from %s to %s' % (data['listBefore']['name'], data['listAfter']['name'])
+                            # object_text = card_name + object_text
+                            other_context_list = []
+                            other_context_list.append(get_other_contextActivity(
+                                card_details['shortUrl'], 'Verb', self.ACTION_TYPE_MOVE_CARD,
+                                CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED)))
+                            other_context_list.append(get_other_contextActivity(
+                                card_details['shortUrl'], 'Object', data['listBefore']['name'],
+                                CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED)))
+                            other_context_list.append(get_other_contextActivity(
+                                card_details['shortUrl'], 'Object', data['listAfter']['name'],
+                                CLRecipe.get_verb_iri(CLRecipe.VERB_UPDATED)))
 
                             insert_updated_object(usr_dict, action['id'],
                                                   object_text, u_id, author, date, course_code,
@@ -341,8 +386,12 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                 verb_iri = CLRecipe.get_verb_iri(verb)
                                 action_type = self.ACTION_TYPE_OPEN_CARD
 
-                            context = get_other_contextActivity(card_details['shortUrl'], 'Verb', action_type, verb_iri)
-                            other_context_list = [context]
+                            other_context_list = []
+                            other_context_list.append(get_other_contextActivity(
+                                card_details['shortUrl'], 'Verb', action_type, verb_iri))
+                            other_context_list.append(get_other_contextActivity(
+                                card_details['shortUrl'], 'Object', data['list']['name'], verb_iri))
+
                             insert_closedopen_object(usr_dict, action['id'],
                                                  object_text, u_id, author, date, course_code,
                                                  self.platform, self.platform_url,
@@ -354,7 +403,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
     def get_verbs(self):
         return self.xapi_verbs
-            
+
     def get_objects(self):
         return self.xapi_objects
 
