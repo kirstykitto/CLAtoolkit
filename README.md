@@ -16,13 +16,17 @@ Local Installation using VirtualEnv
 **CLAToolkit is built with Django. The installation is pretty standard but requires Postgres (for JSON document queries), Numpy and a range of Machine Learning Libraries such as Scikit Learn and Gensim**
 
 
-If you do not have VirtualEnv installed:
+**If you do not have VirtualEnv installed:**
 ```bash
 $ pip install virtualenv
 $ pip install virtualenvwrapper
-$ mkdir ~/.virtualenvs
-$ export WORKON_HOME=~/.virtualenvs
 ```
+Add the following line to your bash config: `~/.bashrc` on Ubuntu, `~/.bash_profile` on macOS:
+```
+. /usr/local/bin/virtualenvwrapper.sh
+```
+Then run: `$ source ~/.bashrc` OR `$ source ~/.bash_profile`  
+
 
 **Create a virtual environment for CLAToolkit:**
 
@@ -46,7 +50,7 @@ $ cd clatoolkit/clatoolkit_project/clatoolkit_project
 A requirements.txt file is provided in the code repository. This will take a while especially the installation of numpy. If numpy fails you may have to find a platform specific deployment method eg using apt-get on ubuntu ($ sudo apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose).
 
 ```bash
-$ sudo pip install -r requirements.txt
+$ pip install -r requirements.txt
 ```
 
 **Install Postgres**
@@ -182,7 +186,7 @@ Server Installation
 Along with Docker we will be using:
 - Docker Compose for orchestrating a multi-container application into a single app
 
-Follow the directions [here](https://docs.docker.com/machine/#installation) to install Docker Compose.
+Follow the directions [here](https://docs.docker.com/compose/install/) to install Docker Compose.
 
 Test if docker-compose is installed:
 
@@ -206,6 +210,10 @@ $ docker-compose -f production.yml up -d
 ```
 
 This will take quite some time to complete the first time you run it. Subsequent builds will be far quicker as the results are cached from the first build.
+
+If you run into this error:  
+`ERROR: Couldn't connect to Docker daemon at http+docker://localunixsocket - is it running?`  
+See this [Docker doc](https://docs.docker.com/engine/installation/linux/ubuntulinux/#/create-a-docker-group) or run the command with sudo
 
 Run Django database migrations:
 
