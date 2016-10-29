@@ -26,11 +26,13 @@ Common.navigatorPositionChanger = function() {
 	$(window).scroll(function () {
 		var winTop = $(this).scrollTop();
 		if (winTop >= navTop) {
-			nav.addClass("navigator-fixed")
-			$(".navigator-title").hide();
+			nav.addClass("navigator-fixed");
+			$("#wider").addClass('widercol');
+			// $(".navigator-title").hide();
 		} else if (winTop <= navTop) {
-			nav.removeClass("navigator-fixed")
-			$(".navigator-title").show();
+			nav.removeClass("navigator-fixed");
+			$("#wider").removeClass('widercol');
+			// $(".navigator-title").show();
 		}
 	});
 };

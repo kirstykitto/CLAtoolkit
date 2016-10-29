@@ -505,14 +505,14 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             # value = value + contexts[index]['id']
 
         elif action == self.ACTION_TYPE_MOVE_CARD:
-            if contexts[index] == self.MESSAGE_CARD_POSITION_CHANGED:
-                value = self.contexts[index]
+            if contexts[index]['definition']['name']['en-US'] == self.MESSAGE_CARD_POSITION_CHANGED:
+                value = contexts[index]['definition']['name']['en-US']
                 value = value + self.SEPARATOR_HTML_TAG_BR
                 value = value + self.italicize(object_val)
                 # value = value + "from %s to %s" % (contexts[3]['definition']['name']['en-US'], contexts[4]['definition']['name']['en-US'])
             else:
-                value = "%s was moved from %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
-                value = value + self.SEPARATOR_HTML_TAG_BR
+                value = "%s was moved " % (self.italicize(object_val))
+                value = value + " from %s" % (self.italicize(contexts[index]['definition']['name']['en-US']))
                 index = index + 1
                 value = value + " to %s" % (self.italicize(contexts[index]['definition']['name']['en-US']))
                 # value = value + self.SEPARATOR_HTML_TAG_BR
