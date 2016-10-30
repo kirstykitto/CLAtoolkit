@@ -1076,9 +1076,10 @@ def get_platform_timeseries_dataset(course_code, platform_names, username=None):
     series = []
     for platform in platform_names:
         unit = UnitOffering.objects.get(code = course_code)
-        start_date = unit.created_at
-        # Specify a start date that is a month before the unit starts
-        start_date = "{0:%Y-%m-%d}".format(start_date - datetime.timedelta(30))
+        # start_date = unit.created_at
+        # # Specify a start date that is a month before the unit starts
+        # start_date = "{0:%Y-%m-%d}".format(start_date - datetime.timedelta(30))
+        start_date = ''
         platformVal = OrderedDict ([
                 ('name', platform),
                 ('id', 'dataseries_' + platform),
