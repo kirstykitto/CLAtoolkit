@@ -28,11 +28,11 @@ Common.navigatorPositionChanger = function() {
 		if (winTop >= navTop) {
 			nav.addClass("navigator-fixed");
 			$("#wider").addClass('widercol');
-			// $(".navigator-title").hide();
+			$(".navigator-title").hide();
 		} else if (winTop <= navTop) {
 			nav.removeClass("navigator-fixed");
 			$("#wider").removeClass('widercol');
-			// $(".navigator-title").show();
+			$(".navigator-title").show();
 		}
 	});
 };
@@ -283,7 +283,12 @@ CLAChart.prototype.getChartData = function(platform, dataType) {
 	}
 	return data;
 };
-
+CLAChart.prototype.formatDate = function(dateString) {
+	var date = dateString.split(',');
+	// Date month start at 0, so add 1 to show correct month
+	var month = parseInt(date[1]) + 1;
+	return date[2] + "/" + month.toString() + "/" + date[0];
+}
 
 
 
@@ -510,7 +515,7 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 				}
 
 				var dispName = this.getObjectDisplayName(detailsChart["objectDisplayNames"], series["name"]);
-				dispName = dispName + " (" + date + ")" + "<br>" + series["values"][index++];
+				dispName = dispName + " (" + this.formatDate(date) + ")" + "<br>" + series["values"][index++];
 				var newData = {
 					name: dispName,
 					y: 1
@@ -645,11 +650,11 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 	var options = {
 		chart : {
 			renderTo: this.renderTo,
-			height: 70,
+			height: 100,
 		},
 		navigator: { height: 35 },
 		exporting: { enabled: false },
-		rangeSelector : { enabled: false, selected: 0},//, inputDateFormat: '%d/%m/%Y'},
+		rangeSelector : { enabled: true, selected: 0, inputDateFormat: '%d/%m/%Y'},
 		title : { enabled: false },
 		yAxis: {
 			height: 0,
@@ -725,7 +730,8 @@ CLABarChartOptions.prototype.getOptions = function () {
 		},
 		tooltip: {
 			headerFormat: '<b>{point.x}</b><br/>',
-			pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}'
+			pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}',
+			style: { fontSize: '16px' },
 		},
 		plotOptions: {
 			column: {
@@ -775,10 +781,7 @@ CLAPieChartOptions.prototype.getOptions = function() {
 		tooltip: {
 			style: { fontSize: '16px' },
 			formatter: function() {
-				format = //'<b>' + this.series.name + '</b><br>'
-				"<b>" + this.point.name + "</b>";
-				// '<b>' + this.point.name + '</b>';
-				return format;
+				return "<b>" + this.point.name + "</b>";
 			}
 		},
 		plotOptions: {
