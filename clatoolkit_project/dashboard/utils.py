@@ -27,6 +27,8 @@ from collections import OrderedDict
 import copy
 from common.CLRecipe import CLRecipe
 from common.DateUtil import DateUtil
+import datetime
+
 
 def getPluginKey(platform):
     return os.environ.get("TRELLO_API_KEY")
@@ -173,13 +175,23 @@ def get_timeseries(sm_verb, sm_platform, course_code, username=None):
     dataset = ','.join(map(str, dataset_list))
     return dataset
 
-def get_timeseries_byplatform(sm_platform, course_code, username=None, without_date_utc=False):
+def get_timeseries_byplatform(sm_platform, course_code, username=None, without_date_utc=False, start_date='', end_date=''):
 
     userclause = ""
     if username is not None:
         userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
         #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
         #userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s])" % (sm_usernames_str)
+
+    date_clause = ' '
+    if start_date != '' and end_date != '':
+        date_clause = " where filled_dates.day between to_date('%s', 'YYYY-MM-DD') and to_date('%s', 'YYYY-MM-DD') " % (start_date, end_date)
+    elif start_date != '' or end_date != '':
+        date_clause = ' where filled_dates.day '
+        if start_date != '':
+            date_clause = date_clause + " >= to_date('%s', 'YYYY-MM-DD') " % start_date
+        if end_date != '':
+            date_clause = date_clause + " <= to_date('%s', 'YYYY-MM-DD') " % end_date
 
     cursor = connection.cursor()
     cursor.execute("""
@@ -199,8 +211,12 @@ def get_timeseries_byplatform(sm_platform, course_code, username=None, without_d
            coalesce(daily_counts.smcount, filled_dates.blank_count) as signups
       from filled_dates
         left outer join daily_counts on daily_counts.day = filled_dates.day
+    %s
       order by filled_dates.day;
-    """ % (sm_platform, course_code, userclause))
+    """ % (sm_platform, course_code, userclause, date_clause))
+
+    # print cursor.query
+
     result = cursor.fetchall()
     dataset_list = []
     for row in result:
@@ -1059,10 +1075,14 @@ def get_platform_timeseries_dataset(course_code, platform_names, username=None):
 
     series = []
     for platform in platform_names:
+        unit = UnitOffering.objects.get(code = course_code)
+        start_date = unit.created_at
+        # Specify a start date that is a month before the unit starts
+        start_date = "{0:%Y-%m-%d}".format(start_date - datetime.timedelta(30))
         platformVal = OrderedDict ([
                 ('name', platform),
                 ('id', 'dataseries_' + platform),
-                ('data', get_timeseries_byplatform(platform, course_code, without_date_utc = True))
+                ('data', get_timeseries_byplatform(platform, course_code, without_date_utc = True, start_date = start_date))
         ])
         series.append(platformVal)
 
