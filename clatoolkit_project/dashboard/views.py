@@ -155,6 +155,11 @@ def trello_remove_board(request):
 
     unit.save()
     trello_user_course_map.delete()
+    # Delete a record from OfflinePlatformAuthToken table
+    row = OfflinePlatformAuthToken.objects.filter(user_smid=request.user.userprofile.trello_account_name)
+    if row is not None or len(row) == 1:
+        row.delete()
+        
     return myunits(request)
 
 @login_required

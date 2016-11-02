@@ -157,7 +157,7 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
             object_type=parent_object_type,
             )
         parentlist.append(parentobject)
-    elif (platform == 'GitHub' or platform.lower() == 'trello'):
+    elif (platform == 'GitHub' or platform == 'Trello'):
         parentobject = Activity(
             id=parent_id,
             object_type=parent_object_type,

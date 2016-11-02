@@ -61,6 +61,8 @@ class ClaUserUtil(object):
 		try:
 			kwargs = {platform_param_name: smid}
 			users = UserProfile.objects.filter(**kwargs)
+			if users is None or len(users) == 0:
+				return None
 			user = users[0]
 			if len(users) > 1:
 				print """Warning: Multiple user data were retrieved 

@@ -98,8 +98,8 @@
                                     <a href="/dataintegration/refreshdiigo/?course_code={{ membership.unit.code }}&tags={{ membership.unit.diigo_tags|urlencode }}">Refresh
                                         Imported Data</a>
                                 {% endif %}
-                                <br/>
                                 {% if membership.unit.github_urls_as_list|length > 0 %}
+                                    <br/>
                                     GitHub URLs: {% for url in membership.unit.github_urls_as_list %}
                                     <a href="{{ url }}" target="_blank">{{ url }}</a>  {% endfor %} [
                                     <a href="/dashboard/?course_code={{ membership.unit.code }}&platform=GitHub">Activity</a>
@@ -111,8 +111,8 @@
                                     <a href="/dataintegration/refreshgithub/?course_code={{ membership.unit.code }}&course_id={{ membership.unit.id }}&urls={{ membership.unit.github_urls|urlencode }}&platform=GitHub">Refresh
                                         Imported Data</a>
                                 {% endif %}
-                                <br/>
                                 {% if membership.unit.trello_boards_as_list|length > 0 %}
+                                    <br/>
                                     Trello Boards signed up: {{ membership.unit.trello_boards_as_list|length }} ||
                                     <a href="/dataintegration/refreshtrello/?course_code={{ membership.unit.code }}&course_id={{ membership.unit.id }}&boards={{ membership.unit.attached_trello_boards|urlencode }}&platform=trello">Refresh
                                         Imported Data</a>
@@ -162,6 +162,7 @@
                                 <div class="alert alert-warning">
                                     <strong>Note:</strong> Your social media content has not been imported. Imports are
                                     scheduled overnight. Please login and check tomorrow.
+                                    <br>
                                     {% if trello_attached_to_acc %}
                                         <!-- Need to add custom filter to perform this functionality (show user their attach board) TODO:-->
                                         <p>

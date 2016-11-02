@@ -68,8 +68,6 @@ def refreshtrello(request):
 
     trello_plugin = settings.DATAINTEGRATION_PLUGINS[CLRecipe.PLATFORM_TRELLO]
     diag_count = 0
-    previous_board_id = ''
-
     # remove deplicated board IDs
     trello_courseboard_ids = list(set(trello_courseboard_ids))
     for board_id in trello_courseboard_ids:
