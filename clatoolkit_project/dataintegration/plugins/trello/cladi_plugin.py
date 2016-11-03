@@ -480,8 +480,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         index = 1
         if action == self.ACTION_TYPE_CREATE_CARD:
             value = "%s was created in %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
-            # value = value + self.SEPARATOR_HTML_TAG_BR
-            # value = value + contexts[index]['id']
 
         elif action == self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD:
             value = "%s was attached to %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
@@ -496,27 +494,21 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             for key in range(index, len(contexts)):
                 value = value + ' ' + contexts[key]['definition']['name']['en-US'] + self.SEPARATOR_HTML_TAG_BR
 
-            # value = value + contexts[index]['id']
-
         elif action == self.ACTION_TYPE_ADD_MEMBER_TO_CARD:
             value = "%s was added to %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
             value = value + self.SEPARATOR_HTML_TAG_BR
-            # index = index + 1
-            # value = value + contexts[index]['id']
 
         elif action == self.ACTION_TYPE_MOVE_CARD:
             if contexts[index]['definition']['name']['en-US'] == self.MESSAGE_CARD_POSITION_CHANGED:
                 value = contexts[index]['definition']['name']['en-US']
                 value = value + self.SEPARATOR_HTML_TAG_BR
                 value = value + self.italicize(object_val)
-                # value = value + "from %s to %s" % (contexts[3]['definition']['name']['en-US'], contexts[4]['definition']['name']['en-US'])
+
             else:
                 value = "%s was moved " % (self.italicize(object_val))
                 value = value + " from %s" % (self.italicize(contexts[index]['definition']['name']['en-US']))
                 index = index + 1
                 value = value + " to %s" % (self.italicize(contexts[index]['definition']['name']['en-US']))
-                # value = value + self.SEPARATOR_HTML_TAG_BR
-                # value = value + contexts[index]['id']
             
         elif action == self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD:
             value = "%s: %s" % (self.italicize(contexts[index]['definition']['name']['en-US']), self.italicize(object_val))
@@ -525,17 +517,12 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             value = 'Comment in %s' % self.italicize(contexts[index]['definition']['name']['en-US'])
             value = value + self.SEPARATOR_HTML_TAG_BR
             value = value + self.italicize(self.replace_linechange_with_br_tag(object_val))
-            # value = value + contexts[0]['id']
 
         elif action == self.ACTION_TYPE_CLOSE_CARD:
             value = "%s was closed in %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
-            # value = value + self.SEPARATOR_HTML_TAG_BR
-            # value = value + contexts[index]['id']
 
         elif action == self.ACTION_TYPE_OPEN_CARD:
             value = "%s was opened in %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
-            # value = value + self.SEPARATOR_HTML_TAG_BR
-            # value = value + contexts[index]['id']
 
         else:
             value = self.italicize(object_val)

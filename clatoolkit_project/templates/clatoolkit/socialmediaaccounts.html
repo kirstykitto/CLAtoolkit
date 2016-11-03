@@ -126,14 +126,9 @@
 
 {% block js_block %}
 {% autoescape off %}
-
-    <script src="https://trello.com/1/client.js?key=c908d424dda56c79d373f780a1ae26c7"></script>
+    <script src="https://trello.com/1/client.js?key={{ trello_api_key }}"></script>
     <script>
-
-
     function get_and_link_trello() {
-        var key = "c908d424dda56c79d373f780a1ae26c7";
-
         Trello.authorize({
             type: "popup",
             expiration: "never",
@@ -141,26 +136,19 @@
             persist: "true",
             success: function() {
                 $.ajax({
-                url: "/dataintegration/process_trello/?token="+Trello.token()+"&key="+key,
-                type: 'GET',
-                success: function(response) {
-                    $('#id_trello_account_name').val(response)
-                }
+                  url: "/dataintegration/process_trello/?token="+Trello.token(),
+                  type: 'GET',
+                  success: function(response) {
+                      $('#id_trello_account_name').val(response);
+                      var o = document.getElementById('trellolink');
+                      o.innerHTML = "Trello account linked!";
+                  }
                 });
-
-                var o = document.getElementById('trellolink');
-                o.innerHTML = "Trello account linked!";
-
-                //id_trello_account_name
-
             },
             error: function() {  console.log('Trello Auth failed.'); },
             scope: { read: true, write: true },
         });
-
     }
-
-
     </script>
 
 {% endautoescape %}

@@ -121,7 +121,6 @@
 
                             {% if unit.enable_coi_classifier %}
                                 <hr/>
-
                                 {% if membership.unit.code == 'IFN614' %}
 
                                     <a href="/dashboard/myclassifications?course_code={{ membership.unit.code }}&platform=Forum">View
@@ -231,7 +230,6 @@
             }
         });
     }
-
     function add_board(course_code, id) {
         $.ajax({
             url: "/dashboard/addboardtocourse?course_code=" + course_code + "&id=" + id,
@@ -243,33 +241,22 @@
     }
     $(document).ready(function (e) {
         var boards = document.getElementsByClassName("trello_board");
-
-        console.log(boards);
-
+        // console.log(boards);
         for (var i = 0; i < boards.length; i++) {
             boards[i].innerHTML = "Loading trello board...";
-
             $.ajax({
                 url: "/dashboard/getAttachedBoard?course_code=" + boards[i].id,
                 type: 'GET',
                 success: function (resp) {
-
                     resp_data = resp.data;
                     resp_cc = resp.course_code;
-
-                    console.log(resp_cc);
-
+                    // console.log(resp_cc);
                     document.getElementById(resp_cc).innerHTML = resp_data;
                 }
             });
-
         }
-
-
     });
     // $('#trello_board_display').hide();
-
-
 </script>
 {% endautoescape %}
 {% endblock %}

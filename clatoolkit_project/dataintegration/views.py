@@ -40,8 +40,8 @@ from common.CLRecipe import CLRecipe
 @api_view(['GET'])
 def process_trello(request):
     token = request.GET.get("token")
-    key = request.GET.get("key")
-
+    # key = request.GET.get("key")
+    key = os.environ.get('TRELLO_API_KEY')
     trello_member_url = 'https://api.trello.com/1/tokens/%s/member?key=%s' % (token, key)
 
     #Get trello member ID
@@ -50,9 +50,17 @@ def process_trello(request):
     member_json = r.json()
     member_id = member_json['id']
 
-    token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform='trello') #OauthFlowTemp(googleid=member_id, transferdata=token, platform='trello')
+    # TODO: check out registering & removing Trello ID. Something might be wrong...
+    # existing_token = OfflinePlatformAuthToken.objects.get(user_smid=member_id, platform=CLRecipe.PLATFORM_TRELLO)
+    # if existing_token:
+    #     print existing_token
+    #     existing_token.token = token
+    #     existing_token.save()
+    # else:
+    #     token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform=CLRecipe.PLATFORM_TRELLO) #OauthFlowTemp(googleid=member_id, transferdata=token, platform='trello')
+    #     token_storage.save()
+    token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform=CLRecipe.PLATFORM_TRELLO) #OauthFlowTemp(googleid=member_id, transferdata=token, platform='trello')
     token_storage.save()
-
     return Response(member_id)
 
 

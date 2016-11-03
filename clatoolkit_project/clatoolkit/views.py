@@ -226,10 +226,12 @@ def register(request, course_code):
         user_form = UserForm()
         profile_form = UserProfileForm()
 
+    trello_api_key = os.environ.get('TRELLO_API_KEY')
     # Render the template depending on the context.
     return render_to_response(
         'clatoolkit/register.html',
-            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, "course": unit, "req_platforms": platforms, "user": u}, context)
+            {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, 
+            "course": unit, "req_platforms": platforms, "user": u, "trello_api_key": trello_api_key}, context)
 
 
 @login_required
@@ -247,6 +249,7 @@ def socialmediaaccounts(request):
     context = RequestContext(request)
     user_id = request.user.id
     usr_profile = UserProfile.objects.get(user_id=user_id)
+    trello_api_key = os.environ.get('TRELLO_API_KEY')
 
     if request.method == 'POST':
         profile_form = SocialMediaUpdateForm(data=request.POST,instance=usr_profile)
@@ -270,7 +273,7 @@ def socialmediaaccounts(request):
     # Render the template depending on the context.
     return render_to_response(
         'clatoolkit/socialmediaaccounts.html',
-            {'profile_form': profile_form, 'units': units}, context)
+            {'profile_form': profile_form, 'units': units, 'trello_api_key': trello_api_key}, context)
 
 
 def eventregistration(request):

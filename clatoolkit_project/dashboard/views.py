@@ -36,7 +36,7 @@ def get_trello_boards(request):
 
     # Return error message to the client
     if token_qs is None:
-        html_tags = '<p class="no-trello-id">Your Trello account is incorrect not found.<br>'
+        html_tags = '<p class="no-trello-id">Your Trello account is incorrect or not found.<br>'
         html_tags = html_tags + 'Register your account in Social Media Accounts update page before attaching a Trello board.<br>'
         html_tags = html_tags + '(Click your name (top right corner) - Social Media Accounts)</p>'
         return Response(('').join([html_tags]))
@@ -132,7 +132,7 @@ def trello_remove_board(request):
         trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, course_code=course_code)
         unit = UnitOffering.objects.get(code=course_code)
     except ObjectDoesNotExist:
-        return HttpResponseServerError('<h1>Server Error (500)</h1><p>Could not remove Trello Board.</p>')
+        return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>Could not remove Trello Board.</p>')
 
     new_board_list = []
     same_board_list = []
@@ -154,12 +154,7 @@ def trello_remove_board(request):
     unit.attached_trello_boards = ','.join(new_board_list)
 
     unit.save()
-    trello_user_course_map.delete()
-    # Delete a record from OfflinePlatformAuthToken table
-    row = OfflinePlatformAuthToken.objects.filter(user_smid=request.user.userprofile.trello_account_name)
-    if row is not None or len(row) == 1:
-        row.delete()
-        
+    trello_user_course_map.delete()        
     return myunits(request)
 
 @login_required
@@ -176,18 +171,10 @@ def trello_myunits_restview(request):
 
             #if the token exists, grab the board from trello on behalf of the user
             if token_qs:
-                key = getPluginKey('trello')
-
-                http = 'https://api.trello.com/1/boards/%s?key=%s&token=%s' % (trello_user_course_map[0].board_id,key,token_qs[0].token)
-
-                #print http
-
+                key = os.environ.get("TRELLO_API_KEY")
+                http = 'https://api.trello.com/1/boards/%s?key=%s&token=%s' % (trello_user_course_map[0].board_id, key, token_qs[0].token)
                 r = requests.get(http)
-
-                #print 'result: %s' % (r.json())
-
                 board = r.json()
-
                 response = {'data': '<a href="'+board['url']+'""><i class="fa fa-trello" aria-hidden="true"></i>   '+board['name']+'</a> | '
                             '<a href="/dashboard/removeBoard?course_code='+course_code+'">Remove</a>', 'course_code': course_code}
 
@@ -212,8 +199,6 @@ def myunits(request):
     shownocontentwarning = False
 
     trello_attached = not request.user.userprofile.trello_account_name == ''
-
-    print trello_attached
 
     #if student check if the student has imported data
     if role=='Student':
@@ -433,14 +418,21 @@ def studentdashboard(request):
     twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id = get_smids_fromusername(username)
     sm_usernames_dict = {'Twitter': twitter_id, 'Facebook': fb_id, 'Forum': forum_id}
     sm_usernames = [twitter_id, fb_id, forum_id]
-
     sm_usernames_str = ','.join("'{0}'".format(x) for x in sm_usernames)
 
-    title = "Student Dashboard: %s, (Twitter: %s, Facebook: %s, Forum: %s)" % (course_code, twitter_id, fb_id, forum_id)
+    title = "Student Dashboard: %s" % (course_code)
+    smid_titles = []
+    if twitter_id is not None and twitter_id != '':
+        smid_titles.append("Twitter: %s" % (twitter_id))
+    if fb_id is not None and fb_id != '':
+        smid_titles.append("Facebook: %s" % (fb_id))
+    if forum_id is not None and forum_id != '':
+        smid_titles.append("Forum: %s" % (forum_id))
+    if len(smid_titles) > 0:
+        title = title + ' (' + ', '.join(smid_titles) + ')'
 
     if course_code == 'IFN614':
             title = "Student Dashboard: %s, (Twitter: %s, Blog: %s)" % (course_code, twitter_id, blog_id)
-
 
     show_dashboardnav = True
 

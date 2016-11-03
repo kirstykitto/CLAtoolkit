@@ -30,9 +30,6 @@ from common.DateUtil import DateUtil
 import datetime
 
 
-def getPluginKey(platform):
-    return os.environ.get("TRELLO_API_KEY")
-
 def classify(course_code, platform):
     #Calls JAR to extract and classify messages
     #$ java -cp /dataintegration/MLWrapper/CLAToolKit_JavaMLWrapper-0.1.jar load.from_clatk ./config.json [course_code] [platform]
