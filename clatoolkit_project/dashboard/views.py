@@ -589,7 +589,8 @@ def mydashboard(request):
     youtube_timeline = ""
     diigo_timeline = ""
     blog_timeline = ""
-
+    trello_timeline = ""
+    
     platformclause = ""
     if platform != "all":
         platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
@@ -600,6 +601,7 @@ def mydashboard(request):
         youtube_timeline = get_timeseries_byplatform("YouTube", course_code, username)
         diigo_timeline = get_timeseries_byplatform("Diigo", course_code, username)
         blog_timeline = get_timeseries_byplatform("Blog", course_code, username)
+        trello_timeline = get_timeseries_byplatform("Trello", course_code)
         show_allplatforms_widgets = True
 
     cursor = connection.cursor()
@@ -629,7 +631,7 @@ def mydashboard(request):
     context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 
         'forum_timeline': forum_timeline, 'twitter_timeline': twitter_timeline, 
         'facebook_timeline': facebook_timeline, 'youtube_timeline': youtube_timeline, 
-        'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 
+        'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 'trello_timeline': trello_timeline,
         'platformactivity_pie_series':platformactivity_pie_series, 
         'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 
         'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 
