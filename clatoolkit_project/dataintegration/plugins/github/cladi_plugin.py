@@ -44,7 +44,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     def perform_import(self, retrieval_param, course_code):
 
         # Setup GitHub token
-        token = os.environ.get("GITHUB_TOKEN")
+        # token = os.environ.get("GITHUB_TOKEN")
+        token = "bc6fb01eb7e80fb69cc761fe3a3cbf7534354a90"
         urls = retrieval_param.split(os.linesep)
 
         for url in urls:

@@ -33,6 +33,9 @@ from django.contrib.sites.shortcuts import get_current_site
 import os
 import requests
 from common.CLRecipe import CLRecipe
+from rest_framework import status
+from django.http import JsonResponse
+from django.shortcuts import redirect
 
 ##############################################
 # Process Trello Link
@@ -452,3 +455,41 @@ def assigngroups(request):
     html_response.write('Groups Assigned')
     return html_response
 
+def github_auth(request):
+    # Redirect to GitHub OAuth authentication page
+    url = "https://github.com/login/oauth/authorize?"
+    url = url + "client_id=%s" % (os.environ.get('GITHUB_CLIENT_ID'))
+    url = url + "&redirect_uri=%s" % (os.environ.get('GITHUB_AUTH_REDIRECT_URL'))
+    url = url + "&scopes=user public_repo repo"
+    return redirect(url)
+
+def github_client_auth(request):
+    # This method is redirect url after user log in to GitHub and allows the CLA toolkit to
+    # access to the user's information on GitHub.
+    code = request.GET.get('code')
+    url = "https://github.com/login/oauth/access_token?"
+    url = url + "scopes=user public_repo repo"
+    url = url + "&client_id=%s" % (os.environ.get('GITHUB_CLIENT_ID'))
+    url = url + "&client_secret=%s" % (os.environ.get('GITHUB_CLIENT_SECRET'))
+    url = url + "&code=%s" % (code)
+    
+    res = requests.get(url)
+    res = res.text.split('&')[0]
+    token = res.replace('access_token=', '') 
+
+    # Get access token 
+    user_detail_url = "https://api.github.com/user?access_token=%s" % (token)
+    res = requests.get(user_detail_url)
+    user_json = json.loads(res.text)
+
+    # Set user ID and access token in social media ID register or update page
+    script_set_id = 'window.opener.$("#id_github_account_name").val("%s");' % (user_json['id'])
+    script_set_msg = 'window.opener.$("#github-auth-msg").html("%s");' % ('GitHub user ID obtained!')
+    script_set_token = 'window.opener.$("#github_token").val("%s");' % (token)
+    script_set_msg = script_set_msg + 'window.opener.$("#github-auth-msg").show();'
+    script_set_msg = script_set_msg + 'window.opener.$("#github_auth_link").hide();'
+
+    html_resp = '<script>' + script_set_id + script_set_token + script_set_msg + 'window.close();</script>'
+    html_response = HttpResponse()
+    html_response.write(html_resp)
+    return html_response
