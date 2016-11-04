@@ -479,23 +479,23 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         value = ''
         index = 1
         if action == self.ACTION_TYPE_CREATE_CARD:
-            value = "%s was created in %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+            value = "created %s in %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
 
         elif action == self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD:
-            value = "%s was attached to %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+            value = "attached %s to %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
             value = value + self.SEPARATOR_HTML_TAG_BR
             index = index + 1
             value = value + contexts[index]['definition']['name']['en-US']
 
         elif action == self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD:
-            value = "%s was added to %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+            value = "added %s to %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
             value = value + self.SEPARATOR_HTML_TAG_BR
             index = index + 1
             for key in range(index, len(contexts)):
                 value = value + ' ' + contexts[key]['definition']['name']['en-US'] + self.SEPARATOR_HTML_TAG_BR
 
         elif action == self.ACTION_TYPE_ADD_MEMBER_TO_CARD:
-            value = "%s was added to %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+            value = "added %s to %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
             value = value + self.SEPARATOR_HTML_TAG_BR
 
         elif action == self.ACTION_TYPE_MOVE_CARD:
@@ -503,9 +503,8 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 value = contexts[index]['definition']['name']['en-US']
                 value = value + self.SEPARATOR_HTML_TAG_BR
                 value = value + self.italicize(object_val)
-
             else:
-                value = "%s was moved " % (self.italicize(object_val))
+                value = "moved %s" % (self.italicize(object_val))
                 value = value + " from %s" % (self.italicize(contexts[index]['definition']['name']['en-US']))
                 index = index + 1
                 value = value + " to %s" % (self.italicize(contexts[index]['definition']['name']['en-US']))
@@ -514,20 +513,21 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
             value = "%s: %s" % (self.italicize(contexts[index]['definition']['name']['en-US']), self.italicize(object_val))
 
         elif action == self.ACTION_TYPE_COMMENT_CARD:
-            value = 'Comment in %s' % self.italicize(contexts[index]['definition']['name']['en-US'])
+            value = 'commented in %s' % self.italicize(contexts[index]['definition']['name']['en-US'])
             value = value + self.SEPARATOR_HTML_TAG_BR
             value = value + self.italicize(self.replace_linechange_with_br_tag(object_val))
 
         elif action == self.ACTION_TYPE_CLOSE_CARD:
-            value = "%s was closed in %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+            value = "closed %s in %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
 
         elif action == self.ACTION_TYPE_OPEN_CARD:
-            value = "%s was opened in %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
+            value = "opened %s in %s" % (self.italicize(object_val), self.italicize(contexts[index]['definition']['name']['en-US']))
 
         else:
             value = self.italicize(object_val)
 
         return value
+
 
     def italicize(self, value):
         return '<i>%s</i>' % (value)

@@ -1370,7 +1370,7 @@ def get_object_values(platform, course_code):
         from clatoolkit_learningrecord
         where platform = %s
         and course_code = %s
-        order by username, verb, date_imported desc
+        order by username, verb, date_imported asc
     """, [platform, course_code])
 
     result = cursor.fetchall()
@@ -1379,7 +1379,7 @@ def get_object_values(platform, course_code):
 
     username = ''
     series = {}
-    verb = ''
+    verb = '' # This might not be verb. It could be something else such as Trello action type.
     dates = []
     values = []
     for row in result:
@@ -1394,7 +1394,19 @@ def get_object_values(platform, course_code):
                     ('date', copy.deepcopy(dates)),
                     ('values', copy.deepcopy(values))
                 ])
-                series[verb] = obj
+
+                # Multiple Trello actions belong to the same verb 
+                #   (e.g. In Trello data, update checklist status and move card belong to updated)
+                # The two action may be processed one after another in this loop (It depends on what user did in Trello).
+                # For instance, 1. user update checklist status, 2. move a card, 3. update another checklist status, 4. move another card...
+                # In this case, variable "series" already has an element named updateCheckItemStateOnCard when the loop reaches No.3.
+                # Then, date and values in "series" need to be extended (inside if case), not replaced.
+                if series.has_key(verb):
+                    existing = series[verb]
+                    existing['date'].extend(obj['date'])
+                    existing['values'].extend(obj['values'])
+                else:
+                    series[verb] = obj
                 data[username] = series
 
             # Initialise all variables
@@ -1417,8 +1429,13 @@ def get_object_values(platform, course_code):
                 ('date', copy.deepcopy(dates)), 
                 ('values', copy.deepcopy(values))
             ])
-            # series.append(obj)
-            series[verb] = obj
+            if series.has_key(verb):
+                existing = series[verb]
+                existing['date'].extend(obj['date'])
+                existing['values'].extend(obj['values'])
+            else:
+                series[verb] = obj
+
             verb = row[1]
             dates = [dateString]
             values = [str(row[3])]

@@ -12,5 +12,5 @@ class DateUtil(object):
 		# If isMonthSubtract, then subtract 1 from month (to avoid calculation in JavaScript)
 		# isMonthSubtract = True is recommended
 		month_subtract = 1 if isMonthSubtract else 0
-		dateAry = date_str.split(',')
+		dateAry = date_str.split(splitter)
 		return dateAry[0] + connector + str(int(dateAry[1]) - month_subtract).zfill(2) + connector + dateAry[2]
