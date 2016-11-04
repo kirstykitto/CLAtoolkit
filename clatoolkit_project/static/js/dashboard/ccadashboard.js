@@ -174,7 +174,6 @@ CLAChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
 		}
 	}
 	highChart.xAxis[0].setCategories(this.categories, false);
-	
 	highChart.redraw();
 };
 CLAChart.prototype.draw = function() {
@@ -544,7 +543,6 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 
 
 
-
 CLABarChart = function(renderTo, chartType, stacking, url) {
 	CLAChart.call(this, renderTo, chartType, url);
 	this.name = "CLABarChart";
@@ -621,6 +619,50 @@ CLABarChart.prototype.redrawByPoint = function(point, start, end) {
 	}
 	this.redraw(chart, newDataType, true, start, end);
 	this.dataType = newDataType;
+};
+
+
+
+CLAHeatmap = function(renderTo, url) {
+	var type = "heatmap";
+	this.categoriesY = [];
+	CLAChart.call(this, renderTo, type, url);
+	this.name = "CLAHeatmap";
+};
+Common.inherit(CLAHeatmap, CLAChart);
+
+CLAHeatmap.prototype.createSeriesByChart = function(chart, checkDate, start, end) {
+	var allSeries = [];
+	if(chart == null || chart["data"] == null || chart["data"].length == 0) {
+		return allSeries;
+	}
+	var categoriesY = chart["seriesName"];
+	this.categoriesY = chart["seriesName"];
+	var categoriesX = chart["categories"];
+	var countable = chart["countable"];
+	var chartData = chart["data"];
+	var index = 0;
+	var newSeries = [];
+	for(var i = 0; i < categoriesX.length; i++) {
+		obj = [];
+		cate = categoriesX[i];
+		for(var j = 0; j < categoriesY.length; j++) {
+			name = categoriesY[j];
+			series = chartData[cate][name];
+			allSeries.push([i, j, this.countTotalActivities(series, false, start, end, true)]);
+		}
+		index++;
+	}
+	return allSeries;
+};
+CLAHeatmap.prototype.createOptions = function() {
+	var options = new CLAHeatmapOptions(this.renderTo).getOptions();
+	options.title.text = this.title;
+	// options.yAxis.title.text = this.yAxisTitle;
+	options.xAxis.categories = this.categories;
+	options.yAxis.categories = this.categoriesY;
+	options.series[0].data = this.series;
+	return options;
 };
 
 
@@ -833,6 +875,77 @@ CLAPieChartOptions.calculateChartAreaWidth = function(categories) {
 	return areaWidth
 };
 
+
+
+
+CLAHeatmapOptions = function(renderTo) {
+	var type = "heatmap";
+	CLAChartOptions.call(this, renderTo, type);
+};
+// Inherit CLAChartOptions
+Common.inherit(CLAHeatmapOptions, CLAChartOptions);
+
+CLAHeatmapOptions.MAX_COLOR = Highcharts.getOptions().colors[0];
+CLAHeatmapOptions.MIN_COLOR = "#FFFFFF";
+
+CLAHeatmapOptions.prototype.getOptions = function () {
+    var options = {
+        chart: {
+            type: this.chartType,
+            marginTop: 40,
+            marginBottom: 80,
+            plotBorderWidth: 1,
+            // width: 1000,
+        },
+        title: { text: 'Acitivities' },
+        xAxis: {
+            categories: [],
+            labels: { style: { fontSize:'14px' } }
+        },
+        yAxis: {
+            categories: [],
+            title: { text: "" },
+            labels: { style: { fontSize:'14px' } }
+        },
+        colorAxis: {
+        	reversed: false,
+            min: 0,
+            minColor: CLAHeatmapOptions.MIN_COLOR,
+            maxColor: CLAHeatmapOptions.MAX_COLOR,
+        },
+        legend: {
+            align: 'right',
+            layout: 'vertical',
+            margin: 0,
+            verticalAlign: 'top',
+            y: 25, // TODO: this has to be calculated?
+            symbolHeight: 280
+        },
+        tooltip: {
+			formatter: function () {
+			return '<b>' + this.series.xAxis.categories[this.point.x] + '<br>' +
+				this.series.yAxis.categories[this.point.y] + ': ' + this.point.value + '</b>';
+			},
+			style: { fontSize: '16px' },
+        	// enabled: false,
+        },
+        series: [{
+            name: "Acitivities",
+            borderWidth: 1,
+            data: [],
+            dataLabels: {
+                enabled: true,
+                color: '#000000',
+                fontSize: '16px',
+            }
+        }],
+    };
+    return options;
+};
+
+
+
+
 $(document).ready(function(){
 	// Draw the navigator
 	var url = "/dashboard/api/get_platform_timeseries_data/?course_code=" + course_code + "&platform=" + platform;
@@ -847,5 +960,8 @@ $(document).ready(function(){
 	pieChart.draw();
 	navChart.changeChartAreaVisibility("activities", true);
 	navChart.draw();
+	// var heatmap = new CLAHeatmap("activityHeatmap", url);
+	// CLAChart.saveChartObject(heatmap);
+	// heatmap.draw();
 	Common.initialise();
 });
