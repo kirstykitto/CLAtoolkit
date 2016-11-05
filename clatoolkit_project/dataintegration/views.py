@@ -53,16 +53,11 @@ def process_trello(request):
     member_json = r.json()
     member_id = member_json['id']
 
-    # TODO: check out registering & removing Trello ID. Something might be wrong...
-    # existing_token = OfflinePlatformAuthToken.objects.get(user_smid=member_id, platform=CLRecipe.PLATFORM_TRELLO)
-    # if existing_token:
-    #     print existing_token
-    #     existing_token.token = token
-    #     existing_token.save()
-    # else:
-    #     token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform=CLRecipe.PLATFORM_TRELLO) #OauthFlowTemp(googleid=member_id, transferdata=token, platform='trello')
-    #     token_storage.save()
-    token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform=CLRecipe.PLATFORM_TRELLO) #OauthFlowTemp(googleid=member_id, transferdata=token, platform='trello')
+    token_storage = OfflinePlatformAuthToken.objects.get(user_smid=member_id, platform=CLRecipe.PLATFORM_TRELLO)
+    if token_storage:
+        token_storage.token = token
+    else:
+        token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform=CLRecipe.PLATFORM_TRELLO)
     token_storage.save()
     return Response(member_id)
 
@@ -460,7 +455,7 @@ def github_auth(request):
     url = "https://github.com/login/oauth/authorize?"
     url = url + "client_id=%s" % (os.environ.get('GITHUB_CLIENT_ID'))
     url = url + "&redirect_uri=%s" % (os.environ.get('GITHUB_AUTH_REDIRECT_URL'))
-    url = url + "&scopes=user public_repo repo"
+    url = url + "&scope=user public_repo repo read:org"
     return redirect(url)
 
 def github_client_auth(request):
@@ -468,28 +463,38 @@ def github_client_auth(request):
     # access to the user's information on GitHub.
     code = request.GET.get('code')
     url = "https://github.com/login/oauth/access_token?"
-    url = url + "scopes=user public_repo repo"
-    url = url + "&client_id=%s" % (os.environ.get('GITHUB_CLIENT_ID'))
+    # url = url + "scope=user public_repo repo read:org"
+    url = url + "client_id=%s" % (os.environ.get('GITHUB_CLIENT_ID'))
     url = url + "&client_secret=%s" % (os.environ.get('GITHUB_CLIENT_SECRET'))
     url = url + "&code=%s" % (code)
     
     res = requests.get(url)
     res = res.text.split('&')[0]
-    token = res.replace('access_token=', '') 
+    token = res.replace('access_token=', '')
+
+    print token
 
     # Get access token 
     user_detail_url = "https://api.github.com/user?access_token=%s" % (token)
     res = requests.get(user_detail_url)
     user_json = json.loads(res.text)
 
+    # Save GitHub token
+    token_storage = OfflinePlatformAuthToken.objects.get(user_smid=user_json['id'], platform=CLRecipe.PLATFORM_GITHUB)
+    if token_storage:
+        token_storage.token = token
+    else:
+        token_storage = OfflinePlatformAuthToken(user_smid=user_json['id'], token=token, platform=CLRecipe.PLATFORM_GITHUB)
+    token_storage.save()
+
     # Set user ID and access token in social media ID register or update page
     script_set_id = 'window.opener.$("#id_github_account_name").val("%s");' % (user_json['id'])
-    script_set_msg = 'window.opener.$("#github-auth-msg").html("%s");' % ('GitHub user ID obtained!')
-    script_set_token = 'window.opener.$("#github_token").val("%s");' % (token)
+    script_set_msg = 'window.opener.$("#github-auth-msg").html("%s");' % ('GitHub user ID linked!')
+    # script_set_token = 'window.opener.$("#github_token").val("%s");' % (token)
     script_set_msg = script_set_msg + 'window.opener.$("#github-auth-msg").show();'
     script_set_msg = script_set_msg + 'window.opener.$("#github_auth_link").hide();'
 
-    html_resp = '<script>' + script_set_id + script_set_token + script_set_msg + 'window.close();</script>'
+    html_resp = '<script>' + script_set_id + script_set_msg + 'window.close();</script>'
     html_response = HttpResponse()
     html_response.write(html_resp)
     return html_response

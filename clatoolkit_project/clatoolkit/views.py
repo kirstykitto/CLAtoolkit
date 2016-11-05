@@ -14,7 +14,7 @@ from django.template import RequestContext
 
 from django.core.exceptions import PermissionDenied
 
-from clatoolkit.models import UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification, AccessLog
+from clatoolkit.models import UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification, AccessLog, OfflinePlatformAuthToken
 
 from rest_framework import authentication, permissions, viewsets, filters
 from .serializers import LearningRecordSerializer, SocialRelationshipSerializer, ClassificationSerializer, UserClassificationSerializer
