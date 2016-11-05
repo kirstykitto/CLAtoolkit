@@ -190,9 +190,9 @@ class Migration(migrations.Migration):
             name='UserTrelloCourseBoardMap',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('course_code', models.CharField(max_length=1000)),
                 ('board_id', models.CharField(max_length=5000)),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('unit', models.ForeignKey(to='clatoolkit.UnitOffering')),
             ],
         ),
         migrations.AddField(

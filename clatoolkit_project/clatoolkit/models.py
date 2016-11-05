@@ -52,11 +52,6 @@ class UserProfile(models.Model):
     #Trello user ID
     trello_account_name = models.CharField(max_length=255, blank=True)
 
-class UserTrelloCourseBoardMap(models.Model):
-    user = models.ForeignKey(User)
-    course_code = models.CharField(max_length=1000, blank=False)
-    board_id = models.CharField(max_length=5000, blank=False)
-
 class OfflinePlatformAuthToken(models.Model):
     user_smid = models.CharField(max_length=1000, blank=False)
     token = models.CharField(max_length=1000, blank=False)
@@ -267,6 +262,11 @@ class UnitOfferingMembership(models.Model):
         except ObjectDoesNotExist:
             return False
 
+class UserTrelloCourseBoardMap(models.Model):
+    user = models.ForeignKey(User)
+    # course_code = models.CharField(max_length=1000, blank=False)
+    unit = models.ForeignKey(UnitOffering)
+    board_id = models.CharField(max_length=5000, blank=False)
 
 class ApiCredentials(models.Model):
     platform_uid = models.CharField(max_length=5000, blank=False)
