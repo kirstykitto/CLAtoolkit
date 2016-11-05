@@ -472,8 +472,6 @@ def github_client_auth(request):
     res = res.text.split('&')[0]
     token = res.replace('access_token=', '')
 
-    print token
-
     # Get access token 
     user_detail_url = "https://api.github.com/user?access_token=%s" % (token)
     res = requests.get(user_detail_url)

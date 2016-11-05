@@ -6,6 +6,7 @@
 {% block heading %}Enabling connected learning via open source analytics in social media (QUT Ethics Approval Number: 1500000398){% endblock %}
 
 {% block body %}
+<link href="{% static 'css/clatoolkit/common.css'%}" rel="stylesheet">
 {% if registered %}
  <strong>Thank you for registering</strong>
  <p>
@@ -194,6 +195,8 @@
                                     <p class="help-block">{{ profile_form.github_account_name.errors }}</p>
                                     <label for="id_github_account_name">GitHub Account:</label><br/>
                                     {{ profile_form.github_account_name }}
+                                    <a id="github_auth_link" href="#" onclick="javascript:getGitHubUserID();" target="_blank">Click here to link your GitHub profile</a>
+                                    <p id="github-auth-msg" class="github-auth-msg"></p>
                                 </div>
                             {% endif %}
 
@@ -442,6 +445,10 @@
             error: function() {  console.log('Trello Auth failed.'); },
             scope: { read: true, write: true },
         });
+    }
+
+    function getGitHubUserID() {
+    window.open('/dataintegration/github_auth', 'github_auth_window', 'menubar=no, resizable=yes, toolbar=no, scrollbars=yes');
     }
     </script>
 
