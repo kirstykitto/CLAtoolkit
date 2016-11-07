@@ -197,6 +197,12 @@ def myunits(request):
     shownocontentwarning = False
 
     trello_attached = not request.user.userprofile.trello_account_name == ''
+    github_attached = False
+
+    tokens = OfflinePlatformAuthToken.objects.filter(
+        user_smid=request.user.userprofile.github_account_name, platform=CLRecipe.PLATFORM_GITHUB)
+    if len(tokens) == 1:
+        github_attached = True
 
     #if student check if the student has imported data
     if role=='Student':
@@ -206,7 +212,7 @@ def myunits(request):
 
     context_dict = {'title': "My Units", 'memberships': memberships, 'show_dashboardnav':show_dashboardnav, 
                     'shownocontentwarning': shownocontentwarning, 'role': role, 
-                    'trello_attached_to_acc': trello_attached}
+                    'trello_attached_to_acc': trello_attached, 'github_attached': github_attached}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
 
@@ -726,3 +732,88 @@ def get_platform_activities(request):
     val = get_platform_activity_dataset(request.GET.get('course_code'), platform_names)
     response = JsonResponse(val, status=status.HTTP_200_OK)
     return response
+
+
+@login_required
+def get_all_repos(request):
+    tokens = OfflinePlatformAuthToken.objects.filter(
+        user_smid=request.user.userprofile.github_account_name, platform=CLRecipe.PLATFORM_GITHUB)
+    if len(tokens) == 0 or len(tokens) > 1:
+        return []
+
+    val = get_all_reponames(tokens[0].token)
+    return JsonResponse(val, status=status.HTTP_200_OK)
+
+
+@login_required
+def add_repo_to_course(request):
+    course_id = request.GET.get('course_id')
+    course = UnitOffering.objects.get(id=course_id)
+    # board_list = course.attached_trello_boards
+
+    # if board_list == '':
+    #     new_board_list = request.GET.get('id')
+    # else:
+    #     new_board_list = board_list+','+request.GET.get('id')
+
+    # course.attached_trello_boards = new_board_list
+    # course.save()
+    repo_name = request.GET.get('repo')
+    ret = {'result': 'success'}
+
+    resource_map = UserPlatformResourceMap.objects.filter(
+        user=request.user, unit=course_id, platform=CLRecipe.PLATFORM_GITHUB)
+    # If the same record exist, update the repository name
+    if len(resource_map) == 1:
+        resource_map[0].resource_id = repo_name
+        resource_map[0].save()
+    elif len(resource_map) > 1:
+        # When more than one records were found (Usually this doesn't happen)
+        ret = {'result': 'error', 'message': 'More than one records were found. Could not update repository name.'}
+    else:
+        # Add a new record
+        resource_map = UserPlatformResourceMap(
+            user=request.user, unit=course, resource_id=repo_name, platform=CLRecipe.PLATFORM_GITHUB)
+        resource_map.save()
+
+    return JsonResponse(ret, status=status.HTTP_200_OK)
+
+
+@login_required
+def get_github_attached_repo(request):
+    course_id = request.GET.get('course_id')
+    if course_id is None or course_id == '':
+        return JsonResponse({'result': 'error', 'message': 'Course ID not found.'}, status=status.HTTP_200_OK)
+
+    resource_map = UserPlatformResourceMap.objects.filter(
+        user=request.user, unit=course_id, platform=CLRecipe.PLATFORM_GITHUB)
+
+    if len(resource_map) == 0:
+        return JsonResponse({'result': 'No records'}, status=status.HTTP_200_OK)
+
+    resource = resource_map[0]
+    gh_settings = settings.DATAINTEGRATION_PLUGINS[CLRecipe.PLATFORM_GITHUB]
+    obj = OrderedDict([
+        ('result', 'success'),
+        ('name', resource.resource_id),
+        ('url', gh_settings.platform_url + resource.resource_id),
+    ])
+
+    return JsonResponse(obj, status=status.HTTP_200_OK)
+
+
+@login_required
+def remove_attached_repo(request):
+    course_id = request.GET.get('course_id')
+    if course_id is None or course_id == '':
+        return JsonResponse({'result': 'error', 'message': 'Course ID not found.'}, status=status.HTTP_200_OK)
+
+    resource_map = UserPlatformResourceMap.objects.filter(
+        user=request.user, unit=course_id, platform=CLRecipe.PLATFORM_GITHUB)
+    if len(resource_map) > 1:
+        return JsonResponse({'result': 'error', 'message': 'More than one records were found.'}, status=status.HTTP_200_OK)
+
+    resource_map.delete()
+    ret = {'result': 'success'}
+    return JsonResponse(ret, status=status.HTTP_200_OK)
+

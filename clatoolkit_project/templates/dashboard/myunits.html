@@ -173,6 +173,12 @@
                                         <a href="/clatoolkit/socialmediaaccounts/">Add Trello to your account to plan
                                             and monitor your workload</a>
                                     {% endif %}
+                                    {% if github_attached %}
+                                        To be continued...
+                                    {% else %}
+                                        <a href="/clatoolkit/socialmediaaccounts/">Add GitHub to your account to plan
+                                            and monitor your workload</a>
+                                    {% endif %}
                                 </div>
 
                             {% else %}
@@ -196,13 +202,24 @@
                                 {% if trello_attached_to_acc %}
                                     <!-- Need to add custom filter to perform this functionality (show user their attach board) TODO:-->
                                     <p>
-                                    <hr/>
-                                    <h5>Workload Management</h5>
+                                    <h5>Trello Workload Management</h5>
                                     <div id="{{ membership.unit.id }}" class="trello_board"></div>
                                     </p>
                                 {% else %}
                                     <a href="/clatoolkit/socialmediaaccounts/">Add Trello to your account to plan and
                                         monitor your workload</a>
+                                {% endif %}
+                                <hr>
+                                {% if github_attached %}
+                                    <p>
+                                    <h5>GitHub Workload Management</h5>
+                                        <span id="{{ membership.unit.id }}" class="getReposList" ></span>
+                                        <a id="get_repo_list" href="#">Attach a GitHub Repository to plan your Work!</a>
+                                        <p id="reposList"></p>
+                                    </p>
+                                {% else %}
+                                    <a href="/clatoolkit/socialmediaaccounts/">Add GitHub to your account to plan
+                                        and monitor your workload</a>
                                 {% endif %}
                             {% endif %}
 
@@ -220,43 +237,6 @@
 
 {% block js_block %}
 {% autoescape off %}
-<script>
-    function get_and_link_board(course_id) {
-        $.ajax({
-            url: "/dashboard/getBoards?course_id=" + course_id,
-            type: 'GET',
-            success: function (response) {
-                document.getElementById('trello_board_display').innerHTML = response;
-            }
-        });
-    }
-    function add_board(course_id, id, platform) {
-        $.ajax({
-            url: "/dashboard/addboardtocourse?course_id=" + course_id + "&id=" + id,
-            type: 'GET',
-            success: function (response) {
-                document.getElementById('trello_board_display').innerHTML = response;
-            }
-        });
-    }
-    $(document).ready(function (e) {
-        var boards = document.getElementsByClassName("trello_board");
-        // console.log(boards);
-        for (var i = 0; i < boards.length; i++) {
-            boards[i].innerHTML = "Loading trello board...";
-            $.ajax({
-                url: "/dashboard/getAttachedBoard?course_id=" + boards[i].id,
-                type: 'GET',
-                success: function (resp) {
-                    resp_data = resp.data;
-                    resp_cc = resp.course_id;
-                    // console.log(resp_cc);
-                    document.getElementById(resp_cc).innerHTML = resp_data;
-                }
-            });
-        }
-    });
-    // $('#trello_board_display').hide();
-</script>
+<script src="{% static 'js/dashboard/myunits.js'%}"></script>
 {% endautoescape %}
 {% endblock %}

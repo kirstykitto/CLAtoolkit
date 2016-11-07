@@ -1511,3 +1511,40 @@ def retrieve_data_from_rows(result):
     return categories, data
 
 
+# This returns all repository name that user has. 
+# Private and organization repositories are included (It actually depends on the parameter scope
+def get_all_reponames(token):
+    from github import Github
+
+    github_settings = settings.DATAINTEGRATION_PLUGINS[CLRecipe.PLATFORM_GITHUB]
+    gh = Github(login_or_token = token, per_page = github_settings.parPage)
+
+    count = 0
+    gh_user = gh.get_user()
+    repos = gh_user.get_repos(type='all', sort='full_name', direction='asc').get_page(count)
+
+    ret = []
+    while True:
+        for repo in repos:
+            owner = OrderedDict([
+                ('name', repo.owner.login),
+                ('url', repo.owner.html_url),
+                ('avatar_url', repo.owner.avatar_url),
+            ])
+            obj = OrderedDict([
+                ('name', repo.full_name),
+                ('url', repo.html_url),
+                ('owner', owner),
+            ])
+            ret.append(obj)
+
+        # Code for paging 
+        count = count + 1
+        repos = gh_user.get_repos(type='all', sort='full_name', direction='asc').get_page(count)
+        temp = list(repos)
+        if len(temp) == 0:
+            #Break from while
+            break;
+
+    return OrderedDict([('repos', ret)])
+

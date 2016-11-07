@@ -58,7 +58,7 @@ def process_trello(request):
         token_storage = tokens[0]
         token_storage.token = token
     elif len(tokens) > 1:
-        return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>More than one record were found.</p>')
+        return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>More than one records were found.</p>')
     else:
         token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform=CLRecipe.PLATFORM_TRELLO)
     token_storage.save()
@@ -483,9 +483,17 @@ def github_client_auth(request):
     user_json = json.loads(res.text)
 
     # Save GitHub token
-    token_storage = OfflinePlatformAuthToken.objects.get(user_smid=user_json['id'], platform=CLRecipe.PLATFORM_GITHUB)
-    if token_storage:
+    # token_storage = OfflinePlatformAuthToken.objects.get(user_smid=user_json['id'], platform=CLRecipe.PLATFORM_GITHUB)
+    # if token_storage:
+    #     token_storage.token = token
+    # else:
+    #     token_storage = OfflinePlatformAuthToken(user_smid=user_json['id'], token=token, platform=CLRecipe.PLATFORM_GITHUB)
+    tokens = OfflinePlatformAuthToken.objects.filter(user_smid=user_json['id'], platform=CLRecipe.PLATFORM_GITHUB)
+    if len(tokens) == 1:
+        token_storage = tokens[0]
         token_storage.token = token
+    elif len(tokens) > 1:
+        return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>More than one records were found.</p>')
     else:
         token_storage = OfflinePlatformAuthToken(user_smid=user_json['id'], token=token, platform=CLRecipe.PLATFORM_GITHUB)
     token_storage.save()
