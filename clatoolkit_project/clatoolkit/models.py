@@ -262,11 +262,17 @@ class UnitOfferingMembership(models.Model):
         except ObjectDoesNotExist:
             return False
 
-class UserTrelloCourseBoardMap(models.Model):
+# class UserTrelloCourseBoardMap(models.Model):
+#     user = models.ForeignKey(User)
+#     # course_code = models.CharField(max_length=1000, blank=False)
+#     unit = models.ForeignKey(UnitOffering)
+#     board_id = models.CharField(max_length=5000, blank=False)
+
+class UserPlatformResourceMap(models.Model):
     user = models.ForeignKey(User)
-    # course_code = models.CharField(max_length=1000, blank=False)
     unit = models.ForeignKey(UnitOffering)
-    board_id = models.CharField(max_length=5000, blank=False)
+    resource_id = models.CharField(max_length=5000, blank=False)
+    platform = models.CharField(max_length=100, blank=False)
 
 class ApiCredentials(models.Model):
     platform_uid = models.CharField(max_length=5000, blank=False)

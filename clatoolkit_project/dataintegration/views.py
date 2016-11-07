@@ -12,7 +12,7 @@ from dataintegration.tasks import *
 from .forms import FacebookGatherForm
 import json
 from pprint import pprint
-from clatoolkit.models import UserProfile, OfflinePlatformAuthToken, UserTrelloCourseBoardMap, ApiCredentials, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp
+from clatoolkit.models import UserProfile, OfflinePlatformAuthToken, UserPlatformResourceMap, ApiCredentials, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp
 from django.db import connection
 import dateutil.parser
 from dashboard.utils import *
@@ -53,7 +53,6 @@ def process_trello(request):
     member_json = r.json()
     member_id = member_json['id']
 
-    # token_storage = OfflinePlatformAuthToken.objects.get(user_smid=member_id, platform=CLRecipe.PLATFORM_TRELLO)
     tokens = OfflinePlatformAuthToken.objects.filter(user_smid=member_id, platform=CLRecipe.PLATFORM_TRELLO)
     if len(tokens) == 1:
         token_storage = tokens[0]
@@ -82,7 +81,8 @@ def refreshtrello(request):
     # remove deplicated board IDs
     trello_courseboard_ids = list(set(trello_courseboard_ids))
     for board_id in trello_courseboard_ids:
-        trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(unit=course_id).filter(board_id=board_id)[0]
+        trello_user_course_map = UserPlatformResourceMap.objects.filter(
+            unit=course_id, platform=CLRecipe.PLATFORM_TRELLO).filter(resource_id=board_id)[0]
         #print 'got trello user course board map: %s' % (trello_user_course_map)
 
         user = trello_user_course_map.user

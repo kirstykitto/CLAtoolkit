@@ -187,12 +187,13 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='UserTrelloCourseBoardMap',
+            name='UserPlatformResourceMap',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('board_id', models.CharField(max_length=5000)),
+                ('resource_id', models.CharField(max_length=5000)),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
                 ('unit', models.ForeignKey(to='clatoolkit.UnitOffering')),
+                ('platform', models.CharField(max_length=100)),
             ],
         ),
         migrations.AddField(

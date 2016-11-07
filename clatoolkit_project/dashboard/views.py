@@ -4,7 +4,7 @@ from django.template import RequestContext
 from django.http import HttpResponse, HttpResponseServerError
 from django.db import connection
 from utils import *
-from clatoolkit.models import OfflinePlatformAuthToken, UserProfile, OauthFlowTemp, UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserTrelloCourseBoardMap
+from clatoolkit.models import OfflinePlatformAuthToken, UserProfile, OauthFlowTemp, UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserPlatformResourceMap
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from functools import wraps
@@ -60,7 +60,7 @@ def get_trello_boards(request):
         board_name = board['name']
         board_url = board['url']
         board_id = board['id']
-        html_resp = '<a href="#" class="board_choice" onclick="javascript:add_board(\''+course_id+'\',\''+board_id+'\')">'+board_name+'</a>'
+        html_resp = '<a href="#" class="board_choice" onclick="javascript:add_board(\''+course_id+'\',\''+board_id+'\',\'Trello\')">'+board_name+'</a>'
 
         board_namesList.append(html_resp)
         board_namesList.append('</li>')
@@ -75,20 +75,16 @@ def add_board_to_course(request):
     course = UnitOffering.objects.get(id=request.GET.get('course_id'))
     board_list = course.attached_trello_boards
 
-    #print 'board list %s' % (board_list)
-    #print 'board list is "": %s' % (board_list == '')
-
     if board_list == '':
         new_board_list = request.GET.get('id')
     else:
         new_board_list = board_list+','+request.GET.get('id')
 
     course.attached_trello_boards = new_board_list
-
     course.save()
 
-    # trello_user_course_map = UserTrelloCourseBoardMap(user=request.user, course_code=course.code, board_id=request.GET.get('id'))
-    trello_user_course_map = UserTrelloCourseBoardMap(user=request.user, unit=course, board_id=request.GET.get('id'))
+    trello_user_course_map = UserPlatformResourceMap(
+        user=request.user, unit=course, resource_id=request.GET.get('id'), platform=CLRecipe.PLATFORM_TRELLO)
     trello_user_course_map.save()
 
     return Response('<b>Board successfully added to course - <a href="/dashboard/myunits/">Reload</a></b>')
@@ -130,7 +126,7 @@ def trello_remove_board(request):
     unit = None
     try:
         # trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, course_code=course_code)
-        trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, unit=course_id)
+        trello_user_course_map = UserPlatformResourceMap.objects.filter(user=request.user, unit=course_id, platform=CLRecipe.PLATFORM_TRELLO)
         unit = UnitOffering.objects.get(id=course_id)
     except ObjectDoesNotExist:
         return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>Could not remove Trello Board.</p>')
@@ -138,7 +134,7 @@ def trello_remove_board(request):
     new_board_list = []
     same_board_list = []
     for board in unit.attached_trello_boards.split(','):
-        if board != trello_user_course_map[0].board_id:
+        if board != trello_user_course_map[0].resource_id:
             new_board_list.append(board)
         else:
             same_board_list.append(board)
@@ -163,7 +159,8 @@ def trello_remove_board(request):
 def trello_myunits_restview(request):
         #Get course code, and match it with the user to obtain the board ID for the user for their specified course.
         course_id = request.GET.get('course_id')
-        trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, unit=course_id)
+        trello_user_course_map = UserPlatformResourceMap.objects.filter(
+            user=request.user, unit=course_id, platform=CLRecipe.PLATFORM_TRELLO)
 
         #If a board exists for the user and it's attached to the course
         if trello_user_course_map:
@@ -173,7 +170,7 @@ def trello_myunits_restview(request):
             #if the token exists, grab the board from trello on behalf of the user
             if token_qs:
                 key = os.environ.get("TRELLO_API_KEY")
-                http = 'https://api.trello.com/1/boards/%s?key=%s&token=%s' % (trello_user_course_map[0].board_id, key, token_qs[0].token)
+                http = 'https://api.trello.com/1/boards/%s?key=%s&token=%s' % (trello_user_course_map[0].resource_id, key, token_qs[0].token)
                 r = requests.get(http)
                 board = r.json()
                 response = {'data': '<a href="'+board['url']+'""><i class="fa fa-trello" aria-hidden="true"></i>   '+board['name']+'</a> | '

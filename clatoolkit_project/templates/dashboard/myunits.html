@@ -230,7 +230,7 @@
             }
         });
     }
-    function add_board(course_id, id) {
+    function add_board(course_id, id, platform) {
         $.ajax({
             url: "/dashboard/addboardtocourse?course_id=" + course_id + "&id=" + id,
             type: 'GET',
