@@ -46,15 +46,18 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         # Setup GitHub token
         token = os.environ.get("GITHUB_TOKEN")
         # token = "bc6fb01eb7e80fb69cc761fe3a3cbf7534354a90"
-        urls = retrieval_param.split(os.linesep)
+        # urls = retrieval_param.split(os.linesep)
 
-        for url in urls:
+        for details in retrieval_param:
+            repo_name = details['repo_name']
+            url = self.platform_url + repo_name
+            token = details['token']
             print "GitHub data extraction URL: " + url
             # Instanciate PyGithub object
-            repo_name = url[len(self.platform_url):]
+            # repo_name = url[len(self.platform_url):]
             gh = Github(login_or_token = token, per_page = self.parPage)
 
-            repo = gh.get_repo(repo_name.rstrip())
+            repo = gh.get_repo(repo_name)
             self.import_commits(course_code, url, token, repo)
             self.import_issues(course_code, url, token, repo)
             self.import_commit_comments(course_code, url, token, repo)

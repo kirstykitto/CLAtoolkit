@@ -857,10 +857,6 @@ def getNeighbours(jsonStr):
     return allNeighbours
 
 def getCentrality(jsonStr):
-
-    print jsonStr
-
-    print type(jsonStr)
     g = _createGraphElements(json.loads(str(jsonStr)))
     #print(g)
     #layout = g.layout("kk")
@@ -920,7 +916,6 @@ def _normaliseDegree(targetArray, numOfNodes):
     return targetArray
 
 def _roundNumbers(targetArray, digits):
-    print targetArray
     index = 0
     for num in targetArray:
         targetArray[index] = _roundNumber(num, digits)

@@ -103,15 +103,21 @@ def refreshtrello(request):
 def refreshgithub(request):
 
     html_response = HttpResponse()
+    course_id = request.GET.get('course_id')
     course_code = request.GET.get('course_code')
-    repoUrls = request.GET.get('urls')
+    resources = UserPlatformResourceMap.objects.filter(unit=course_id, platform=CLRecipe.PLATFORM_GITHUB)
+    details = []
+    for resource in resources:
+        # Get each user's token
+        user = User.objects.get(pk=resource.user_id)
+        token = OfflinePlatformAuthToken.objects.get(
+            user_smid=user.userprofile.github_account_name, platform=CLRecipe.PLATFORM_GITHUB)
+        obj = {'repo_name': resource.resource_id, 'token': token.token}
+        details.append(obj)
 
-    github_plugin = settings.DATAINTEGRATION_PLUGINS['GitHub']
-    ghDataList = github_plugin.perform_import(repoUrls, course_code)
-    post_smimport(course_code, "GitHub")
-
-    #html_response.write('GitHub Refreshed.')
-    #return html_response
+    github_plugin = settings.DATAINTEGRATION_PLUGINS[CLRecipe.PLATFORM_GITHUB]
+    ghDataList = github_plugin.perform_import(details, course_code)
+    post_smimport(course_code, CLRecipe.PLATFORM_GITHUB)
 
     return render(request, 'dataintegration/githubresult.html')
 
