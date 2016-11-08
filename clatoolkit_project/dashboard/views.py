@@ -20,6 +20,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.core.exceptions import ObjectDoesNotExist
 import requests
+from common.CLRecipe import CLRecipe
 
 #API endpoint to grab a list of trello boards to attach to course
 @login_required
@@ -189,11 +190,8 @@ def myunits(request):
 
     # Get a users memberships to unit offerings
     memberships = UnitOfferingMembership.objects.filter(user=request.user, unit__enabled=True).select_related('unit')
-
     role = request.user.userprofile.role
-
     show_dashboardnav = False
-
     shownocontentwarning = False
 
     trello_attached = not request.user.userprofile.trello_account_name == ''
@@ -212,7 +210,7 @@ def myunits(request):
 
     context_dict = {'title': "My Units", 'memberships': memberships, 'show_dashboardnav':show_dashboardnav, 
                     'shownocontentwarning': shownocontentwarning, 'role': role, 
-                    'trello_attached_to_acc': trello_attached, 'github_attached': github_attached}
+                    'trello_attached_to_acc': trello_attached}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
 
