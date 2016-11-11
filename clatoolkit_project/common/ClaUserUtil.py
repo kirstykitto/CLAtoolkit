@@ -54,12 +54,19 @@ class ClaUserUtil(object):
 
 		return ret
 
+	@classmethod
+	def get_smids_by_uid(self, userid):
+		if userid is None:
+			return None
 
+		user = User.objects.get(pk = userid)
+		return self.get_smids(user)
+		
 	@classmethod
 	def get_user_details_by_smid(self, smid, platform):
 		platform_param_name = self.get_platform_column_name_filter_string(platform)
 		try:
-			kwargs = {platform_param_name: smid}
+			kwargs = {platform_param_name: str(smid)}
 			users = UserProfile.objects.filter(**kwargs)
 			if users is None or len(users) == 0:
 				return None

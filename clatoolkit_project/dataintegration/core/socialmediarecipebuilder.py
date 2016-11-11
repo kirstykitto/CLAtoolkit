@@ -297,14 +297,13 @@ def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_t
     parent_id, platform, platform_id, commit_username, account_homepage, tags=[], other_contexts = []):
     if check_ifnotinlocallrs(course_code, platform, commit_id):
         verb = "created"
-        object = "Collection"
-        parentObj = "Collection"
-        otherObjTypeName = "commit"
+        object_type = "Collection"
+        parent_obj_type = "Collection"
 
         stm = socialmedia_builder(
             verb=verb, platform=platform, account_name=from_uid, 
-            account_homepage=account_homepage, object_type=object, object_id=commit_id, 
-            message=message, tags=tags, parent_object_type=parentObj, parent_id=parent_id, 
+            account_homepage=account_homepage, object_type=object_type, object_id=commit_id, 
+            message=message, tags=tags, parent_object_type=parent_obj_type, parent_id=parent_id, 
             timestamp=committed_time, account_email=usr_dict['email'], 
             user_name=from_name, course_code=course_code, other_contexts = other_contexts)
 
@@ -360,7 +359,7 @@ def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time,
 
 def insert_issue(usr_dict, issue_id, verb, object_type, parent_object_type, message, from_name, from_uid, created_time, 
     course_code, parent_id, platform, platform_id, assignee, account_homepage, tags=[], other_contexts = []):
-    if check_ifnotinlocallrs(course_code, platform, issue_id):
+    if check_ifnotinlocallrs(course_code, platform, platform_id):
         # verb = 'created'
         # object = "Note"
         # parentObj = "Collection"

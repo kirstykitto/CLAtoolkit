@@ -106,17 +106,25 @@ def refreshgithub(request):
     course_id = request.GET.get('course_id')
     course_code = request.GET.get('course_code')
     resources = UserPlatformResourceMap.objects.filter(unit=course_id, platform=CLRecipe.PLATFORM_GITHUB)
+
+    id_list = []
     details = []
     for resource in resources:
-        # Get each user's token
+        # Save the repo name to avoid retrieving the same data again and again
+        # If the repository name (resource_id) is in the id_list, the repo is already processed, so skip the process.
+        if resource.resource_id in id_list:
+            continue
+
+        # Get user's token
         user = User.objects.get(pk=resource.user_id)
         token = OfflinePlatformAuthToken.objects.get(
             user_smid=user.userprofile.github_account_name, platform=CLRecipe.PLATFORM_GITHUB)
         obj = {'repo_name': resource.resource_id, 'token': token.token}
         details.append(obj)
+        id_list.append(resource.resource_id)
 
     github_plugin = settings.DATAINTEGRATION_PLUGINS[CLRecipe.PLATFORM_GITHUB]
-    ghDataList = github_plugin.perform_import(details, course_code)
+    github_plugin.perform_import(details, course_code)
     post_smimport(course_code, CLRecipe.PLATFORM_GITHUB)
 
     return render(request, 'dataintegration/githubresult.html')

@@ -210,7 +210,7 @@ def myunits(request):
 
     context_dict = {'title': "My Units", 'memberships': memberships, 'show_dashboardnav':show_dashboardnav, 
                     'shownocontentwarning': shownocontentwarning, 'role': role, 
-                    'trello_attached_to_acc': trello_attached}
+                    'trello_attached_to_acc': trello_attached, 'github_attached': github_attached}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
 
@@ -747,15 +747,6 @@ def get_all_repos(request):
 def add_repo_to_course(request):
     course_id = request.GET.get('course_id')
     course = UnitOffering.objects.get(id=course_id)
-    # board_list = course.attached_trello_boards
-
-    # if board_list == '':
-    #     new_board_list = request.GET.get('id')
-    # else:
-    #     new_board_list = board_list+','+request.GET.get('id')
-
-    # course.attached_trello_boards = new_board_list
-    # course.save()
     repo_name = request.GET.get('repo')
     ret = {'result': 'success'}
 
