@@ -37,6 +37,7 @@ class CLRecipe(object):
 	OBJECT_CHECKLIST = 'Checklist'
 	OBJECT_CHECKLIST_ITEM = 'Checklist-item'
 	OBJECT_PERSON = 'Person'
+	OBJECT_REVIEW = 'Review'
 
 	VERB_IRI_MAPPER = {
 		VERB_CREATED: 'http://www.w3.org/ns/activitystreams#Create',
@@ -62,7 +63,8 @@ class CLRecipe(object):
 		OBJECT_FILE: 'http://activitystrea.ms/schema/1.0/file',
 		OBJECT_TASK: 'http://activitystrea.ms/specs/json/schema/activity-schema.html#task',
 		OBJECT_CHECKLIST: 'http://id.tincanapi.com/activitytype/checklist',
-		OBJECT_CHECKLIST_ITEM: 'http://id.tincanapi.com/activitytype/checklist-item'
+		OBJECT_CHECKLIST_ITEM: 'http://id.tincanapi.com/activitytype/checklist-item',
+		OBJECT_REVIEW: 'http://activitystrea.ms/schema/1.0/review',
 	}
 
 	@classmethod

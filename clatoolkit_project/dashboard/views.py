@@ -778,7 +778,7 @@ def get_github_attached_repo(request):
         user=request.user, unit=course_id, platform=CLRecipe.PLATFORM_GITHUB)
 
     if len(resource_map) == 0:
-        return JsonResponse({'result': 'No records'}, status=status.HTTP_200_OK)
+        return JsonResponse({'result': 'error', 'message': 'No records found.'}, status=status.HTTP_200_OK)
 
     resource = resource_map[0]
     gh_settings = settings.DATAINTEGRATION_PLUGINS[CLRecipe.PLATFORM_GITHUB]

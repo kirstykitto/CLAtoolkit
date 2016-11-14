@@ -102,6 +102,7 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
                     'Checklist': 'http://id.tincanapi.com/activitytype/checklist',
                     'Checklist-item': 'http://id.tincanapi.com/activitytype/checklist-item',
                     'Person': 'http://activitystrea.ms/head/activity-schema.html#person',
+                    'Review': 'http://activitystrea.ms/schema/1.0/review',
     }
 
     agentaccount = AgentAccount(name=account_name, home_page=account_homepage)
@@ -358,7 +359,7 @@ def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time,
 
 
 def insert_issue(usr_dict, issue_id, verb, object_type, parent_object_type, message, from_name, from_uid, created_time, 
-    course_code, parent_id, platform, platform_id, assignee, account_homepage, tags=[], other_contexts = []):
+    course_code, parent_id, platform, platform_id, account_homepage, shared_displayname=None, tags=[], other_contexts = []):
     if check_ifnotinlocallrs(course_code, platform, platform_id):
         # verb = 'created'
         # object = "Note"
@@ -376,7 +377,7 @@ def insert_issue(usr_dict, issue_id, verb, object_type, parent_object_type, mess
             xapi=stm_json, course_code=course_code, verb=verb, 
             platform=platform, username=get_username_fromsmid(from_uid, platform),
             platformid=platform_id, platformparentid=parent_id, message=message, datetimestamp=created_time,
-            parentusername=get_username_fromsmid(assignee, platform))
+            parentusername=get_username_fromsmid(shared_displayname, platform))
         lrs.save()
         """
         for tag in tags:

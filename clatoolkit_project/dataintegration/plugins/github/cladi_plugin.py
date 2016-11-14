@@ -34,7 +34,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     xapi_verbs_to_includein_verbactivitywidget = ['created', 'added', 'removed', 'updated', 'commented']
 
     ### Activity type
-    GITHUB_ACTIVITY_TYPE_COMMIT = 'commit'
+    GITHUB_ACTIVITY_TYPE_COMMIT = 'Commit'
 
     ### Event types
     EVENT_TYPE_ISSUES = 'IssuesEvent'
@@ -86,7 +86,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     issue_number = self.import_issues(event, course_code, repo_url, repo_name)
                     issue_number_list.append(issue_number)
                 elif event.type == self.EVENT_TYPE_PR:
-                    self.import_pull_requests(event, course_code)
+                    self.import_pull_requests(event, course_code, repo_url, repo_name)
                 elif event.type == self.EVENT_TYPE_COMMIT_COMMENT:
                     self.import_commit_comments(event, course_code, repo_url, repo_name, repo)
                 elif event.type == self.EVENT_TYPE_ISSUE_COMMENT:
@@ -175,7 +175,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         com_comment = event.payload['comment']
         actor = com_comment['user']
 
-        author_homepage = actor['url']
+        author_homepage = actor['html_url']
         author_id = str(actor['id'])
         author_name = str(actor['login'])
         com_comment_url = com_comment['html_url']
@@ -218,7 +218,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         issue = event.payload['issue']
         actor = iss_comment['user']
 
-        author_homepage = actor['url']
+        author_homepage = actor['html_url']
         author_id = str(actor['id'])
         author_name = str(actor['login'])
         issue_url = issue['html_url']
@@ -239,7 +239,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             CLRecipe.get_verb_iri(CLRecipe.VERB_COMMENTED)))
         # Issue url and title
         other_context_list.append(get_other_contextActivity(
-            iss_comment_url, 'Object', issue_title, 
+            issue_url, 'Object', issue_title, 
             CLRecipe.get_verb_iri(CLRecipe.VERB_COMMENTED)))
         # Repository url and name
         other_context_list.append(get_other_contextActivity(
@@ -288,30 +288,27 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             repo_url, 'Object', repo_name, CLRecipe.get_verb_iri(verb)))
         # Issue url and title 
         other_context_list.append(get_other_contextActivity(
-            issue_url, 'Object', title, CLRecipe.get_verb_iri(verb)))
+            issue_url, 'Object', body, CLRecipe.get_verb_iri(verb)))
 
         if username_exists(author_id, course_code, self.platform.lower()):
             usr_dict = ClaUserUtil.get_user_details_by_smid(author_id, self.platform)
             # cla_userame = get_username_fromsmid(author_id, self.platform.lower())
             insert_issue(usr_dict, issue_url, verb, CLRecipe.OBJECT_NOTE, 
-                CLRecipe.OBJECT_COLLECTION, body, author_name, author_name, date, 
-                course_code, repo_url, self.platform, event.id, author_id, author_homepage,
-                other_contexts = other_context_list)
-            # insert_closedopen_object(usr_dict, issue_url, body, author_id, author_name, date, course_code,
-            #     self.platform, author_homepage, CLRecipe.OBJECT_TASK, verb,
-            #     obj_parent = repo_url, obj_parent_type = CLRecipe.OBJECT_COLLECTION,
-            #     other_contexts = other_context_list)
+                CLRecipe.OBJECT_COLLECTION, title, author_name, author_id, date, 
+                course_code, repo_url, self.platform, event.id, author_homepage,
+                shared_displayname = repo_name, other_contexts = other_context_list)
 
         # Return the issue number for assignees & assigner data import
         return issue['number']
 
 
-    def import_pull_requests(self, event, course_code):
+    def import_pull_requests(self, event, course_code, repo_url, repo_name):
         pull_req = event.payload['pull_request']
         actor = pull_req['user']
 
         author_homepage = actor['html_url']
         author_id = str(actor['id'])
+        author_name = str(actor['login'])
         pr_url = pull_req['html_url']
         date = pull_req['updated_at']
         state = pull_req['state']
@@ -328,32 +325,40 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         head_repo = pull_req['head']['repo']
         head_repo_name = head_repo['full_name']
         head_repo_url = head_repo['html_url']
+        # base_repo = pull_req['base']['repo']
+        # base_repo_name = base_repo['full_name']
+        # base_repo_url = base_repo['html_url']
 
-        base_repo = pull_req['base']['repo']
-        base_repo_name = base_repo['full_name']
-        base_repo_url = base_repo['html_url']
+        # verb is opened when action is opened and reopened
+        verb = CLRecipe.VERB_OPENED
+        action = event.payload['action']
+        if action == self.ISSUE_STATUS_CLOSED:
+            verb = CLRecipe.VERB_CLOSED
 
-        # TODO: decide verb based on the status of PR
-        # Opened & Reopened = opened ?
-        # Closed            = closed ?
+        other_context_list = []
+        # Import event type
+        other_context_list.append(get_other_contextActivity(
+            pr_url, 'Verb', event.type, CLRecipe.get_verb_iri(verb)))
+        # Repository url and name
+        other_context_list.append(get_other_contextActivity(
+            repo_url, 'Object', repo_name, CLRecipe.get_verb_iri(verb)))
+        # Import head repository
+        other_context_list.append(get_other_contextActivity(
+            head_repo_url, 'Object', head_repo_name, CLRecipe.get_verb_iri(verb)))
+        # Import the pull rquest message body
+        # Title is required when user create issue, but body (message) is optional, and thus it is imported as additional data
+        other_context_list.append(get_other_contextActivity(
+            pr_url, 'Object', body, CLRecipe.get_verb_iri(verb)))
         
-        # other_context_list = get_other_contextActivity(
-        #     pr_url, 'Verb', body, 
-        #     CLRecipe.get_verb_iri(CLRecipe.VERB_COMMENTED))
-        # other_context_list = [other_context_list]
-
         if username_exists(author_id, course_code, self.platform.lower()):
-            usr_dict = get_userdetails(author_id, self.platform.lower())
-            # cla_userame = get_username_fromsmid(author_id, self.platform.lower())
-
-            # 
-            # TODO: Implement import method. 
-            #       Verb-> open/close, Object->review?? task??
-            #       
-            # insert_comment(usr_dict, issue_url, iss_comment_url, 
-            #     body, author_id, cla_userame,
-            #     date, course_code, self.platform, author_homepage,
-            #     author_id, author_id, other_contexts = other_context_list)
+            usr_dict = ClaUserUtil.get_user_details_by_smid(author_id, self.platform)
+            ###
+            ### TODO: Select (or create) appropriate object type (review isn't quite appropriate to represent PR)
+            ### 
+            insert_issue(usr_dict, pr_url, verb, CLRecipe.OBJECT_REVIEW, 
+                CLRecipe.OBJECT_COLLECTION, title, author_name, author_id, date, 
+                course_code, repo_url, self.platform, event.id, author_homepage,
+                shared_displayname = repo_name, other_contexts = other_context_list)
 
 
     ###################################################################
@@ -362,6 +367,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     #   See @ http://pygithub.readthedocs.org/en/stable/index.html
     ###################################################################
     def import_commits_from_all_branches(self, course_code, repo_url, repo_name, repo):
+        print "Commit data import begins....."
         # Import data from all branches in the repository
         branches = repo.get_branches()
         for branch in branches:
@@ -380,7 +386,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 # The content in next page needs to be retrieved
                 # to know that there are still records to be imported.
                 count = count + 1
-                commit_list = repo.get_commits().get_page(count)
+                commit_list = repo.get_commits(sha = branch.name).get_page(count)
                 temp = list(commit_list)
                 #print "# of content in repo.get_commits().get_page(" + str(count) + ") = " + str(len(temp))
                 #If length is 0, it means that no commit data is left.
@@ -388,6 +394,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     #Break from while
                     break
 
+        print "Commit data import done."
 
     def import_commits(self, commit, course_code, repo_url, repo_name):
         author_id = ''
@@ -431,7 +438,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         # commit_sha = commit.sha
 
         # create other context activity value
-        print 'Commit change :%d, add: %d, del: %d' % (commit.stats.total, commit.stats.additions, commit.stats.deletions)
+        print 'Commit changes :%d, adds: %d, dels: %d' % (commit.stats.total, commit.stats.additions, commit.stats.deletions)
         total_list = []
         total_list.append(str(commit.stats.total))
         total_list.append(str(commit.stats.additions))
@@ -453,13 +460,13 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         other_context_list.append(get_other_contextActivity(
             repo_url, 'Object', repo_name,
             CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED)))
-        # Total number of changes, additions and deletions
-        other_context_list.append(get_other_contextActivity(
-            commit_url, 'Object', ','.join(total_list),
-            CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED)))
         # Commttied file names
         other_context_list.append(get_other_contextActivity(
             commit_url, 'Object', ','.join(filename_list),
+            CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED)))
+        # Total number of changes, additions and deletions
+        other_context_list.append(get_other_contextActivity(
+            commit_url, 'Object', ','.join(total_list),
             CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED)))
         # Additions of each file
         other_context_list.append(get_other_contextActivity(
@@ -510,13 +517,16 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         other_context_list = []
         # Import file status
         other_context_list.append(get_other_contextActivity(
-            commit_url, 'Verb', file.status, CLRecipe.get_verb_iri(verb)))
+            file_url, 'Verb', file.status, CLRecipe.get_verb_iri(verb)))
         # Commit url and title
         other_context_list.append(get_other_contextActivity(
             commit_url, 'Object', commit_title, CLRecipe.get_verb_iri(verb)))
         # Repository url and name
         other_context_list.append(get_other_contextActivity(
             repo_url, 'Object', repo_name, CLRecipe.get_verb_iri(verb)))
+        # File name
+        other_context_list.append(get_other_contextActivity(
+            file_url, 'Object', file.filename, CLRecipe.get_verb_iri(verb)))
         # Total number of lines changed 
         other_context_list.append(get_other_contextActivity(
             file_url, 'Object', str(file.changes), CLRecipe.get_verb_iri(verb)))
