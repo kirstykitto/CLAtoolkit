@@ -1106,10 +1106,14 @@ def get_platform_activity_dataset(course_code, platforms, username=None):
             'details': detail_data
         }
 
+    # set total activities of each platform
+    platform_dataset['total'] = {
+        'total': platform_count_data
+    }
     # Set total
-    platform_dataset['total'] = platform_count_data
+    # platform_dataset['total'] = platform_count_data
     ret = OrderedDict ([
-            ('platforms', platforms),
+            # ('platforms', platforms),
             ('charts', platform_dataset)
     ])
 

@@ -715,7 +715,7 @@ def get_platform_timeseries_data(request):
 
     context = RequestContext(request)
     # TODO: Get available platforms in the course dynamically
-    platform_names = ["Trello"] #, "GitHub"]
+    platform_names = ["Trello", "GitHub"]
     val = get_platform_timeseries_dataset(request.GET.get('course_code'), platform_names = platform_names)
     response = JsonResponse(val, status=status.HTTP_200_OK)
     return response

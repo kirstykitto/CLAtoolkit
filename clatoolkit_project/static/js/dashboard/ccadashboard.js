@@ -40,12 +40,12 @@ Common.insertRadioButtonTags = function() {
 	if(platform.split(',').length > 1) {
 		var radio = Common.createRadioButtonTag(CLAChart.DATA_TYPE_TOTAL, CLAChart.DATA_TYPE_TOTAL);
 		var label = Common.createLabelTag(CLAChart.DATA_TYPE_TOTAL, "Total");
-		Common.setRadioButtonCheckedChangeEventHandler(CLAChart.DATA_TYPE_TOTAL);
 		var spanTag = $(Common.HTML_TAG_SPAN);
 		$(spanTag).append(radio);
 		$(spanTag).append(label);
 		$("#platform-changer").append(spanTag);
 		$("#" + CLAChart.DATA_TYPE_TOTAL).attr("checked", true);
+		Common.setRadioButtonCheckedChangeEventHandler(CLAChart.DATA_TYPE_TOTAL);
 
 		// Insert radio button for platform
 		var platforms = platform.split(',');
@@ -55,8 +55,8 @@ Common.insertRadioButtonTags = function() {
 			spanTag = $(Common.HTML_TAG_SPAN);
 			$(spanTag).append(radio);
 			$(spanTag).append(label);
-			Common.setRadioButtonCheckedChangeEventHandler(platforms[key]);
 			$("#platform-changer").append(spanTag);
+			Common.setRadioButtonCheckedChangeEventHandler(platforms[key]);
 		}
 	}
 };
@@ -79,14 +79,32 @@ Common.setRadioButtonCheckedChangeEventHandler = function (tagId) {
 };
 Common.redrawAll = function (input) {
 	var platform = input.value;
+	var newDataType = input.value == CLAChart.DATA_TYPE_TOTAL ? CLAChart.DATA_TYPE_TOTAL : CLAChart.DATA_TYPE_OVERVIEW;
 	for(key in chartObjDict) {
 		var chartObj = chartObjDict[key];
-		var chart = chartObj.getChartData(platform, chartObj.dataType);
-		chartObj.redraw(chart, chartObj.dataType, true, startUTCDate, endUTCDate);
+		var chart = chartObj.getChartData(platform, newDataType);
+		chartObj.redraw(chart, newDataType, true, startUTCDate, endUTCDate);
 	}
-	var chart = chartObjDict[platform];
-	var chart = chartObj.getChartData(platform, chartObj.dataType);
-	chartObj.redraw(chart, chartObj.dataType, true, startUTCDate, endUTCDate);
+	// var chart = chartObjDict[platform];
+	// var chart = chartObj.getChartData(platform, chartObj.dataType);
+	// chartObj.redraw(chart, chartObj.dataType, true, startUTCDate, endUTCDate);
+};
+Common.getSelectedPlatform = function () {
+	var ret = CLAChart.DATA_TYPE_TOTAL;
+	try {
+		ret = $('input[name=platform]:checked').val();
+	} catch (e) {
+		console.log(e);
+	}
+	return ret;
+};
+Common.getDataTypeBySelectedPlatform = function () {
+	var platform = Common.getSelectedPlatform();
+	var ret = CLAChart.DATA_TYPE_TOTAL;
+	if(platform != CLAChart.DATA_TYPE_TOTAL) {
+		ret = CLAChart.DATA_TYPE_OVERVIEW;
+	}
+	return ret;
 };
 
 /**
@@ -99,11 +117,11 @@ CLAChart = function(renderTo, chartType, url) {
 	this.url = url;
 	this.name = "CLAChart";
 	// this.platforms = null; // All platforms
-	this.selectedPlatform = null; // Platform name that user clicked on chart
+	// this.selectedPlatform = null; // Platform name that user clicked on chart
 	this.charts = []; // All data sent from the server
 	this.series = []; // Current series
 	this.categories = []; // Current categories
-	this.dataType = CLAChart.DATA_TYPE_TOTAL // Current data type
+	// this.dataType = CLAChart.DATA_TYPE_TOTAL // Current data type
 };
 
 CLAChart.DATA_TYPE_TOTAL = "total";
@@ -118,17 +136,21 @@ CLAChart.prototype.createSeries = function(data, checkDate, start, end) {
 	var charts = data["charts"];
 	// Keep the data for later use
 	this.charts = charts;
-	var platforms = platform.split(',');
-	if (platforms.length > 1) {
-		this.series = this.createSeriesByChart(charts[CLAChart.DATA_TYPE_TOTAL], checkDate, start, end);
-		this.categories = charts[CLAChart.DATA_TYPE_TOTAL]["categories"] ? charts[CLAChart.DATA_TYPE_TOTAL]["categories"] : [];
-	} else {
-		var name = platforms[0];
-		this.dataType = CLAChart.DATA_TYPE_OVERVIEW;
-		this.selectedPlatform = name;
-		this.series = this.createSeriesByChart(this.charts[name][this.dataType], checkDate, start, end);
-		this.categories = charts[name][this.dataType]["categories"] ? charts[name][this.dataType]["categories"] : [];
-	}
+	// var platforms = platform.split(',');
+	var selectedPlatform = Common.getSelectedPlatform();
+	var dataType = Common.getDataTypeBySelectedPlatform();
+	// if (platforms.length > 1) {
+	// 	this.series = this.createSeriesByChart(charts[CLAChart.DATA_TYPE_TOTAL], checkDate, start, end);
+	// 	this.categories = charts[CLAChart.DATA_TYPE_TOTAL]["categories"] ? charts[CLAChart.DATA_TYPE_TOTAL]["categories"] : [];
+	// } else {
+	// 	var name = platforms[0];
+	// 	this.dataType = CLAChart.DATA_TYPE_OVERVIEW;
+	// 	this.selectedPlatform = name;
+	// 	this.series = this.createSeriesByChart(this.charts[name][this.dataType], checkDate, start, end);
+	// 	this.categories = charts[name][this.dataType]["categories"] ? charts[name][this.dataType]["categories"] : [];
+	// }
+	this.series = this.createSeriesByChart(this.charts[selectedPlatform][dataType], checkDate, start, end);
+	this.categories = charts[selectedPlatform][dataType]["categories"] ? charts[selectedPlatform][dataType]["categories"] : [];
 };
 CLAChart.prototype.initializeChart = function(data) {		
 	this.createSeries(data, false, null, null);
@@ -137,7 +159,7 @@ CLAChart.prototype.initializeChart = function(data) {
 	$("#" + this.renderTo).highcharts(options);
 };
 CLAChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
-	if(chart == null) return;
+	if(chart == null || chart.length == 0) return;
 
 	this.dataType = dataType;
 	this.series = this.createSeriesByChart(chart, checkDate, start, end);
@@ -148,6 +170,7 @@ CLAChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
 	for(key in this.series) {
 		seriesList.push(this.series[key]);
 	}
+	if (seriesList.length == 0) return;
 
 	if(seriesList.length > highChart.series.length) {
 		for(key in seriesList) {
@@ -204,13 +227,13 @@ CLAChart.prototype.isValidDate = function(utcDate, start, end) {
 CLAChart.prototype.countTotalActivities = function(series, checkDate, start, end, countable) {
 	var total = 0;
 	if(series == null || series.length == 0) return total;
-	var self = this;
+	// var self = this;
 	if(checkDate) {
 		for(var i = 0; i < series["date"].length; i++) {
 			var d = series["date"][i].split(",");
 			var utcDate = Date.UTC(d[0], d[1], d[2]);
 			// Add value when startDate <= value >= endDate
-			if(self.isValidDate(utcDate, start, end)) {
+			if(this.isValidDate(utcDate, start, end)) {
 				if(countable) {
 					total += series["values"][i];
 				} else {
@@ -270,17 +293,18 @@ CLAChart.prototype.getParentObjectName = function(objectMapper, objectName) {
 };
 CLAChart.prototype.getChartData = function(platform, dataType) {
 	var data = [];
-	if(dataType == "") data;
-
-	if(dataType == CLAChart.DATA_TYPE_TOTAL) {
-		data = this.charts[dataType];
-	} else {
-		if(platform == "") {
-			return data;
-		}
-		data = this.charts[platform][dataType];
-	}
-	return data;
+	if(dataType == "" || platform == "") return data;
+	if(this.charts.length == 0) return data;
+	// if(dataType == CLAChart.DATA_TYPE_TOTAL) {
+	// 	data = this.charts[dataType];
+	// } else {
+	// 	if(platform == "") {
+	// 		return data;
+	// 	}
+	// 	data = this.charts[platform][dataType];
+	// }
+	// return data;
+	return this.charts[platform][dataType];
 };
 CLAChart.prototype.formatDate = function(dateString) {
 	var date = dateString.split(',');
@@ -380,34 +404,34 @@ CLAPieChart.prototype.createOptions = function() {
 	// options.plotOptions.series = this.getPointOptions(this.dataType);
 	return options;
 };
-CLAPieChart.prototype.getPointOptions = function(dataType) {
-	var self = this;
-	var options = {
-		point: {
-			events: {
-				click: function() {
-					self.selectedPlatform = this.name;
-					self.redrawByPoint(this, startUTCDate, endUTCDate); //this = point object
-				}
-			}
-		}
-	}
-	return options;
-};
-CLAPieChart.prototype.redrawByPoint = function(point, start, end) {
-	var chart = null;
-	var newDataType = CLAChart.DATA_TYPE_TOTAL;
-	// When total data is currently shown in the chart, redraw (re-instanciate) chart with overview data
-	if(this.dataType == CLAChart.DATA_TYPE_TOTAL) {
-		this.selectedPlatform = point.name;
-		newDataType = CLAChart.DATA_TYPE_OVERVIEW; // Set details to draw double pie chart
-		chart = this.getChartData(this.selectedPlatform, CLAChart.DATA_TYPE_OVERVIEW);
-	} else {
-		newDataType = CLAChart.DATA_TYPE_TOTAL;
-		chart = this.getChartData(null, CLAChart.DATA_TYPE_TOTAL);
-	}
-	this.redraw(chart, newDataType, true, start, end);
-};
+// CLAPieChart.prototype.getPointOptions = function(dataType) {
+// 	// var self = this;
+// 	// var options = {
+// 	// 	point: {
+// 	// 		events: {
+// 	// 			click: function() {
+// 	// 				self.selectedPlatform = this.name;
+// 	// 				self.redrawByPoint(this, startUTCDate, endUTCDate); //this = point object
+// 	// 			}
+// 	// 		}
+// 	// 	}
+// 	// }
+// 	// return options;
+// };
+// CLAPieChart.prototype.redrawByPoint = function(point, start, end) {
+// 	// var chart = null;
+// 	// var newDataType = CLAChart.DATA_TYPE_TOTAL;
+// 	// // When total data is currently shown in the chart, redraw (re-instanciate) chart with overview data
+// 	// if(this.dataType == CLAChart.DATA_TYPE_TOTAL) {
+// 	// 	this.selectedPlatform = point.name;
+// 	// 	newDataType = CLAChart.DATA_TYPE_OVERVIEW; // Set details to draw double pie chart
+// 	// 	chart = this.getChartData(this.selectedPlatform, CLAChart.DATA_TYPE_OVERVIEW);
+// 	// } else {
+// 	// 	newDataType = CLAChart.DATA_TYPE_TOTAL;
+// 	// 	chart = this.getChartData(null, CLAChart.DATA_TYPE_TOTAL);
+// 	// }
+// 	// this.redraw(chart, newDataType, true, start, end);
+// };
 CLAPieChart.prototype.getObjectDisplayName = function(objectMapper, objectName) {
 	if(objectMapper == null || objectMapper.length == 0 || objectName == null) {
 		return objectName;
@@ -441,6 +465,7 @@ CLAPieChart.prototype.createSeriesWithColors = function(chart, checkDate, start,
 	var categories = chart["categories"];
 	var countable = chart["countable"];
 	var chartData = chart["data"];
+	var dataType = Common.getDataTypeBySelectedPlatform();
 	for(var i = 0; i < categories.length; i++) {
 		if (i > 0) {
 			posX += CLAPieChartOptions.PIE_OFFSET;
@@ -458,21 +483,26 @@ CLAPieChart.prototype.createSeriesWithColors = function(chart, checkDate, start,
 				name: dispName,
 				y: total
 			};
-			var isBright = this.dataType == CLAChart.DATA_TYPE_TOTAL ? false : true;
+			// var isBright = this.dataType == CLAChart.DATA_TYPE_TOTAL ? false : true;
+			var isBright = dataType == CLAChart.DATA_TYPE_TOTAL ? false : true;
 			newData["color"] = this.getChartColorByName(colors, seriesName[j], isBright);
 			dataset.push(newData);
 		}
 		var diameter = CLAPieChartOptions.PIE_DIAMETER_OUTER;
-		if(this.dataType != CLAChart.DATA_TYPE_TOTAL) {
+		if(dataType != CLAChart.DATA_TYPE_TOTAL) {
 			// diameter = this.dataType == CLAChart.DATA_TYPE_DETAILS ? CLAPieChartOptions.PIE_DIAMETER_OUTER : CLAPieChartOptions.PIE_DIAMETER_INNER;
 			diameter = CLAPieChartOptions.PIE_DIAMETER_INNER;
 		}			
 		newSeries = CLAPieChartOptions.getSeriesOptions(cate, posX, diameter, dataset);
 		allSeries.push(newSeries);
 	}
-	if(this.dataType == CLAChart.DATA_TYPE_OVERVIEW || this.dataType == CLAChart.DATA_TYPE_DETAILS) {
+
+	var selectedPlatform = Common.getSelectedPlatform();
+	// if(dataType == CLAChart.DATA_TYPE_OVERVIEW || dataType == CLAChart.DATA_TYPE_DETAILS) {
+	if(this.chartType == CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE
+		&& dataType == CLAChart.DATA_TYPE_OVERVIEW) {
 		var detailsSeries = this.createDetailsChartSeries(
-							this.charts[this.selectedPlatform][CLAChart.DATA_TYPE_DETAILS],
+							this.charts[selectedPlatform][CLAChart.DATA_TYPE_DETAILS],
 							checkDate, start, end, colors);
 		$.merge(allSeries, detailsSeries);
 	}
@@ -488,6 +518,7 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 	var seriesName = detailsChart["seriesName"];
 	var categories = detailsChart["categories"];
 	var chartData = detailsChart["data"];
+	var dataType = Common.getDataTypeBySelectedPlatform();
 
 	for(var i = 0; i < categories.length; i++) {
 		dataset = [];
@@ -526,7 +557,7 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 		}
 
 		newSeries = CLAPieChartOptions.getSeriesOptions(cate, posX, CLAPieChartOptions.PIE_DIAMETER_OUTER, dataset);
-		if(this.dataType == CLAChart.DATA_TYPE_OVERVIEW || this.dataType == CLAChart.DATA_TYPE_DETAILS) {
+		if(dataType == CLAChart.DATA_TYPE_OVERVIEW || dataType == CLAChart.DATA_TYPE_DETAILS) {
 			newSeries.innerSize = CLAPieChartOptions.PIE_DIAMETER_INNER;
 			newSeries.dataLabels = {
 				formatter: function () {
@@ -593,33 +624,33 @@ CLABarChart.prototype.createOptions = function() {
 	// options.plotOptions.column.point = this.getPointOptions(this.dataType);
 	return options;
 };
-CLABarChart.prototype.getPointOptions = function(dataType) {
-	var self = this;
-	var options = {
-		events: {
-			click: function () {
-				self.selectedPlatform = this.series.name;
-				self.redrawByPoint(this, startUTCDate, endUTCDate);
-			}
-		}
-	}
-	return options;
-};
-CLABarChart.prototype.redrawByPoint = function(point, start, end) {
-	var chart = null;
-	var newDataType = CLAChart.DATA_TYPE_TOTAL;
-	// When total data is currently shown in the chart, redraw (re-instanciate) chart with overview data
-	if(this.dataType == CLAChart.DATA_TYPE_TOTAL) {
-		this.selectedPlatform = point.series.name;
-		newDataType = CLAChart.DATA_TYPE_OVERVIEW;
-		chart = this.getChartData(this.selectedPlatform, CLAChart.DATA_TYPE_OVERVIEW);
-	} else {
-		newDataType = CLAChart.DATA_TYPE_TOTAL;
-		chart = this.getChartData(null, CLAChart.DATA_TYPE_TOTAL);
-	}
-	this.redraw(chart, newDataType, true, start, end);
-	this.dataType = newDataType;
-};
+// CLABarChart.prototype.getPointOptions = function(dataType) {
+// 	// var self = this;
+// 	// var options = {
+// 	// 	events: {
+// 	// 		click: function () {
+// 	// 			self.selectedPlatform = this.series.name;
+// 	// 			self.redrawByPoint(this, startUTCDate, endUTCDate);
+// 	// 		}
+// 	// 	}
+// 	// }
+// 	// return options;
+// };
+// CLABarChart.prototype.redrawByPoint = function(point, start, end) {
+// 	// var chart = null;
+// 	// var newDataType = CLAChart.DATA_TYPE_TOTAL;
+// 	// // When total data is currently shown in the chart, redraw (re-instanciate) chart with overview data
+// 	// if(this.dataType == CLAChart.DATA_TYPE_TOTAL) {
+// 	// 	this.selectedPlatform = point.series.name;
+// 	// 	newDataType = CLAChart.DATA_TYPE_OVERVIEW;
+// 	// 	chart = this.getChartData(this.selectedPlatform, CLAChart.DATA_TYPE_OVERVIEW);
+// 	// } else {
+// 	// 	newDataType = CLAChart.DATA_TYPE_TOTAL;
+// 	// 	chart = this.getChartData(null, CLAChart.DATA_TYPE_TOTAL);
+// 	// }
+// 	// this.redraw(chart, newDataType, true, start, end);
+// 	// this.dataType = newDataType;
+// };
 
 
 
@@ -715,9 +746,12 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 					endUTCDate = e.max;
 					for(key in chartObjDict) {
 						var chartObj = chartObjDict[key];
-						var chart = chartObj.getChartData(chartObj.selectedPlatform, chartObj.dataType);
-						// Keep the values in global vals
-						chartObj.redraw(chart, chartObj.dataType, true, e.min, e.max);
+						var dataType = Common.getDataTypeBySelectedPlatform();
+						var selectedPlatform = Common.getSelectedPlatform();
+						// var chart = chartObj.getChartData(chartObj.selectedPlatform, chartObj.dataType);
+						var chart = chartObj.getChartData(selectedPlatform, dataType);
+						// chartObj.redraw(chart, chartObj.dataType, true, e.min, e.max);
+						chartObj.redraw(chart, dataType, true, e.min, e.max);
 					}
 				}
 			}
@@ -791,12 +825,13 @@ CLABarChartOptions.prototype.getOptions = function () {
 
 
 CLAPieChartOptions = function(renderTo, chartType) {
-	if(chartType != CLAPieChartOptions.CHART_TYPE_PIE) {
+	if(chartType != CLAPieChartOptions.CHART_TYPE_PIE && chartType != CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE) {
 		throw Error("Invalid chart type: " + chartType);
 	}
 	CLAChartOptions.call(this, renderTo, chartType);
 };
 CLAPieChartOptions.CHART_TYPE_PIE = "pie";
+CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE = "doublePie";
 CLAPieChartOptions.PIE_OFFSET = 410;
 CLAPieChartOptions.PIE_INIT_POSITION_X = 140;
 CLAPieChartOptions.PIE_DIAMETER_INNER = 140;
@@ -806,9 +841,13 @@ CLAPieChartOptions.CHART_COLOR_BRIGHTNESS = 0.2;
 Common.inherit(CLAPieChartOptions, CLAChartOptions);
 
 CLAPieChartOptions.prototype.getOptions = function() {
+	var chartType = this.chartType;
+	if (this.chartType == CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE) {
+		chartType = CLAPieChartOptions.CHART_TYPE_PIE;
+	}
 	var options = {
 		chart: {
-			type: this.chartType,
+			type: chartType,
 			width: $("#" + this.renderTo).width()
 		},
 		title: {
@@ -947,12 +986,13 @@ CLAHeatmapOptions.prototype.getOptions = function () {
 
 
 $(document).ready(function(){
+	Common.initialise();
 	// Draw the navigator
 	var url = "/dashboard/api/get_platform_timeseries_data/?course_code=" + course_code + "&platform=" + platform;
 	var navChart = new CLANavigatorChart("chartNavigator", url);
 	url = "/dashboard/api/get_platform_activities/?course_code=" + course_code + "&platform=" + platform;
 	var barChart = new CLABarChart("activityColumn", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NORMAL, url);
-	var pieChart = new CLAPieChart("activityPie", CLAPieChartOptions.CHART_TYPE_PIE, url);
+	var pieChart = new CLAPieChart("activityPie", CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE, url);
 	CLAChart.saveChartObject(barChart);
 	CLAChart.saveChartObject(pieChart);
 
@@ -963,5 +1003,5 @@ $(document).ready(function(){
 	// var heatmap = new CLAHeatmap("activityHeatmap", url);
 	// CLAChart.saveChartObject(heatmap);
 	// heatmap.draw();
-	Common.initialise();
+	// Common.initialise();
 });

@@ -34,7 +34,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     xapi_verbs_to_includein_verbactivitywidget = ['created', 'added', 'removed', 'updated', 'commented']
 
     ### Activity type
-    GITHUB_ACTIVITY_TYPE_COMMIT = 'Commit'
+    ACTIVITY_TYPE_COMMIT = 'Commit'
 
     ### Event types
     EVENT_TYPE_ISSUES = 'IssuesEvent'
@@ -56,8 +56,9 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     FILE_STATUS_MODIFIED = 'modified'
     FILE_STATUS_REMOVED = 'removed'
 
-
     VERB_OBJECT_MAPPER = {}
+
+    SEPARATOR_HTML_TAG_BR = "<br>"
 
     def __init__(self):
         pass
@@ -454,19 +455,19 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         other_context_list = []
         # Import event type
         other_context_list.append(get_other_contextActivity(
-            commit_url, 'Verb', self.GITHUB_ACTIVITY_TYPE_COMMIT, 
+            commit_url, 'Verb', self.ACTIVITY_TYPE_COMMIT, 
             CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED)))
         # Repository url and name
         other_context_list.append(get_other_contextActivity(
             repo_url, 'Object', repo_name,
             CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED)))
-        # Commttied file names
-        other_context_list.append(get_other_contextActivity(
-            commit_url, 'Object', ','.join(filename_list),
-            CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED)))
         # Total number of changes, additions and deletions
         other_context_list.append(get_other_contextActivity(
             commit_url, 'Object', ','.join(total_list),
+            CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED)))
+        # Commttied file names
+        other_context_list.append(get_other_contextActivity(
+            commit_url, 'Object', ','.join(filename_list),
             CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED)))
         # Additions of each file
         other_context_list.append(get_other_contextActivity(
@@ -577,6 +578,60 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         
         return verb, val
 
+
+    def get_detail_values_by_fetch_results(self, result):
+        all_rows = []
+        for row in result:
+            single_row = []
+            single_row.append(row[0]) # user name
+            single_row.append(self.get_activity_type_from_context(row[2])) # Get GitHub event type (or status)
+            single_row.append(row[3]) # date
+            single_row.append(self.get_object_values_from_context(row)) # object values
+            all_rows.append(single_row)
+
+        return all_rows
+        
+    def get_activity_type_from_context(self, json):
+        return json[0]['definition']['name']['en-US']
+
+
+    def get_object_values_from_context(self, row):
+        action = self.get_activity_type_from_context(row[2])
+        if len(row[2]) <= 1:
+            return row[4]
+
+        object_val = row[4]
+        contexts = row[2]
+        value = ''
+        index = 1
+        if action == self.ACTIVITY_TYPE_COMMIT:
+            value = 'Commit %s in %s' % (
+                self.italicize(object_val), 
+                self.italicize(contexts[1]['definition']['name']['en-US'])) # Repository name
+
+            change_lines = contexts[2]['definition']['name']['en-US'].split(',')
+            filenames = contexts[3]['definition']['name']['en-US'].split(',')
+            value = value + 'Committed files: %s - additions: %s deletions:%s total: %s' % (
+                str(len(filenames)), change_lines[1], change_lines[2], change_lines[0])
+
+            adds = contexts[4]['definition']['name']['en-US'].split(',')
+            dels = contexts[5]['definition']['name']['en-US'].split(',')
+            i = 0
+            for name in filenames:
+                value = value + self.SEPARATOR_HTML_TAG_BR
+                value = value + '%s - add: %s del: %s' % (self.italicize(name), adds[i], dels[i])
+
+        else:
+            value = self.italicize(object_val)
+
+        return value
+
+
+    def italicize(self, value):
+        return '<i>%s</i>' % (value)
+
+    def replace_linechange_with_br_tag(self, target):
+        return target.replace('\n','<br>')
 
 
 registry.register(GithubPlugin)
