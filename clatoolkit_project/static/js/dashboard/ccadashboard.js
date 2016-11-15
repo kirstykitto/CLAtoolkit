@@ -106,7 +106,9 @@ Common.getDataTypeBySelectedPlatform = function () {
 	}
 	return ret;
 };
-
+Common.saveChartObject = function(objInstance) {
+	chartObjDict[objInstance.renderTo] = objInstance;
+};
 /**
  * CLAChart Constructor
  * @param {string} renderTo
@@ -116,21 +118,19 @@ CLAChart = function(renderTo, chartType, url) {
 	this.chartType = chartType;
 	this.url = url;
 	this.name = "CLAChart";
-	// this.platforms = null; // All platforms
-	// this.selectedPlatform = null; // Platform name that user clicked on chart
 	this.charts = []; // All data sent from the server
 	this.series = []; // Current series
 	this.categories = []; // Current categories
-	// this.dataType = CLAChart.DATA_TYPE_TOTAL // Current data type
+	this.isMonochrome = false;
 };
 
 CLAChart.DATA_TYPE_TOTAL = "total";
 CLAChart.DATA_TYPE_OVERVIEW = "overview";
 CLAChart.DATA_TYPE_DETAILS = "details";
-CLAChart.saveChartObject = function(objInstance) {
-	chartObjDict[objInstance.renderTo] = objInstance;
-};
 
+CLAChart.prototype.setMonochrome = function(isMonochrome) {
+	this.isMonochrome = isMonochrome;
+}
 CLAChart.prototype.createSeries = function(data, checkDate, start, end) {
 	if(data == null) return null;
 	var charts = data["charts"];
@@ -259,13 +259,25 @@ CLAChart.prototype.createChartColors = function(series) {
 	var colors = Highcharts.getOptions().colors;
 	if (series == null || series.length == 0) return colors;
 
-	var colorIndex = 0;
 	var ret = [];
-	$.each(series, function(key, name) {
-		obj = { name: name, color: colors[colorIndex % colors.length] };
-		ret.push(obj);
-		colorIndex++;
-	});
+	if(this.isMonochrome) {
+		base = colors[0];
+		for (i = 0; i < series.length; i++) {
+		// $.each(series, function(key, name) {
+			// Start with a darker color, and color becomes brighter
+			var color = Highcharts.Color(base).brighten((i - 3) / series.length).get();
+			var obj = { name: series[i], color: color };
+			// var obj = { name: series[i], color: '#5891C8' };
+			ret.push(obj);
+		}
+	} else {
+		var colorIndex = 0;
+		$.each(series, function(key, name) {
+			var obj = { name: name, color: colors[colorIndex % colors.length] };
+			ret.push(obj);
+			colorIndex++;
+		});
+	}
 	return ret;
 };
 CLAChart.prototype.getChartColorByName = function(colors, objectName, isBrighter) {
@@ -311,7 +323,19 @@ CLAChart.prototype.formatDate = function(dateString) {
 	// Date month start at 0, so add 1 to show correct month
 	var month = parseInt(date[1]) + 1;
 	return date[2] + "/" + month.toString() + "/" + date[0];
-}
+};
+CLAChart.prototype.getTitle = function() {
+	var selectedPlatform = Common.getSelectedPlatform();
+	var dataType = Common.getDataTypeBySelectedPlatform();
+	var chart = this.getChartData(selectedPlatform, dataType);
+	return chart.title;
+};
+CLAChart.prototype.getYAxisTitle = function() {
+	var selectedPlatform = Common.getSelectedPlatform();
+	var dataType = Common.getDataTypeBySelectedPlatform();
+	var chart = this.getChartData(selectedPlatform, dataType);
+	return chart.yAxis.title;
+};
 
 
 
@@ -616,14 +640,15 @@ CLABarChart.prototype.createSeriesByChart = function(chart, checkDate, start, en
 };
 CLABarChart.prototype.createOptions = function() {
 	var options = new CLABarChartOptions(this.renderTo, this.chartType, this.stacking).getOptions();
-	options.title.text = "Details of activities";
-	options.yAxis.title.text = "Details of activities";
+	options.title.text = this.getTitle();//"Details of activities";
+	options.yAxis.title.text = this.getYAxisTitle();//"Details of activities";
 	options.xAxis.categories = this.categories;
 	options.series = this.series;
-	options.plotOptions.column.cursor = 'pointer';
+	// options.plotOptions.column.cursor = 'pointer';
 	// options.plotOptions.column.point = this.getPointOptions(this.dataType);
 	return options;
 };
+
 // CLABarChart.prototype.getPointOptions = function(dataType) {
 // 	// var self = this;
 // 	// var options = {
@@ -809,19 +834,54 @@ CLABarChartOptions.prototype.getOptions = function () {
 			pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}',
 			style: { fontSize: '16px' },
 		},
-		plotOptions: {
-			column: {
-				stacking: this.stacking,
-				dataLabels: {
-					enabled: true,
-					color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white',
-					style: { textShadow: '0 0 3px black' }
-				}
-			}
-		}
+		plotOptions: {}
 	}; // End of this.options
+	this.createPlotOptions(options);
+	this.createTooltipOptions(options);
 	return options;
 };
+
+
+CLABarChartOptions.prototype.createTooltipOptions = function (options) {
+	var tooltipOptions = {};
+	if (this.chartType == CLABarChartOptions.CHART_TYPE_COLUMN) {
+		tooltipOptions = {
+			headerFormat: '<b>{point.x}</b><br/>',
+			pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}',
+			style: { fontSize: '16px' },
+		}
+	} else {
+		tooltipOptions = {
+			headerFormat: '<b>{series.name}</b><br/>',
+			pointFormat: 'Activities: {point.y}/{point.stackTotal}<br/>{point.percentage:.2f}%',
+			style: { fontSize: '16px' },
+		}
+	}
+	options.tooltip = tooltipOptions;
+	return options;
+};
+CLABarChartOptions.prototype.createPlotOptions = function (options) {
+	var plotOptions = {
+		stacking: this.stacking,
+		dataLabels: {
+			enabled: true,
+			color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white',
+			style: { textShadow: '0 0 3px black' },
+		}
+	}
+
+	if (this.chartType == CLABarChartOptions.CHART_TYPE_BAR) {
+		plotOptions.dataLabels.format = '{series.name}';//: {point.y}/{point.stackTotal}<br>{point.percentage:.2f}%';
+	}
+	if (this.chartType == CLABarChartOptions.CHART_TYPE_COLUMN) {
+		options.plotOptions.column = plotOptions;
+	} else {
+		options.plotOptions.series = plotOptions;
+	}
+	return options;
+};
+
+
 
 
 CLAPieChartOptions = function(renderTo, chartType) {
@@ -993,15 +1053,24 @@ $(document).ready(function(){
 	url = "/dashboard/api/get_platform_activities/?course_code=" + course_code + "&platform=" + platform;
 	var barChart = new CLABarChart("activityColumn", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NORMAL, url);
 	var pieChart = new CLAPieChart("activityPie", CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE, url);
-	CLAChart.saveChartObject(barChart);
-	CLAChart.saveChartObject(pieChart);
+	Common.saveChartObject(barChart);
+	Common.saveChartObject(pieChart);
 
 	barChart.draw();
 	pieChart.draw();
 	navChart.changeChartAreaVisibility("activities", true);
 	navChart.draw();
 	// var heatmap = new CLAHeatmap("activityHeatmap", url);
-	// CLAChart.saveChartObject(heatmap);
-	// heatmap.draw();
-	// Common.initialise();
+	// Common.saveChartObject(heatmap);
+	// // heatmap.draw();
+	// url = "/dashboard/api/get_user_acitivities/?course_code=" + course_code + "&platform=" + platform;
+	// var barChart2 = new CLABarChart("activityBar", CLABarChartOptions.CHART_TYPE_BAR, CLABarChartOptions.STACK_TYPE_PERCENT, url);
+	// // barChart2.setMonochrome(true);
+	// Common.saveChartObject(barChart2);
+	// barChart2.draw();
+
+	// var pieChart2 = new CLAPieChart("activityPie2", CLAPieChartOptions.CHART_TYPE_PIE, url);
+	// // pieChart2.setMonochrome(true);
+	// Common.saveChartObject(pieChart2);
+	// pieChart2.draw();
 });

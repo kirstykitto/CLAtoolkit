@@ -1081,7 +1081,21 @@ def get_platform_timeseries_dataset(course_code, platform_names, username=None):
 
     return OrderedDict([ ('series', series)])
 
+def get_user_acitivities_dataset(course_code, platforms, username=None):
+    platform_dataset = {}
 
+    platform_count_data = get_user_activity_count_chart_data(course_code, platforms, 
+        chart_title = 'Total number of activities', 
+        chart_yAxis_title = 'Total number of activities')
+
+    platform_dataset['total'] = {
+        'total': platform_count_data
+    }
+    # Set total
+    ret = OrderedDict ([
+            ('charts', platform_dataset)
+    ])
+    return ret
 
 def get_platform_activity_dataset(course_code, platforms, username=None):
     platform_dataset = {}
@@ -1135,6 +1149,13 @@ def get_platform_activity_data(course_code, platforms, chart_dataset, chart_type
             ('chatsTypes', chart_types)
     ])
     return val
+
+
+def get_user_activity_count_chart_data(course_code, platforms, chart_title = '', chart_yAxis_title = ''):
+    categories, all_data, series_names = get_user_activity_count(platforms, course_code)
+
+    return create_chart_data_obj(categories, series_names, all_data, chart_title = chart_title, 
+        chart_yAxis_title = chart_yAxis_title, show_table = 0, countable = 1)
 
 
 def get_object_values_chart_data(course_code, platform, chart_title = '', 
@@ -1319,13 +1340,46 @@ def get_verb_count(platform, course_code):
     """, [platform, course_code])
 
     result = cursor.fetchall()
-    categories, data = retrieve_data_from_rows(result)
+    categories, data, series_names = retrieve_data_from_rows(result)
     return categories, data
 
 
+def get_user_activity_count(platforms, course_code):
+    categories = []
+    data = {}
+    if platforms is None or len(platforms) == 0 or course_code is None or course_code == '':
+        return categories, data
+
+    cursor = connection.cursor()
+    platforms_str = ''
+    for p in platforms:
+        if platforms_str != '':
+            platforms_str = platforms_str + ', '
+        platforms_str = platforms_str + "'" + p + "'"
+
+    sql = """
+        select clatoolkit_learningrecord.xapi->'context'->>'platform' as platform
+        , username
+        --, verb
+        , to_char(to_date(clatoolkit_learningrecord.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
+        , count(verb)
+        from clatoolkit_learningrecord
+        where platform in ({})
+        and course_code = '{}'
+        group by clatoolkit_learningrecord.xapi->'context'->>'platform', username, /*verb,*/ date_imported
+        order by platform, username, /*verb,*/ date_imported desc
+    """.format(platforms_str, course_code)
+    cursor.execute(sql)
+
+    # print cursor.query
+    result = cursor.fetchall()
+    categories, data, series_names = retrieve_data_from_rows(result)
+    return categories, data, sorted(series_names)
+
+
 def get_platform_count(platforms, course_code):
-    # categories = []
-    # data = {}
+    categories = []
+    data = {}
     if platforms is None or len(platforms) == 0 or course_code is None or course_code == '':
         return categories, data
 
@@ -1350,7 +1404,7 @@ def get_platform_count(platforms, course_code):
 
     # print cursor.query
     result = cursor.fetchall()
-    categories, data = retrieve_data_from_rows(result)
+    categories, data, series_names = retrieve_data_from_rows(result)
     return categories, data
 
 
@@ -1452,6 +1506,7 @@ def get_object_values(platform, course_code):
 
 def retrieve_data_from_rows(result):
     categories = []
+    series_names = []
     data = {}
     username = ''
     series = {}
@@ -1471,6 +1526,8 @@ def retrieve_data_from_rows(result):
                     ('values', copy.deepcopy(values))
                 ])
                 series[val] = obj
+                if not val in series_names:
+                    series_names.append(val)
                 data[username] = series
 
             # Initialise all variables
@@ -1494,6 +1551,8 @@ def retrieve_data_from_rows(result):
                 ('values', copy.deepcopy(values))
             ])
             series[val] = obj
+            if not val in series_names:
+                series_names.append(val)
             val = row[1] # val
             dates = [dateString] # date
             values = [int(row[3])] # number of vals imported on the date
@@ -1505,9 +1564,11 @@ def retrieve_data_from_rows(result):
         ('values', copy.deepcopy(values))
     ])
     series[val] = obj
+    if not val in series_names:
+        series_names.append(val)
     data[username] = series
 
-    return categories, data
+    return categories, data, series_names
 
 
 # This returns all repository name that user has. 

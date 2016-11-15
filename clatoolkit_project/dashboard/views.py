@@ -712,8 +712,7 @@ def ccadata(request):
 
 @login_required
 def get_platform_timeseries_data(request):
-
-    context = RequestContext(request)
+    # context = RequestContext(request)
     # TODO: Get available platforms in the course dynamically
     platform_names = ["Trello", "GitHub"]
     val = get_platform_timeseries_dataset(request.GET.get('course_code'), platform_names = platform_names)
@@ -723,11 +722,18 @@ def get_platform_timeseries_data(request):
 
 @login_required
 def get_platform_activities(request):
-    context = RequestContext(request)
+    # context = RequestContext(request)
     # platform_names = []
     platform_names = request.GET.get('platform').split(',')
     
     val = get_platform_activity_dataset(request.GET.get('course_code'), platform_names)
+    response = JsonResponse(val, status=status.HTTP_200_OK)
+    return response
+
+
+def get_user_acitivities(request):
+    platform_names = request.GET.get('platform').split(',')
+    val = get_user_acitivities_dataset(request.GET.get('course_code'), platform_names)
     response = JsonResponse(val, status=status.HTTP_200_OK)
     return response
 
