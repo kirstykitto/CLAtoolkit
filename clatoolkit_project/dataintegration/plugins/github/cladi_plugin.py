@@ -298,7 +298,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             verb = CLRecipe.VERB_CLOSED
             evety_type = self.EVENT_TYPE_CLOSE_ISSUE
         elif action == self.ISSUE_STATUS_REOPENED:
-            verb = CLRecipe.VERB_CLOSED
+            verb = CLRecipe.VERB_OPENED
             evety_type = self.EVENT_TYPE_REOPEN_ISSUE
 
         print 'action: %s ..... verb: %s' % (action, verb)
@@ -685,21 +685,62 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         value = ''
         index = 1
         if action == self.EVENT_TYPE_COMMIT:
-            value = 'Commit %s in %s' % (
+            value = '%s in %s' % (
                 self.italicize(object_val), 
                 self.italicize(contexts[1]['definition']['name']['en-US'])) # Repository name
 
             change_lines = contexts[2]['definition']['name']['en-US'].split(',')
             filenames = contexts[3]['definition']['name']['en-US'].split(',')
-            value = value + 'Committed files: %s - additions: %s deletions:%s total: %s' % (
-                str(len(filenames)), change_lines[1], change_lines[2], change_lines[0])
+            value = value + self.SEPARATOR_HTML_TAG_BR
+            value = value + 'Committed %s files (lines changed: %s, add: %s del:%s)' % (
+                str(len(filenames)), change_lines[0], change_lines[1], change_lines[2])
 
             adds = contexts[4]['definition']['name']['en-US'].split(',')
             dels = contexts[5]['definition']['name']['en-US'].split(',')
             i = 0
             for name in filenames:
                 value = value + self.SEPARATOR_HTML_TAG_BR
-                value = value + '%s - add: %s del: %s' % (self.italicize(name), adds[i], dels[i])
+                value = value + '%s (add: %s del: %s)' % (self.italicize(name), adds[i], dels[i])
+
+        elif action == self.EVENT_TYPE_COMMIT_COMMENT or action == self.EVENT_TYPE_ISSUE_COMMENT:
+            value = 'Commented in %s' % self.italicize(contexts[1]['definition']['name']['en-US'])
+            value = value + self.SEPARATOR_HTML_TAG_BR
+            value = value + self.italicize(self.replace_linechange_with_br_tag(object_val))
+
+        elif action in [self.EVENT_TYPE_OPEN_PR, self.EVENT_TYPE_OPEN_ISSUE, self.EVENT_TYPE_REOPEN_ISSUE]:
+            # verb = 'Opened'
+            # if action == self.EVENT_TYPE_CLOSE_ISSUE:
+            #     verb = 'Closed'
+            value = "Opened %s in %s" % (self.italicize(object_val), self.italicize(contexts[1]['definition']['name']['en-US']))
+
+        elif action in [self.EVENT_TYPE_CLOSE_PR, self.EVENT_TYPE_CLOSE_ISSUE]:
+            # verb = 'Opened'
+            # if action == self.EVENT_TYPE_CLOSE_PR:
+            #     verb = 'Closed'
+            value = "Closed %s in %s" % (self.italicize(object_val), self.italicize(contexts[1]['definition']['name']['en-US']))
+
+        elif action in [self.EVENT_TYPE_ADD_FILE, self.EVENT_TYPE_UPDATE_FILE, self.EVENT_TYPE_REMOVE_FILE]:
+            verb = 'Added'
+            fine_name = ' %s (lines added: %s)' % (
+                self.italicize(contexts[3]['definition']['name']['en-US']),
+                contexts[4]['definition']['name']['en-US'])
+            commit_title = 'included: %s' % (self.italicize(contexts[1]['definition']['name']['en-US']))
+            if action == self.EVENT_TYPE_UPDATE_FILE:
+                verb = 'Updated'
+                fine_name = ' %s (lines changed: %s - add:%s, del:%s)' % (
+                    self.italicize(contexts[3]['definition']['name']['en-US']),
+                    contexts[4]['definition']['name']['en-US'],
+                    contexts[5]['definition']['name']['en-US'],
+                    contexts[6]['definition']['name']['en-US'])
+            if action == self.EVENT_TYPE_REMOVE_FILE:
+                verb = 'Removed'
+                fine_name = ' %s' % (self.italicize(contexts[3]['definition']['name']['en-US']))
+                commit_title = 'from: %s' % (self.italicize(contexts[1]['definition']['name']['en-US']))
+            
+            value = verb + fine_name + self.SEPARATOR_HTML_TAG_BR + commit_title
+
+        elif action == self.EVENT_TYPE_ASSIGN_MEMBER:
+            value = 'Added %s to %s' % (self.italicize(object_val), self.italicize(contexts[1]['definition']['name']['en-US']))
 
         else:
             value = self.italicize(object_val)

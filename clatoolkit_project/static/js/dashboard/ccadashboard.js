@@ -780,7 +780,7 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 		},
 		navigator: { height: 35 },
 		exporting: { enabled: false },
-		rangeSelector : { enabled: true, selected: 0, inputDateFormat: '%d/%m/%Y'},
+		rangeSelector : { enabled: true, selected: 5, inputDateFormat: '%d/%m/%Y'},
 		title : { enabled: false },
 		yAxis: {
 			height: 0,
