@@ -33,14 +33,24 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     xapi_objects_to_includein_platformactivitywidget = ['Collection', 'file', 'comment']
     xapi_verbs_to_includein_verbactivitywidget = ['created', 'added', 'removed', 'updated', 'commented']
 
-    ### Activity type
-    ACTIVITY_TYPE_COMMIT = 'Commit'
 
     ### Event types
     EVENT_TYPE_ISSUES = 'IssuesEvent'
     EVENT_TYPE_PR = 'PullRequestEvent'
     EVENT_TYPE_COMMIT_COMMENT = 'CommitCommentEvent'
     EVENT_TYPE_ISSUE_COMMENT = 'IssueCommentEvent'
+
+    ### These re defined for the CLA toolkit. These don't exist in GitHub API
+    EVENT_TYPE_OPEN_ISSUE = 'OpenIssue'
+    EVENT_TYPE_REOPEN_ISSUE = 'ReOpenIssue'
+    EVENT_TYPE_CLOSE_ISSUE = 'CloseIssue'
+    EVENT_TYPE_OPEN_PR = 'OpenPR'
+    EVENT_TYPE_CLOSE_PR = 'ClosePR'
+    EVENT_TYPE_COMMIT = 'Commit'
+    EVENT_TYPE_ASSIGN_MEMBER = 'AssignMember'
+    EVENT_TYPE_ADD_FILE = 'AddFile'
+    EVENT_TYPE_UPDATE_FILE = 'UpdateFile'
+    EVENT_TYPE_REMOVE_FILE = 'RemoveFile'
 
     ### Issue event types
     # When someone was assigned to an issue
@@ -56,7 +66,15 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
     FILE_STATUS_MODIFIED = 'modified'
     FILE_STATUS_REMOVED = 'removed'
 
-    VERB_OBJECT_MAPPER = {}
+    VERB_OBJECT_MAPPER = {
+        CLRecipe.VERB_CREATED: [EVENT_TYPE_COMMIT],
+        CLRecipe.VERB_COMMENTED: [EVENT_TYPE_COMMIT_COMMENT, EVENT_TYPE_ISSUE_COMMENT],
+        CLRecipe.VERB_CLOSED: [EVENT_TYPE_CLOSE_ISSUE, EVENT_TYPE_CLOSE_PR],
+        CLRecipe.VERB_OPENED: [EVENT_TYPE_OPEN_ISSUE, EVENT_TYPE_REOPEN_ISSUE, EVENT_TYPE_OPEN_PR],
+        CLRecipe.VERB_ADDED: [EVENT_TYPE_ASSIGN_MEMBER, EVENT_TYPE_ADD_FILE],
+        CLRecipe.VERB_UPDATED: [EVENT_TYPE_UPDATE_FILE],
+        CLRecipe.VERB_REMOVED: [EVENT_TYPE_REMOVE_FILE],
+    }
 
     SEPARATOR_HTML_TAG_BR = "<br>"
 
@@ -148,7 +166,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         other_context_list = []
         # Import event type
         other_context_list.append(get_other_contextActivity(
-            issue_url, 'Verb', event.event, 
+            issue_url, 'Verb', self.EVENT_TYPE_ASSIGN_MEMBER, 
             CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
         # Issue url and title
         other_context_list.append(get_other_contextActivity(
@@ -274,16 +292,21 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         # verb is opened when action is opened and reopened
         verb = CLRecipe.VERB_OPENED
+        evety_type = self.EVENT_TYPE_OPEN_ISSUE
         action = event.payload['action']
         if action == self.ISSUE_STATUS_CLOSED:
             verb = CLRecipe.VERB_CLOSED
+            evety_type = self.EVENT_TYPE_CLOSE_ISSUE
+        elif action == self.ISSUE_STATUS_REOPENED:
+            verb = CLRecipe.VERB_OPENED
+            evety_type = self.EVENT_TYPE_REOPEN_ISSUE
 
         print 'action: %s ..... verb: %s' % (action, verb)
 
         other_context_list = []
         # Import event type
         other_context_list.append(get_other_contextActivity(
-            issue_url, 'Verb', event.type, CLRecipe.get_verb_iri(verb)))
+            issue_url, 'Verb', evety_type, CLRecipe.get_verb_iri(verb)))
         # Repository url and name
         other_context_list.append(get_other_contextActivity(
             repo_url, 'Object', repo_name, CLRecipe.get_verb_iri(verb)))
@@ -332,14 +355,16 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         # verb is opened when action is opened and reopened
         verb = CLRecipe.VERB_OPENED
+        evety_type = self.EVENT_TYPE_OPEN_PR
         action = event.payload['action']
         if action == self.ISSUE_STATUS_CLOSED:
             verb = CLRecipe.VERB_CLOSED
+            evety_type = self.EVENT_TYPE_CLOSE_PR
 
         other_context_list = []
         # Import event type
         other_context_list.append(get_other_contextActivity(
-            pr_url, 'Verb', event.type, CLRecipe.get_verb_iri(verb)))
+            pr_url, 'Verb', evety_type, CLRecipe.get_verb_iri(verb)))
         # Repository url and name
         other_context_list.append(get_other_contextActivity(
             repo_url, 'Object', repo_name, CLRecipe.get_verb_iri(verb)))
@@ -455,7 +480,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         other_context_list = []
         # Import event type
         other_context_list.append(get_other_contextActivity(
-            commit_url, 'Verb', self.ACTIVITY_TYPE_COMMIT, 
+            commit_url, 'Verb', self.EVENT_TYPE_COMMIT, 
             CLRecipe.get_verb_iri(CLRecipe.VERB_CREATED)))
         # Repository url and name
         other_context_list.append(get_other_contextActivity(
@@ -505,10 +530,13 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         file_url = file.blob_url
 
         verb = CLRecipe.VERB_ADDED
+        activity = self.EVENT_TYPE_ADD_FILE;
         if file.status == self.FILE_STATUS_MODIFIED:
             verb = CLRecipe.VERB_UPDATED
+            activity = self.EVENT_TYPE_UPDATE_FILE
         elif file.status == self.FILE_STATUS_REMOVED:
             verb = CLRecipe.VERB_REMOVED
+            activity = self.EVENT_TYPE_REMOVE_FILE
 
         # Diffs between the current code and previous code
         patch = file.patch
@@ -518,7 +546,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         other_context_list = []
         # Import file status
         other_context_list.append(get_other_contextActivity(
-            file_url, 'Verb', file.status, CLRecipe.get_verb_iri(verb)))
+            file_url, 'Verb', activity, CLRecipe.get_verb_iri(verb)))
         # Commit url and title
         other_context_list.append(get_other_contextActivity(
             commit_url, 'Object', commit_title, CLRecipe.get_verb_iri(verb)))
@@ -554,10 +582,62 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         return self.xapi_objects
 
     def get_other_contextActivity_types(self, verbs = []):
-        return sorted(verbs)
+        # return sorted(verbs)
+        ret = []
+        if verbs is None or len(verbs) == 0:
+            ret = [self.ACTION_TYPE_COMMENT_CARD, self.ACTION_TYPE_CREATE_CARD, 
+                self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD, self.ACTION_TYPE_UPDATE_CARD, 
+                self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD, 
+                self.ACTION_TYPE_ADD_MEMBER_TO_CARD, self.ACTION_TYPE_MOVE_CARD, 
+                self.ACTION_TYPE_CLOSE_CARD, self.ACTION_TYPE_OPEN_CARD]
+        else:
+            for verb in verbs:
+                action_types = self.VERB_OBJECT_MAPPER[verb]
+                for type in action_types:
+                    ret.append(type)
+        return ret
+
 
     def get_display_names(self, mapper):
-        return mapper
+        if mapper is None:
+            return mapper
+
+        ret = {}
+        for key, val in mapper.iteritems():
+            for action in mapper[key]:
+                ret[action] = self.get_activity_type_display_name(action)
+
+        return ret
+
+
+    def get_activity_type_display_name(self, action):
+        if action == self.EVENT_TYPE_COMMIT:
+            return 'Committed'
+        elif action == self.EVENT_TYPE_COMMIT_COMMENT:
+            return 'Commented on commit'
+        elif action == self.EVENT_TYPE_ISSUE_COMMENT:
+            return 'Commented on issue'
+        elif action == self.EVENT_TYPE_ASSIGN_MEMBER:
+            return 'Assigned Member'
+        elif action == self.EVENT_TYPE_ADD_FILE:
+            return 'Added file'
+        elif action == self.EVENT_TYPE_UPDATE_FILE:
+            return 'Updated file'
+        elif action == self.EVENT_TYPE_REMOVE_FILE:
+            return 'Removed file'
+        elif action == self.EVENT_TYPE_OPEN_ISSUE:
+            return 'Opened issue'
+        elif action == self.EVENT_TYPE_REOPEN_ISSUE:
+            return 'Reopened issue'
+        elif action == self.EVENT_TYPE_CLOSE_ISSUE:
+            return 'Closed issue'
+        elif action == self.EVENT_TYPE_OPEN_PR:
+            return 'Opened pull request'
+        elif action == self.EVENT_TYPE_CLOSE_PR:
+            return 'Closed pull request'
+        else:
+            return 'Unknown action type'
+
 
     def get_results_from_rows(self, result):
         all_rows = []
@@ -604,22 +684,63 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         contexts = row[2]
         value = ''
         index = 1
-        if action == self.ACTIVITY_TYPE_COMMIT:
-            value = 'Commit %s in %s' % (
+        if action == self.EVENT_TYPE_COMMIT:
+            value = '%s in %s' % (
                 self.italicize(object_val), 
                 self.italicize(contexts[1]['definition']['name']['en-US'])) # Repository name
 
             change_lines = contexts[2]['definition']['name']['en-US'].split(',')
             filenames = contexts[3]['definition']['name']['en-US'].split(',')
-            value = value + 'Committed files: %s - additions: %s deletions:%s total: %s' % (
-                str(len(filenames)), change_lines[1], change_lines[2], change_lines[0])
+            value = value + self.SEPARATOR_HTML_TAG_BR
+            value = value + 'Committed %s files (lines changed: %s, add: %s del:%s)' % (
+                str(len(filenames)), change_lines[0], change_lines[1], change_lines[2])
 
             adds = contexts[4]['definition']['name']['en-US'].split(',')
             dels = contexts[5]['definition']['name']['en-US'].split(',')
             i = 0
             for name in filenames:
                 value = value + self.SEPARATOR_HTML_TAG_BR
-                value = value + '%s - add: %s del: %s' % (self.italicize(name), adds[i], dels[i])
+                value = value + '%s (add: %s del: %s)' % (self.italicize(name), adds[i], dels[i])
+
+        elif action == self.EVENT_TYPE_COMMIT_COMMENT or action == self.EVENT_TYPE_ISSUE_COMMENT:
+            value = 'Commented in %s' % self.italicize(contexts[1]['definition']['name']['en-US'])
+            value = value + self.SEPARATOR_HTML_TAG_BR
+            value = value + self.italicize(self.replace_linechange_with_br_tag(object_val))
+
+        elif action in [self.EVENT_TYPE_OPEN_PR, self.EVENT_TYPE_OPEN_ISSUE, self.EVENT_TYPE_REOPEN_ISSUE]:
+            # verb = 'Opened'
+            # if action == self.EVENT_TYPE_CLOSE_ISSUE:
+            #     verb = 'Closed'
+            value = "Opened %s in %s" % (self.italicize(object_val), self.italicize(contexts[1]['definition']['name']['en-US']))
+
+        elif action in [self.EVENT_TYPE_CLOSE_PR, self.EVENT_TYPE_CLOSE_ISSUE]:
+            # verb = 'Opened'
+            # if action == self.EVENT_TYPE_CLOSE_PR:
+            #     verb = 'Closed'
+            value = "Closed %s in %s" % (self.italicize(object_val), self.italicize(contexts[1]['definition']['name']['en-US']))
+
+        elif action in [self.EVENT_TYPE_ADD_FILE, self.EVENT_TYPE_UPDATE_FILE, self.EVENT_TYPE_REMOVE_FILE]:
+            verb = 'Added'
+            fine_name = ' %s (lines added: %s)' % (
+                self.italicize(contexts[3]['definition']['name']['en-US']),
+                contexts[4]['definition']['name']['en-US'])
+            commit_title = 'included: %s' % (self.italicize(contexts[1]['definition']['name']['en-US']))
+            if action == self.EVENT_TYPE_UPDATE_FILE:
+                verb = 'Updated'
+                fine_name = ' %s (lines changed: %s - add:%s, del:%s)' % (
+                    self.italicize(contexts[3]['definition']['name']['en-US']),
+                    contexts[4]['definition']['name']['en-US'],
+                    contexts[5]['definition']['name']['en-US'],
+                    contexts[6]['definition']['name']['en-US'])
+            if action == self.EVENT_TYPE_REMOVE_FILE:
+                verb = 'Removed'
+                fine_name = ' %s' % (self.italicize(contexts[3]['definition']['name']['en-US']))
+                commit_title = 'from: %s' % (self.italicize(contexts[1]['definition']['name']['en-US']))
+            
+            value = verb + fine_name + self.SEPARATOR_HTML_TAG_BR + commit_title
+
+        elif action == self.EVENT_TYPE_ASSIGN_MEMBER:
+            value = 'Added %s to %s' % (self.italicize(object_val), self.italicize(contexts[1]['definition']['name']['en-US']))
 
         else:
             value = self.italicize(object_val)

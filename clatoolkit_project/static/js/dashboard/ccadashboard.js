@@ -35,6 +35,22 @@ Common.navigatorPositionChanger = function() {
 			$(".navigator-title").show();
 		}
 	});
+	// $('body').mousemove(function(e) {
+	// 	posY = e.clientY;
+	// 	if (150 >= posY) {
+	// 		nav.addClass("navigator-fixed");
+	// 		$("#wider").addClass('widercol');
+	// 		$(".navigator-title").hide();
+	// 	} else if (150 <= posY) {
+	// 		// var nav = $(".navigator");
+	// 		// var navTop = nav.offset().top;
+	// 		// var winTop = $(window).scrollTop();
+	// 		// if (winTop < navTop) return;
+	// 		nav.removeClass("navigator-fixed");
+	// 		$("#wider").removeClass('widercol');
+	// 		$(".navigator-title").show();
+	// 	}
+	// });
 };
 Common.insertRadioButtonTags = function() {
 	if(platform.split(',').length > 1) {
@@ -91,6 +107,9 @@ Common.redrawAll = function (input) {
 };
 Common.getSelectedPlatform = function () {
 	var ret = CLAChart.DATA_TYPE_TOTAL;
+	if(platform.split(',').length == 1) {
+		return platform
+	}
 	try {
 		ret = $('input[name=platform]:checked').val();
 	} catch (e) {
@@ -99,9 +118,12 @@ Common.getSelectedPlatform = function () {
 	return ret;
 };
 Common.getDataTypeBySelectedPlatform = function () {
-	var platform = Common.getSelectedPlatform();
+	if(platform.split(',').length == 1) {
+		return CLAChart.DATA_TYPE_OVERVIEW;
+	}
+	var platformName = Common.getSelectedPlatform();
 	var ret = CLAChart.DATA_TYPE_TOTAL;
-	if(platform != CLAChart.DATA_TYPE_TOTAL) {
+	if(platformName != CLAChart.DATA_TYPE_TOTAL) {
 		ret = CLAChart.DATA_TYPE_OVERVIEW;
 	}
 	return ret;
@@ -165,7 +187,16 @@ CLAChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
 	this.series = this.createSeriesByChart(chart, checkDate, start, end);
 	this.categories = chart["categories"] ? chart["categories"] : [];
 	var highChart = $("#" + this.renderTo).highcharts();
-	
+	this.updateSeriesOnChart();
+	this.updateLabelItemsOnChart();
+	highChart.xAxis[0].setCategories(this.categories, false);
+	highChart.redraw();
+};
+CLAChart.prototype.updateLabelItemsOnChart = function() {
+	// Implement this method if needed.
+};
+CLAChart.prototype.updateSeriesOnChart = function() {
+	var highChart = $("#" + this.renderTo).highcharts();
 	var seriesList = [];
 	for(key in this.series) {
 		seriesList.push(this.series[key]);
@@ -196,8 +227,6 @@ CLAChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
 			single.update(newSeries, false);
 		}
 	}
-	highChart.xAxis[0].setCategories(this.categories, false);
-	highChart.redraw();
 };
 CLAChart.prototype.draw = function() {
 	var self = this;
@@ -595,6 +624,30 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 
 	return allSeries;
 };
+CLAPieChart.prototype.updateLabelItemsOnChart = function() {
+	var highChart = $("#" + this.renderTo).highcharts();
+	var newItems = CLAPieChartOptions.getChartLabels(this.categories);
+	if(newItems.length > highChart.options.labels.items.length) {
+		for(var i = 0; i < newItems.length; i++) {
+			if(i >= highChart.options.labels.items.length) {
+				highChart.options.labels.items.append(newItems[i]);
+			} else {
+				highChart.options.labels.items[i] = newItems[i];
+			}
+		}		
+	} else {
+		// TODO: fix bug... label items are not updated!
+		var len = highChart.options.labels.items.length;
+		for(var i = (len - 1); i >= 0; i--) {
+			if(i >= newItems.length) {
+				highChart.options.labels.items.splice(i, 1);
+			} else {
+				highChart.options.labels.items[i] = newItems[i];
+			}
+		}
+	}
+};
+
 
 
 
@@ -752,7 +805,7 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 		},
 		navigator: { height: 35 },
 		exporting: { enabled: false },
-		rangeSelector : { enabled: true, selected: 0, inputDateFormat: '%d/%m/%Y'},
+		rangeSelector : { enabled: true, selected: 5, inputDateFormat: '%d/%m/%Y'},
 		title : { enabled: false },
 		yAxis: {
 			height: 0,
