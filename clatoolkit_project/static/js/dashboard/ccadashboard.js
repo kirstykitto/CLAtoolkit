@@ -19,6 +19,71 @@ Common.HTML_TAG_SPAN = '<span class="platform-radio" ></span>';
 Common.initialise = function() {
 	Common.navigatorPositionChanger();
 	Common.insertRadioButtonTags();
+	Common.initialiseDataTable("activity-table");
+};
+
+Common.showDetailsInTable = function(tagId, chart) {
+	if(chart == null || chart.length == 0) return;
+
+	var data = Common.getDataTableData(chart);
+	if(data == null || data.length == 0) return;
+
+	$('#' + tagId).dataTable().fnDestroy();
+	$('#' + tagId).dataTable({
+		data: data,
+		columns: [
+			{ title: "ids", "bVisible": false },
+			{ title: "User" },
+			{ title: "Activity" },
+			{ title: "Detail" },
+			{ title: "Date" },
+			{ title: "Platform" }
+		]
+	});
+	$("#activity-table").show();
+};
+Common.initialiseDataTable = function(tagId) {
+	$('#' + tagId).hide();
+	$('#' + tagId).dataTable({
+		data: [],
+		columns: [
+			{ title: "ids", "bVisible": false },
+			{ title: "User" },
+			{ title: "Activity" },
+			{ title: "Detail" },
+			{ title: "Date" },
+			{ title: "Platform" }
+		]
+	});
+};
+Common.getDataTableData = function(chart) {
+	allData = chart["data"];
+	ret = [];
+	var index = 0;
+	var platform = Common.getSelectedPlatform();
+	for(username in allData) {
+		userData = allData[username];
+		for(action in userData) {
+			var dates = userData[action]["date"];
+			var values = userData[action]["values"];
+			for(key in dates) {
+				var d = dates[key].split(",");
+				var utcDate = Date.UTC(d[0], d[1], d[2]);
+				if(!Common.isValidDate(utcDate, startUTCDate, endUTCDate)) {
+					continue;
+				}
+				ary = [];
+				ary.push(index++);
+				ary.push(username);
+				ary.push(Common.getObjectDisplayName(chart["objectDisplayNames"], action));
+				ary.push(values[key]);
+				ary.push(dates[key]);
+				ary.push(platform);
+				ret.push(ary);
+			}
+		}
+	}
+	return ret;
 };
 Common.navigatorPositionChanger = function() {
 	var nav = $(".navigator");
@@ -98,12 +163,12 @@ Common.redrawAll = function (input) {
 	var newDataType = input.value == CLAChart.DATA_TYPE_TOTAL ? CLAChart.DATA_TYPE_TOTAL : CLAChart.DATA_TYPE_OVERVIEW;
 	for(key in chartObjDict) {
 		var chartObj = chartObjDict[key];
-		var chart = chartObj.getChartData(platform, newDataType);
+		// var chart = chartObj.getChartData(platform, newDataType);
+		var chart = chartObj.getChartDataByPlatform(platform);
 		chartObj.redraw(chart, newDataType, true, startUTCDate, endUTCDate);
+		Common.showDetailsInTable(
+			"activity-table", chartObj.getChartDataByPlatformAndDataType(platform, CLAChart.DATA_TYPE_DETAILS));
 	}
-	// var chart = chartObjDict[platform];
-	// var chart = chartObj.getChartData(platform, chartObj.dataType);
-	// chartObj.redraw(chart, chartObj.dataType, true, startUTCDate, endUTCDate);
 };
 Common.getSelectedPlatform = function () {
 	var ret = CLAChart.DATA_TYPE_TOTAL;
@@ -131,6 +196,34 @@ Common.getDataTypeBySelectedPlatform = function () {
 Common.saveChartObject = function(objInstance) {
 	chartObjDict[objInstance.renderTo] = objInstance;
 };
+Common.getObjectDisplayName = function(objectMapper, objectName) {
+	if(objectMapper == null || objectMapper.length == 0 || objectName == null) {
+		return objectName;
+	}
+
+	var ret = objectName;
+	try {
+		$.each(objectMapper, function(key, val) {
+			if(key == objectName) {
+				ret = val;
+				return false; // false means break in $.each()
+			}
+		});
+	} catch(e) {
+		console.log("An exception has occurred in getObjectDisplayName() method.");
+		console.log(e);
+	}
+	return ret;
+};
+Common.isValidDate = function(utcDate, start, end) {
+	return parseFloat(start) <= parseFloat(utcDate) && parseFloat(end) >= parseFloat(utcDate);
+};
+
+
+
+
+
+
 /**
  * CLAChart Constructor
  * @param {string} renderTo
@@ -254,9 +347,6 @@ CLAChart.prototype.changeChartAreaVisibility = function(tagId, showChartArea) {
 		$("#" + tagId).hide();
 	}
 };
-CLAChart.prototype.isValidDate = function(utcDate, start, end) {
-	return parseFloat(start) <= parseFloat(utcDate) && parseFloat(end) >= parseFloat(utcDate);
-};
 CLAChart.prototype.countTotalActivities = function(series, checkDate, start, end, countable) {
 	var total = 0;
 	if(series == null || series.length == 0) return total;
@@ -266,7 +356,7 @@ CLAChart.prototype.countTotalActivities = function(series, checkDate, start, end
 			var d = series["date"][i].split(",");
 			var utcDate = Date.UTC(d[0], d[1], d[2]);
 			// Add value when startDate <= value >= endDate
-			if(this.isValidDate(utcDate, start, end)) {
+			if(Common.isValidDate(utcDate, start, end)) {
 				if(countable) {
 					total += series["values"][i];
 				} else {
@@ -350,6 +440,16 @@ CLAChart.prototype.getChartDataByPlatform = function(platform) {
 	if(this.charts.length == 0) return data;
 
 	var dataType = Common.getDataTypeBySelectedPlatform();
+	return this.charts[platform][dataType];
+};
+CLAChart.prototype.getChartDataByPlatformAndDataType = function(platform, dataType) {
+	var data = [];
+	if(platform == "" || dataType == "") return data;
+	if(this.charts.length == 0) return data;
+
+	if(platform == CLAChart.DATA_TYPE_TOTAL) {
+		dataType = CLAChart.DATA_TYPE_TOTAL;
+	}
 	return this.charts[platform][dataType];
 };
 CLAChart.prototype.formatDate = function(dateString) {
@@ -490,25 +590,6 @@ CLAPieChart.prototype.createOptions = function() {
 // 	// }
 // 	// this.redraw(chart, newDataType, true, start, end);
 // };
-CLAPieChart.prototype.getObjectDisplayName = function(objectMapper, objectName) {
-	if(objectMapper == null || objectMapper.length == 0 || objectName == null) {
-		return objectName;
-	}
-
-	var ret = objectName;
-	try {
-		$.each(objectMapper, function(key, val) {
-			if(key == objectName) {
-				ret = val;
-				return false; // false means break in $.each()
-			}
-		});
-	} catch(e) {
-		console.log("An exception has occurred in getObjectDisplayName() method.");
-		console.log(e);
-	}
-	return ret;
-};
 CLAPieChart.prototype.createSeriesByChart = function(chart, checkDate, start, end) {
 	return this.createSeriesWithColors(chart, checkDate, start, end, null);
 };
@@ -536,7 +617,7 @@ CLAPieChart.prototype.createSeriesWithColors = function(chart, checkDate, start,
 			var name = seriesName[j];
 			var series = chartData[cate][name];
 			var total = this.countTotalActivities(series, checkDate, start, end, countable);
-			var dispName = this.getObjectDisplayName(chart["objectMapper"], name);
+			var dispName = Common.getObjectDisplayName(chart["objectMapper"], name);
 			var newData = {
 				name: dispName,
 				y: total
@@ -597,12 +678,12 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 				if(checkDate) {
 					var d = date.split(",");
                     var utcDate = Date.UTC(d[0], d[1], d[2]);
-					if(!this.isValidDate(utcDate, start, end)) {
+					if(!Common.isValidDate(utcDate, start, end)) {
 						continue;
 					}
 				}
 
-				var dispName = this.getObjectDisplayName(detailsChart["objectDisplayNames"], series["name"]);
+				var dispName = Common.getObjectDisplayName(detailsChart["objectDisplayNames"], series["name"]);
 				dispName = dispName + " (" + this.formatDate(date) + ")" + "<br>" + series["values"][index++];
 				var newData = {
 					name: dispName,
@@ -777,7 +858,7 @@ CLAHeatmap.prototype.createSeriesByChart = function(chart, checkDate, start, end
 		for(var j = 0; j < categoriesY.length; j++) {
 			name = categoriesY[j];
 			series = chartData[cate][name];
-			allSeries.push([i, j, this.countTotalActivities(series, false, start, end, true)]);
+			allSeries.push([i, j, this.countTotalActivities(series, checkDate, start, end, true)]);
 		}
 		index++;
 	}
@@ -855,9 +936,12 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 						var dataType = Common.getDataTypeBySelectedPlatform();
 						var selectedPlatform = Common.getSelectedPlatform();
 						// var chart = chartObj.getChartData(chartObj.selectedPlatform, chartObj.dataType);
-						var chart = chartObj.getChartData(selectedPlatform, dataType);
+						var chart = chartObj.getChartDataByPlatform(selectedPlatform);
 						// chartObj.redraw(chart, chartObj.dataType, true, e.min, e.max);
 						chartObj.redraw(chart, dataType, true, e.min, e.max);
+						Common.showDetailsInTable(
+							"activity-table", 
+							chartObj.getChartDataByPlatformAndDataType(selectedPlatform, CLAChart.DATA_TYPE_DETAILS));
 					}
 				}
 			}
