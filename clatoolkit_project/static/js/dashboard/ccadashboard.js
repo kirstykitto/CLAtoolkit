@@ -144,6 +144,7 @@ CLAChart = function(renderTo, chartType, url) {
 	this.series = []; // Current series
 	this.categories = []; // Current categories
 	this.isMonochrome = false;
+	this.isClickable = false;
 };
 
 CLAChart.DATA_TYPE_TOTAL = "total";
@@ -152,7 +153,10 @@ CLAChart.DATA_TYPE_DETAILS = "details";
 
 CLAChart.prototype.setMonochrome = function(isMonochrome) {
 	this.isMonochrome = isMonochrome;
-}
+};
+CLAChart.prototype.setClickable = function(isClickable) {
+	this.isClickable = isClickable;
+};
 CLAChart.prototype.createSeries = function(data, checkDate, start, end) {
 	if(data == null) return null;
 	var charts = data["charts"];
@@ -332,19 +336,20 @@ CLAChart.prototype.getParentObjectName = function(objectMapper, objectName) {
 	}
 	return verb;
 };
-CLAChart.prototype.getChartData = function(platform, dataType) {
+CLAChart.prototype.getChartData = function() {
 	var data = [];
-	if(dataType == "" || platform == "") return data;
 	if(this.charts.length == 0) return data;
-	// if(dataType == CLAChart.DATA_TYPE_TOTAL) {
-	// 	data = this.charts[dataType];
-	// } else {
-	// 	if(platform == "") {
-	// 		return data;
-	// 	}
-	// 	data = this.charts[platform][dataType];
-	// }
-	// return data;
+
+	var selectedPlatform = Common.getSelectedPlatform();
+	var dataType = Common.getDataTypeBySelectedPlatform();
+	return this.charts[selectedPlatform][dataType];
+};
+CLAChart.prototype.getChartDataByPlatform = function(platform) {
+	var data = [];
+	if(platform == "") return data;
+	if(this.charts.length == 0) return data;
+
+	var dataType = Common.getDataTypeBySelectedPlatform();
 	return this.charts[platform][dataType];
 };
 CLAChart.prototype.formatDate = function(dateString) {
@@ -354,15 +359,15 @@ CLAChart.prototype.formatDate = function(dateString) {
 	return date[2] + "/" + month.toString() + "/" + date[0];
 };
 CLAChart.prototype.getTitle = function() {
-	var selectedPlatform = Common.getSelectedPlatform();
-	var dataType = Common.getDataTypeBySelectedPlatform();
-	var chart = this.getChartData(selectedPlatform, dataType);
+	// var selectedPlatform = Common.getSelectedPlatform();
+	// var dataType = Common.getDataTypeBySelectedPlatform();
+	var chart = this.getChartData();
 	return chart.title;
 };
 CLAChart.prototype.getYAxisTitle = function() {
-	var selectedPlatform = Common.getSelectedPlatform();
-	var dataType = Common.getDataTypeBySelectedPlatform();
-	var chart = this.getChartData(selectedPlatform, dataType);
+	// var selectedPlatform = Common.getSelectedPlatform();
+	// var dataType = Common.getDataTypeBySelectedPlatform();
+	var chart = this.getChartData();
 	return chart.yAxis.title;
 };
 
@@ -713,37 +718,36 @@ CLABarChart.prototype.createOptions = function() {
 	options.xAxis.categories = this.categories;
 	options.series = this.series;
 	// options.plotOptions.column.cursor = 'pointer';
-	// options.plotOptions.column.point = this.getPointOptions(this.dataType);
+	if(this.isClickable) {
+		if (this.chartType == CLABarChartOptions.CHART_TYPE_COLUMN) {
+			options.plotOptions.column.point = this.getPointOptions(this.dataType);
+		} else {
+			options.plotOptions.series.point = this.getPointOptions(this.dataType);
+		}
+	}
 	return options;
 };
 
-// CLABarChart.prototype.getPointOptions = function(dataType) {
-// 	// var self = this;
-// 	// var options = {
-// 	// 	events: {
-// 	// 		click: function () {
-// 	// 			self.selectedPlatform = this.series.name;
-// 	// 			self.redrawByPoint(this, startUTCDate, endUTCDate);
-// 	// 		}
-// 	// 	}
-// 	// }
-// 	// return options;
-// };
-// CLABarChart.prototype.redrawByPoint = function(point, start, end) {
-// 	// var chart = null;
-// 	// var newDataType = CLAChart.DATA_TYPE_TOTAL;
-// 	// // When total data is currently shown in the chart, redraw (re-instanciate) chart with overview data
-// 	// if(this.dataType == CLAChart.DATA_TYPE_TOTAL) {
-// 	// 	this.selectedPlatform = point.series.name;
-// 	// 	newDataType = CLAChart.DATA_TYPE_OVERVIEW;
-// 	// 	chart = this.getChartData(this.selectedPlatform, CLAChart.DATA_TYPE_OVERVIEW);
-// 	// } else {
-// 	// 	newDataType = CLAChart.DATA_TYPE_TOTAL;
-// 	// 	chart = this.getChartData(null, CLAChart.DATA_TYPE_TOTAL);
-// 	// }
-// 	// this.redraw(chart, newDataType, true, start, end);
-// 	// this.dataType = newDataType;
-// };
+CLABarChart.prototype.getPointOptions = function(dataType) {
+	var self = this;
+	var options = {
+		events: {
+			click: function () {
+				// self.selectedPlatform = this.series.name;
+				self.redrawByPoint(this, startUTCDate, endUTCDate);
+			}
+		}
+	}
+	return options;
+};
+CLABarChart.prototype.redrawByPoint = function(point, start, end) {
+	var chart = null;
+	console.log(point.category);
+	console.log(point.series.name);
+	var chart = this.getChartDataByPlatform(point.category);
+	// this.redraw(chart, newDataType, true, start, end);
+	// this.dataType = newDataType;
+};
 
 
 
@@ -1140,14 +1144,12 @@ $(document).ready(function(){
 	var heatmap = new CLAHeatmap("activityHeatmap", url);
 	Common.saveChartObject(heatmap);
 	heatmap.draw();
-	url = "/dashboard/api/get_user_acitivities/?course_code=" + course_code + "&platform=" + platform;
-	var barChart2 = new CLABarChart("activityBar", CLABarChartOptions.CHART_TYPE_BAR, CLABarChartOptions.STACK_TYPE_PERCENT, url);
-	// barChart2.setMonochrome(true);
-	// Common.saveChartObject(barChart2);
-	barChart2.draw();
-
-	// var pieChart2 = new CLAPieChart("activityPie2", CLAPieChartOptions.CHART_TYPE_PIE, url);
-	// // pieChart2.setMonochrome(true);
-	// Common.saveChartObject(pieChart2);
-	// pieChart2.draw();
+	// var platformList = platform.split(',');
+	// for(var i = 0; i < platformList.length; i++) {
+	// 	url = "/dashboard/api/get_platform_activities/?course_code=" + course_code + "&platform=" + platformList[i];
+	// 	var platformPie = new CLAPieChart("activityPlatformPie-" + platformList[i], CLAPieChartOptions.CHART_TYPE_PIE, url);
+	// 	platformPie.setMonochrome(true);
+	// 	Common.saveChartObject(platformPie);
+	// 	platformPie.draw();
+	// }
 });
