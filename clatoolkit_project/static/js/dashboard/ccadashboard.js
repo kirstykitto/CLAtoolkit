@@ -625,27 +625,42 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 	return allSeries;
 };
 CLAPieChart.prototype.updateLabelItemsOnChart = function() {
-	var highChart = $("#" + this.renderTo).highcharts();
-	var newItems = CLAPieChartOptions.getChartLabels(this.categories);
-	if(newItems.length > highChart.options.labels.items.length) {
-		for(var i = 0; i < newItems.length; i++) {
-			if(i >= highChart.options.labels.items.length) {
-				highChart.options.labels.items.append(newItems[i]);
-			} else {
-				highChart.options.labels.items[i] = newItems[i];
-			}
-		}		
-	} else {
-		// TODO: fix bug... label items are not updated!
-		var len = highChart.options.labels.items.length;
-		for(var i = (len - 1); i >= 0; i--) {
-			if(i >= newItems.length) {
-				highChart.options.labels.items.splice(i, 1);
-			} else {
-				highChart.options.labels.items[i] = newItems[i];
-			}
-		}
-	}
+	// TODO: update item labels!
+	// var highChart = $("#" + this.renderTo).highcharts();
+	// var newItems = CLAPieChartOptions.getChartLabels(this.categories);
+	// if(newItems.length > highChart.options.labels.items.length) {
+	// 	for(var i = 0; i < newItems.length; i++) {
+	// 		if(i >= highChart.options.labels.items.length) {
+	// 			highChart.options.labels.items.append(newItems[i]);
+	// 		} else {
+	// 			highChart.options.labels.items[i] = newItems[i];
+	// 		}
+	// 	}		
+	// } else {
+	// 	// TODO: fix bug... label items are not updated!
+	// 	var len = highChart.options.labels.items.length;
+	// 	for(var i = (len - 1); i >= 0; i--) {
+	// 		if(i >= newItems.length) {
+	// 			highChart.options.labels.items.splice(i, 1);
+	// 		} else {
+	// 			highChart.options.labels.items[i] = newItems[i];
+	// 		}
+	// 	}
+	// }
+};
+CLAChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
+	if(chart == null || chart.length == 0) return;
+
+	this.dataType = dataType;
+	this.series = this.createSeriesByChart(chart, checkDate, start, end);
+	this.categories = chart["categories"] ? chart["categories"] : [];
+	// TODO: Fix updateLabelItemsOnChart() to update item labels so that chart can be updated and not instanciated.
+	var options = this.createOptions();
+	var highChart = $("#" + this.renderTo).highcharts(options);
+	// this.updateSeriesOnChart();
+	// this.updateLabelItemsOnChart();
+	// highChart.xAxis[0].setCategories(this.categories, false);
+	// highChart.redraw();
 };
 
 
@@ -773,7 +788,16 @@ CLAHeatmap.prototype.createOptions = function() {
 	options.series[0].data = this.series;
 	return options;
 };
+CLAHeatmap.prototype.redraw = function(chart, dataType, checkDate, start, end) {
+	if(chart == null || chart.length == 0) return;
 
+	this.dataType = dataType;
+	this.series = this.createSeriesByChart(chart, checkDate, start, end);
+	this.categories = chart["categories"] ? chart["categories"] : [];
+	// TODO: update series, not instanciate (to avoid screen position goes up)
+	var options = this.createOptions();
+	var highChart = $("#" + this.renderTo).highcharts(options);
+};
 
 
 CLAChartOptions = function(renderTo, chartType) {
@@ -919,12 +943,12 @@ CLABarChartOptions.prototype.createPlotOptions = function (options) {
 		dataLabels: {
 			enabled: true,
 			color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white',
-			style: { textShadow: '0 0 3px black' },
+			style: { textShadow: '0 0 3px black', fontSize: '14px' },
 		}
 	}
 
 	if (this.chartType == CLABarChartOptions.CHART_TYPE_BAR) {
-		plotOptions.dataLabels.format = '{series.name}';//: {point.y}/{point.stackTotal}<br>{point.percentage:.2f}%';
+		plotOptions.dataLabels.format = '{series.name}<br>{point.percentage:.2f}%';
 	}
 	if (this.chartType == CLABarChartOptions.CHART_TYPE_COLUMN) {
 		options.plotOptions.column = plotOptions;
@@ -1070,7 +1094,7 @@ CLAHeatmapOptions.prototype.getOptions = function () {
             layout: 'vertical',
             margin: 0,
             verticalAlign: 'top',
-            y: 25, // TODO: this has to be calculated?
+            // y: 25, // TODO: this has to be calculated?
             symbolHeight: 280
         },
         tooltip: {
@@ -1113,14 +1137,14 @@ $(document).ready(function(){
 	pieChart.draw();
 	navChart.changeChartAreaVisibility("activities", true);
 	navChart.draw();
-	// var heatmap = new CLAHeatmap("activityHeatmap", url);
-	// Common.saveChartObject(heatmap);
-	// // heatmap.draw();
-	// url = "/dashboard/api/get_user_acitivities/?course_code=" + course_code + "&platform=" + platform;
-	// var barChart2 = new CLABarChart("activityBar", CLABarChartOptions.CHART_TYPE_BAR, CLABarChartOptions.STACK_TYPE_PERCENT, url);
-	// // barChart2.setMonochrome(true);
+	var heatmap = new CLAHeatmap("activityHeatmap", url);
+	Common.saveChartObject(heatmap);
+	heatmap.draw();
+	url = "/dashboard/api/get_user_acitivities/?course_code=" + course_code + "&platform=" + platform;
+	var barChart2 = new CLABarChart("activityBar", CLABarChartOptions.CHART_TYPE_BAR, CLABarChartOptions.STACK_TYPE_PERCENT, url);
+	// barChart2.setMonochrome(true);
 	// Common.saveChartObject(barChart2);
-	// barChart2.draw();
+	barChart2.draw();
 
 	// var pieChart2 = new CLAPieChart("activityPie2", CLAPieChartOptions.CHART_TYPE_PIE, url);
 	// // pieChart2.setMonochrome(true);
