@@ -18,7 +18,7 @@ Common.HTML_TAG_LABEL = '<label></label>';
 Common.HTML_TAG_SPAN = '<span class="platform-radio" ></span>';
 Common.initialise = function() {
 	Common.navigatorPositionChanger();
-	Common.insertRadioButtonTags();
+	// Common.insertRadioButtonTags();
 	// Common.initialiseDataTable("activity-table");
 };
 
@@ -60,7 +60,7 @@ Common.getDataTableData = function(chart) {
 	allData = chart["data"];
 	ret = [];
 	var index = 0;
-	var platform = Common.getSelectedPlatform();
+	var platform = this.selectedPlatform;//Common.getSelectedPlatform();
 	for(username in allData) {
 		userData = allData[username];
 		for(action in userData) {
@@ -220,25 +220,29 @@ CLAChart = function(renderTo, chartType, url) {
 	this.charts = []; // All data sent from the server
 	this.series = []; // Current series
 	this.categories = []; // Current categories
-	this.isClickable = false;
+	// this.isClickable = false;
+	this.selectedPlatform = CLAChart.DATA_TYPE_TOTAL;
+	this.dataType = CLAChart.DATA_TYPE_TOTAL;
 };
 
 CLAChart.DATA_TYPE_TOTAL = "total";
 CLAChart.DATA_TYPE_OVERVIEW = "overview";
 CLAChart.DATA_TYPE_DETAILS = "details";
 
-CLAChart.prototype.setClickable = function(isClickable) {
-	this.isClickable = isClickable;
-};
+// CLAChart.prototype.setClickable = function(isClickable) {
+// 	this.isClickable = isClickable;
+// };
 CLAChart.prototype.createSeries = function(data, checkDate, start, end) {
 	if(data == null) return null;
 	var charts = data["charts"];
 	// Keep the data for later use
 	this.charts = charts;
-	var selectedPlatform = Common.getSelectedPlatform();
-	var dataType = Common.getDataTypeBySelectedPlatform();
-	this.series = this.createSeriesByChart(this.charts[selectedPlatform][dataType], checkDate, start, end);
-	this.categories = charts[selectedPlatform][dataType]["categories"] ? charts[selectedPlatform][dataType]["categories"] : [];
+	// var selectedPlatform = Common.getSelectedPlatform();
+	// var dataType = Common.getDataTypeBySelectedPlatform();
+	var selectedPlatform = CLAChart.DATA_TYPE_TOTAL;
+	this.dataType = CLAChart.DATA_TYPE_TOTAL;
+	this.series = this.createSeriesByChart(this.charts[selectedPlatform][this.dataType], checkDate, start, end);
+	this.categories = charts[selectedPlatform][this.dataType]["categories"] ? charts[selectedPlatform][this.dataType]["categories"] : [];
 };
 CLAChart.prototype.initializeChart = function(data) {		
 	this.createSeries(data, false, null, null);
@@ -392,32 +396,32 @@ CLAChart.prototype.getParentObjectName = function(objectMapper, objectName) {
 	}
 	return verb;
 };
-CLAChart.prototype.getChartData = function() {
+CLAChart.prototype.getChartData = function(platform, dataType) {
 	var data = [];
 	if(this.charts.length == 0) return data;
 
-	var selectedPlatform = Common.getSelectedPlatform();
-	var dataType = Common.getDataTypeBySelectedPlatform();
-	return this.charts[selectedPlatform][dataType];
-};
-CLAChart.prototype.getChartDataByPlatform = function(platform) {
-	var data = [];
-	if(platform == "") return data;
-	if(this.charts.length == 0) return data;
-
-	var dataType = Common.getDataTypeBySelectedPlatform();
+	// var selectedPlatform = Common.getSelectedPlatform();
+	// var dataType = Common.getDataTypeBySelectedPlatform();
 	return this.charts[platform][dataType];
 };
-CLAChart.prototype.getChartDataByPlatformAndDataType = function(platform, dataType) {
-	var data = [];
-	if(platform == "" || dataType == "") return data;
-	if(this.charts.length == 0) return data;
+// CLAChart.prototype.getChartDataByPlatform = function(platform) {
+// 	var data = [];
+// 	if(platform == "") return data;
+// 	if(this.charts.length == 0) return data;
 
-	if(platform == CLAChart.DATA_TYPE_TOTAL) {
-		dataType = CLAChart.DATA_TYPE_TOTAL;
-	}
-	return this.charts[platform][dataType];
-};
+// 	var dataType = Common.getDataTypeBySelectedPlatform();
+// 	return this.charts[platform][dataType];
+// };
+// CLAChart.prototype.getChartDataByPlatformAndDataType = function(platform, dataType) {
+// 	var data = [];
+// 	if(platform == "" || dataType == "") return data;
+// 	if(this.charts.length == 0) return data;
+
+// 	if(platform == CLAChart.DATA_TYPE_TOTAL) {
+// 		dataType = CLAChart.DATA_TYPE_TOTAL;
+// 	}
+// 	return this.charts[platform][dataType];
+// };
 CLAChart.prototype.formatDate = function(dateString) {
 	var date = dateString.split(',');
 	// Date month start at 0, so add 1 to show correct month
@@ -425,11 +429,11 @@ CLAChart.prototype.formatDate = function(dateString) {
 	return date[2] + "/" + month.toString() + "/" + date[0];
 };
 CLAChart.prototype.getTitle = function() {
-	var chart = this.getChartData();
+	var chart = this.getChartData(this.dataType, this.selectedPlatform);
 	return chart.title;
 };
 CLAChart.prototype.getYAxisTitle = function() {
-	var chart = this.getChartData();
+	var chart = this.getChartData(this.dataType, this.selectedPlatform);
 	return chart.yAxis.title;
 };
 
@@ -566,7 +570,7 @@ CLAPieChart.prototype.createSeriesWithColors = function(chart, checkDate, start,
 	var categories = chart["categories"];
 	var countable = chart["countable"];
 	var chartData = chart["data"];
-	var dataType = Common.getDataTypeBySelectedPlatform();
+	var dataType = this.dataType;//Common.getDataTypeBySelectedPlatform();
 	for(var i = 0; i < categories.length; i++) {
 		if (i > 0) {
 			posX += CLAPieChartOptions.PIE_OFFSET;
@@ -598,7 +602,7 @@ CLAPieChart.prototype.createSeriesWithColors = function(chart, checkDate, start,
 		allSeries.push(newSeries);
 	}
 
-	var selectedPlatform = Common.getSelectedPlatform();
+	var selectedPlatform = this.selectedPlatform;//Common.getSelectedPlatform();
 	// if(dataType == CLAChart.DATA_TYPE_OVERVIEW || dataType == CLAChart.DATA_TYPE_DETAILS) {
 	if(this.chartType == CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE
 		&& dataType == CLAChart.DATA_TYPE_OVERVIEW) {
@@ -619,7 +623,7 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 	var seriesName = detailsChart["seriesName"];
 	var categories = detailsChart["categories"];
 	var chartData = detailsChart["data"];
-	var dataType = Common.getDataTypeBySelectedPlatform();
+	var dataType = this.dataType;//Common.getDataTypeBySelectedPlatform();
 
 	for(var i = 0; i < categories.length; i++) {
 		dataset = [];
@@ -777,20 +781,20 @@ CLABarChart.prototype.redrawByPoint = function(point, start, end) {
 		if (this.dataType == CLAChart.DATA_TYPE_OVERVIEW) {
 			return;
 		}
-		var chart = chartObj.getChartDataByPlatformAndDataType(platform, newDataType);
+		// var chart = chartObj.getChartDataByPlatformAndDataType(platform, newDataType);
 		// console.log(chart);
 		// var ddData = chartObj.createDrilldownData(chart);
+		var chart = chartObj.getChartData(platform, newDataType);
 		chartObj.redraw(chart, newDataType, true, startUTCDate, endUTCDate);
-		var prevChart = chartObj.getChartDataByPlatformAndDataType(CLAChart.DATA_TYPE_TOTAL, CLAChart.DATA_TYPE_TOTAL);
+		var prevChart = chartObj.getChartData(CLAChart.DATA_TYPE_TOTAL, CLAChart.DATA_TYPE_TOTAL);
 		
 		obj = new Object();
 		var highcharts = $('#' + this.renderTo).highcharts();
-		var custombutton = highcharts.renderer.button('<< Go back', (highcharts.chartWidth - 100), 50, function(){
+		var custombutton = highcharts.renderer.button('<< Go back', (highcharts.chartWidth - 80), 50, function(){
 			chartObj.redraw(prevChart, CLAChart.DATA_TYPE_TOTAL, true, startUTCDate, endUTCDate);
 			// Remove the button when clicked
 			custombutton.destroy();
 		}, null, obj, obj).add();
-		
 	}
 };
 
@@ -843,11 +847,12 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 					endUTCDate = e.max;
 					for(key in chartObjDict) {
 						var chartObj = chartObjDict[key];
-						var dataType = Common.getDataTypeBySelectedPlatform();
-						var selectedPlatform = Common.getSelectedPlatform();
+						var dataType = chartObj.dataType;//Common.getDataTypeBySelectedPlatform();
+						var selectedPlatform = this.selectedPlatform;//Common.getSelectedPlatform();
 						// var chart = chartObj.getChartData(chartObj.selectedPlatform, chartObj.dataType);
-						var chart = chartObj.getChartDataByPlatform(selectedPlatform);
+						// var chart = chartObj.getChartDataByPlatform(selectedPlatform);
 						// chartObj.redraw(chart, chartObj.dataType, true, e.min, e.max);
+						var chart = chartObj.getChartData(dataType, selectedPlatform);
 						chartObj.redraw(chart, dataType, true, e.min, e.max);
 						// Common.showDetailsInTable(
 						// 	"activity-table", 
