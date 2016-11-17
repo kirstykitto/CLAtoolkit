@@ -525,37 +525,67 @@ CLAPieChart.prototype.createOptions = function() {
 	options.chart.width = CLAPieChartOptions.calculateChartAreaWidth(this.categories);
 	options.labels.items = CLAPieChartOptions.getChartLabels(this.categories);
 	options.series = this.series;
-	// options.plotOptions.series = this.getPointOptions(this.dataType);
+	options.plotOptions.series = this.getPointOptions(this.dataType);
 	return options;
 };
-// CLAPieChart.prototype.getPointOptions = function(dataType) {
-// 	// var self = this;
-// 	// var options = {
-// 	// 	point: {
-// 	// 		events: {
-// 	// 			click: function() {
-// 	// 				self.selectedPlatform = this.name;
-// 	// 				self.redrawByPoint(this, startUTCDate, endUTCDate); //this = point object
-// 	// 			}
-// 	// 		}
-// 	// 	}
-// 	// }
-// 	// return options;
-// };
-// CLAPieChart.prototype.redrawByPoint = function(point, start, end) {
-// 	// var chart = null;
-// 	// var newDataType = CLAChart.DATA_TYPE_TOTAL;
-// 	// // When total data is currently shown in the chart, redraw (re-instanciate) chart with overview data
-// 	// if(this.dataType == CLAChart.DATA_TYPE_TOTAL) {
-// 	// 	this.selectedPlatform = point.name;
-// 	// 	newDataType = CLAChart.DATA_TYPE_OVERVIEW; // Set details to draw double pie chart
-// 	// 	chart = this.getChartData(this.selectedPlatform, CLAChart.DATA_TYPE_OVERVIEW);
-// 	// } else {
-// 	// 	newDataType = CLAChart.DATA_TYPE_TOTAL;
-// 	// 	chart = this.getChartData(null, CLAChart.DATA_TYPE_TOTAL);
-// 	// }
-// 	// this.redraw(chart, newDataType, true, start, end);
-// };
+CLAPieChart.prototype.getPointOptions = function(dataType) {
+	var self = this;
+	var options = {
+		point: {
+			events: {
+				click: function() {
+					// self.selectedPlatform = this.name;
+					self.redrawByPoint(this, startUTCDate, endUTCDate); //this = point object
+				}
+			}
+		}
+	}
+	return options;
+};
+
+CLAPieChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
+	if(chart == null || chart.length == 0) return;
+
+	this.dataType = dataType;
+	this.series = this.createSeriesByChart(chart, checkDate, start, end);
+	this.categories = chart["categories"] ? chart["categories"] : [];
+	var options = this.createOptions();
+	var highChart = $("#" + this.renderTo).highcharts(options);
+	// this.updateSeriesOnChart();
+	// this.updateLabelItemsOnChart();
+	// highChart.xAxis[0].setCategories(this.categories, false);
+	// highChart.redraw();
+};
+CLAPieChart.prototype.redrawByPoint = function(point, start, end) {
+	var selectedVal = point.name;
+	console.log(selectedVal);
+	var newDataType = CLAChart.DATA_TYPE_OVERVIEW;
+	var oldDataType = this.dataType;
+	if (this.dataType == CLAChart.DATA_TYPE_OVERVIEW) {
+		newDataType = CLAChart.DATA_TYPE_DETAILS;
+	} else if (this.dataType == CLAChart.DATA_TYPE_DETAILS) {
+		return;
+	}
+
+	var chart = this.getChartData(selectedVal, newDataType);
+	this.selectedPlatform = selectedVal;
+	this.redraw(chart, newDataType, true, start, end);
+	// var oldDataType = this.dataType;
+	this.dataType = newDataType;
+	var prevChart = this.getChartData(CLAChart.DATA_TYPE_TOTAL, CLAChart.DATA_TYPE_TOTAL);
+	var self = this;
+	obj = new Object();
+	var highcharts = $('#' + this.renderTo).highcharts();
+	var custombutton = highcharts.renderer.button('<< Go back', 20, 0, function(){
+		// When custombutton.destroy() is called, a JavaScript error will occurs (existing bug on highcharts)
+		// To avoid the error, setTimeout() is used here.
+		setTimeout(function() {
+			self.redraw(prevChart, CLAChart.DATA_TYPE_TOTAL, true, startUTCDate, endUTCDate);
+			// Remove the button when clicked
+			custombutton.destroy();
+		}, 0);
+	}, null, obj, obj).add();
+};
 CLAPieChart.prototype.createSeriesByChart = function(chart, checkDate, start, end) {
 	return this.createSeriesWithColors(chart, checkDate, start, end, null);
 };
@@ -772,32 +802,28 @@ CLABarChart.prototype.getPointOptions = function() {
 	return options;
 };
 CLABarChart.prototype.redrawByPoint = function(point, start, end) {
-	for(key in chartObjDict) {
-		if (chartObjDict[key].renderTo != this.renderTo) continue;
-
-		var chartObj = chartObjDict[key];
-		var platform = point.series.name;
-		var newDataType = CLAChart.DATA_TYPE_OVERVIEW;
-		if (this.dataType == CLAChart.DATA_TYPE_OVERVIEW) {
-			return;
-		}
-		// var chart = chartObj.getChartDataByPlatformAndDataType(platform, newDataType);
-		// console.log(chart);
-		// var ddData = chartObj.createDrilldownData(chart);
-		var chart = chartObj.getChartData(platform, newDataType);
-		chartObj.redraw(chart, newDataType, true, startUTCDate, endUTCDate);
-		var prevChart = chartObj.getChartData(CLAChart.DATA_TYPE_TOTAL, CLAChart.DATA_TYPE_TOTAL);
-		
-		obj = new Object();
-		var highcharts = $('#' + this.renderTo).highcharts();
-		var custombutton = highcharts.renderer.button('<< Go back', (highcharts.chartWidth - 80), 50, function(){
-			chartObj.redraw(prevChart, CLAChart.DATA_TYPE_TOTAL, true, startUTCDate, endUTCDate);
-			// Remove the button when clicked
-			custombutton.destroy();
-		}, null, obj, obj).add();
+	var selectedVal = point.series.name;
+	var newDataType = CLAChart.DATA_TYPE_OVERVIEW;
+	if (this.dataType == CLAChart.DATA_TYPE_OVERVIEW) {
+		return;
 	}
+	// var chart = chartObj.getChartDataByPlatformAndDataType(selectedVal, newDataType);
+	// console.log(chart);
+	// var ddData = chartObj.createDrilldownData(chart);
+	this.selectedPlatform = selectedVal;
+	var chart = this.getChartData(selectedVal, newDataType);
+	this.redraw(chart, newDataType, true, startUTCDate, endUTCDate);
+	var prevChart = this.getChartData(CLAChart.DATA_TYPE_TOTAL, CLAChart.DATA_TYPE_TOTAL);
+	var self = this;
+	obj = new Object();
+	var highcharts = $('#' + this.renderTo).highcharts();
+	// var custombutton = highcharts.renderer.button('<< Go back', (highcharts.chartWidth - 80), 50, function(){
+	var custombutton = highcharts.renderer.button('<< Go back', 20, 0, function(){
+		self.redraw(prevChart, CLAChart.DATA_TYPE_TOTAL, true, startUTCDate, endUTCDate);
+		// Remove the button when clicked
+		custombutton.destroy();
+	}, null, obj, obj).add();
 };
-
 
 CLAChartOptions = function(renderTo, chartType) {
 	this.chartType = chartType;
@@ -848,7 +874,7 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 					for(key in chartObjDict) {
 						var chartObj = chartObjDict[key];
 						var dataType = chartObj.dataType;//Common.getDataTypeBySelectedPlatform();
-						var selectedPlatform = this.selectedPlatform;//Common.getSelectedPlatform();
+						var selectedPlatform = chartObj.selectedPlatform;//Common.getSelectedPlatform();
 						// var chart = chartObj.getChartData(chartObj.selectedPlatform, chartObj.dataType);
 						// var chart = chartObj.getChartDataByPlatform(selectedPlatform);
 						// chartObj.redraw(chart, chartObj.dataType, true, e.min, e.max);
