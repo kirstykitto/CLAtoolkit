@@ -19,7 +19,7 @@ Common.HTML_TAG_SPAN = '<span class="platform-radio" ></span>';
 Common.initialise = function() {
 	Common.navigatorPositionChanger();
 	Common.insertRadioButtonTags();
-	Common.initialiseDataTable("activity-table");
+	// Common.initialiseDataTable("activity-table");
 };
 
 Common.showDetailsInTable = function(tagId, chart) {
@@ -150,8 +150,8 @@ Common.redrawAll = function (input) {
 		// var chart = chartObj.getChartData(platform, newDataType);
 		var chart = chartObj.getChartDataByPlatform(platform);
 		chartObj.redraw(chart, newDataType, true, startUTCDate, endUTCDate);
-		Common.showDetailsInTable(
-			"activity-table", chartObj.getChartDataByPlatformAndDataType(platform, CLAChart.DATA_TYPE_DETAILS));
+		// Common.showDetailsInTable(
+		// 	"activity-table", chartObj.getChartDataByPlatformAndDataType(platform, CLAChart.DATA_TYPE_DETAILS));
 	}
 };
 Common.getSelectedPlatform = function () {
@@ -696,21 +696,6 @@ CLAPieChart.prototype.updateLabelItemsOnChart = function() {
 	// 	}
 	// }
 };
-// CLAChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
-// 	if(chart == null || chart.length == 0) return;
-
-// 	this.dataType = dataType;
-// 	this.series = this.createSeriesByChart(chart, checkDate, start, end);
-// 	this.categories = chart["categories"] ? chart["categories"] : [];
-// 	// TODO: Fix updateLabelItemsOnChart() to update item labels so that chart can be updated and not instanciated.
-// 	var options = this.createOptions();
-// 	var highChart = $("#" + this.renderTo).highcharts(options);
-// 	// this.updateSeriesOnChart();
-// 	// this.updateLabelItemsOnChart();
-// 	// highChart.xAxis[0].setCategories(this.categories, false);
-// 	// highChart.redraw();
-// };
-
 
 
 
@@ -751,8 +736,6 @@ CLABarChart.prototype.createSeriesByChart = function(chart, checkDate, start, en
 		allSeries.push(newSeries);
 		index++;
 	}
-	// this.series = allSeries;
-	console.log(allSeries);
 	return allSeries;
 };
 CLABarChart.prototype.createOptions = function() {
@@ -775,8 +758,9 @@ CLABarChart.prototype.getPointOptions = function() {
 	var self = this;
 	var options = {
 		events: {
-			click: function () {
+			click: function (e) {
 				// self.selectedPlatform = this.series.name;
+				// console.log(e);
 				self.redrawByPoint(this, startUTCDate, endUTCDate);
 			}
 		}
@@ -784,14 +768,31 @@ CLABarChart.prototype.getPointOptions = function() {
 	return options;
 };
 CLABarChart.prototype.redrawByPoint = function(point, start, end) {
-	var chart = null;
-	console.log(point.category);
-	console.log(point.series.name);
-	var chart = this.getChartDataByPlatform(point.category);
-	// this.redraw(chart, newDataType, true, start, end);
-	// this.dataType = newDataType;
-};
+	for(key in chartObjDict) {
+		if (chartObjDict[key].renderTo != this.renderTo) continue;
 
+		var chartObj = chartObjDict[key];
+		var platform = point.series.name;
+		var newDataType = CLAChart.DATA_TYPE_OVERVIEW;
+		if (this.dataType == CLAChart.DATA_TYPE_OVERVIEW) {
+			return;
+		}
+		var chart = chartObj.getChartDataByPlatformAndDataType(platform, newDataType);
+		// console.log(chart);
+		// var ddData = chartObj.createDrilldownData(chart);
+		chartObj.redraw(chart, newDataType, true, startUTCDate, endUTCDate);
+		var prevChart = chartObj.getChartDataByPlatformAndDataType(CLAChart.DATA_TYPE_TOTAL, CLAChart.DATA_TYPE_TOTAL);
+		
+		obj = new Object();
+		var highcharts = $('#' + this.renderTo).highcharts();
+		var custombutton = highcharts.renderer.button('<< Go back', (highcharts.chartWidth - 100), 50, function(){
+			chartObj.redraw(prevChart, CLAChart.DATA_TYPE_TOTAL, true, startUTCDate, endUTCDate);
+			// Remove the button when clicked
+			custombutton.destroy();
+		}, null, obj, obj).add();
+		
+	}
+};
 
 
 CLAChartOptions = function(renderTo, chartType) {
@@ -848,9 +849,9 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 						var chart = chartObj.getChartDataByPlatform(selectedPlatform);
 						// chartObj.redraw(chart, chartObj.dataType, true, e.min, e.max);
 						chartObj.redraw(chart, dataType, true, e.min, e.max);
-						Common.showDetailsInTable(
-							"activity-table", 
-							chartObj.getChartDataByPlatformAndDataType(selectedPlatform, CLAChart.DATA_TYPE_DETAILS));
+						// Common.showDetailsInTable(
+						// 	"activity-table", 
+						// 	chartObj.getChartDataByPlatformAndDataType(selectedPlatform, CLAChart.DATA_TYPE_DETAILS));
 					}
 				}
 			}
@@ -1047,8 +1048,6 @@ CLAPieChartOptions.calculateChartAreaWidth = function(categories) {
 	areaWidth += CLAPieChartOptions.PIE_INIT_POSITION_X - 30;
 	return areaWidth
 };
-
-
 
 
 $(document).ready(function(){
