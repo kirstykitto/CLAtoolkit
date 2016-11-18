@@ -18,7 +18,7 @@ Common.HTML_TAG_LABEL = '<label></label>';
 Common.HTML_TAG_SPAN = '<span class="platform-radio" ></span>';
 Common.initialise = function() {
 	Common.navigatorPositionChanger();
-	// Common.insertRadioButtonTags();
+	Common.insertRadioButtonTags();
 	// Common.initialiseDataTable("activity-table");
 };
 
@@ -143,12 +143,13 @@ Common.setRadioButtonCheckedChangeEventHandler = function (tagId) {
 	});
 };
 Common.redrawAll = function (input) {
-	var platform = input.value;
+	var newSelectedPlatform = input.value;
 	var newDataType = input.value == CLAChart.DATA_TYPE_TOTAL ? CLAChart.DATA_TYPE_TOTAL : CLAChart.DATA_TYPE_OVERVIEW;
 	for(key in chartObjDict) {
 		var chartObj = chartObjDict[key];
-		// var chart = chartObj.getChartData(platform, newDataType);
-		var chart = chartObj.getChartDataByPlatform(platform);
+		chartObj.dataType = newDataType;
+		chartObj.selectedPlatform = newSelectedPlatform;
+		var chart = chartObj.getChartData(newSelectedPlatform, newDataType);
 		chartObj.redraw(chart, newDataType, true, startUTCDate, endUTCDate);
 		// Common.showDetailsInTable(
 		// 	"activity-table", chartObj.getChartDataByPlatformAndDataType(platform, CLAChart.DATA_TYPE_DETAILS));
@@ -576,10 +577,12 @@ CLAPieChart.prototype.redrawByPoint = function(point, start, end) {
 	var self = this;
 	obj = new Object();
 	var highcharts = $('#' + this.renderTo).highcharts();
-	var custombutton = highcharts.renderer.button('<< Go back', 20, 0, function(){
+	var custombutton = highcharts.renderer.button("<< Go back", (highcharts.chartWidth - 90), 50, function(){
 		// When custombutton.destroy() is called, a JavaScript error will occurs (existing bug on highcharts)
 		// To avoid the error, setTimeout() is used here.
 		setTimeout(function() {
+			self.dataType = CLAChart.DATA_TYPE_TOTAL;
+			self.selectedPlatform = CLAChart.DATA_TYPE_TOTAL;
 			self.redraw(prevChart, CLAChart.DATA_TYPE_TOTAL, true, startUTCDate, endUTCDate);
 			// Remove the button when clicked
 			custombutton.destroy();
@@ -817,8 +820,9 @@ CLABarChart.prototype.redrawByPoint = function(point, start, end) {
 	var self = this;
 	obj = new Object();
 	var highcharts = $('#' + this.renderTo).highcharts();
-	// var custombutton = highcharts.renderer.button('<< Go back', (highcharts.chartWidth - 80), 50, function(){
-	var custombutton = highcharts.renderer.button('<< Go back', 20, 0, function(){
+	var custombutton = highcharts.renderer.button('<< Go back', (highcharts.chartWidth - 120), 10, function(){
+		self.dataType = CLAChart.DATA_TYPE_TOTAL;
+		self.selectedPlatform = CLAChart.DATA_TYPE_TOTAL;
 		self.redraw(prevChart, CLAChart.DATA_TYPE_TOTAL, true, startUTCDate, endUTCDate);
 		// Remove the button when clicked
 		custombutton.destroy();
@@ -878,7 +882,7 @@ CLANavigatorChartOptions.prototype.getOptions = function () {
 						// var chart = chartObj.getChartData(chartObj.selectedPlatform, chartObj.dataType);
 						// var chart = chartObj.getChartDataByPlatform(selectedPlatform);
 						// chartObj.redraw(chart, chartObj.dataType, true, e.min, e.max);
-						var chart = chartObj.getChartData(dataType, selectedPlatform);
+						var chart = chartObj.getChartData(selectedPlatform, dataType);
 						chartObj.redraw(chart, dataType, true, e.min, e.max);
 						// Common.showDetailsInTable(
 						// 	"activity-table", 
