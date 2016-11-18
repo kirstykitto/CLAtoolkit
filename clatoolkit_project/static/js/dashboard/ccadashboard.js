@@ -255,10 +255,10 @@ CLAChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
 	if(chart == null || chart.length == 0) return;
 
 	this.dataType = dataType;
-	this.series = this.createSeriesByChart(chart, checkDate, start, end);
+	var series = this.createSeriesByChart(chart, checkDate, start, end);
 	this.categories = chart["categories"] ? chart["categories"] : [];
 	var highChart = $("#" + this.renderTo).highcharts();
-	this.updateSeriesOnChart();
+	this.updateSeriesOnChart(series);
 	this.updateLabelItemsOnChart();
 	highChart.xAxis[0].setCategories(this.categories, false);
 	highChart.redraw();
@@ -266,7 +266,8 @@ CLAChart.prototype.redraw = function(chart, dataType, checkDate, start, end) {
 CLAChart.prototype.updateLabelItemsOnChart = function() {
 	// Implement this method if needed.
 };
-CLAChart.prototype.updateSeriesOnChart = function() {
+CLAChart.prototype.updateSeriesOnChart = function(series) {
+	this.series = series;
 	var highChart = $("#" + this.renderTo).highcharts();
 	var seriesList = [];
 	for(key in this.series) {
@@ -529,6 +530,16 @@ CLAPieChart.prototype.createOptions = function() {
 	options.plotOptions.series = this.getPointOptions(this.dataType);
 	return options;
 };
+CLAPieChart.prototype.updateOptions = function(options) {
+	// var options = new CLAPieChartOptions(this.renderTo, this.chartType).getOptions();
+	// Do not show anything on purpose in order to avoid overwrapping on category names
+	options.title.text = " ";
+	options.chart.width = CLAPieChartOptions.calculateChartAreaWidth(this.categories);
+	options.labels.items = CLAPieChartOptions.getChartLabels(this.categories);
+	options.series = this.series;
+	options.plotOptions.series = this.getPointOptions(this.dataType);
+	return options;
+};
 CLAPieChart.prototype.getPointOptions = function(dataType) {
 	var self = this;
 	var options = {
@@ -548,10 +559,28 @@ CLAPieChart.prototype.redraw = function(chart, dataType, checkDate, start, end) 
 	if(chart == null || chart.length == 0) return;
 
 	this.dataType = dataType;
-	this.series = this.createSeriesByChart(chart, checkDate, start, end);
+	var series = this.createSeriesByChart(chart, checkDate, start, end);
 	this.categories = chart["categories"] ? chart["categories"] : [];
+
+	// TODO: update labels.items (title of each pie chart) if possible
+	// 		 This code is to re-initialise the chart, which causes changing page scroll position (x, y)
+	this.updateSeriesOnChart(series);
 	var options = this.createOptions();
-	var highChart = $("#" + this.renderTo).highcharts(options);
+	$("#" + this.renderTo).highcharts(options);
+	// var highChart = $("#" + this.renderTo).highcharts();
+	// this.updateLabelItemsOnChart(highChart);
+	// this.updateSeriesOnChart(series);
+	// highChart.xAxis[0].setCategories(this.categories, false);
+	// this.updateOptions(highChart.options);
+	// highChart.redraw();
+	// var mychart = new Highcharts.Chart(this.renderTo, highChart);
+	// mychart.render();
+	
+
+	// this.dataType = dataType;
+	// this.series = this.createSeriesByChart(chart, checkDate, start, end);
+	// this.categories = chart["categories"] ? chart["categories"] : [];
+	// var highChart = $("#" + this.renderTo).highcharts();
 	// this.updateSeriesOnChart();
 	// this.updateLabelItemsOnChart();
 	// highChart.xAxis[0].setCategories(this.categories, false);
@@ -764,29 +793,32 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 
 	return allSeries;
 };
-CLAPieChart.prototype.updateLabelItemsOnChart = function() {
+CLAPieChart.prototype.updateLabelItemsOnChart = function(highChartOptions) {
 	// TODO: update item labels!
-	// var highChart = $("#" + this.renderTo).highcharts();
-	// var newItems = CLAPieChartOptions.getChartLabels(this.categories);
-	// if(newItems.length > highChart.options.labels.items.length) {
-	// 	for(var i = 0; i < newItems.length; i++) {
-	// 		if(i >= highChart.options.labels.items.length) {
-	// 			highChart.options.labels.items.append(newItems[i]);
-	// 		} else {
-	// 			highChart.options.labels.items[i] = newItems[i];
-	// 		}
-	// 	}		
-	// } else {
-	// 	// TODO: fix bug... label items are not updated!
-	// 	var len = highChart.options.labels.items.length;
-	// 	for(var i = (len - 1); i >= 0; i--) {
-	// 		if(i >= newItems.length) {
-	// 			highChart.options.labels.items.splice(i, 1);
-	// 		} else {
-	// 			highChart.options.labels.items[i] = newItems[i];
-	// 		}
-	// 	}
-	// }
+	// var highChartOptions = $("#" + this.renderTo).highcharts();
+	var newItems = CLAPieChartOptions.getChartLabels(this.categories);
+	if(newItems.length > highChartOptions.options.labels.items.length) {
+		for(var i = 0; i < newItems.length; i++) {
+			if(i >= highChartOptions.options.labels.items.length) {
+				highChartOptions.options.labels.items.push(newItems[i]);
+			} else {
+				highChartOptions.options.labels.items[i].html = newItems[i].html;
+				highChartOptions.options.labels.items[i].style = newItems[i].style;
+			}
+		}
+	} else {
+		// TODO: fix bug... label items are not updated!
+		var len = highChartOptions.options.labels.items.length;
+		for(var i = (len - 1); i >= 0; i--) {
+			if(i >= newItems.length) {
+				highChartOptions.options.labels.items.splice(i, 1);
+			} else {
+				highChartOptions.options.labels.items[i].html = newItems[i].html;
+				highChartOptions.options.labels.items[i].style = newItems[i].style;
+			}
+		}
+	}
+	// highChartOptions.options.labels.items = newItems;
 };
 
 
