@@ -557,23 +557,44 @@ CLAPieChart.prototype.redraw = function(chart, dataType, checkDate, start, end) 
 	// highChart.xAxis[0].setCategories(this.categories, false);
 	// highChart.redraw();
 };
+CLAPieChart.prototype.redrawWithSeriesFilter = function(chart, dataType, checkDate, start, end, seriesFilter) {
+	if(chart == null || chart.length == 0) return;
+
+	this.dataType = dataType;
+	this.series = this.createSeriesWithSeriesFilter(chart, checkDate, start, end, seriesFilter);
+	this.categories = chart["categories"] ? chart["categories"] : [];
+	var options = this.createOptions();
+	var highChart = $("#" + this.renderTo).highcharts(options);
+	// this.updateSeriesOnChart();
+	// this.updateLabelItemsOnChart();
+	// highChart.xAxis[0].setCategories(this.categories, false);
+	// highChart.redraw();
+};
 CLAPieChart.prototype.redrawByPoint = function(point, start, end) {
+	console.log(point.name);
 	var selectedVal = point.name;
-	console.log(selectedVal);
-	var newDataType = CLAChart.DATA_TYPE_OVERVIEW;
 	var oldDataType = this.dataType;
-	if (this.dataType == CLAChart.DATA_TYPE_OVERVIEW) {
-		newDataType = CLAChart.DATA_TYPE_DETAILS;
+	var oldSelectedPlatform = this.selectedPlatform;
+
+	if(this.dataType == CLAChart.DATA_TYPE_TOTAL) {
+		var newDataType = CLAChart.DATA_TYPE_OVERVIEW;
+		this.selectedPlatform = selectedVal;
+		this.dataType = newDataType;
+
+		var chart = this.getChartData(selectedVal, newDataType);
+		this.redraw(chart, newDataType, true, start, end);
+	} else if (this.dataType == CLAChart.DATA_TYPE_OVERVIEW) {
+		var newDataType = CLAChart.DATA_TYPE_OVERVIEW;
+		// Use the same data type, but use selected value as filter series.
+		var chart = this.getChartData(this.selectedPlatform, newDataType);
+		this.redrawWithSeriesFilter(chart, newDataType, true, start, end, selectedVal);
+		// Update datatype to details
+		this.dataType = CLAChart.DATA_TYPE_DETAILS;
+		selectedVal = oldSelectedPlatform;
 	} else if (this.dataType == CLAChart.DATA_TYPE_DETAILS) {
 		return;
 	}
 
-	var chart = this.getChartData(selectedVal, newDataType);
-	this.selectedPlatform = selectedVal;
-	this.redraw(chart, newDataType, true, start, end);
-	// var oldDataType = this.dataType;
-	this.dataType = newDataType;
-	var prevChart = this.getChartData(CLAChart.DATA_TYPE_TOTAL, CLAChart.DATA_TYPE_TOTAL);
 	var self = this;
 	obj = new Object();
 	var highcharts = $('#' + this.renderTo).highcharts();
@@ -581,22 +602,40 @@ CLAPieChart.prototype.redrawByPoint = function(point, start, end) {
 		// When custombutton.destroy() is called, a JavaScript error will occurs (existing bug on highcharts)
 		// To avoid the error, setTimeout() is used here.
 		setTimeout(function() {
-			self.dataType = CLAChart.DATA_TYPE_TOTAL;
-			self.selectedPlatform = CLAChart.DATA_TYPE_TOTAL;
-			self.redraw(prevChart, CLAChart.DATA_TYPE_TOTAL, true, startUTCDate, endUTCDate);
+			// var prevDataType = self.dataType;
+			// var prevSelectedPlatform = self.selectedPlatform;
+			self.dataType = oldDataType;
+			self.selectedPlatform = oldSelectedPlatform;
+			var prevChart = self.getChartData(oldSelectedPlatform, oldDataType);
+			self.redraw(prevChart, self.dataType, true, startUTCDate, endUTCDate);
 			// Remove the button when clicked
 			custombutton.destroy();
+			if(oldDataType == CLAChart.DATA_TYPE_OVERVIEW) {
+				highcharts = $('#' + self.renderTo).highcharts();
+				var innerSelf = 
+				custombutton = highcharts.renderer.button("<< Go back", (highcharts.chartWidth - 90), 50, function(){
+					// When custombutton.destroy() is called, a JavaScript error will occurs (existing bug on highcharts)
+					// To avoid the error, setTimeout() is used here.
+					setTimeout(function() {
+						self.dataType = CLAChart.DATA_TYPE_TOTAL;
+						self.selectedPlatform = CLAChart.DATA_TYPE_TOTAL;
+						chart = self.getChartData(self.selectedPlatform, self.dataType);
+						self.redraw(chart, self.dataType, true, startUTCDate, endUTCDate);
+						// Remove the button when clicked
+						custombutton.destroy();
+					}, 0);
+				}, null, obj, obj).add();
+			}
 		}, 0);
+
 	}, null, obj, obj).add();
 };
 CLAPieChart.prototype.createSeriesByChart = function(chart, checkDate, start, end) {
-	return this.createSeriesWithColors(chart, checkDate, start, end, null);
+	return this.createSeriesWithSeriesFilter(chart, checkDate, start, end, null)
 };
-CLAPieChart.prototype.createSeriesWithColors = function(chart, checkDate, start, end, colors) {
+CLAPieChart.prototype.createSeriesWithSeriesFilter = function(chart, checkDate, start, end, seriesFilter) {
 	var allSeries = [];
-	if (colors == null || colors.length == 0) {
-		colors = this.createChartColors(chart["seriesName"]);
-	}
+	colors = this.createChartColors(chart["seriesName"]);
 
 	var posX = CLAPieChartOptions.PIE_INIT_POSITION_X;
 	var seriesName = chart["seriesName"];
@@ -614,6 +653,13 @@ CLAPieChart.prototype.createSeriesWithColors = function(chart, checkDate, start,
 		var total = 0;
 		for(var j = 0; j < seriesName.length; j++) {
 			var name = seriesName[j];
+			if(seriesFilter != null && seriesFilter != name) {
+				// if seriesFilter is specified, series will only include the seriesFilter and its related values.
+				// e.g. verb opened is specified, return value will include opened in an inner pie, and
+				// 		all open issues and pull requests data.
+				// 		Any other verb will be excluded from the return value.
+				continue;
+			}
 			var series = chartData[cate][name];
 			var total = this.countTotalActivities(series, checkDate, start, end, countable);
 			var dispName = Common.getObjectDisplayName(chart["objectMapper"], name);
@@ -630,7 +676,7 @@ CLAPieChart.prototype.createSeriesWithColors = function(chart, checkDate, start,
 		if(dataType != CLAChart.DATA_TYPE_TOTAL) {
 			// diameter = this.dataType == CLAChart.DATA_TYPE_DETAILS ? CLAPieChartOptions.PIE_DIAMETER_OUTER : CLAPieChartOptions.PIE_DIAMETER_INNER;
 			diameter = CLAPieChartOptions.PIE_DIAMETER_INNER;
-		}			
+		}
 		newSeries = CLAPieChartOptions.getSeriesOptions(cate, posX, diameter, dataset);
 		allSeries.push(newSeries);
 	}
@@ -638,15 +684,15 @@ CLAPieChart.prototype.createSeriesWithColors = function(chart, checkDate, start,
 	var selectedPlatform = this.selectedPlatform;//Common.getSelectedPlatform();
 	// if(dataType == CLAChart.DATA_TYPE_OVERVIEW || dataType == CLAChart.DATA_TYPE_DETAILS) {
 	if(this.chartType == CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE
-		&& dataType == CLAChart.DATA_TYPE_OVERVIEW) {
+		&& (dataType == CLAChart.DATA_TYPE_OVERVIEW || dataType == CLAChart.DATA_TYPE_DETAILS)) {
 		var detailsSeries = this.createDetailsChartSeries(
 							this.charts[selectedPlatform][CLAChart.DATA_TYPE_DETAILS],
-							checkDate, start, end, colors);
+							checkDate, start, end, colors, seriesFilter);
 		$.merge(allSeries, detailsSeries);
 	}
 	return allSeries;
 };
-CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDate, start, end, colors) {
+CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDate, start, end, colors, seriesFilter) {
 	var allSeries = [];
 	if (colors == null || colors.length == 0) {
 		colors = createChartColors(detailsChart["seriesName"]);
@@ -667,11 +713,24 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 		var cate = categories[i];
 		for(var j = 0; j < seriesName.length; j++) {
 			var name = seriesName[j];
+			var verb = this.getParentObjectName(detailsChart["objectMapper"], name);
+			seriesColor = this.getChartColorByName(colors, verb, false);
+			if(seriesFilter != null && seriesFilter != verb) {
+				// if seriesFilter is specified, series will only include the seriesFilter and its related values.
+				// e.g. verb opened is specified, return value will include opened as an inner pie data, and
+				// 		all open issues and pull requests data as an outer pie data
+				// 		Any other verb will be excluded from the return value.
+				continue;
+			}
+
 			var series = chartData[cate][name];
 			if(series == null) {
+				// Users may or may not have the series name. 
+				// It depends on what users have done before data import.
 				continue;
 			}
 			var index = 0;
+			var dispName = Common.getObjectDisplayName(detailsChart["objectDisplayNames"], series["name"]);
 			for(var k = 0; k < series["date"].length; k++) {
 				var date = series["date"][k];
 				if(checkDate) {
@@ -681,15 +740,11 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 						continue;
 					}
 				}
-
-				var dispName = Common.getObjectDisplayName(detailsChart["objectDisplayNames"], series["name"]);
-				dispName = dispName + " (" + this.formatDate(date) + ")" + "<br>" + series["values"][index++];
 				var newData = {
-					name: dispName,
-					y: 1
+					name: dispName + " (" + this.formatDate(date) + ")" + "<br>" + series["values"][index++],
+					y: 1,
+					color: seriesColor
 				};
-				var verb = this.getParentObjectName(detailsChart["objectMapper"], series["name"]);
-				newData["color"] = this.getChartColorByName(colors, verb, false);
 				dataset.push(newData);
 			}
 		}
