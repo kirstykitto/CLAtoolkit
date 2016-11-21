@@ -191,7 +191,7 @@ Common.getObjectDisplayName = function(objectMapper, objectName) {
 		$.each(objectMapper, function(key, val) {
 			if(key == objectName) {
 				ret = val;
-				return false; // false means break in $.each()
+				return false; // false means break out of $.each()
 			}
 		});
 	} catch(e) {
@@ -221,18 +221,13 @@ CLAChart = function(renderTo, chartType, url) {
 	this.charts = []; // All data sent from the server
 	this.series = []; // Current series
 	this.categories = []; // Current categories
-	// this.isClickable = false;
 	this.selectedPlatform = CLAChart.DATA_TYPE_TOTAL;
 	this.dataType = CLAChart.DATA_TYPE_TOTAL;
 };
-
 CLAChart.DATA_TYPE_TOTAL = "total";
 CLAChart.DATA_TYPE_OVERVIEW = "overview";
 CLAChart.DATA_TYPE_DETAILS = "details";
 
-// CLAChart.prototype.setClickable = function(isClickable) {
-// 	this.isClickable = isClickable;
-// };
 CLAChart.prototype.createSeries = function(data, checkDate, start, end) {
 	if(data == null) return null;
 	var charts = data["charts"];
@@ -245,9 +240,8 @@ CLAChart.prototype.createSeries = function(data, checkDate, start, end) {
 	this.series = this.createSeriesByChart(this.charts[selectedPlatform][this.dataType], checkDate, start, end);
 	this.categories = charts[selectedPlatform][this.dataType]["categories"] ? charts[selectedPlatform][this.dataType]["categories"] : [];
 };
-CLAChart.prototype.initializeChart = function(data) {		
+CLAChart.prototype.initializeChart = function(data) {
 	this.createSeries(data, false, null, null);
-	this.changeChartAreaVisibility(this.renderTo, true);
 	var options = this.createOptions();
 	$("#" + this.renderTo).highcharts(options);
 };
@@ -302,7 +296,6 @@ CLAChart.prototype.updateSeriesOnChart = function(series) {
 };
 CLAChart.prototype.draw = function() {
 	var self = this;
-	// console.log(this.url);
 	$.ajax({
 		type: "GET",
 		url: this.url
@@ -311,16 +304,8 @@ CLAChart.prototype.draw = function() {
 		console.log('error!\r\n' + errorThrown);
 	})
 	.done(function( data ) {
-		// console.log(" CLAChart");
 		self.initializeChart(data);
 	});
-};
-CLAChart.prototype.changeChartAreaVisibility = function(tagId, showChartArea) {
-	if(showChartArea) {
-		$("#" + tagId).show();
-	} else {
-		$("#" + tagId).hide();
-	}
 };
 CLAChart.prototype.countTotalActivities = function(series, checkDate, start, end, countable) {
 	var total = 0;
@@ -406,24 +391,6 @@ CLAChart.prototype.getChartData = function(platform, dataType) {
 	// var dataType = Common.getDataTypeBySelectedPlatform();
 	return this.charts[platform][dataType];
 };
-// CLAChart.prototype.getChartDataByPlatform = function(platform) {
-// 	var data = [];
-// 	if(platform == "") return data;
-// 	if(this.charts.length == 0) return data;
-
-// 	var dataType = Common.getDataTypeBySelectedPlatform();
-// 	return this.charts[platform][dataType];
-// };
-// CLAChart.prototype.getChartDataByPlatformAndDataType = function(platform, dataType) {
-// 	var data = [];
-// 	if(platform == "" || dataType == "") return data;
-// 	if(this.charts.length == 0) return data;
-
-// 	if(platform == CLAChart.DATA_TYPE_TOTAL) {
-// 		dataType = CLAChart.DATA_TYPE_TOTAL;
-// 	}
-// 	return this.charts[platform][dataType];
-// };
 CLAChart.prototype.formatDate = function(dateString) {
 	var date = dateString.split(',');
 	// Date month start at 0, so add 1 to show correct month
@@ -489,7 +456,6 @@ CLANavigatorChart.prototype.createSeries = function(data) {
  */
 CLANavigatorChart.prototype.initializeChart = function(data) {
 	allSeries = this.createSeries(data);
-	this.changeChartAreaVisibility(this.renderTo, true);
 	var navOpt = new CLANavigatorChartOptions(this.renderTo, allSeries).getOptions();
 	navOpt.series = allSeries;
 	//Note: StockChart() method needs to be called instead of calling Chart()
@@ -575,7 +541,6 @@ CLAPieChart.prototype.redraw = function(chart, dataType, checkDate, start, end) 
 	// highChart.redraw();
 	// var mychart = new Highcharts.Chart(this.renderTo, highChart);
 	// mychart.render();
-	
 
 	// this.dataType = dataType;
 	// this.series = this.createSeriesByChart(chart, checkDate, start, end);
@@ -588,6 +553,9 @@ CLAPieChart.prototype.redraw = function(chart, dataType, checkDate, start, end) 
 };
 CLAPieChart.prototype.redrawWithSeriesFilter = function(chart, dataType, checkDate, start, end, seriesFilter) {
 	if(chart == null || chart.length == 0) return;
+	// if(Common.getObjectDisplayName(chart["objectDisplayNames"], seriesFilter) == seriesFilter) {
+	// 	return;
+	// }
 
 	this.dataType = dataType;
 	this.series = this.createSeriesWithSeriesFilter(chart, checkDate, start, end, seriesFilter);
@@ -601,6 +569,12 @@ CLAPieChart.prototype.redrawWithSeriesFilter = function(chart, dataType, checkDa
 };
 CLAPieChart.prototype.redrawByPoint = function(point, start, end) {
 	console.log(point.name);
+	console.log(point.id);
+	if(point.id != null && point.id.indexOf("outer") != -1) {
+		// Do nothing when a piece of an outer pie was clicked
+		return;
+	}
+	
 	var selectedVal = point.name;
 	var oldDataType = this.dataType;
 	var oldSelectedPlatform = this.selectedPlatform;
@@ -693,6 +667,7 @@ CLAPieChart.prototype.createSeriesWithSeriesFilter = function(chart, checkDate, 
 			var total = this.countTotalActivities(series, checkDate, start, end, countable);
 			var dispName = Common.getObjectDisplayName(chart["objectMapper"], name);
 			var newData = {
+				id: "inner:" + cate + ":" + name + ":" + j,
 				name: dispName,
 				y: total
 			};
@@ -770,6 +745,7 @@ CLAPieChart.prototype.createDetailsChartSeries = function(detailsChart, checkDat
 					}
 				}
 				var newData = {
+					id: "outer:" + cate + ":" + name + ":" + k,
 					name: dispName + " (" + this.formatDate(date) + ")" + "<br>" + series["values"][index++],
 					y: 1,
 					color: seriesColor
@@ -1062,8 +1038,8 @@ CLABarChartOptions.prototype.createPlotOptions = function (options) {
 		stacking: this.stacking,
 		dataLabels: {
 			enabled: true,
-			color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white',
-			style: { textShadow: '0 0 3px black', fontSize: '14px' },
+			//color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white',
+			//style: { fontSize: '14px' },
 		}
 	}
 
@@ -1185,6 +1161,5 @@ $(document).ready(function(){
 
 	barChart.draw();
 	pieChart.draw();
-	navChart.changeChartAreaVisibility("activities", true);
 	navChart.draw();
 });

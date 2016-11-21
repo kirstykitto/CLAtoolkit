@@ -3,32 +3,22 @@
 	margin-right: 15px;
 	float: left;
 }
-
 .clear {
     clear: left;
 }
-
 .tableDiv {
 	padding: 0px 5px;
 }
-
 .largeChart {
 	overflow-x:auto;
 }
-
 .message {
 	color: #ff0000;
 	display: none;
 }
-
-.chartRoot {
-	display: none;
-}
-
 .navigator-title {
 	margin: 5px 0 0 5px;
 }
-
 .navigator-fixed {
     position: fixed;
     top: 0;
@@ -39,19 +29,15 @@
     background: #F8F8F8;
     border-bottom: solid 1px #555;
 }
-
 .platform-radio {
 	padding-right: 5px;
 }
-
 #chartNavigator {
 	width: 98%;
 }
-
 .lessmargin {
 	margin-bottom: 5px;
 }
-
 .widercol {
 	width: 102%;
 }
