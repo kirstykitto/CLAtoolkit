@@ -294,6 +294,7 @@ CLAChart.prototype.updateSeriesOnChart = function(series) {
 		}
 	}
 };
+
 CLAChart.prototype.draw = function() {
 	var self = this;
 	$.ajax({
@@ -1162,4 +1163,91 @@ $(document).ready(function(){
 	barChart.draw();
 	pieChart.draw();
 	navChart.draw();
+
+	url = "/dashboard/api/get_github_contribution/?course_code=" + course_code
+	var contribBar = new CLABarChart("contribution", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NONE, url);
+	contribBar.drawContribution();
 });
+
+
+CLABarChart.prototype.drawContribution = function() {
+	var self = this;
+	$.ajax({
+		type: "GET",
+		url: this.url
+	})
+	.fail(function(data,textStatus, errorThrown){
+		console.log('error!\r\n' + errorThrown);
+	})
+	.done(function( data ) {
+		self.initializeContribution(data);
+	});
+};
+
+CLABarChart.prototype.initializeContribution = function(data) {
+	if(data == null) return null;
+	// Keep the data for later use
+	this.charts = data;
+
+	chartData = this.createContributionChartData(data);
+	this.categories = chartData["categories"];
+	this.series = chartData["series"];
+
+	// var options = this.createOptions();
+	// $("#" + this.renderTo).highcharts(options);
+
+	// Create highcharts options
+	var options = new CLABarChartOptions(this.renderTo, this.chartType, this.stacking).getOptions();
+	options.title.text = "The number of open/closed issues"
+	options.yAxis.title.text = " "
+	options.xAxis.categories = this.categories;
+	options.series = this.series;
+	// if (this.chartType == CLABarChartOptions.CHART_TYPE_COLUMN) {
+	// 	options.plotOptions.column.point = this.getPointOptions();
+	// 	options.plotOptions.column.cursor = 'pointer';
+	// } else {
+	// 	options.plotOptions.series.point = this.getPointOptions();
+	// 	options.plotOptions.series.cursor = 'pointer';
+	// }
+	$("#" + this.renderTo).highcharts(options);
+};
+
+CLABarChart.prototype.createContributionChartData = function(data) {
+
+	var assigned_issues = data["assigned_issues"];
+	var categories = [];
+	var openIssueData = [];
+	var closeIssueData = [];
+	for(key in assigned_issues) {
+		details = assigned_issues[key];
+		categories.push(details["assignee"]);
+		var openIssueCount = 0;
+		var closeIssueCount = 0;
+		for(issueKey in details["issues"]) {
+			issue = details["issues"][issueKey];
+			if(issue["status"] == "opened") {
+				openIssueCount++;
+			} else {
+				closeIssueCount++;
+			}
+		}
+		// Adding data in series...
+		openIssueData.push(openIssueCount);
+		closeIssueData.push(closeIssueCount);
+	}
+	var series = [];
+	openSeries = {
+		name: "Incomplete (opened)",
+		data: openIssueData,
+		color: "#6CC644",
+	};
+	closeSeries = {
+		name: "Complete (closed)",
+		data: closeIssueData,
+		color: "#BD2C00",
+	};
+	series.push(openSeries);
+	series.push(closeSeries);
+
+	return { "categories": categories, "series": series };
+};
