@@ -1608,3 +1608,127 @@ def get_all_reponames(token):
 
     return OrderedDict([('repos', ret)])
 
+
+def get_issue_list(course_code):
+    assigned_issue_list = get_assigned_issues(course_code)
+    issue_status_list = get_issue_status(course_code)
+
+    for assigned_issue in assigned_issue_list:
+        for issue in assigned_issue['issues']:  
+            if issue_status_list.has_key(issue['url']):
+                issue_status = issue_status_list[issue['url']]
+                issue['status'] = issue_status['status']
+            else:
+                # The loop should not reach here...
+                issue['status'] = 'opened'
+    
+    ret = OrderedDict([
+        ('issues', issue_status_list),
+        ('assigned_issues', assigned_issue_list),
+    ])
+    return ret
+
+
+def get_issue_status(course_code):
+    # Subquery: get closed issues
+    closed_issue_sql = """select 
+            xapi->'object'->>'id' as closed_issue_url
+            , verb
+            , max(datetimestamp) as closed_time
+            from clatoolkit_learningrecord
+            where  platform = '{}' and verb = '{}' and course_code = '{}'
+            group by closed_issue_url, verb
+            order by closed_issue_url, verb
+    """.format(CLRecipe.PLATFORM_GITHUB, CLRecipe.VERB_CLOSED, course_code)
+
+    # Main query: Get opened issues left join closed issues
+    # If issues have not been closed yet, closed_issue_url and closed_time are null
+    # The last column shows the status of each issue (open/close)
+    cursor = connection.cursor()
+    sql = """select 
+        xapi->'object'->>'id' as issue_url
+        , closed_issue_url
+        , max(datetimestamp) as opened_time
+        , max(closed_time) as closed_time
+        , case 
+            when 
+                closed_issue_url is null then 'opened' 
+            else 
+                case when max(datetimestamp) > max(closed_time) then 'opened' else 'closed' 
+            end
+          end 
+        from clatoolkit_learningrecord as cl
+        left join ( {} ) as closed_table
+        on xapi->'object'->>'id' = closed_table.closed_issue_url
+        where platform = '{}' and cl.verb = '{}' and course_code = '{}'
+        group by issue_url, closed_issue_url, cl.verb
+        order by issue_url
+    """.format(closed_issue_sql, CLRecipe.PLATFORM_GITHUB, CLRecipe.VERB_OPENED, course_code)
+
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    issue_status_list = {}
+    for row in result:
+        obj = OrderedDict([
+            # ('issue_url', row[0]),
+            ('opened_at', row[2]),
+            ('closed_at', row[3]),
+            ('status', row[4]),
+        ])
+        issue_status_list[row[0]] = obj
+
+    return issue_status_list
+
+
+
+
+def get_assigned_issues(course_code):
+    cursor = connection.cursor()
+    cursor.execute("""select 
+        xapi->'object'->'definition'->'name'->>'en-US' as assignee
+        , json_array_elements(xapi->'context'->'contextActivities'->'parent')->>'id' as issue_url
+        from clatoolkit_learningrecord
+        where
+        platform = %s
+        and verb = %s
+        and xapi->'object'->'definition'->>'type' = %s
+        order by assignee, issue_url desc
+    """, [CLRecipe.PLATFORM_GITHUB, CLRecipe.VERB_ADDED, CLRecipe.get_object_iri(CLRecipe.OBJECT_PERSON)])
+
+    result = cursor.fetchall()
+    issue_list = []
+    assignee_name = ''
+    status = 'opened' # This status will be update later
+    issue_urls = []
+    for row in result:
+        if assignee_name == '' or assignee_name != row[0]:
+            if assignee_name != '':
+                obj = OrderedDict([
+                    ('assignee', assignee_name),
+                    ('issues', copy.deepcopy(issue_urls))
+                ])
+                issue_list.append(obj)
+                issue_urls = []
+
+            assignee_name = row[0]
+            issue = OrderedDict([
+                ('url', row[1]),
+                ('status', status)
+            ])
+            issue_urls.append(issue)
+
+        elif assignee_name == row[0]:
+            issue = OrderedDict([
+                ('url', row[1]),
+                ('status', status)
+            ])
+            issue_urls.append(issue)
+
+    # Save the last one
+    obj = OrderedDict([
+        ('assignee', assignee_name),
+        ('issues', copy.deepcopy(issue_urls))
+    ])
+    issue_list.append(obj)
+
+    return issue_list

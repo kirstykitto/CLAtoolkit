@@ -812,3 +812,12 @@ def remove_attached_repo(request):
     ret = {'result': 'success'}
     return JsonResponse(ret, status=status.HTTP_200_OK)
 
+
+@login_required
+def get_github_contribution(request):
+    # Get all issues and issues that each user was assigned to.
+    course_code = request.GET.get('course_code')
+    contribution = get_issue_list(course_code)
+    
+    print JsonResponse(contribution, status=status.HTTP_200_OK)
+    return JsonResponse(contribution, status=status.HTTP_200_OK)

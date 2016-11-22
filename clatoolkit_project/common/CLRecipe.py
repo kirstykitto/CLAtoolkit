@@ -64,6 +64,7 @@ class CLRecipe(object):
 		OBJECT_TASK: 'http://activitystrea.ms/specs/json/schema/activity-schema.html#task',
 		OBJECT_CHECKLIST: 'http://id.tincanapi.com/activitytype/checklist',
 		OBJECT_CHECKLIST_ITEM: 'http://id.tincanapi.com/activitytype/checklist-item',
+		OBJECT_PERSON: 'http://activitystrea.ms/head/activity-schema.html#person',
 		OBJECT_REVIEW: 'http://activitystrea.ms/schema/1.0/review',
 	}
 

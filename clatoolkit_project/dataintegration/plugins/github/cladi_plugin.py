@@ -94,7 +94,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             gh = Github(login_or_token = token, per_page = self.per_page)
             repo = gh.get_repo(repo_name)
             self.import_activities(course_code, repo_url, repo_name, repo, token)
-            # self.import_commits_from_all_branches(course_code, repo_url, repo_name, repo)
+            self.import_commits_from_all_branches(course_code, repo_url, repo_name, repo)
 
     def import_activities(self, course_code, repo_url, repo_name, repo, token):
         count = 0
@@ -105,9 +105,9 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 if event.type == self.EVENT_TYPE_ISSUES:
                     # issue_number = self.import_issues(event, course_code, repo_url, repo_name)
                     # issue_number_list.append(issue_number)
-                    issue_event_url, issue_url, issue_title = self.import_issues(event, course_code, repo_url, repo_name)
+                    issue_event_url, issue_html_url, issue_title = self.import_issues(event, course_code, repo_url, repo_name)
                     obj = {}
-                    obj['issue_url'] = issue_url
+                    obj['issue_html_url'] = issue_html_url
                     obj['issue_event_url'] = issue_event_url
                     obj['issue_title'] = issue_title
                     issue_number_list.append(obj)
@@ -168,7 +168,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
                 assignee = issue_event['assignee']
                 assigner = issue_event['assigner']
-                issue_url = issue['issue_url']
+                issue_url = issue['issue_html_url']
                 issue_title = issue['issue_title']
 
                 event_id = issue_event['id']
@@ -387,7 +387,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         # Return the issue number for assignees & assigner data import
         # return issue['number']
-        return issue['events_url'], issue['url'], title
+        return issue['events_url'], issue_url, title
 
 
     def import_pull_requests(self, event, course_code, repo_url, repo_name):
