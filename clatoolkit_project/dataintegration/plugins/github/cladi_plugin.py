@@ -10,6 +10,8 @@ from django.contrib.auth.models import User
 import os
 from common.CLRecipe import CLRecipe
 from common.ClaUserUtil import ClaUserUtil
+import urllib2
+import json
 
 class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
@@ -27,7 +29,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
     # config_json_keys = ['token']
     # The number of data (records) in a page.
-    parPage = 100
+    per_page = 100
 
     #from DIPluginDashboardMixin
     xapi_objects_to_includein_platformactivitywidget = ['Collection', 'file', 'comment']
@@ -88,22 +90,27 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             repo_url = self.platform_url + repo_name
             token = details['token']
             print "GitHub data import target repository: " + repo_url
-            
-            gh = Github(login_or_token = token, per_page = self.parPage)
-            repo = gh.get_repo(repo_name)
-            self.import_activities(course_code, repo_url, repo_name, repo)
-            self.import_commits_from_all_branches(course_code, repo_url, repo_name, repo)
 
-    def import_activities(self, course_code, repo_url, repo_name, repo):
+            gh = Github(login_or_token = token, per_page = self.per_page)
+            repo = gh.get_repo(repo_name)
+            self.import_activities(course_code, repo_url, repo_name, repo, token)
+            # self.import_commits_from_all_branches(course_code, repo_url, repo_name, repo)
+
+    def import_activities(self, course_code, repo_url, repo_name, repo, token):
         count = 0
         event_list = repo.get_events().get_page(count)
         issue_number_list = []
         while True:
             for event in event_list:
-                # print 'Evet type === ' + event.type
                 if event.type == self.EVENT_TYPE_ISSUES:
-                    issue_number = self.import_issues(event, course_code, repo_url, repo_name)
-                    issue_number_list.append(issue_number)
+                    # issue_number = self.import_issues(event, course_code, repo_url, repo_name)
+                    # issue_number_list.append(issue_number)
+                    issue_event_url, issue_url, issue_title = self.import_issues(event, course_code, repo_url, repo_name)
+                    obj = {}
+                    obj['issue_url'] = issue_url
+                    obj['issue_event_url'] = issue_event_url
+                    obj['issue_title'] = issue_title
+                    issue_number_list.append(obj)
                 elif event.type == self.EVENT_TYPE_PR:
                     self.import_pull_requests(event, course_code, repo_url, repo_name)
                 elif event.type == self.EVENT_TYPE_COMMIT_COMMENT:
@@ -122,66 +129,122 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         # End of while True:
         # Import assignees and assigners
-        self.import_issue_activities(event, course_code, issue_number_list, repo_url, repo_name, repo)
+        self.import_issue_activities(event, course_code, issue_number_list, repo_url, repo_name, repo, token)
 
 
-    def import_issue_activities(self, event, course_code, issue_number_list, repo_url, repo_name, repo):
-        for issue_number in issue_number_list:
-            count = 0
-            issue = repo.get_issue(issue_number)
-            issue_events = issue.get_events().get_page(count)
+    def import_issue_activities(self, event, course_code, issue_list, repo_url, repo_name, repo, token):
+        ### TODO: user PyGithub if possible.
+        #         It seems that assignees and assigner returned via get_events() are wrong, 
+        #         so not used at the moment.
+        # for issue_number in issue_number_list:
+        #     count = 0
+            # issue = repo.get_issue(issue_number)
+            # issue_events = issue.get_events().get_page(count)
 
-            while True:
-                for event in issue_events:
-                    # Import assignees and assigner
-                    if event.event == self.ISSUE_EVENT_ASSIGNED:
-                        # Import assigner and assignees
-                        self.import_assingee_assigner(event, course_code, issue, repo_url, repo_name)
+            # while True:
+            #     for event in issue_events:
+            #         # Import assignees and assigner
+            #         # print 'event.event === ' + event.event
+            #         if event.event == self.ISSUE_EVENT_ASSIGNED:
+            #             # Import assigner and assignees
+            #             self.import_assingee_assigner(event, course_code, issue, repo_url, repo_name)
 
-                count = count + 1
-                issue_events = issue.get_events().get_page(count)
-                temp = list(issue_events)
-                if len(temp) == 0:
-                    #Break from while
-                    break;
+            #     count = count + 1
+            #     issue_events = issue.get_events().get_page(count)
+            #     temp = list(issue_events)
+            #     if len(temp) == 0:
+            #         #Break from while
+            #         break;
+        
+        for issue in issue_list:
+            url = issue['issue_event_url'] + '?per_page=%d&access_token=%s' % (self.per_page, token)
+            # print url
+            req = urllib2.Request(url)
+            response = urllib2.urlopen(req)
+            issue_events = json.load(response)
+            for issue_event in issue_events:
+                if issue_event['event'] != self.ISSUE_EVENT_ASSIGNED:
+                    continue
+
+                assignee = issue_event['assignee']
+                assigner = issue_event['assigner']
+                issue_url = issue['issue_url']
+                issue_title = issue['issue_title']
+
+                event_id = issue_event['id']
+                assigner_id = str(assigner['id'])
+                assigner_name = str(assigner['login'])
+                assigner_url = assigner['html_url']
+
+                assignee_name = str(assignee['login'])
+                assignee_url = assignee['html_url']
+                date = issue_event['created_at']
+                object_type = CLRecipe.OBJECT_PERSON
+                
+                other_context_list = []
+                # Import event type
+                other_context_list.append(get_other_contextActivity(
+                    issue_url, 'Verb', self.EVENT_TYPE_ASSIGN_MEMBER, 
+                    CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
+                # Issue url and title
+                other_context_list.append(get_other_contextActivity(
+                    issue_url, 'Object', issue_title, 
+                    CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
+                # Repository url and name
+                other_context_list.append(get_other_contextActivity(
+                    repo_url, 'Object', repo_name, 
+                    CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
+
+                if username_exists(assigner_id, course_code, self.platform.lower()):
+                    usr_dict = ClaUserUtil.get_user_details_by_smid(assigner_id, self.platform)
+                    insert_added_object(usr_dict, issue_url, event_id, assignee_name, assigner_id, assigner_name, date,
+                                        course_code, self.platform, assigner_url, object_type,
+                                        shared_displayname = issue_url, other_contexts = other_context_list)
+
 
 
     ### Import assignees and assigner
-    def import_assingee_assigner(self, event, course_code, issue, repo_url, repo_name):
-        assignee = event.issue.assignee
-        assigner = event.actor
-        issue_url = issue.html_url
-        issue_title = issue.title
+    # def import_assingee_assigner(self, event, course_code, issue, repo_url, repo_name):
+        # assignee = event.issue.assignee
+        # assigner = event.actor
+        # issue_url = issue.html_url
+        # issue_title = issue.title
 
-        event_id = event.id
-        assigner_id = str(assigner.id)
-        assigner_name = str(assigner.login)
-        assigner_url = assigner.html_url
+        # event_id = event.id
+        # assigner_id = str(assigner.id)
+        # assigner_name = str(assigner.login)
+        # assigner_url = assigner.html_url
 
-        assignee_name = assignee.login
-        assignee_url = assignee.html_url
-        date = event.created_at
-        object_type = CLRecipe.OBJECT_PERSON
+        # assignee_name = assignee.login
+        # assignee_url = assignee.html_url
+        # date = event.created_at
+        # object_type = CLRecipe.OBJECT_PERSON
 
-        other_context_list = []
-        # Import event type
-        other_context_list.append(get_other_contextActivity(
-            issue_url, 'Verb', self.EVENT_TYPE_ASSIGN_MEMBER, 
-            CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
-        # Issue url and title
-        other_context_list.append(get_other_contextActivity(
-            issue_url, 'Object', issue_title, 
-            CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
-        # Repository url and name
-        other_context_list.append(get_other_contextActivity(
-            repo_url, 'Object', repo_name, 
-            CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
+        # print '================================================================='
+        # # print event.event
+        # print 'event ID: ' + str(event_id) + "     " + issue_url
+        # print 'assigner: %s  assignee: %s' % (assigner_name, assignee_name)
+        # # print 'user   ' + event.issue.user.login # looks like this is creator of issue
 
-        if username_exists(assigner_id, course_code, self.platform.lower()):
-            usr_dict = ClaUserUtil.get_user_details_by_smid(assigner_id, self.platform)
-            insert_added_object(usr_dict, issue_url, event_id, assignee_name, assigner_id, assigner_name, date,
-                                course_code, self.platform, assigner_url, object_type,
-                                shared_displayname = issue_url, other_contexts = other_context_list)
+        # other_context_list = []
+        # # Import event type
+        # other_context_list.append(get_other_contextActivity(
+        #     issue_url, 'Verb', self.EVENT_TYPE_ASSIGN_MEMBER, 
+        #     CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
+        # # Issue url and title
+        # other_context_list.append(get_other_contextActivity(
+        #     issue_url, 'Object', issue_title, 
+        #     CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
+        # # Repository url and name
+        # other_context_list.append(get_other_contextActivity(
+        #     repo_url, 'Object', repo_name, 
+        #     CLRecipe.get_verb_iri(CLRecipe.VERB_ADDED)))
+
+        # if username_exists(assigner_id, course_code, self.platform.lower()):
+        #     usr_dict = ClaUserUtil.get_user_details_by_smid(assigner_id, self.platform)
+        #     insert_added_object(usr_dict, issue_url, event_id, assignee_name, assigner_id, assigner_name, date,
+        #                         course_code, self.platform, assigner_url, object_type,
+        #                         shared_displayname = issue_url, other_contexts = other_context_list)
 
 
     ###################################################################
@@ -323,7 +386,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 shared_displayname = repo_name, other_contexts = other_context_list)
 
         # Return the issue number for assignees & assigner data import
-        return issue['number']
+        # return issue['number']
+        return issue['events_url'], issue['url'], title
 
 
     def import_pull_requests(self, event, course_code, repo_url, repo_name):

@@ -65,6 +65,7 @@ class ClaUserUtil(object):
 	@classmethod
 	def get_user_details_by_smid(self, smid, platform):
 		platform_param_name = self.get_platform_column_name_filter_string(platform)
+		user = None
 		try:
 			kwargs = {platform_param_name: str(smid)}
 			users = UserProfile.objects.filter(**kwargs)
@@ -78,7 +79,7 @@ class ClaUserUtil(object):
 		except UserProfile.DoesNotExist:
 			print """Warning: UserProfile.DoesNotExist exception has occurred 
 					in get_user_details_by_smid(). Params: smid = %s, platform = %s""" % (smid, platform)
-			return None
+			# return None
 
 		details = {}
 		if user is not None:
@@ -89,7 +90,10 @@ class ClaUserUtil(object):
 			details['email'] = user.user.email
 			# details['is_staff'] = user.user.is_staff # Necessary?
 			details['smids'] = self.get_smids_by_uid(user.user.id)
-		
+		else:
+			details['username'] = smid
+			details['email'] = ''
+
 		return details
 
 

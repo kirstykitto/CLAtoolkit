@@ -112,8 +112,8 @@ def refreshgithub(request):
     for resource in resources:
         # Save the repo name to avoid retrieving the same data again and again
         # If the repository name (resource_id) is in the id_list, the repo is already processed, so skip the process.
-        if resource.resource_id in id_list:
-            continue
+        # if resource.resource_id in id_list:
+        #     continue
 
         # Get user's token
         user = User.objects.get(pk=resource.user_id)
@@ -495,7 +495,10 @@ def github_client_auth(request):
     user_detail_url = "https://api.github.com/user?access_token=%s" % (token)
     res = requests.get(user_detail_url)
     user_json = json.loads(res.text)
+    print user_json
 
+    if not user_json.has_key('id'):
+        return HttpResponseServerError('<h3>Error has occurred.</h3><p>Message: %s</p>' % (user_json['message']))
     # Save GitHub token
     # token_storage = OfflinePlatformAuthToken.objects.get(user_smid=user_json['id'], platform=CLRecipe.PLATFORM_GITHUB)
     # if token_storage:
@@ -507,7 +510,7 @@ def github_client_auth(request):
         token_storage = tokens[0]
         token_storage.token = token
     elif len(tokens) > 1:
-        return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>More than one records were found.</p>')
+        return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>More than one records were found.</h1>')
     else:
         token_storage = OfflinePlatformAuthToken(user_smid=user_json['id'], token=token, platform=CLRecipe.PLATFORM_GITHUB)
     token_storage.save()
