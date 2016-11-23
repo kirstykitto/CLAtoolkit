@@ -819,5 +819,4 @@ def get_github_contribution(request):
     course_code = request.GET.get('course_code')
     contribution = get_issue_list(course_code)
     
-    print JsonResponse(contribution, status=status.HTTP_200_OK)
     return JsonResponse(contribution, status=status.HTTP_200_OK)

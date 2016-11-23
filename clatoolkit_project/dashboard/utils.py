@@ -1680,8 +1680,6 @@ def get_issue_status(course_code):
     return issue_status_list
 
 
-
-
 def get_assigned_issues(course_code):
     cursor = connection.cursor()
     cursor.execute("""select 

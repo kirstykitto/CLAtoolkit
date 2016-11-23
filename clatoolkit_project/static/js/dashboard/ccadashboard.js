@@ -1186,15 +1186,10 @@ CLABarChart.prototype.drawContribution = function() {
 
 CLABarChart.prototype.initializeContribution = function(data) {
 	if(data == null) return null;
-	// Keep the data for later use
-	this.charts = data;
 
 	chartData = this.createContributionChartData(data);
 	this.categories = chartData["categories"];
 	this.series = chartData["series"];
-
-	// var options = this.createOptions();
-	// $("#" + this.renderTo).highcharts(options);
 
 	// Create highcharts options
 	var options = new CLABarChartOptions(this.renderTo, this.chartType, this.stacking).getOptions();
@@ -1202,18 +1197,10 @@ CLABarChart.prototype.initializeContribution = function(data) {
 	options.yAxis.title.text = " "
 	options.xAxis.categories = this.categories;
 	options.series = this.series;
-	// if (this.chartType == CLABarChartOptions.CHART_TYPE_COLUMN) {
-	// 	options.plotOptions.column.point = this.getPointOptions();
-	// 	options.plotOptions.column.cursor = 'pointer';
-	// } else {
-	// 	options.plotOptions.series.point = this.getPointOptions();
-	// 	options.plotOptions.series.cursor = 'pointer';
-	// }
 	$("#" + this.renderTo).highcharts(options);
 };
 
 CLABarChart.prototype.createContributionChartData = function(data) {
-
 	var assigned_issues = data["assigned_issues"];
 	var categories = [];
 	var openIssueData = [];
@@ -1231,7 +1218,7 @@ CLABarChart.prototype.createContributionChartData = function(data) {
 				closeIssueCount++;
 			}
 		}
-		// Adding data in series...
+		// Adding data...
 		openIssueData.push(openIssueCount);
 		closeIssueData.push(closeIssueCount);
 	}
