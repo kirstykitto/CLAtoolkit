@@ -41,3 +41,6 @@
 .widercol {
 	width: 102%;
 }
+#contributionRoot {
+	display: none;
+}

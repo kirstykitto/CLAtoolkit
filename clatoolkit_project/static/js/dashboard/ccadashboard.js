@@ -235,10 +235,14 @@ CLAChart.prototype.createSeries = function(data, checkDate, start, end) {
 	this.charts = charts;
 	// var selectedPlatform = Common.getSelectedPlatform();
 	// var dataType = Common.getDataTypeBySelectedPlatform();
-	var selectedPlatform = CLAChart.DATA_TYPE_TOTAL;
+	this.selectedPlatform = CLAChart.DATA_TYPE_TOTAL;
 	this.dataType = CLAChart.DATA_TYPE_TOTAL;
-	this.series = this.createSeriesByChart(this.charts[selectedPlatform][this.dataType], checkDate, start, end);
-	this.categories = charts[selectedPlatform][this.dataType]["categories"] ? charts[selectedPlatform][this.dataType]["categories"] : [];
+	if(platform.split(',').length == 1) {
+		this.selectedPlatform = platform;
+		this.dataType = CLAChart.DATA_TYPE_OVERVIEW;
+	}
+	this.series = this.createSeriesByChart(this.charts[this.selectedPlatform][this.dataType], checkDate, start, end);
+	this.categories = charts[this.selectedPlatform][this.dataType]["categories"] ? charts[this.selectedPlatform][this.dataType]["categories"] : [];
 };
 CLAChart.prototype.initializeChart = function(data) {
 	this.createSeries(data, false, null, null);
@@ -399,11 +403,11 @@ CLAChart.prototype.formatDate = function(dateString) {
 	return date[2] + "/" + month.toString() + "/" + date[0];
 };
 CLAChart.prototype.getTitle = function() {
-	var chart = this.getChartData(this.dataType, this.selectedPlatform);
+	var chart = this.getChartData(this.selectedPlatform, this.dataType);
 	return chart.title;
 };
 CLAChart.prototype.getYAxisTitle = function() {
-	var chart = this.getChartData(this.dataType, this.selectedPlatform);
+	var chart = this.getChartData(this.selectedPlatform, this.dataType);
 	return chart.yAxis.title;
 };
 
@@ -616,7 +620,8 @@ CLAPieChart.prototype.redrawByPoint = function(point, start, end) {
 			custombutton.destroy();
 			if(oldDataType == CLAChart.DATA_TYPE_OVERVIEW) {
 				highcharts = $('#' + self.renderTo).highcharts();
-				var innerSelf = 
+				if(platform.split(',').length == 1) return;
+
 				custombutton = highcharts.renderer.button("<< Go back", (highcharts.chartWidth - 90), 50, function(){
 					// When custombutton.destroy() is called, a JavaScript error will occurs (existing bug on highcharts)
 					// To avoid the error, setTimeout() is used here.
@@ -1159,14 +1164,15 @@ $(document).ready(function(){
 	var pieChart = new CLAPieChart("activityPie", CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE, url);
 	Common.saveChartObject(barChart);
 	Common.saveChartObject(pieChart);
-
 	barChart.draw();
 	pieChart.draw();
 	navChart.draw();
 
-	url = "/dashboard/api/get_github_contribution/?course_code=" + course_code
-	var contribBar = new CLABarChart("contribution", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NONE, url);
-	contribBar.drawContribution();
+	if(platform.indexOf('GitHub') != -1) {
+		url = "/dashboard/api/get_github_contribution/?course_code=" + course_code
+		var contribBar = new CLABarChart("contribution", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NONE, url);
+		contribBar.drawContribution();
+	}
 });
 
 
@@ -1187,6 +1193,7 @@ CLABarChart.prototype.drawContribution = function() {
 CLABarChart.prototype.initializeContribution = function(data) {
 	if(data == null) return null;
 
+	$("#contributionRoot").show();
 	chartData = this.createContributionChartData(data);
 	this.categories = chartData["categories"];
 	this.series = chartData["series"];
