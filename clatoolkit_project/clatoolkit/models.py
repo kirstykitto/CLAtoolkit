@@ -255,6 +255,15 @@ class UnitOffering(models.Model):
 
         return platforms
 
+    def get_cca_dashboard_params(self):
+        params = []
+        if self.github_member_count() > 0:
+            params.append(CLRecipe.PLATFORM_GITHUB)
+        if len(self.trello_boards_as_list()) > 0:
+            params.append(CLRecipe.PLATFORM_TRELLO)
+
+        return ','.join(params)
+
 
 class UnitOfferingMembership(models.Model):
     user = models.ForeignKey(User)

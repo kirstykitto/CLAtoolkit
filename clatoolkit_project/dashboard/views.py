@@ -130,7 +130,7 @@ def trello_remove_board(request):
         trello_user_course_map = UserPlatformResourceMap.objects.filter(user=request.user, unit=course_id, platform=CLRecipe.PLATFORM_TRELLO)
         unit = UnitOffering.objects.get(id=course_id)
     except ObjectDoesNotExist:
-        return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>Could not remove Trello Board.</p>')
+        return HttpResponseServerError('<h2>Internal Server Error (500)</h2><p>Could not remove Trello Board.</p>')
 
     new_board_list = []
     same_board_list = []
@@ -686,11 +686,16 @@ def myclassifications(request):
 def ccadashboard(request):
     context = RequestContext(request)
 
-    course_code = request.GET.get('course_code')
     platform = request.GET.get('platform')
+    course_id = request.GET.get('course_id')
+    try:
+        unit = UnitOffering.objects.get(id=course_id)
+    except Exception as e:
+        print '%s (%s)' % (type(e), e.message)
+        return HttpResponseServerError('<h2>Error has occurred.</h2><p>Course ID not found.</p>')
 
-    title = "CCA Dashboard: %s (Platform: %s)" % (course_code, platform)
-    context_dict = {'course_code':course_code, 'platform':platform, 'title': title, }
+    title = "CCA Dashboard: %s (Platform: %s)" % (unit.code, platform)
+    context_dict = {'course_code':unit.code, 'platform':platform, 'title': title, }
     
     return render_to_response('dashboard/ccadashboard.html', context_dict, context)
 

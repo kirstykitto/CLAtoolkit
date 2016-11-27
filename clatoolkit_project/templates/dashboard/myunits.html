@@ -100,7 +100,7 @@
                                 {% endif %}
                                 {% if membership.unit.github_member_count > 0 %}
                                     <br/>
-                                    GitHub signed up: {{ membership.unit.github_member_count }} ||
+                                    GitHub signed up: {{ membership.unit.github_member_count }} || 
                                     <a href="/dataintegration/refreshgithub/?course_code={{ membership.unit.code }}&course_id={{ membership.unit.id }}&platform=GitHub">Refresh
                                         Imported Data</a>
                                 {% endif %}
@@ -111,7 +111,9 @@
                                         Imported Data</a>
                                     <div id="trello_import_sucess"></div>
                                 {% endif %}
-
+                                {% if membership.unit.get_cca_dashboard_params != '' %}
+                                    <a href="/dashboard/ccadashboard/?course_id={{ membership.unit.id }}&platform={{ membership.unit.get_cca_dashboard_params }}">CCA Dashboard</a>
+                                {% endif %}
                             {% if unit.enable_coi_classifier %}
                                 <hr/>
                                 {% if membership.unit.code == 'IFN614' %}
@@ -166,17 +168,18 @@
                                         <a href="/clatoolkit/socialmediaaccounts/">Add Trello to your account to plan
                                             and monitor your workload</a>
                                     {% endif %}
-                                    <hr>
                                     {% if github_attached %}
                                         <p>
-                                        <h5>GitHub Workload Management</h5>
+                                            <h5>GitHub Workload Management</h5>
                                             <span id="{{ membership.unit.id }}" class="getReposList" ></span>
                                             <a id="get_repo_list" href="#">Attach a GitHub Repository to plan your Work!</a>
                                             <p id="reposList"></p>
                                         </p>
                                     {% else %}
-                                        <a href="/clatoolkit/socialmediaaccounts/">Add GitHub to your account to plan
+                                        <p>
+                                            <a href="/clatoolkit/socialmediaaccounts/">Add GitHub to your account to plan
                                             and monitor your workload</a>
+                                        </p>
                                     {% endif %}
                                 </div>
 
@@ -208,20 +211,24 @@
                                     <a href="/clatoolkit/socialmediaaccounts/">Add Trello to your account to plan and
                                         monitor your workload</a>
                                 {% endif %}
-                                <hr>
                                 {% if github_attached %}
                                     <p>
-                                    <h5>GitHub Workload Management</h5>
+                                        <h5>GitHub Workload Management</h5>
                                         <span id="{{ membership.unit.id }}" class="getReposList" ></span>
                                         <a id="get_repo_list" href="#">Attach a GitHub Repository to plan your Work!</a>
                                         <p id="reposList"></p>
                                     </p>
                                 {% else %}
-                                    <a href="/clatoolkit/socialmediaaccounts/">Add GitHub to your account to plan
+                                    <p>
+                                        <a href="/clatoolkit/socialmediaaccounts/">Add GitHub to your account to plan
                                         and monitor your workload</a>
+                                    </p>
                                 {% endif %}
                             {% endif %}
-
+                            {% if membership.unit.get_cca_dashboard_params != '' %}
+                                <br>
+                                <a href="/dashboard/ccadashboard/?course_id={{ membership.unit.id }}&platform={{ membership.unit.get_cca_dashboard_params }}">CCA Dashboard</a>
+                            {% endif %}
                         {% endif %}
                     </div>
                     <!-- /.panel-body -->
