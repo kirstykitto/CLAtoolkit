@@ -39,6 +39,10 @@ class CLRecipe(object):
 	OBJECT_PERSON = 'Person'
 	OBJECT_REVIEW = 'Review'
 
+	EXTENSION_MOVE = 'move'
+	EXTENSION_MODIFY_FILE = 'modify-file'
+	EXTENSION_COLLECTION = 'collection'
+
 	VERB_IRI_MAPPER = {
 		VERB_CREATED: 'http://www.w3.org/ns/activitystreams#Create',
 		VERB_SHARED: 'http://activitystrea.ms/schema/1.0/share',
@@ -68,6 +72,12 @@ class CLRecipe(object):
 		OBJECT_REVIEW: 'http://activitystrea.ms/schema/1.0/review',
 	}
 
+	EXTENSION_IRI_MAPPER = {
+		EXTENSION_MOVE: "http://clatoolkit.beyondlms.org/xapi/extensions/move",
+		EXTENSION_MODIFY_FILE: "http://clatoolkit.beyondlms.org/xapi/extensions/modify-file",
+		EXTENSION_COLLECTION: "http://clatoolkit.beyondlms.org/xapi/extensions/collection",
+	}
+
 	@classmethod
 	def get_verb_iri(self, verb):
 		return self.VERB_IRI_MAPPER.get(verb)
@@ -81,3 +91,7 @@ class CLRecipe(object):
 		for verb, iri in self.VERB_IRI_MAPPER.items():
 			if iri == verb_iri:
 				return verb
+
+	@classmethod
+	def get_extension_iri(self, extension):
+		return self.EXTENSION_IRI_MAPPER.get(extension)

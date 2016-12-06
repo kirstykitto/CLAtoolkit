@@ -5,6 +5,7 @@ import pprint
 import datetime
 from dataintegration.core.recipepermissions import *
 from clatoolkit.models import SocialRelationship, LearningRecord
+from common.CLRecipe import CLRecipe
 
 from tincan import (
     RemoteLRS,
@@ -71,10 +72,76 @@ def get_other_contextActivity(obj_id, obj_type, def_name, def_type):
     return ret
 
 
+def get_extension_object_dict(def_type = None, obj_id = None, obj_name = None):
+    obj = {}
+    definition = {}
+    if def_type is None and obj_id is None and obj_name is None:
+        return obj
+
+    if obj_id:
+        obj['id'] = obj_id
+    if def_type:
+        definition['type'] = def_type # Object IRI
+    if obj_name:
+        definition['name'] = { 'en-US': obj_name }
+
+    obj['definition'] = definition
+    return obj
+
+
+def get_collection_extensions(item_list):
+    extensions = {}
+    iri = CLRecipe.get_extension_iri(CLRecipe.EXTENSION_COLLECTION)
+    extensions[iri] = { 'items': item_list }
+    return extensions
+
+
+def get_move_extensions(old_obj_id, old_obj_name, old_obj_type, 
+    new_obj_id, new_obj_name, new_obj_type, old_pos = None, new_pos = None):
+    extensions = {}
+    move_ext = {}
+    move_ext['old'] = get_extension_object_dict(CLRecipe.get_object_iri(old_obj_type), old_obj_id, old_obj_name)
+    if old_pos:
+        move_ext['old']['pos'] = old_pos
+
+    move_ext['new'] = get_extension_object_dict(CLRecipe.get_object_iri(new_obj_type), new_obj_id, new_obj_name)
+    if new_pos:
+        move_ext['new']['pos'] = new_pos
+
+    iri = CLRecipe.get_extension_iri(CLRecipe.EXTENSION_MOVE)
+    extensions[iri] = move_ext
+    return extensions
+
+
+def get_file_extensions(file_id = None, file_name = None, change_total = 0, change_add = 0, change_del = 0, 
+    url = None, revision = None, ext = None):
+    extensions = {}
+    file_ext = get_extension_object_dict(None, file_id, file_name)
+
+    # Changes
+    changes = {}
+    changes['total'] = str(change_total)
+    changes['additions'] = str(change_add)
+    changes['deletions'] = str(change_del)
+    file_ext['changes'] = changes
+
+    # Others
+    if url:
+        file_ext['url'] = url
+    if revision:
+        file_ext['revision'] = revision
+    if ext:
+        file_ext['ext'] = ext
+
+    iri = CLRecipe.get_extension_iri(CLRecipe.EXTENSION_MODIFY_FILE)
+    extensions[iri] = file_ext
+    return extensions
+
+
 def socialmedia_builder(verb, platform, account_name, account_homepage, object_type, object_id, 
     message, tags=[], parent_object_type=None, parent_id=None, rating=None, instructor_name=None, 
     instructor_email=None, team_name=None, course_code=None, account_email=None, user_name=None, 
-    timestamp=None, other_contexts = []):
+    timestamp=None, other_contexts = [], parent_name = None, extensions = None):
     verbmapper = {
                   'created': 'http://www.w3.org/ns/activitystreams#Create',
                   'shared': 'http://activitystrea.ms/schema/1.0/share',
@@ -124,6 +191,16 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
             type=objectmapper[object_type]
         ),
     )
+    if extensions is not None:
+        object = Activity(
+                id=object_id,
+                object_type=object_type,
+                definition=ActivityDefinition(
+                    name=LanguageMap({'en-US': message}),
+                    type=objectmapper[object_type],
+                    extensions = extensions
+                )
+            )
 
     taglist = []
     for tag in tags:
@@ -157,12 +234,24 @@ def socialmedia_builder(verb, platform, account_name, account_homepage, object_t
             id=parent_id,
             object_type=parent_object_type,
             )
+        if parent_name is not None:
+            parentobject = Activity(
+                    id=parent_id,
+                    object_type=parent_object_type,
+                    definition=ActivityDefinition(name = LanguageMap({'en-US': parent_name }))
+                )
         parentlist.append(parentobject)
     elif (platform == 'GitHub' or platform == 'Trello'):
         parentobject = Activity(
             id=parent_id,
             object_type=parent_object_type,
             )
+        if parent_name is not None:
+            parentobject = Activity(
+                    id=parent_id,
+                    object_type=parent_object_type,
+                    definition=ActivityDefinition(name = LanguageMap({'en-US': parent_name }))
+                )
         parentlist.append(parentobject)
 
     courselist = []
@@ -253,7 +342,7 @@ def insert_blogcomment(usr_dict, post_id, comment_id, comment_message, comment_f
 
 def insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, 
     comment_created_time, course_code, platform, platform_url, shared_username=None, shared_displayname=None, 
-    other_contexts = []):
+    parent_name = None, other_contexts = []):
 
     if check_ifnotinlocallrs(course_code, platform, comment_id):
         if shared_displayname is not None:
@@ -261,7 +350,7 @@ def insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_
                 account_homepage=platform_url, object_type='Note', object_id=comment_id, message=comment_message, 
                 parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, 
                 account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code, 
-                other_contexts = other_contexts )
+                other_contexts = other_contexts, parent_name = parent_name)
             
             jsn = ast.literal_eval(stm.to_json())
             stm_json = pretty_print_json(jsn)
@@ -391,12 +480,13 @@ def insert_issue(usr_dict, issue_id, verb, object_type, parent_object_type, mess
         """
 
 def insert_task(usr_dict, task_id, task_name, task_from_uid, task_from_name, task_created_time, course_code, platform, platform_url, #labels=[],
-                list_id=None, other_contexts = []):
+                list_id=None, parent_id = None, parent_name = None, parent_object_type = None, other_contexts = []):
     if check_ifnotinlocallrs(course_code, platform, task_id):
         stm = socialmedia_builder(verb='created', platform=platform, account_name=task_from_uid, account_homepage=platform_url,
                                   object_type='Task', object_id=task_id, message=task_name, timestamp=task_created_time,
                                   account_email=usr_dict['email'], user_name=task_from_name, course_code=course_code, 
-                                  other_contexts = other_contexts)#, tags=labels)
+                                  other_contexts = other_contexts, parent_id=parent_id, parent_name = parent_name,
+                                  parent_object_type = parent_object_type)#, tags=labels)
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
         lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=get_username_fromsmid(task_from_uid, platform),
@@ -407,13 +497,14 @@ def insert_task(usr_dict, task_id, task_name, task_from_uid, task_from_name, tas
 
 def insert_added_object(usr_dict, target_id, object_id, object_text, obj_from_uid, obj_from_name, obj_created_time,
                         course_code, platform, platform_url, obj_type, shared_username=None, shared_displayname=None, 
-                        other_contexts = []):
+                        other_contexts = [], parent_name = None, extensions = None):
     if check_ifnotinlocallrs(course_code, platform, object_id):
         if shared_displayname is not None:
             stm = socialmedia_builder(verb='added', platform=platform, account_name=obj_from_uid, account_homepage=platform_url,
                                       object_type=obj_type, object_id=object_id, message=object_text, parent_id=target_id, 
                                       parent_object_type='Task', timestamp=obj_created_time, account_email=usr_dict['email'], 
-                                      user_name=obj_from_name, course_code=course_code, other_contexts = other_contexts)
+                                      user_name=obj_from_name, course_code=course_code, other_contexts = other_contexts, 
+                                      parent_name = parent_name, extensions = extensions)
             jsn = ast.literal_eval(stm.to_json())
             stm_jsn = pretty_print_json(jsn)
             lrs = LearningRecord(xapi=stm_jsn, course_code=course_code, verb='added', platform=platform,
@@ -429,13 +520,14 @@ def insert_added_object(usr_dict, target_id, object_id, object_text, obj_from_ui
 
 def insert_updated_object(usr_dict, object_id, object_text, obj_updater_uid, obj_updater_name, obj_update_time,
                           course_code, platform, platform_url, obj_type, obj_parent=None, obj_parent_type=None, 
-                          other_contexts = []):
+                          other_contexts = [], parent_name = None, extensions = None):
     if check_ifnotinlocallrs(course_code, platform, object_id):
         if obj_parent is not None:
             stm = socialmedia_builder(verb='updated', platform=platform, account_name=obj_updater_uid, account_homepage=platform_url,
                                       object_type=obj_type, object_id=object_id, message=object_text, parent_id=obj_parent,
                                       parent_object_type=obj_parent_type, timestamp=obj_update_time, account_email=usr_dict['email'],
-                                      user_name=obj_updater_name, course_code=course_code, other_contexts = other_contexts)
+                                      user_name=obj_updater_name, course_code=course_code, other_contexts = other_contexts,
+                                      parent_name = parent_name, extensions = extensions)
             jsn = ast.literal_eval(stm.to_json())
             stm_jsn = pretty_print_json(jsn)
             lrs = LearningRecord(xapi=stm_jsn, course_code=course_code, verb='updated', platform=platform,
@@ -446,13 +538,14 @@ def insert_updated_object(usr_dict, object_id, object_text, obj_updater_uid, obj
 
 def insert_closedopen_object(usr_dict, object_id, object_text, obj_updater_uid, obj_updater_name, obj_update_time,
                           course_code, platform, platform_url, obj_type, verb, obj_parent=None, obj_parent_type=None, 
-                          other_contexts = []):
+                          other_contexts = [], parent_name = None):
     if check_ifnotinlocallrs(course_code, platform, object_id):
         if obj_parent is not None:
             stm = socialmedia_builder(verb=verb, platform=platform, account_name=obj_updater_uid, account_homepage=platform_url,
                                       object_type=obj_type, object_id=object_id, message=object_text, parent_id=obj_parent,
                                       parent_object_type=obj_parent_type, timestamp=obj_update_time, account_email=usr_dict['email'],
-                                      user_name=obj_updater_name, course_code=course_code, other_contexts = other_contexts)
+                                      user_name=obj_updater_name, course_code=course_code, other_contexts = other_contexts,
+                                      parent_name = parent_name)
             jsn = ast.literal_eval(stm.to_json())
             stm_jsn = pretty_print_json(jsn)
             lrs = LearningRecord(xapi=stm_jsn, course_code=course_code, verb=verb, platform=platform,
