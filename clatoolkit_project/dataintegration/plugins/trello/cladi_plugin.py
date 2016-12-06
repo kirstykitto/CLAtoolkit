@@ -231,7 +231,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     def_type = CLRecipe.get_object_iri(CLRecipe.OBJECT_CHECKLIST_ITEM)
                     ext_items = []
                     for item in checklist_items:
-                        ext_items.append(get_extension_object_dict(
+                        ext_items.append(get_object_extension_dict(
                             def_type = def_type, obj_id = item['id'], obj_name = item['name']))
 
                     # Extensions

@@ -72,7 +72,7 @@ def get_other_contextActivity(obj_id, obj_type, def_name, def_type):
     return ret
 
 
-def get_extension_object_dict(def_type = None, obj_id = None, obj_name = None):
+def get_object_extension_dict(def_type = None, obj_id = None, obj_name = None):
     obj = {}
     definition = {}
     if def_type is None and obj_id is None and obj_name is None:
@@ -89,38 +89,13 @@ def get_extension_object_dict(def_type = None, obj_id = None, obj_name = None):
     return obj
 
 
-def get_collection_extensions(item_list):
-    extensions = {}
-    iri = CLRecipe.get_extension_iri(CLRecipe.EXTENSION_COLLECTION)
-    extensions[iri] = { 'items': item_list }
-    return extensions
-
-
-def get_move_extensions(old_obj_id, old_obj_name, old_obj_type, 
-    new_obj_id, new_obj_name, new_obj_type, old_pos = None, new_pos = None):
-    extensions = {}
-    move_ext = {}
-    move_ext['old'] = get_extension_object_dict(CLRecipe.get_object_iri(old_obj_type), old_obj_id, old_obj_name)
-    if old_pos:
-        move_ext['old']['pos'] = old_pos
-
-    move_ext['new'] = get_extension_object_dict(CLRecipe.get_object_iri(new_obj_type), new_obj_id, new_obj_name)
-    if new_pos:
-        move_ext['new']['pos'] = new_pos
-
-    iri = CLRecipe.get_extension_iri(CLRecipe.EXTENSION_MOVE)
-    extensions[iri] = move_ext
-    return extensions
-
-
-def get_file_extensions(file_id = None, file_name = None, change_total = 0, change_add = 0, change_del = 0, 
-    url = None, revision = None, ext = None):
-    extensions = {}
-    file_ext = get_extension_object_dict(None, file_id, file_name)
+def get_file_extension_dict(file_id = None, file_name = None, def_type = None, 
+    change_changes = 0, change_add = 0, change_del = 0, url = None, revision = None, ext = None):
+    file_ext = get_object_extension_dict(def_type, file_id, file_name)
 
     # Changes
     changes = {}
-    changes['total'] = str(change_total)
+    changes['changes'] = str(change_changes)
     changes['additions'] = str(change_add)
     changes['deletions'] = str(change_del)
     file_ext['changes'] = changes
@@ -133,6 +108,56 @@ def get_file_extensions(file_id = None, file_name = None, change_total = 0, chan
     if ext:
         file_ext['ext'] = ext
 
+    return file_ext
+
+
+def get_collection_extensions(item_list):
+    extensions = {}
+    iri = CLRecipe.get_extension_iri(CLRecipe.EXTENSION_COLLECTION)
+    extensions[iri] = { 'items': item_list }
+    return extensions
+
+
+def get_move_extensions(old_obj_id, old_obj_name, old_obj_type, 
+    new_obj_id, new_obj_name, new_obj_type, old_pos = None, new_pos = None):
+    extensions = {}
+    move_ext = {}
+    move_ext['old'] = get_object_extension_dict(CLRecipe.get_object_iri(old_obj_type), old_obj_id, old_obj_name)
+    if old_pos:
+        move_ext['old']['pos'] = old_pos
+
+    move_ext['new'] = get_object_extension_dict(CLRecipe.get_object_iri(new_obj_type), new_obj_id, new_obj_name)
+    if new_pos:
+        move_ext['new']['pos'] = new_pos
+
+    iri = CLRecipe.get_extension_iri(CLRecipe.EXTENSION_MOVE)
+    extensions[iri] = move_ext
+    return extensions
+
+
+def get_file_extensions(file_id = None, file_name = None, def_type = None, change_changes = 0, 
+    change_add = 0, change_del = 0, url = None, revision = None, ext = None):
+    extensions = {}
+    # file_ext = get_object_extension_dict(None, file_id, file_name)
+
+    # # Changes
+    # changes = {}
+    # changes['changes'] = str(change_changes)
+    # changes['additions'] = str(change_add)
+    # changes['deletions'] = str(change_del)
+    # file_ext['changes'] = changes
+
+    # # Others
+    # if url:
+    #     file_ext['url'] = url
+    # if revision:
+    #     file_ext['revision'] = revision
+    # if ext:
+    #     file_ext['ext'] = ext
+
+    file_ext = get_file_extension_dict(file_id = file_id, file_name = file_name, def_type = def_type,
+            change_changes = change_changes, change_add = change_add, change_del = change_del,
+            url = url, revision = revision, ext = ext)
     iri = CLRecipe.get_extension_iri(CLRecipe.EXTENSION_MODIFY_FILE)
     extensions[iri] = file_ext
     return extensions
@@ -384,7 +409,8 @@ def insert_bookmark(usr_dict, post_id,message,from_name,from_uid, created_time, 
         lrs.save()
 
 def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_time, course_code, 
-    parent_id, platform, platform_id, commit_username, account_homepage, tags=[], other_contexts = []):
+    parent_id, platform, platform_id, commit_username, account_homepage, tags=[], other_contexts = [],
+    parent_name = None, extensions = None):
     if check_ifnotinlocallrs(course_code, platform, commit_id):
         verb = "created"
         object_type = "Collection"
@@ -395,7 +421,8 @@ def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_t
             account_homepage=account_homepage, object_type=object_type, object_id=commit_id, 
             message=message, tags=tags, parent_object_type=parent_obj_type, parent_id=parent_id, 
             timestamp=committed_time, account_email=usr_dict['email'], 
-            user_name=from_name, course_code=course_code, other_contexts = other_contexts)
+            user_name=from_name, course_code=course_code, other_contexts = other_contexts,
+            parent_name = parent_name, extensions = extensions)
 
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
@@ -417,7 +444,7 @@ def insert_commit(usr_dict, commit_id, message, from_uid, from_name, committed_t
 
 def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time, course_code, 
     parent_id, platform, platform_id, platform_parentid, verb, repoUrl, commit_username, account_homepage, 
-    tags=[], other_contexts = []):
+    tags=[], other_contexts = [], parent_name = None, extensions = None):
     if check_ifnotinlocallrs(course_code, platform, file_id):
         object = "File"
         parentObj = "Collection"
@@ -427,7 +454,8 @@ def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time,
             account_homepage=account_homepage, object_type=object, object_id=file_id, 
             message=message, tags=tags, parent_object_type=parentObj, parent_id=parent_id, 
             timestamp=committed_time, account_email=usr_dict['email'], 
-            user_name=from_name, course_code=course_code, other_contexts = other_contexts)
+            user_name=from_name, course_code=course_code, other_contexts = other_contexts,
+            parent_name = parent_name, extensions = extensions)
 
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
@@ -448,7 +476,8 @@ def insert_file(usr_dict, file_id, message, from_uid, from_name, committed_time,
 
 
 def insert_issue(usr_dict, issue_id, verb, object_type, parent_object_type, message, from_name, from_uid, created_time, 
-    course_code, parent_id, platform, platform_id, account_homepage, shared_displayname=None, tags=[], other_contexts = []):
+    course_code, parent_id, platform, platform_id, account_homepage, shared_displayname=None, tags=[], other_contexts = [],
+    parent_name = None):
     if check_ifnotinlocallrs(course_code, platform, platform_id):
         # verb = 'created'
         # object = "Note"
@@ -459,7 +488,8 @@ def insert_issue(usr_dict, issue_id, verb, object_type, parent_object_type, mess
             account_homepage=account_homepage, object_type=object_type, object_id=issue_id, 
             message=message, parent_object_type=parent_object_type, parent_id=parent_id, 
             timestamp=created_time, account_email=usr_dict['email'], 
-            user_name=from_name, course_code=course_code, tags=tags, other_contexts = other_contexts)
+            user_name=from_name, course_code=course_code, tags=tags, other_contexts = other_contexts,
+            parent_name = parent_name)
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
         lrs = LearningRecord(
