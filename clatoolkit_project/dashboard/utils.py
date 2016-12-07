@@ -777,13 +777,12 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     #count = 1
     for node in node_dict:
         #print node
-        username = node.replace('\n','')
+        username = node
         role = get_role_fromusername(node, platform)
         node_border = node_type_colours[role]['border']
         node_fill = node_type_colours[role]['fill']
         #json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, degree[node_dict[node]]))
-        json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % 
-            (node_dict[node], username, node_fill, node_border, node_degree_dict[node]))
+        json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, node_degree_dict[node]))
         #count = count + 1
     #json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
 
