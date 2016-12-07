@@ -1577,7 +1577,7 @@ def get_all_reponames(token):
     from github import Github
 
     github_settings = settings.DATAINTEGRATION_PLUGINS[CLRecipe.PLATFORM_GITHUB]
-    gh = Github(login_or_token = token, per_page = github_settings.per_page)
+    gh = Github(login_or_token = token, per_page = github_settings.parPage)
 
     count = 0
     gh_user = gh.get_user()
@@ -1586,18 +1586,15 @@ def get_all_reponames(token):
     ret = []
     while True:
         for repo in repos:
-            accessibility = 'private' if repo.private else 'public'
             owner = OrderedDict([
                 ('name', repo.owner.login),
                 ('url', repo.owner.html_url),
-                ('avatar_url', repo.owner.avatar_url)
-                # ('type', )
+                ('avatar_url', repo.owner.avatar_url),
             ])
             obj = OrderedDict([
                 ('name', repo.full_name),
                 ('url', repo.html_url),
                 ('owner', owner),
-                ('accessibility', accessibility),
             ])
             ret.append(obj)
 

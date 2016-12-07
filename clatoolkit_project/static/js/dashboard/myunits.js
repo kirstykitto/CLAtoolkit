@@ -86,9 +86,6 @@ function createRepoList(data) {
     
     $.each(data["repos"], function(key, repo) {
         htmlStr += "<li><a href='#' onclick='javascript:addRepository(\"" + repo["name"] + "\");'>" + repo["name"] + "</a>";
-        if(repo["accessibility"] == "private") {
-            htmlStr += "&nbsp;(Private)";
-        }
         htmlStr += "&nbsp;&nbsp;<a target='_blank' href='" + repo["url"] + "'><img class='jump_to_repo'></a>";
         htmlStr += "&nbsp;&nbsp;- <span class='github_owner_span'>";
         htmlStr += "Owner: <a target='_blank' href='" + repo["owner"]["url"] + "'>" 
