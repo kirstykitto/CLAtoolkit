@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from clatoolkit.models import *
 from dashboard.utils import classify
 
-from dataintegration.core.processingspipeline import post_smimport
+from dataintegration.core.processingpipeline import post_smimport
 
 
 #urllib2 to send update requests
@@ -87,8 +87,8 @@ class Command(BaseCommand):
                     if r.status_code is not 200:
                         raise CommandError('Error encountered during twitter update. HTTP Status Code: %s' % r.status_code)
 
-		            post_smimport(course_code, 'twitter')
-		            #post sm import may fail - naming conventions..
+                    post_smimport(course_code, 'twitter')
+                    # post sm import may fail - naming conventions..
 
                 if COURSE_SETTINGS['google']:
                     pass

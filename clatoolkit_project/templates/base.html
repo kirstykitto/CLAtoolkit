@@ -40,7 +40,7 @@
     <link href="{% static 'css/vis.css'%}" rel="stylesheet">
 
     <!-- jQCloud styles -->
-    <link rel="stylesheet" href="http://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.css">
+    <link rel="stylesheet" href="//mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.css">
 
 
     <!-- jQuery UI styles -->
@@ -119,6 +119,7 @@
                     </a>
                     <ul class="dropdown-menu dropdown-user">
                         <li><a href="/clatoolkit/socialmediaaccounts"><i class="fa fa-user fa-fw"></i> Social Media Accounts</a></li>
+                        <li><a href="{% url 'create_offering' %}"><i class="fa fa-plus-square fa-fw"></i> Create Offering</a></li>
                         <li class="divider"></li>
                         <li><a href="/logout"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
                         </li>
@@ -693,8 +694,8 @@
     <script src="{% static 'bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.min.js'%}"></script>
 
     <!-- Highcharts and Highstock JavaScript -->
-    <script src="http://code.highcharts.com/stock/highstock.js"></script>
-    <script src="http://code.highcharts.com/stock/modules/exporting.js"></script>
+    <script src="//code.highcharts.com/stock/highstock.js"></script>
+    <script src="//code.highcharts.com/stock/modules/exporting.js"></script>
 
     <!-- Custom Theme JavaScript -->
     <script src="{% static 'js/sb-admin-2.js'%}"></script>

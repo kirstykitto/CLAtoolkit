@@ -164,7 +164,7 @@
 {% block js_block %}
 {% autoescape off %}
 <script src="{% static 'js/vis.js'%}"></script>
-<script src="http://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.js"></script>
+<script src="//mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.js"></script>
 <script>
 var sna_data = {{sna_json}};
 var wordcloud_data = {{tags|safe}};
@@ -446,7 +446,31 @@ $(function() {
           name : 'Blog',
           data : [{{ blog_timeline }}],
           id : 'dataseries5'
+      },
+      {
+          name : 'GitHub',
+          data : [{{ github_timeline }}],
+          id : 'dataseries6'
+      },
+      {
+          name : 'Trello',
+          data : [{{ trello_timeline }}],
+          id : 'dataseries7'
       }]
+  }, function (chart) {
+      // Show series in the navigator (the mini-chart)
+      for(var i = 0; i < chart.options.series.length; i++) {
+        chart.addSeries({
+            data: chart.options.series[i].data,
+            isInternal: true,
+            xAxis: 1,
+            yAxis: 1,
+            name: null, 
+            enableMouseTracking: false, 
+            showInLegend: false,
+            color: chart.series[i].color
+        });
+      }
   });
 
   // Create Activity Chart
@@ -490,6 +514,20 @@ $(function() {
           data : [{{ comments_timeline }}],
           id : 'dataseries3'
       }]
+  }, function (chart) {
+      // Show series in the navigator (the mini-chart)
+      for(var i = 0; i < chart.options.series.length; i++) {
+        chart.addSeries({
+            data: chart.options.series[i].data,
+            isInternal: true,
+            xAxis: 1,
+            yAxis: 1,
+            name: null, 
+            enableMouseTracking: false, 
+            showInLegend: false,
+            color: chart.series[i].color
+        });
+      }
   });
 
   //$('#dataTables-topcontent').DataTable({responsive: true});

@@ -24,6 +24,7 @@ from django.conf import settings
 import subprocess
 import igraph
 from collections import OrderedDict
+import copy
 
 def getPluginKey(platform):
     return settings.DATAINTEGRATION_PLUGINS[platform].api_config_dict['api_key']
@@ -127,11 +128,13 @@ def get_smids_fromusername(username):
     diigo_id = user.userprofile.diigo_username
     return twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id
 
-def get_timeseries(sm_verb, sm_platform, course_code, username=None):
+def get_timeseries(sm_verb, sm_platform, unit, username=None):
     # more info on postgres timeseries
     # http://no0p.github.io/postgresql/2014/05/08/timeseries-tips-pg.html
 
-    platformclause = ""
+
+
+    """platformclause = ""
     if sm_platform != "all":
         platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (sm_platform)
 
@@ -143,7 +146,7 @@ def get_timeseries(sm_verb, sm_platform, course_code, username=None):
 
     cursor = connection.cursor()
     cursor.execute("""
-    with filled_dates as (
+    """with filled_dates as (
       select day, 0 as blank_count from
         generate_series('2015-06-01 00:00'::timestamptz, current_date::timestamptz, '1 day')
           as day
@@ -151,7 +154,7 @@ def get_timeseries(sm_verb, sm_platform, course_code, username=None):
     daily_counts as (
     select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
     FROM clatoolkit_learningrecord
-    WHERE clatoolkit_learningrecord.verb='%s' %s AND clatoolkit_learningrecord.course_code='%s' %s
+    WHERE clatoolkit_learningrecord.verb='%s' %s AND clatoolkit_learningrecord.unit_id='%s' %s
     group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
     order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
     )
@@ -160,23 +163,23 @@ def get_timeseries(sm_verb, sm_platform, course_code, username=None):
       from filled_dates
         left outer join daily_counts on daily_counts.day = filled_dates.day
       order by filled_dates.day;
-    """ % (sm_verb, platformclause, course_code, userclause))
-    result = cursor.fetchall()
+    """ """% (sm_verb, platformclause, unit.id, userclause))"""
+    """result = cursor.fetchall()
     dataset_list = []
     for row in result:
         curdate = row[0] #parse(row[0])
         datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year,curdate.month-1,curdate.day,row[1])
         dataset_list.append(datapoint)
     dataset = ','.join(map(str, dataset_list))
-    return dataset
+    return dataset"""
 
-def get_timeseries_byplatform(sm_platform, course_code, username=None):
 
+def get_timeseries_byplatform(sm_platform, unit, username=None, without_date_utc=False):
     userclause = ""
     if username is not None:
         userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s])" % (sm_usernames_str)
+        # sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+        # userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s])" % (sm_usernames_str)
 
     cursor = connection.cursor()
     cursor.execute("""
@@ -188,7 +191,7 @@ def get_timeseries_byplatform(sm_platform, course_code, username=None):
     daily_counts as (
     select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
     FROM clatoolkit_learningrecord
-    WHERE clatoolkit_learningrecord.xapi->'context'->>'platform'='%s' AND clatoolkit_learningrecord.course_code='%s' %s
+    WHERE clatoolkit_learningrecord.xapi->'context'->>'platform'='%s' AND clatoolkit_learningrecord.unit_id='%s' %s
     group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
     order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
     )
@@ -197,165 +200,123 @@ def get_timeseries_byplatform(sm_platform, course_code, username=None):
       from filled_dates
         left outer join daily_counts on daily_counts.day = filled_dates.day
       order by filled_dates.day;
-    """ % (sm_platform, course_code, userclause))
+    """ % (sm_platform, unit.id, userclause))
     result = cursor.fetchall()
     dataset_list = []
     for row in result:
-        curdate = row[0] #parse(row[0])
-        datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year,curdate.month-1,curdate.day,row[1])
+        curdate = row[0]  # parse(row[0])
+        datapoint = ""
+        if without_date_utc:
+            datapoint = "%s,%s,%s,%s" % (curdate.year, curdate.month - 1, curdate.day, row[1])
+        else:
+            datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year, curdate.month - 1, curdate.day, row[1])
         dataset_list.append(datapoint)
-    dataset = ','.join(map(str, dataset_list))
-    return dataset
 
-def get_active_members_table(platform, course_code):
-
-    platformclause = ""
-    if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
-
-    cursor = connection.cursor()
-    cursor.execute("""
-        SELECT distinct clatoolkit_learningrecord.username, clatoolkit_learningrecord.platform
-        FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.course_code='%s' %s
-    """ % (course_code, platformclause))
-    result = cursor.fetchall()
-    table = []
-    for row in result:
-        #sm_userid = row[0]
-        sm_platform = row[1]
-        username = row[0] #get_username_fromsmid(sm_userid, sm_platform)
-        '''
-        if username is None:
-            username = sm_userid
-        '''
-        noposts = get_verbuse_byuser(username, "created", sm_platform, course_code)
-        nolikes = get_verbuse_byuser(username, "liked", sm_platform, course_code)
-        noshares = get_verbuse_byuser(username, "shared", sm_platform, course_code)
-        nocomments = get_verbuse_byuser(username, "commented", sm_platform, course_code)
-
-        table_html = '<tr><td><a href="/dashboard/student_dashboard?course_code=%s&platform=%s&username=%s&username_platform=%s">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (course_code, platform, row[0], sm_platform, username, noposts, nolikes, noshares, nocomments, row[1])
-        table.append(table_html)
-    table_str = ''.join(table)
-    return table_str
-
-def get_verbuse_byuser(username, verb, platform, course_code):
-
-    platformclause = ""
-    if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
-
-    cursor = connection.cursor()
-    cursor.execute("""
-        select count(clatoolkit_learningrecord.username)
-        FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.username='%s' AND clatoolkit_learningrecord.verb='%s' AND clatoolkit_learningrecord.course_code='%s' %s
-    """ % (username, verb, course_code, platformclause))
-    result = cursor.fetchone()
-    count = result[0]
-    return count
-
-def get_top_content_table(platform, course_code, username=None):
-
-    platformclause = ""
-    if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
-
-    userclause = ""
-    if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s]) LIMIT 20" % (sm_usernames_str)
-
-    cursor = connection.cursor()
-    # distinct
-    cursor.execute("""
-    SELECT clatoolkit_learningrecord.platformid, clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.username, clatoolkit_learningrecord.xapi->>'timestamp', clatoolkit_learningrecord.platform
-    FROM clatoolkit_learningrecord
-    WHERE clatoolkit_learningrecord.course_code='%s' %s %s
-    """ % (course_code, platformclause, userclause))
-    result = cursor.fetchall()
-    table = []
-    for row in result:
-        id = row[0]
-        sm_userid = row[2]
-        username = get_username_fromsmid(sm_userid, platform)
-        if username is None:
-            username = sm_userid
-
-        post = row[1] #parse(row[0])
-        nolikes = contentcount_byverb(id, "liked", platform, course_code)
-        noshares = contentcount_byverb(id, "shared", platform, course_code)
-        nocomments = contentcount_byverb(id, "commented", platform, course_code)
-        posted_on = row[3]
-        table_html = "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (username, post, posted_on, nolikes, noshares, nocomments, row[4])
-        table.append(table_html)
-    table_str = ''.join(table)
-    return table_str
-
-def get_cached_top_content(platform, course_code):
-    cached_content = None
-    if platform=="all":
-        cached_content = CachedContent.objects.filter(course_code=course_code)
+    if without_date_utc:
+        return dataset_list
     else:
-        cached_content = CachedContent.objects.filter(platform=platform,course_code=course_code)
-    #print platform, course_code, cached_content
+        dataset = ','.join(map(str, dataset_list))
+        return dataset
+
+
+def get_active_members_table(unit, platform=None):
+
+    users = User.objects.filter(learningrecord__unit=unit).distinct()
+
+    table = []
+
+    for user in users:
+        if platform is None:
+            platforms = user.learningrecord_set.values_list("platform").distinct()
+            platforms = [p[0] for p in platforms]
+            platforms = ", ".join(platforms)
+        else:
+            platforms = platform
+
+        num_posts = get_user_verb_use(user, "created", unit, platform)
+        num_likes = get_user_verb_use(user, "liked", unit, platform)
+        num_shares = get_user_verb_use(user, "shared", unit, platform)
+        num_comments = get_user_verb_use(user, "commented", unit, platform)
+
+        table_html = """<tr><td><a href="/dashboard/student_dashboard?unit={}&platform={}&user={}">{} {}</a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>""".format(
+            unit.id, platform, user.id, user.first_name, user.last_name, num_posts, num_likes, num_shares, num_comments,
+            platforms)
+
+        table.append(table_html)
+
+    table_str = ''.join(table)
+    return table_str
+
+
+def get_user_verb_use(user, verb, unit, platform=None):
+    if platform:
+        return LearningRecord.objects.filter(user=user, unit=unit, verb=verb, platform=platform).count()
+
+    return LearningRecord.objects.filter(user=user, unit=unit, verb=verb).count()
+
+
+def get_top_content_table(unit, platform=None, user=None):
+
+    if platform and user:
+        records = LearningRecord.objects.filter(unit=unit, platform=platform, user=user,
+                                                platformparentid="").prefetch_related('user')
+    elif platform:
+        records = LearningRecord.objects.filter(unit=unit, platform=platform, platformparentid="").prefetch_related(
+            'user')
+    elif user:
+        records = LearningRecord.objects.filter(unit=unit, user=user, platformparentid="").prefetch_related('user')
+    else:
+        records = LearningRecord.objects.filter(unit=unit, platformparentid="").prefetch_related('user')
+
+    table = []
+
+    for lr in records:
+        num_likes = child_count_by_verb(lr, "liked", unit)
+        num_shares = child_count_by_verb(lr, "shared", unit)
+        num_comments = child_count_by_verb(lr, "commented", unit)
+
+        table_html = """<tr><td>{} {}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>""".format(
+            lr.user.first_name, lr.user.last_name, lr.message, lr.datetimestamp, num_likes, num_shares, num_comments,
+            lr.platform)
+
+        table.append(table_html)
+    table_str = ''.join(table)
+    return table_str
+
+
+def get_cached_top_content(platform, unit):
+    if platform == "all":
+        cached_content = CachedContent.objects.filter(unit=unit)
+    else:
+        cached_content = CachedContent.objects.filter(platform=platform, unit=unit)
+
     content_output = []
     for platformcontent in cached_content:
         content_output.append(platformcontent.htmltable)
     content_output_str = ''.join(content_output)
     return content_output_str
 
-def get_cached_active_users(platform, course_code):
+
+def get_cached_active_users(platform, unit):
     cached_content = None
-    if platform=="all":
-        cached_content = CachedContent.objects.filter(course_code=course_code)
+    if platform == "all":
+        cached_content = CachedContent.objects.filter(unit=unit)
     else:
-        cached_content = CachedContent.objects.filter(platform=platform,course_code=course_code)
-    #print platform, course_code, cached_content
+        cached_content = CachedContent.objects.filter(platform=platform, unit=unit)
+
     content_output = []
     for platformcontent in cached_content:
         content_output.append(platformcontent.activitytable)
     content_output_str = ''.join(content_output)
     return content_output_str
 
-def contentcount_byverb(id, verb, platform, course_code, username=None):
 
-    platformclause = ""
-    if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
+def child_count_by_verb(lr, verb, unit):
+    return LearningRecord.objects.filter(Q(platformparentid=lr.platformid) | Q(id=lr.id), Q(verb=verb),
+                                         Q(unit=unit)).count()
 
-    userclause = ""
-    if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username IN %s" % (sm_usernames_str)
 
-    cursor = connection.cursor()
-    sql = ""
-
-    if verb =='shared':
-        sql = """
-            SELECT count(*)
-            FROM clatoolkit_learningrecord
-            WHERE
-            clatoolkit_learningrecord.verb='%s'
-            AND clatoolkit_learningrecord.course_code='%s' %s %s
-            AND (clatoolkit_learningrecord.platformid='%s' OR
-            clatoolkit_learningrecord.platformparentid='%s');
-        """ % (verb, course_code, platformclause, userclause, id, id)
-    else:
-        sql = """
-        SELECT count(*)
-        FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.verb='%s' %s %s AND clatoolkit_learningrecord.platformid='%s'
-        """ % (verb, platformclause, userclause, id)
-    cursor.execute(sql)
-    result = cursor.fetchone()
-    count = result[0]
-    return count
-
-def get_allcontent_byplatform(platform, course_code, username=None, start_date=None, end_date=None):
+def get_allcontent_byplatform(platform, unit, username=None, start_date=None, end_date=None):
 
     dateclause = ""
     if start_date is not None:
@@ -375,8 +336,8 @@ def get_allcontent_byplatform(platform, course_code, username=None, start_date=N
     cursor.execute("""
         SELECT clatoolkit_learningrecord.message as content, clatoolkit_learningrecord.id
         FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.course_code='%s' %s %s %s
-    """ % (course_code, platformclause, userclause, dateclause))
+        WHERE clatoolkit_learningrecord.unit_id='%s' %s %s %s
+    """ % (unit.id, platformclause, userclause, dateclause))
     result = cursor.fetchall()
     content_list = []
     id_list = []
@@ -390,7 +351,8 @@ def get_allcontent_byplatform(platform, course_code, username=None, start_date=N
 
     return content_list,id_list
 
-def getClassifiedCounts(platform, course_code, username=None, start_date=None, end_date=None, classifier=None):
+
+def getClassifiedCounts(platform, unit, username=None, start_date=None, end_date=None, classifier=None):
     classification_dict = None
     if classifier == "VaderSentiment":
         classification_dict = {'positive':0, 'neutral':0, 'negative':0}
@@ -398,17 +360,13 @@ def getClassifiedCounts(platform, course_code, username=None, start_date=None, e
         classification_dict = {'Triggering':0, 'Exploration':0, 'Integration':0, 'Resolution':0, 'Other':0}
     #elif classifier == "NaiveBayes_t1.model":
 
-    kwargs = {'classifier':classifier, 'xapistatement__course_code': course_code}
+    kwargs = {'classifier':classifier, 'xapistatement__unit_id': unit.id}
     if classifier == "VaderSentiment":
         kwargs['classifier']=classifier
     else:
-        if course_code == 'IFN614':
-            platform = 'Blog'
-            classifier_name = "nb_%s_%s.model" % (course_code,platform)
-        else:
-            classifier_name = "nb_%s_%s.model" % (course_code,platform)
+        classifier_name = "nb_%s_%s.model" % (unit.id, platform)
 
-        kwargs['classifier']= classifier_name
+        kwargs['classifier'] = classifier_name
     if username is not None:
         kwargs['xapistatement__username']=username
     if start_date is not None:
@@ -567,15 +525,15 @@ def nmf(platform, no_topics, course_code, start_date=None, end_date=None):
 
     return topic_output, d3_dataset
 
-def get_wordcloud(platform, course_code, username=None, start_date=None, end_date=None):
-    #print "get_wordcloud", platform, course_code
+
+def get_wordcloud(platform, unit, username=None, start_date=None, end_date=None):
     docs = None
     ids = None
     documents = None
     if username is not None:
-        docs,ids = get_allcontent_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
+        docs,ids = get_allcontent_byplatform(platform, unit, username=username, start_date=start_date, end_date=end_date)
     else:
-        docs,ids = get_allcontent_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
+        docs,ids = get_allcontent_byplatform(platform, unit, start_date=start_date, end_date=end_date)
 
     documents = remove_stopwords(docs)
     #print documents
@@ -613,27 +571,22 @@ def get_wordcloud(platform, course_code, username=None, start_date=None, end_dat
     #print tags
     return tags
 
-def get_nodes_byplatform(platform, course_code, username=None, start_date=None, end_date=None):
+
+def get_nodes_by_platform(unit, start_date=None, end_date=None, platform=None):
 
     platformclause = ""
     if platform != "all":
         platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
-
-    userclause = ""
-    if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
 
     dateclause = ""
     if start_date is not None:
         dateclause = " AND clatoolkit_learningrecord.datetimestamp BETWEEN '%s' AND '%s'" % (start_date, end_date)
 
     sql = """
-            SELECT distinct clatoolkit_learningrecord.username
+            SELECT distinct user_id
             FROM clatoolkit_learningrecord
-            WHERE clatoolkit_learningrecord.course_code='%s' %s %s %s
-          """ % (course_code, platformclause, userclause, dateclause)
+            WHERE unit_id='%s' %s
+          """ % (unit.id, dateclause)
     #print sql
     cursor = connection.cursor()
     cursor.execute(sql)
@@ -646,7 +599,8 @@ def get_nodes_byplatform(platform, course_code, username=None, start_date=None, 
     #print "node_dict", node_dict
     return node_dict
 
-def get_relationships_byplatform(platform, course_code, username=None, start_date=None, end_date=None, relationshipstoinclude=None):
+
+def get_relationships_byplatform(platform, unit, username=None, start_date=None, end_date=None, relationshipstoinclude=None):
     platformclause = ""
     if platform != "all":
         platformclause = " AND clatoolkit_socialrelationship.platform='%s'" % (platform)
@@ -669,10 +623,10 @@ def get_relationships_byplatform(platform, course_code, username=None, start_dat
     nodes_in_sna_dict = {}
 
     sql = """
-            SELECT clatoolkit_socialrelationship.fromusername, clatoolkit_socialrelationship.tousername, clatoolkit_socialrelationship.verb, clatoolkit_socialrelationship.platform
+            SELECT clatoolkit_socialrelationship.from_user_id, clatoolkit_socialrelationship.to_user_id, clatoolkit_socialrelationship.verb, clatoolkit_socialrelationship.platform
             FROM   clatoolkit_socialrelationship
-            WHERE  clatoolkit_socialrelationship.course_code='%s' %s %s %s %s
-          """ % (course_code, platformclause, userclause, dateclause, relationshipclause)
+            WHERE  clatoolkit_socialrelationship.unit_id='%s' %s %s %s %s
+          """ % (unit.id, platformclause, userclause, dateclause, relationshipclause)
     #print sql
     cursor = connection.cursor()
     cursor.execute(sql)
@@ -705,7 +659,8 @@ def get_relationships_byplatform(platform, course_code, username=None, start_dat
             count += 1
     return edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict
 
-def sna_buildjson(platform, course_code, username=None, start_date=None, end_date=None, relationshipstoinclude=None):
+
+def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None, relationshipstoinclude=None):
 
     node_dict = None
     edge_dict = None
@@ -715,8 +670,12 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     #    node_dict = get_nodes_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date)
     #    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
     #else:
-    node_dict = get_nodes_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
-    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+    node_dict = get_nodes_by_platform(unit, start_date, end_date, platform)
+    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform,
+                                                                                                        unit,
+                                                                                                        start_date=start_date,
+                                                                                                        end_date=end_date,
+                                                                                                        relationshipstoinclude=relationshipstoinclude)
 
     #node_dict.update(nodes_in_sna_dict)
     for key in nodes_in_sna_dict:
@@ -788,11 +747,12 @@ def sna_buildjson(platform, course_code, username=None, start_date=None, end_dat
     #print 'SNA JSON: %s' % (''.join(json_str_list))
     return ''.join(json_str_list)
 
-def sentiment_classifier(course_code):
+
+def sentiment_classifier(unit):
     # delete all previous classifications
     Classification.objects.filter(classifier='VaderSentiment').delete()
     # get messages
-    sm_objs = LearningRecord.objects.filter(course_code=course_code)
+    sm_objs = LearningRecord.objects.filter(unit=unit)
 
     for sm_obj in sm_objs:
         message = sm_obj.message.encode('utf-8', 'replace')
@@ -809,7 +769,7 @@ def sentiment_classifier(course_code):
 
         classification_obj.save()
 
-"""
+
 def getNeighbours(jsonStr):
     data = json.loads(jsonStr)
     nodes = data["nodes"]
@@ -830,7 +790,6 @@ def getNeighbours(jsonStr):
 
     allNeighbours = json.dumps(allNeighbours)
     return allNeighbours
-"""
 
 def getCentrality(jsonStr):
 
@@ -1042,5 +1001,150 @@ def getCCAData(user, course_code, platform):
             commitTotal = 0
 
     return result
-    
 
+
+def get_platform_timeseries_dataset(course_code, platform_names, username=None):
+
+    series = []
+    for platform in platform_names:
+        platformVal = OrderedDict ([
+                ('name', platform),
+                ('id', 'dataseries_' + platform),
+                ('data', get_timeseries_byplatform(platform, course_code, without_date_utc = True))
+        ])
+        series.append(platformVal)
+
+    return OrderedDict([ ('series', series)])
+
+
+def get_activity_dataset(course_code, platform_names, username=None):
+
+    platforms = []
+    i = 0
+    for platform in platform_names:
+        # "T"rello gets errors...
+        if platform == 'Trello':
+            platform = platform.lower()
+        pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
+        verbs = pluginObj.get_verbs()
+
+        series = []
+        all_data = []
+        categories, return_data = count_verbs_by_users(verbs, platform, course_code)
+        for data in return_data:
+            all_data.append(data)
+
+        charts = []
+        chartVal = OrderedDict ([
+                ('type', 'column'),
+                ('title', 'Total number of activities'),
+                ('categories', categories),
+                ('seriesname', verbs),
+                ('yAxis', OrderedDict([('title', 'Total number of activities')])),
+                ('data', all_data)
+        ])
+        charts.append(chartVal)
+
+        tables = []
+        tableVal = OrderedDict([('chartIndex', i)])
+        tables.append(tableVal)
+
+        val = OrderedDict ([
+                ('index', i),
+                ('platform', platform),
+                ('charts', charts),
+                ('tables', tables)
+        ])
+        platforms.append(val)
+        i = i + 1
+
+    # print platforms
+    return OrderedDict([ ('platforms', platforms)])
+
+
+def count_verbs_by_users(verbs, platform, course_code):
+    cursor = connection.cursor()
+    cursor.execute("""select username, verb, 
+        to_char(to_date(clatoolkit_learningrecord.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
+        , count(verb)
+        from clatoolkit_learningrecord
+        where platform = %s
+        and course_code = %s
+        group by username, verb, date_imported
+        order by username, verb, date_imported
+    """, [platform, course_code])
+
+    result = cursor.fetchall()
+    categories = []
+    data = []
+    user_data = OrderedDict()
+    username = ''
+    series = []
+    verb = ''# verb
+    dates = [] # date
+    values = []
+    for row in result:
+        # Subtract 1 from month to avoid calculation in client side (Javascript)
+        dateAry = row[2].split(',')
+        dateString = dateAry[0] + ',' + str(int(dateAry[1]) - 1).zfill(2) + ',' + dateAry[2]
+        if username == '' or username != row[0]:
+            if username != '':
+                # Save previous all verbs and its values of the user
+                obj = OrderedDict([
+                    ('name', verb), # verb
+                    ('date', copy.deepcopy(dates)),
+                    ('values', copy.deepcopy(values))
+                ])
+                series.append(obj)
+                user_data['category'] = username
+                user_data['series'] = copy.deepcopy(series)
+                data.append(user_data)
+
+            # Initialise all variables
+            username = row[0]
+            user_data = OrderedDict()
+            series = []
+            verb = "" # verb
+            dates = [] # date
+            values = []
+            verb = row[1] # verb
+            dates = [dateString] # date
+            values = [int(row[3])] # number of verbs imported on the date
+
+            categories.append(username)
+
+        elif username == row[0] and verb == row[1]:
+            # Same user and same verb.
+            dates.append(dateString)
+            values.append(int(row[3]))
+
+        elif username == row[0] and verb != row[1]:
+            # Save previous verb and its value
+            obj = OrderedDict([
+                ('name', verb), # verb
+                ('date', copy.deepcopy(dates)), 
+                ('values', copy.deepcopy(values))
+            ])
+            series.append(obj)
+            # Initialise with new verb, date and value
+            verb = "" # verb
+            dates = [] # date
+            values = []
+            verb = row[1] # verb
+            dates = [dateString] # date
+            values = [int(row[3])] # number of verbs imported on the date
+
+    # Save the last one
+    obj = OrderedDict([
+        ('name', verb), # verb
+        ('date', copy.deepcopy(dates)), 
+        ('values', copy.deepcopy(values))
+    ])
+    series.append(obj)
+    user_data['category'] = username
+    user_data['series'] = copy.deepcopy(series)
+    data.append(user_data)
+
+    # print data
+    # print categories
+    return categories, data

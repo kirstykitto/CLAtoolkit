@@ -1,0 +1,50 @@
+{% extends "clatoolkit/base_clatoolkit.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block heading %}
+    {{ unit.code }} {{ unit.name }} Members
+{% endblock %}
+
+{% block body %}
+<div class="row">
+    <div>
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                Details
+            </div>
+            <div class="panel-body">
+                Total number of members: {{ members.count }}
+                <br>
+                Registration link: <a href="{% url 'register' unit.id %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' unit.id %}</a>
+                <br><br>
+                <table class="table table-striped table-bordered table-hover dataTable no-footer">
+                    <thead>
+                        <tr>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in members %}
+                            <tr>
+                                <td>{{ member.first_name }}</td>
+                                <td>{{ member.last_name }}</td>
+                                <td>{{ member.email }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{% autoescape off %}
+
+{% endautoescape %}
+{% endblock %}
+
