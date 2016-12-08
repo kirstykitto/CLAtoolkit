@@ -1,7 +1,9 @@
 from dataintegration.core.plugins import registry
 from dataintegration.core.plugins.base import DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServerFlowPluginMixin
-from dataintegration.core.socialmediarecipebuilder import *
-from dataintegration.core.recipepermissions import *
+
+from dataintegration.core.di_utils import * #Formerly dataintegration.core.recipepermissions
+from xapi.statement.builder import * #Formerly dataintegration.core.socialmediabuilder
+
 import json
 import dateutil.parser
 from dataintegration.googleLib import *
@@ -28,10 +30,7 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
     scope = 'https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtubepartner'
 
     def __init__(self):
-        # Load api_config.json and convert to dict
-        config_file = os.path.join(os.path.dirname(__file__), 'api_config.json')
-        with open(config_file) as data_file:
-            self.api_config_dict = json.load(data_file)
+        pass
 
     def perform_import(self, retrieval_param, course_code, webserverflow_result):
         print "Youtube perform_import run"

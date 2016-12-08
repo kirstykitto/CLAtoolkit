@@ -87,7 +87,7 @@
 
               <form role="form" name="nmf_params" method="post" action="/dashboard/ca_dashboard/" onsubmit="return validateForm()" >
                 {% csrf_token %}
-                <input type="hidden" name="course_code" value="{{course_code}}" />
+                <input type="hidden" name="unit" value="{{ unit.id }}" />
                 <input type="hidden" name="platform" value="{{platform}}" />
               <div class="form-group has-success">
                   <label class="control-label" for="no_topics">No Topics</label>
@@ -155,7 +155,7 @@ function render_wordcloud(tag_freqs)
 function update_wordcloud(start_date, end_date)
 {
   $('#wordcloudselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
-  restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", start_date:start_date, end_date:end_date};
+  restparams = {format: "json", unit:"{{ unit.id }}", platform:"{{platform}}", start_date:start_date, end_date:end_date};
   $.getJSON("/clatoolkit/wordcloud", restparams,
     function(data){
       wordcloud_data = data;
@@ -166,7 +166,7 @@ function update_wordcloud(start_date, end_date)
 function update_topicmodel(start_date, end_date)
 {
   $('#topicmodelselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
-  url = "/dashboard/pyldavis/?platform={{platform}}&course_code={{course_code}}&start_date=" + start_date + "&end_date=" + end_date;
+  url = "/dashboard/pyldavis/?platform={{platform}}&unit={{ unit.id }}&start_date=" + start_date + "&end_date=" + end_date;
   $('#topicmodel_iframe').attr("src", url);
 }
 
