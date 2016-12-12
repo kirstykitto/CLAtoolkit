@@ -15,10 +15,6 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from dotenv import load_dotenv
-load_dotenv(os.path.join(BASE_DIR, "../.env"))
-
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
@@ -28,11 +24,16 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 if os.environ.get("DEBUG") == '1':
     DEBUG = True
+if os.environ.get("ALLOWED_HOSTS"):
+    ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(",")
+else:
+    ALLOWED_HOSTS=''
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(",")
-
-ADMINS = os.environ.get("ADMINS").split(",")
-ADMINS = map(lambda email: email.split(":"), ADMINS)
+if os.environ.get("ADMINS"):
+    ADMINS = os.environ.get("ADMINS").split(",")
+    ADMINS = map(lambda email: email.split(":"), ADMINS)
+else:
+    ADMINS = None
 
 if ADMINS:
 
@@ -63,7 +64,9 @@ INSTALLED_APPS = (
     'rest_framework',
     'clatoolkit',
     'dataintegration',
-    'dashboard'
+    'dashboard',
+    #'common',
+    'xapi'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -174,11 +177,20 @@ STATICFILES_FINDERS = (
 AUTH_PROFILE_MODULE = "account.userprofile"
 
 GA_TRACKING_ID = ''
+
+LOGIN_URL = "/"
 #
 #MEDIA_ROOT = os.path.join(BASE_DIR, 'static')
 #MEDIA_URL = '/static/'
 
-#####################################################
+####################################################
+######## Lead System-Wide constants/configs
+###################################################
+#from clatoolkit_project.xapi.statement import xapi_settings
+
+#xapi_settings = xapi_settings
+
+###################################################
 ######### Load Social Media Data Integration plugins
 #####################################################
 
@@ -189,7 +201,7 @@ sys.path.append(DI_PATH)
 PLUGIN_PATH = os.path.join(DI_PATH,'plugins')
 pluginModules = [name for _, name, _ in pkgutil.iter_modules([PLUGIN_PATH])]
 from dataintegration.core.plugins.loader import load_dataintegration_plugins
-from dataintegration.core.plugins.registry import get_includeindashboardwidgets, get_plugins, get_includeindashboardwidgets_verbs, get_includeindashboardwidgets_platforms, get_includeauthomaticplugins_platforms
+from dataintegration.core.plugins.registry import get_plugins, get_includeindashboardwidgets_verbs, get_includeindashboardwidgets_platforms, get_includeauthomaticplugins_platforms
 load_dataintegration_plugins(pluginModules)
 
 DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_VERBS = get_includeindashboardwidgets_verbs()

@@ -1,7 +1,7 @@
 # example/simple/views.py
 from __future__ import absolute_import
 
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.shortcuts import render, render_to_response
 from authomatic import Authomatic
 from authomatic.adapters import DjangoAdapter
@@ -12,13 +12,13 @@ from dataintegration.tasks import *
 from .forms import FacebookGatherForm
 import json
 from pprint import pprint
-from clatoolkit.models import UserTrelloCourseBoardMap, ApiCredentials, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp
+from clatoolkit.models import UserProfile, OfflinePlatformAuthToken, UserTrelloCourseBoardMap, ApiCredentials, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp
 from django.db import connection
 import dateutil.parser
 from dashboard.utils import *
 from dataintegration.groupbuilder import *
 from dataintegration.core.processingpipeline import *
-from dataintegration.core.recipepermissions import *
+from dataintegration.core.di_utils import * #from dataintegration.core.recipepermissions import *
 
 
 from rest_framework.decorators import api_view
@@ -49,10 +49,8 @@ def process_trello(request):
     member_json = r.json()
     member_id = member_json['id']
 
-    token_storage = OauthFlowTemp(googleid=member_id, transferdata=token, platform='trello')
+    token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform='trello') #OauthFlowTemp(googleid=member_id, transferdata=token, platform='trello')
     token_storage.save()
-
-    request.session['trello_memberid'] = member_id
 
     return Response(member_id)
 
@@ -66,29 +64,26 @@ def refreshtrello(request):
     course_code = request.GET.get('course_code')
     trello_courseboard_ids = request.GET.get('boards')
     trello_courseboard_ids = trello_courseboard_ids.split(',')
-    print course_code
-
-    print trello_courseboard_ids
 
     trello_plugin = settings.DATAINTEGRATION_PLUGINS['trello']
     diag_count = 0
 
     for board_id in trello_courseboard_ids:
         trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(board_id=board_id).filter(course_code=course_code)[0]
-        print 'got trello user course board map: %s' % (trello_user_course_map)
+        #print 'got trello user course board map: %s' % (trello_user_course_map)
 
         user = trello_user_course_map.user
         usr_profile = UserProfile.objects.get(user=user)
-        token = OauthFlowTemp.objects.get(googleid=usr_profile.trello_account_name)
+        usr_offline_auth = OfflinePlatformAuthToken.objects.get(user_smid=usr_profile.trello_account_name)
 
-
-        print 'Performing Trello Board Import for User: %s' % (user)
-        trello_plugin.perform_import(board_id, course_code, token=token.transferdata)
+        #print 'Performing Trello Board Import for User: %s' % (user)
+        trello_plugin.perform_import(board_id, course_code, token=usr_offline_auth.token)
         diag_count = diag_count + 1
 
     post_smimport(course_code, 'trello')
 
     return Response('<b>Trello refresh complete: %s users updated.</b>' % (diag_count))
+
 
 ##############################################
 # GitHub Data Extraction
@@ -96,15 +91,17 @@ def refreshtrello(request):
 def refreshgithub(request):
 
     html_response = HttpResponse()
-    course_code = request.GET.get('course_code')
+    unit_id = request.GET.get('unit')
+    try:
+        unit = UnitOffering.objects.get(id=unit_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
+
     repoUrls = request.GET.get('urls')
 
-    github_plugin = settings.DATAINTEGRATION_PLUGINS['github']
-    ghDataList = github_plugin.perform_import(repoUrls, course_code)
-    post_smimport(course_code, "Github")
-
-    #html_response.write('GitHub Refreshed.')
-    #return html_response
+    github_plugin = settings.DATAINTEGRATION_PLUGINS['GitHub']
+    github_plugin.perform_import(repoUrls, unit)
+    post_smimport(unit, "GitHub")
 
     return render(request, 'dataintegration/githubresult.html')
 
@@ -115,10 +112,13 @@ def refreshgithub(request):
 def refreshgoogleauthflow(request):
     course_code = request.GET.get('course_code')
     channelIds = request.GET.get('channelIds')
-    platform = courseId = request.GET.get('platform')
+    platform = request.GET.get('platform')
 
     user = request.user
     youtube_plugin = settings.DATAINTEGRATION_PLUGINS['YouTube']
+
+    #print 'Got youtube plugin: %s' % (youtube_plugin)
+    #print 'With client ID and Secret key: %s and %s' % (youtube_plugin.api_config_dict['CLIENT_ID'], youtube_plugin.api_config_dict['CLIENT_SECRET'])
 
     redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/ytAuthCallback'
 
@@ -230,10 +230,15 @@ def home(request):
     form = FacebookGatherForm()
     return render(request, 'dataintegration/facebook.html', {'form': form})
 
-def refreshtwitter(request):
-    html_response = HttpResponse()
 
-    course_code = request.GET.get('course_code')
+def refreshtwitter(request):
+    unit_id = request.GET.get('unit')
+
+    try:
+        unit = UnitOffering.objects.get(id=unit_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
+
     hastags = request.GET.get('hashtags')
 
     tags = hastags.split(',')
@@ -241,12 +246,13 @@ def refreshtwitter(request):
         hashtag = tag if tag.startswith("#") else "#" + tag
 
         twitter_plugin = settings.DATAINTEGRATION_PLUGINS['Twitter']
-        twitter_plugin.perform_import(hashtag, course_code)
+        twitter_plugin.perform_import(hashtag, unit)
 
-    post_smimport(course_code, "Twitter")
+    # TODO
+    # post_smimport(course_code, "Twitter")
 
-    html_response.write('Twitter Refreshed.')
-    return html_response
+    return HttpResponse('Twitter Refreshed.')
+
 
 def refreshdiigo(request):
     html_response = HttpResponse()
@@ -286,20 +292,16 @@ def refreshblog(request):
 
 def dipluginauthomaticlogin(request):
     
-    if (request.GET.get('context') is not None):
+    if request.GET.get('context') is not None:
         request.GET = request.GET.copy()
 
         state_dict = request.GET.pop('context')
         state_dict = state_dict[0]
         state_dict = json.loads(state_dict)
 
-        #print str(state_dict)
-
         request.session['platform'] = state_dict['platform']
-        request.session['course_code'] = state_dict['course_code']
+        request.session['unit'] = state_dict['unit']
         request.session['group_id'] = state_dict['group']
-
-    #print 'Data stored in session: %s, %s, %s' % (request.session['platform'], request.session['course_code'], request.session['group_id'])
 
     platform = request.session['platform']
 
@@ -336,21 +338,23 @@ def dipluginauthomaticlogin(request):
                 # we can _access user's protected resources.
                 if result.user.credentials:
                     group_id = request.session['group_id']
-                    course_code = request.session['course_code']
+                    unit_id = request.session['unit']
+                    unit = UnitOffering.objects.get(id=unit_id)
                     if result.provider.name == 'fb':
-                        di_plugin.perform_import(group_id, course_code, result)
+                        di_plugin.perform_import(group_id, unit, result)
 
-                        post_smimport(course_code, "facebook")
+                        post_smimport(unit, "facebook")
 
                         #Remove all data stored in session for this view to avoid cache issues
                         del request.session['platform']
-                        del request.session['course_code']
+                        del request.session['unit']
                         del request.session['group_id']
-                        html_response.write('Updating Facebook for ' + course_code)
+                        html_response.write('Updating Facebook for {} {}'.format(unit.code, unit.name))
         else:
             html_response.write('Auth Returned no Response.')
 
     return html_response
+
 
 def get_social_media_id(request):
     '''

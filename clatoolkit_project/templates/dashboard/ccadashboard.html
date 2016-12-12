@@ -38,8 +38,8 @@ white-space: nowrap;
 </style>
 
 <link href="{% static 'css/dashboard/ccadashboard.css'%}" rel="stylesheet">
-<span id="charts">
-	<!--<div id="report">Report here </div>-->
+<span id="root">
+	<p id="message" class="message"></p>
 	<div class="row">
 	    <div class="col-lg-12">
 	        <div class="panel panel-default">
@@ -57,7 +57,6 @@ white-space: nowrap;
 	    <!-- /.col-lg-8 -->
 	</div>
 	<!-- /.row -->
-
 	<div class="row">
 	    <div class="col-lg-12">
 	        <div class="panel panel-default">
@@ -66,10 +65,30 @@ white-space: nowrap;
 	            </div>
 	            <!-- /.panel-heading -->
 	            <div class="panel-body scrollable">
-	                <div id="chart-Trello"></div>
+	                <div id="chart-trello"></div>
 	            </div>
 	            <div class="tableDiv">
-		            <table class="table table-striped table-bordered table-hover" id="datatable-Trello"></table>
+		            <table class="table table-striped table-bordered table-hover" id="datatable-trello"></table>
+	            </div>
+	            <!-- /.panel-body -->
+	        </div>
+	        <!-- /.panel -->
+	    </div>
+	    <!-- /.col-lg-8 -->
+	</div>
+	<!-- /.row -->
+	<div class="row">
+	    <div class="col-lg-12">
+	        <div class="panel panel-default">
+	            <div class="panel-heading">
+	                <i class="fa fa-bar-chart-o fa-fw"></i> GitHub
+	            </div>
+	            <!-- /.panel-heading -->
+	            <div class="panel-body scrollable">
+	                <div id="chart-GitHub"></div>
+	            </div>
+	            <div class="tableDiv">
+		            <table class="table table-striped table-bordered table-hover" id="datatable-GitHub"></table>
 	            </div>
 	            <!-- /.panel-body -->
 	        </div>
@@ -85,6 +104,17 @@ white-space: nowrap;
 {% autoescape off %}
 <script src="{% static 'js/jquery.highlight.js'%}"></script>
 <script src="https://code.highcharts.com/modules/data.js"></script>
+<script>
+
+var course_code = "{{course_code}}";
+var platform = "{{platform}}";
+var allPlatformData = {};
+// Date selected by user at the Platform Timeseries
+var startDate = "";
+var endDate = "";
+// var timer = new Date().getTime();
+
+</script>
 <script src="{% static 'js/dashboard/ccadashboard.js'%}"></script>
 
 {% endautoescape %}
