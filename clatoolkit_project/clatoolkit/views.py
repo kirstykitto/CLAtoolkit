@@ -277,7 +277,7 @@ def register_existing(request, unit_id):
     except UnitOffering.DoesNotExist:
         raise Http404
 
-    if not unit.users.filter(user=request.user).exists():
+    if not unit.users.filter(id=request.user.id).exists():
         membership = UnitOfferingMembership(user=request.user, unit=unit, admin=False)
         membership.save()
 
@@ -408,6 +408,9 @@ def create_offering(request):
         # check whether it's valid:
         if form.is_valid():
             unit = form.save(commit=False)
+            # TODO: store appropriate LRS provider ID
+            app = ClientApp.objects.get(provider = 'default_lrs')
+            unit.lrs_provider = app
             unit.save()
 
             m = UnitOfferingMembership(user=request.user, unit=unit, admin=True)

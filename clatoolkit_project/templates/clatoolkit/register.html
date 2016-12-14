@@ -66,7 +66,7 @@
                     <br>
                     <div class="btn-group btn-group-justified" role="group">
                         <a class="btn btn-primary btn-lg btn-block" style="color:white;text-decoration: none" href="{% url "auth_logout_next" request.path %}">Create new account</a>
-                        <a class="btn btn-success btn-lg btn-block" style="color:white;text-decoration: none" href="{% url "register_existing" course.code %}">Continue as {{ user.first_name }}</a>
+                        <a class="btn btn-success btn-lg btn-block" style="color:white;text-decoration: none" href="{% url "register_existing" course.id %}">Continue as {{ user.first_name }}</a>
                     </div>
                 {% else %}
                     <form role="form" id="user_form" method="post">

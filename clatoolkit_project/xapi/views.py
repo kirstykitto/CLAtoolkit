@@ -54,8 +54,6 @@ def lrs_oauth_callback(request):
 
     user_id = request.user.id
 
-    print user_id
-
     user = User.objects.get(id=user_id)
 
     request_token = OAuthTempRequestToken.objects.get(user_id=user)
@@ -66,7 +64,7 @@ def lrs_oauth_callback(request):
     token.set_verifier(verifier)
 
     # Get Consumer info #Todo: change (most definitely) (IMPORTANT!!)
-    consumer_key, consumer_secret = get_consumer_key_and_secret
+    consumer_key, consumer_secret = get_consumer_key_and_secret()
 
     client = oauth.Client(oauth.Consumer(consumer_key,consumer_secret),token)
 
@@ -89,7 +87,7 @@ def get_consumer_key_and_secret():
 
 def get_test_xAPI():
     return """{
-        "id": "dc382d58-173a-4722-886d-7da23a725732",
+        "id": "dc382d58-173a-4782-886d-7da23a705472",
         "verb": {
             "display": {
                 "en-US": "created"
@@ -110,15 +108,15 @@ def get_test_xAPI():
         "actor": {
             "account": {
                 "homePage": "http://www.trello.com/",
-                "name": "koji"
+                "name": "clatoolkitdev"
             },
             "objectType": "Agent"
         },
         "authority": {
         "member": [
             {
-                "mbox": "mailto:zak@zak.com",
-                "name": "zak",
+                "mbox": "mailto:clatoolkitdev@gmail.com",
+                "name": "clatoolkit",
                 "objectType": "Agent"
             },
             {
