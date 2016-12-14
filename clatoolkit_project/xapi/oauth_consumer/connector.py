@@ -75,6 +75,7 @@ class AuthRequest():
         else: # Sending data to server
 
             statement_jsn = json.loads(data)
+
             statement_id = statement_jsn['id']
             params = {'statementId':statement_id}
 
@@ -110,7 +111,7 @@ class AuthRequest():
         # Add in extra params if they exist, right now we're only support 1 param (xapi filters)
         # TODO: Might have to handle multiple params
         if extra_params and len(extra_params) == 1:
-            #print 'EXTRA_PARAMS: %s' % extra_params
+            # print 'EXTRA_PARAMS: %s' % extra_params
             params.update(extra_params)
 
         # We can tell this in Auth-flow request by considering token, token_secret, callback and the http method
@@ -122,6 +123,7 @@ class AuthRequest():
         # we also need our access_token
         if self.token:
             params.update({'oauth_token':self.token})
+            # params.update({'oauth_token_secret':self.token_secret})
 
         # Get base string to encrypt for signed request
         http_base_sig = self.crypto.generate_base_string(url,params,method=method)
@@ -188,9 +190,9 @@ class Crytpo(object):
             if keys[i] == 'oauth_callback':
                 basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + encode(encode(params[keys[i]]), "")
             elif keys[i] == 'statementId':
-                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + str(params[keys[i]][0])
+                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + str(self.get_param_value(params[keys[i]]))
             else:
-                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + encode(str(params[keys[i]]), "")
+                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + encode(self.get_param_value(str(params[keys[i]])), "")
 
             if i < len(keys) - 1:
                 basestring = basestring + encode("&")
@@ -198,4 +200,10 @@ class Crytpo(object):
         print basestring
         return basestring.encode('ascii')
 
+
+    def get_param_value(self, values):
+        if not isinstance(values, list):
+            return values
+
+        return ','.join(values)
 

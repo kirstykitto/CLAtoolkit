@@ -125,15 +125,13 @@ class LRS_Auth(object):
 
             consumer = AuthRequest(self.CONSUMER_KEY,self.CONSUMER_SECRET,
                                    token=t.access_token,token_secret=t.access_token_secret)
-
-
             (code, content) = consumer.request(self.STATEMENTS_URL, data=statement)
-
+            
             # ADL_LRS returns status 204 for successful statement transfers
             if str(code) != ('200' or '204'):
                 raise Exception("Could not send xapi statement with status code %s. Message: %s" % (code,content))
             else:
-             return True
+                return 'HTTP Code: %s, content: %s' % (code, content)
 
 
     def authenticate(self, user_id):

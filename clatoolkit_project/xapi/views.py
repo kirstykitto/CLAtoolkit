@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 
-from models import OAuthTempRequestToken, UserAccessToken_LRS
+from models import OAuthTempRequestToken, UserAccessToken_LRS, ClientApp
 from oauth_consumer.operative import LRS_Auth
 
 import oauth2 as oauth
@@ -14,9 +14,7 @@ import oauth2 as oauth
 # Create your views here.
 @login_required
 def lrs_test_get_statements(request):
-    key = '5f3e87886d0f4506b510b3e4b93ef756'
-    secret = 'squafiscyAtAAqE6'
-
+    key, secret = get_consumer_key_and_secret()
     params = None
 
     if request.GET:
@@ -37,13 +35,12 @@ def lrs_test_get_statements(request):
 def lrs_test_send(request):
 
     lrs = LRS_Auth()
-
-    return HttpResponse(lrs.transfer_statement())
+    statement = get_test_xAPI()
+    return HttpResponse(lrs.transfer_statement(request.user.id, statement = statement))
 
 @login_required
 def lrs_test_view(request):
-    key = '5f3e87886d0f4506b510b3e4b93ef756'
-    secret = 'squafiscyAtAAqE6'
+    key, secret = get_consumer_key_and_secret()
 
     auth = LRS_Auth(consumer_key=key, secret=secret)
 
@@ -57,6 +54,8 @@ def lrs_oauth_callback(request):
 
     user_id = request.user.id
 
+    print user_id
+
     user = User.objects.get(id=user_id)
 
     request_token = OAuthTempRequestToken.objects.get(user_id=user)
@@ -67,8 +66,7 @@ def lrs_oauth_callback(request):
     token.set_verifier(verifier)
 
     # Get Consumer info #Todo: change (most definitely) (IMPORTANT!!)
-    consumer_key = '5f3e87886d0f4506b510b3e4b93ef756'
-    consumer_secret = 'squafiscyAtAAqE6'
+    consumer_key, consumer_secret = get_consumer_key_and_secret
 
     client = oauth.Client(oauth.Consumer(consumer_key,consumer_secret),token)
 
@@ -83,3 +81,82 @@ def lrs_oauth_callback(request):
 
 
         return HttpResponse("Access Token Successfully attached to account:\nToken: %s\nToken Secret: %s" % (access_token['oauth_token'], access_token['oauth_token_secret']))
+
+
+def get_consumer_key_and_secret():
+    return 'a80338a09b1d4fa6a431de5604560821', '2wHSI0kcKTRRnPN5'
+
+
+def get_test_xAPI():
+    return """{
+        "id": "dc382d58-173a-4722-886d-7da23a725732",
+        "verb": {
+            "display": {
+                "en-US": "created"
+            },
+            "id": "http://www.w3.org/ns/activitystreams#Create"
+        },
+        "timestamp": "2016-11-01T08:33:28.423000+00:00",
+        "object": {
+            "definition": {
+                "type": "http://activitystrea.ms/specs/json/schema/activity-schema.html#task",
+                "name": {
+                    "en-US": "Add after removing board ID from the toolkit..."
+                }
+            },
+            "id": "http://www.test.com/5818535876f64eded095ae82",
+            "objectType": "Activity"
+        },
+        "actor": {
+            "account": {
+                "homePage": "http://www.trello.com/",
+                "name": "koji"
+            },
+            "objectType": "Agent"
+        },
+        "authority": {
+        "member": [
+            {
+                "mbox": "mailto:zak@zak.com",
+                "name": "zak",
+                "objectType": "Agent"
+            },
+            {
+                "account": {
+                    "homePage": "http://example.com/XAPI/OAuth/token/",
+                    "name": "4a77c7336e92425d9e56ec7bdb58223d"
+                },
+                "objectType": "Agent"
+            }
+        ],
+        "objectType": "Group"
+    },
+        "version": "1.0.1",
+        "context": {
+            "platform": "Trello",
+            "contextActivities": {
+                "other": [],
+                "parent": [
+                    {
+                        "id": "http://test.com/aaa",
+                        "objectType": "Activity"
+                    }
+                ],
+                "grouping": [
+                    {
+                        "definition": {
+                            "name": {
+                                "en-US": "TEST-UNIT"
+                            },
+                            "description": {
+                                "en-US": "TEST-UNIT"
+                            }
+                        },
+                        "id": "http://test.com/TEST-UNIT",
+                        "objectType": "Activity"
+                    }
+                ]
+            },
+            "registration": "dc382d58-173a-4722-886d-7da68a925924"
+        }
+    }"""
