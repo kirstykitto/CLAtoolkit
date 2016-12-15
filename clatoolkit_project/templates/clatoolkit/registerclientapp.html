@@ -30,9 +30,15 @@
                     </div>
                     {% for field in form %}
                         <div class="form-group">
-                            {{ field.label_tag }}
-                            <br>
-                            {{ field }}
+                            {% if field.name == 'provider' and field.value %}
+                                {{ field.label_tag }}
+                                <br>
+                                <label>{{ field.value }}</label>
+                            {% else %}
+                                {{ field.label_tag }}
+                                <br>
+                                {{ field }}
+                            {% endif %}
                         </div>
                     {% endfor %}
 

@@ -2,7 +2,7 @@ from django.shortcuts import render, render_to_response
 from django.shortcuts import redirect
 
 from django.contrib.auth import authenticate, login
-from django.http import HttpResponseRedirect, HttpResponse, Http404
+from django.http import HttpResponseRedirect, HttpResponse, Http404, HttpResponseServerError
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
@@ -500,7 +500,7 @@ def updateclientapp(request):
             app = ClientApp.objects.get(id=provider_id)
             form = RegisterClientAppForm(instance=app)
         except ClientApp.DoesNotExist:
-            raise Http404
+            return HttpResponseServerError('Error: Provider id not found')
 
         return render(request, 'clatoolkit/registerclientapp.html', 
             {'registered': False, 'verb': 'Update', 'form': form})
