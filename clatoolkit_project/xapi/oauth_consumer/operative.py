@@ -128,7 +128,7 @@ class LRS_Auth(object):
             (code, content) = consumer.request(self.STATEMENTS_URL, data=statement)
             
             # ADL_LRS returns status 204 for successful statement transfers
-            if str(code) != ('200' or '204'):
+            if str(code) != '200' and str(code) != '204':
                 raise Exception("Could not send xapi statement with status code %s. Message: %s" % (code,content))
             else:
                 return 'HTTP Code: %s, content: %s' % (code, content)

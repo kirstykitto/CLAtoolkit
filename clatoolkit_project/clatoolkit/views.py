@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 
 from django.contrib.auth.models import User
-from clatoolkit.forms import CreateOfferingForm, SignUpForm, UserForm, UserProfileForm
+from clatoolkit.forms import CreateOfferingForm, SignUpForm, UserForm, UserProfileForm, RegisterClientAppForm
 
 from django.template import RequestContext
 
@@ -234,7 +234,7 @@ def register(request, unit_id):
 
             # Create a signature to authorise lrs account creation.
             # We don't want randoms creating accounts arbitrarly!
-            hash = hmac.new(str(lrs.get_secret), lrs.get_key(), sha1)
+            hash = hmac.new(str(lrs.get_secret()), lrs.get_key(), sha1)
 
             # Return ascii formatted signature in base64
             signature = binascii.b2a_base64(hash.digest())[:-1]
@@ -459,6 +459,53 @@ def offering_members(request, unit_id):
         return render(request, "clatoolkit/offering_members.html", {"unit": unit, "members": members})
     else:
         raise PermissionDenied()
+
+
+@login_required
+def registerclientapp(request):
+    if request.method == 'POST':
+        form = RegisterClientAppForm(request.POST)
+        if form.is_valid():
+            app = form.save(commit=False)
+            app.protocol = form.cleaned_data["protocol"]
+            app.save()
+            return render(request, 'clatoolkit/registerclientapp_success.html', 
+                {'registered': True, 'verb': 'registered', 'form': None})
+    else:
+        form = RegisterClientAppForm()
+
+    return render(request, 'clatoolkit/registerclientapp.html', 
+        {'registered': False, 'verb': 'Register', 'form': form})
+
+
+@login_required
+def updateclientapp(request):
+    if request.method == 'POST':
+        post_data = request.POST.copy()
+        provider = post_data.pop("provider")[0]
+        app = ClientApp.objects.get(provider=provider)
+        form = RegisterClientAppForm(request.POST, instance=app)
+
+        if form.is_valid():
+            app = form.save(commit=False)
+            app.save()
+            return render(request, 'clatoolkit/registerclientapp.html', 
+                {'registered': True, 'verb': 'updated', 'form': None})
+        else:
+            return HttpResponse("ERROR: %s" % (form.errors))
+
+    else:
+        provider_id = request.GET.get("provider_id")
+        try:
+            app = ClientApp.objects.get(id=provider_id)
+            form = RegisterClientAppForm(instance=app)
+        except ClientApp.DoesNotExist:
+            raise Http404
+
+        return render(request, 'clatoolkit/registerclientapp.html', 
+            {'registered': False, 'verb': 'Update', 'form': form})
+
+
 
 
 class DefaultsMixin(object):

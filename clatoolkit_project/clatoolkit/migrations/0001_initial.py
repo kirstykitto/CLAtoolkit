@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import migrations, models
+from django.db import models, migrations
 import django_pgjson.fields
 from django.conf import settings
 
@@ -10,6 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ('xapi', '0005_auto_20161215_0800'),
     ]
 
     operations = [
@@ -139,9 +140,7 @@ class Migration(migrations.Migration):
                 ('github_urls', models.TextField(verbose_name=b'GitHub Repos', blank=True)),
                 ('attached_trello_boards', models.TextField(verbose_name=b'Trello Boards', blank=True)),
                 ('coi_platforms', models.TextField(blank=True)),
-                ('ll_endpoint', models.CharField(max_length=60, blank=True)),
-                ('ll_username', models.CharField(max_length=60, blank=True)),
-                ('ll_password', models.CharField(max_length=60, blank=True)),
+                ('lrs_provider', models.ForeignKey(to='xapi.ClientApp')),
             ],
         ),
         migrations.CreateModel(

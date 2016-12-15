@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 import django_filters
 from django.core.exceptions import ValidationError
-from clatoolkit.models import UserProfile, UnitOffering, LearningRecord, SocialRelationship, Classification, UserClassification
+from clatoolkit.models import UserProfile, UnitOffering, LearningRecord, SocialRelationship, Classification, UserClassification, ClientApp
 import re
 
 class UserForm(forms.ModelForm):
@@ -28,6 +28,30 @@ class SignUpForm(forms.ModelForm):
         model = User
         fields = ("first_name", "last_name", "username", "email", "password")
 
+class RegisterClientAppForm(forms.ModelForm):
+    i = forms.CharField(label='OAuth Client Apps Key', widget=forms.TextInput(attrs={'class': 'form-control'}))
+    s = forms.CharField(label='OAuth Client Apps Secret', widget=forms.TextInput(attrs={'class': 'form-control'}))
+    provider = forms.CharField(label='LRS Name (e.g. mylrs)', widget=forms.TextInput(attrs={'class': 'form-control'}))
+    # protocol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    domain = forms.CharField(label='Domain (e.g. my.lrsdomain.com)', widget=forms.TextInput(attrs={'class': 'form-control'}))
+    port = forms.IntegerField(label='Port Number', widget=forms.TextInput(attrs={'class': 'form-control'}))
+    auth_request_path = forms.CharField(label='Auth request path (e.g. /OAuth/initiate)', 
+        widget=forms.TextInput(attrs={'class': 'form-control'}))
+    access_token_path = forms.CharField(label='Access token path (e.g. /OAuth/token)', 
+        widget=forms.TextInput(attrs={'class': 'form-control'}))
+    authorization_path = forms.CharField(label='Authorization path (e.g. /OAuth/authorize)', 
+        widget=forms.TextInput(attrs={'class': 'form-control'}))
+
+    protocol_choice = (
+        ('http', 'http'),
+        ('https', 'https')
+    )
+    protocol = forms.ChoiceField(label='Protocol', choices=protocol_choice)
+
+    class Meta:
+        model = ClientApp
+        fields = ("provider", "i", "s", "protocol", "domain", "port", 
+                    "auth_request_path", "access_token_path", "authorization_path")
 
 class CreateOfferingForm(forms.ModelForm):
     code = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))

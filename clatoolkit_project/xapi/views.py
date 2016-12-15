@@ -87,7 +87,7 @@ def get_consumer_key_and_secret():
 
 def get_test_xAPI():
     return """{
-        "id": "dc382d58-173a-4782-886d-7da23a705472",
+        "id": "dc382d58-173a-4782-886d-7da23a700004",
         "verb": {
             "display": {
                 "en-US": "created"
