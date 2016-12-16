@@ -41,6 +41,8 @@ class RegisterClientAppForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control'}))
     authorization_path = forms.CharField(label='Authorization path (e.g. /OAuth/authorize)', 
         widget=forms.TextInput(attrs={'class': 'form-control'}))
+    xapi_statement_path = forms.CharField(label='xAPI statement path (e.g. /xapi/statements)', 
+        widget=forms.TextInput(attrs={'class': 'form-control'}))
 
     protocol_choice = (
         ('http', 'http'),
@@ -51,7 +53,7 @@ class RegisterClientAppForm(forms.ModelForm):
     class Meta:
         model = ClientApp
         fields = ("provider", "i", "s", "protocol", "domain", "port", 
-                    "auth_request_path", "access_token_path", "authorization_path")
+                    "auth_request_path", "access_token_path", "authorization_path", "xapi_statement_path")
 
 class CreateOfferingForm(forms.ModelForm):
     code = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))

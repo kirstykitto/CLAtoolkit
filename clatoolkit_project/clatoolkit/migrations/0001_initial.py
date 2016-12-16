@@ -9,8 +9,8 @@ from django.conf import settings
 class Migration(migrations.Migration):
 
     dependencies = [
+        ('xapi', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('xapi', '0005_auto_20161215_0800'),
     ]
 
     operations = [
