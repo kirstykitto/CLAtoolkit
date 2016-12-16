@@ -497,8 +497,7 @@ def updateclientapp(request):
         if form.is_valid():
             app = form.save(commit=False)
             app.save()
-            return render(request, 'clatoolkit/registerclientapp.html', 
-                {'registered': True, 'verb': 'updated', 'form': None})
+            return redirect('/dashboard/myunits')
         else:
             return HttpResponse("ERROR: %s" % (form.errors))
 

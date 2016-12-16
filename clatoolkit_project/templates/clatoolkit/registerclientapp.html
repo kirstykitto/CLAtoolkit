@@ -33,7 +33,7 @@
                             {% if field.name == 'provider' and field.value %}
                                 {{ field.label_tag }}
                                 <br>
-                                <label>{{ field.value }}</label>
+                                <input class="form-control" id="id_provider" name="provider" type="text" value="{{ field.value }}" readonly>
                             {% else %}
                                 {{ field.label_tag }}
                                 <br>

@@ -14,6 +14,7 @@ class UserAccessToken_LRS(models.Model):
 
 class ClientApp(models.Model):
     provider = models.CharField(max_length=256, unique=True)
+    app_name = models.CharField(max_length=256, blank=False)
     i = models.CharField(max_length=256, blank=False)
     s = models.CharField(max_length=256, blank=False)
     protocol = models.CharField(max_length=10, blank=False)

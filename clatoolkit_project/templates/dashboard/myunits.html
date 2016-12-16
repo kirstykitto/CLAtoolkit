@@ -158,6 +158,9 @@
                             <a href="{% url 'register' membership.unit.id %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' membership.unit.id %}</a>
                             </p>
                             <a href="{% url 'update_offering' membership.unit.id %}">Update unit offering</a>
+                            <br><br>
+                            Current LRS: {{ membership.unit.lrs_provider.provider }}&nbsp;
+                            <a href="/clatoolkit/updateclientapp?provider_id={{ membership.unit.lrs_provider.id }}">Update LRS</a>
                         {% else %}
                             {% if shownocontentwarning == True %}
                                 <div class="alert alert-warning">
