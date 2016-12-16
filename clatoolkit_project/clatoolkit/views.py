@@ -2,7 +2,7 @@ from django.shortcuts import render, render_to_response
 from django.shortcuts import redirect
 
 from django.contrib.auth import authenticate, login
-from django.http import HttpResponseRedirect, HttpResponse, Http404, HttpResponseServerError
+from django.http import HttpResponseRedirect, HttpResponse, Http404, HttpResponseServerError, JsonResponse
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
@@ -408,8 +408,10 @@ def create_offering(request):
         # check whether it's valid:
         if form.is_valid():
             unit = form.save(commit=False)
-            # TODO: store appropriate LRS provider ID
-            app = ClientApp.objects.get(provider = 'default_lrs')
+            # Get provider ID and set it to unit
+            post_data = request.POST.copy()
+            provider = post_data.pop("provider")[0]
+            app = ClientApp.objects.get(provider = provider)
             unit.lrs_provider = app
             unit.save()
 
@@ -420,7 +422,7 @@ def create_offering(request):
 
     # if a GET (or any other method) we'll create a blank form
     else:
-        form = CreateOfferingForm()
+        form = CreateOfferingForm(initial = {'provider': 'default_lrs'})
 
     return render(request, 'clatoolkit/createoffering.html', {'verb': 'Create', 'form': form})
 
@@ -436,11 +438,17 @@ def update_offering(request, unit_id):
         if request.method == "POST":
             form = CreateOfferingForm(request.POST, instance=unit)
             if form.is_valid():
+                # Get provider ID and set it to unit
+                post_data = request.POST.copy()
+                provider = post_data.pop("provider")[0]
+                app = ClientApp.objects.get(provider = provider)
+                unit.lrs_provider = app
                 unit = form.save()
                 return render(request, 'clatoolkit/createoffering_success.html', {'verb': 'updated', 'unit': unit})
 
         else:
-            form = CreateOfferingForm(instance=unit)
+            # Get LRS provider and set it
+            form = CreateOfferingForm(instance=unit, initial = {'provider': unit.lrs_provider.provider})
 
             return render(request, "clatoolkit/createoffering.html", {'verb': 'Update', 'form': form})
     else:
@@ -506,6 +514,19 @@ def updateclientapp(request):
             {'registered': False, 'verb': 'Update', 'form': form})
 
 
+def get_lrs_list(request):
+    all_apps = ClientApp.objects.all()
+    app_list = []
+    for app in all_apps:
+        obj = {}
+        obj['provider'] = app.provider
+        obj['protocol'] = app.protocol
+        obj['domain'] = app.domain
+        obj['port'] = app.port
+        app_list.append(obj)
+
+    ret = {'result': app_list}
+    return JsonResponse(ret, status=status.HTTP_200_OK)
 
 
 class DefaultsMixin(object):

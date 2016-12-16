@@ -7,6 +7,7 @@
 {% block heading %}{% endblock %}
 
 {% block body %}
+<script src="{% static 'js/jquery-ui-1.11.4.custom/jquery-ui.js'%}"></script>
 <div class="row">
     <div class="col-md-6 col-md-offset-3">
         <div class="panel panel-info">
@@ -34,7 +35,14 @@
                             {% if field|field_type == "Textarea" %}
                                 <textarea class="form-control" name="{{ field.name }}">{% if field.value %}{{ field.value }}{% endif %}</textarea>
                             {% else %}
-                                {{ field }}
+                                {% if field.name == "provider" %}
+                                    <input class="form-control" id="id_provider" name="provider" type="text" value="{{ field.value }}" readonly>
+                                    <br>
+                                    <a class="lrs-link" onclick="javascript:getLRSList();">Select your own LRS</a>
+                                    <div id="lrs-list" class="lrs"></div>
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
                             {% endif %}
                         </div>
                     {% endfor %}
@@ -51,9 +59,38 @@
         line-height: 3;
         font-weight: bold;
     }
+    .lrs {
+        font-size: 16px;
+    }
+    div .lrs-link {
+        cursor: pointer;
+    }
 </style>
 {% autoescape off %}
-
+<script>
+    function getLRSList(course_code) {
+        if($("#lrs-list").html() != '') {
+            return;
+        }
+        $("#lrs-list").html("Loading.....");
+        $.ajax({
+            url: "/clatoolkit/api/getLRSlist",
+            type: 'GET',
+            success: function (response) {
+                var lrsList = $("#lrs-list");
+                lrsList.html('<br><p>Click the LRS name you would like to use.</p>');
+                $.each(response["result"], function(key, val) {
+                    var url = val["protocol"] + "://" + val["domain"] + ":" + val["port"];
+                    var app = '<a class="lrs-link" onclick="javascript:selectLRS(\'' + val["provider"] + '\');">' + val["provider"] + "</a>: " + url;
+                    lrsList.append('<p>' + app + '</p>');
+                });
+            }
+        });
+    }
+    function selectLRS(providerName) {
+        $("#id_provider").val(providerName);
+    }
+</script>
 {% endautoescape %}
 {% endblock %}
 

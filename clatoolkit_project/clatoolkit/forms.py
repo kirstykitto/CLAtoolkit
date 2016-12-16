@@ -57,10 +57,13 @@ class CreateOfferingForm(forms.ModelForm):
     code = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
     name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
     semester = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    provider = forms.CharField(label='LRS', widget=forms.TextInput(attrs={'class': 'form-control'}))
 
     class Meta:
         model = UnitOffering
-        fields = ("code", "name", "semester", "description", "twitter_hashtags", "google_groups", "facebook_groups", "forum_urls", "youtube_channelIds", "diigo_tags", "blogmember_urls", "github_urls", "attached_trello_boards")
+        fields = ("code", "name", "semester", "description", "twitter_hashtags", "google_groups", 
+            "facebook_groups", "forum_urls", "youtube_channelIds", "diigo_tags", "blogmember_urls", 
+            "github_urls", "attached_trello_boards", "provider")
 
     def clean_code(self):
         code = self.cleaned_data.get('code')
