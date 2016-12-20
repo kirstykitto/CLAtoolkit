@@ -174,7 +174,6 @@ def unitmanagement(request):
 
 def register(request, unit_id):
     import requests
-
     # Like before, get the request's context.
     context = RequestContext(request)
 
@@ -203,13 +202,40 @@ def register(request, unit_id):
 
         # If the two forms are valid...
         if user_form.is_valid() and profile_form.is_valid():
+            # Generate LRS Account
+            user = user_form.cleaned_data['username']
+            email = user_form.cleaned_data['email']
+            lrs = unit.get_lrs()
+
+            # Create a signature to authorise lrs account creation.
+            # We don't want randoms creating accounts arbitrarly!
+            hash = hmac.new(str(lrs.get_secret()), lrs.get_key(), sha1)
+
+            # Return ascii formatted signature in base64
+            signature = binascii.b2a_base64(hash.digest())[:-1]
+
+            payload = {
+                "user": user,
+                "mailbox": email,
+                "client": lrs.app_name,
+                "signature": signature
+            }
+
+            # TODO: Remove hardwired url (probs from client app model?)
+            # print lrs.get_reg_lrs_account_url()
+            r = requests.post(lrs.get_reg_lrs_account_url(), data=payload)
+
+            if not (str(r.status_code) == '200' and r.content == 'success'):
+                print 'Error: LRS account could not be created.'
+                return HttpResponse(r.content)
+
+            ### When an LRS account has been created, create the toolkit account.
             # Save the user's form data to the database.
             user = user_form.save()
 
             # Now we hash the password with the set_password method.
             # Once hashed, we can update the user object.
             user.set_password(user.password)
-
             user.save()
 
             m = UnitOfferingMembership(user=user, unit=unit, admin=False)
@@ -224,33 +250,6 @@ def register(request, unit_id):
 
             # Now we save the UserProfile model instance.
             profile.save()
-
-            # Generate LRS Account
-
-            user = user_form.cleaned_data['username']
-            email = user_form.cleaned_data['email']
-
-            lrs = unit.get_lrs()
-
-            # Create a signature to authorise lrs account creation.
-            # We don't want randoms creating accounts arbitrarly!
-            hash = hmac.new(str(lrs.get_secret()), lrs.get_key(), sha1)
-
-            # Return ascii formatted signature in base64
-            signature = binascii.b2a_base64(hash.digest())[:-1]
-
-            payload = {
-                "user": user,
-                "mailbox": email,
-                "client": 'clatoolkit',
-                "signature": signature
-            }
-
-            # TODO: Remove hardwired url (probs from client app model?)
-            r = requests.post('http://localhost:8000/regclatoolkitu/', data=payload)
-
-            if not (str(r.status_code) == '200' and r.content == 'success'):
-                return HttpResponse(r.content)
 
             # Log in as the newly signed up user
             u = authenticate(username=user_form.cleaned_data["username"], password=user_form.cleaned_data["password"])

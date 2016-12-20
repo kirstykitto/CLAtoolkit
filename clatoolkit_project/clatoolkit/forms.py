@@ -43,6 +43,8 @@ class RegisterClientAppForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control'}))
     xapi_statement_path = forms.CharField(label='xAPI statement path (e.g. /xapi/statements)', 
         widget=forms.TextInput(attrs={'class': 'form-control'}))
+    reg_lrs_account_path = forms.CharField(label='LRS account registeration path (e.g. /regclatoolkitu/)', 
+        widget=forms.TextInput(attrs={'class': 'form-control'}))
 
     protocol_choice = (
         ('http', 'http'),
@@ -53,7 +55,8 @@ class RegisterClientAppForm(forms.ModelForm):
     class Meta:
         model = ClientApp
         fields = ("provider", "app_name", "i", "s", "protocol", "domain", "port", 
-                    "auth_request_path", "access_token_path", "authorization_path", "xapi_statement_path")
+                    "auth_request_path", "access_token_path", "authorization_path", 
+                    "xapi_statement_path", "reg_lrs_account_path")
 
 class CreateOfferingForm(forms.ModelForm):
     code = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))

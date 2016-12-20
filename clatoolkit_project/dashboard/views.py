@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseServerError
 from django.db import connection
 from .utils import *
 from clatoolkit.models import OfflinePlatformAuthToken, UserProfile, OauthFlowTemp, UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserTrelloCourseBoardMap
@@ -18,6 +18,7 @@ from django.core.exceptions import PermissionDenied
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from xapi.models import ClientApp, UserAccessToken_LRS
 
 import requests
 
@@ -178,12 +179,19 @@ def myunits(request):
     memberships = UnitOfferingMembership.objects.filter(user=request.user, unit__enabled=True).select_related('unit')
 
     role = request.user.userprofile.role
-
     show_dashboardnav = False
-
     shownocontentwarning = False
-
     trello_attached = not request.user.userprofile.trello_account_name == ''
+
+    has_token_list = {}
+    for membership in memberships:
+        token = UserAccessToken_LRS.objects.filter(user = request.user, clientapp = membership.unit.lrs_provider)
+        has_user_token = True if len(token) == 1 else False
+        if len(token) > 1:
+            return HttpResponseServerError('More than one access token were found.')
+
+        app = membership.unit.lrs_provider
+        has_token_list[membership.unit.code] = {'lrs': app.provider, 'has_user_token': has_user_token}
 
     # if student check if the student has imported data
     if role == 'Student':
@@ -192,7 +200,7 @@ def myunits(request):
 
     context_dict = {'title': "My Units", 'memberships': memberships, 'show_dashboardnav': show_dashboardnav,
                     'shownocontentwarning': shownocontentwarning, 'role': role,
-                    'trello_attached_to_acc': trello_attached}
+                    'trello_attached_to_acc': trello_attached, 'has_token_list': has_token_list}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
 

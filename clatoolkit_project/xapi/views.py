@@ -11,6 +11,15 @@ from oauth_consumer.operative import LRS_Auth
 
 import oauth2 as oauth
 
+
+
+@login_required
+def get_lrs_access_token(request):
+    provider_id = request.GET.get('provider_id')
+    auth = LRS_Auth(provider_id = provider_id, callback = get_callback_base_url(request))
+    return HttpResponseRedirect(auth.authenticate(request.user.id))
+
+
 # Create your views here.
 @login_required
 def lrs_test_get_statements(request):
@@ -38,23 +47,17 @@ def lrs_test_send(request):
     statement = get_test_xAPI()
     return HttpResponse(lrs.transfer_statement(request.user.id, statement = statement))
 
-@login_required
-def lrs_test_view(request):
-    key, secret = get_consumer_key_and_secret()
-
-    auth = LRS_Auth(consumer_key=key, secret=secret)
-
-    return HttpResponseRedirect(auth.authenticate(request.user.id))
-
-
 
 def lrs_oauth_callback(request):
     import os
     import urlparse
 
     user_id = request.user.id
-
     user = User.objects.get(id=user_id)
+
+    status = request.GET.get('status')
+    if status is not None and status == 'fail':
+        return HttpResponseServerError('Could not get access token.')
 
     request_token = OAuthTempRequestToken.objects.get(user_id=user)
     verifier = request.GET.get('oauth_verifier')
@@ -64,9 +67,9 @@ def lrs_oauth_callback(request):
     token.set_verifier(verifier)
 
     # Get Consumer info #Todo: change (most definitely) (IMPORTANT!!)
-    consumer_key, consumer_secret = get_consumer_key_and_secret()
-
-    client = oauth.Client(oauth.Consumer(consumer_key,consumer_secret),token)
+    # consumer_key, consumer_secret = get_consumer_key_and_secret()
+    app = ClientApp.objects.get(id = request_token.clientapp.id)
+    client = oauth.Client(oauth.Consumer(app.get_key(), app.get_secret()), token)
 
     # Exchange request_token for authed and verified access_token
     resp,content = client.request(os.environ.get('ACCESS_TOKEN_URL'), "POST")
@@ -74,15 +77,16 @@ def lrs_oauth_callback(request):
 
     if access_token['oauth_token']:
         UserAccessToken_LRS(user=user, access_token=access_token['oauth_token'],
-                            access_token_secret=access_token['oauth_token_secret']).save()
+                            access_token_secret=access_token['oauth_token_secret'],
+                            clientapp = app).save()
+        from django.shortcuts import render_to_response
+        return render_to_response('xapi/get_access_token_successful.html')
 
 
-
-        return HttpResponse("Access Token Successfully attached to account:\nToken: %s\nToken Secret: %s" % (access_token['oauth_token'], access_token['oauth_token_secret']))
-
-
-def get_consumer_key_and_secret():
-    return 'a80338a09b1d4fa6a431de5604560821', '2wHSI0kcKTRRnPN5'
+def get_callback_base_url(request):
+    protocol = 'https' if request.is_secure() else 'http'
+    host_name = '%s://%s' % (protocol, request.get_host())
+    return host_name
 
 
 def get_test_xAPI():

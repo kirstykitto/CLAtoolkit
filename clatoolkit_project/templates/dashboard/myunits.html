@@ -6,6 +6,7 @@
 {% block heading %}{{ title }}{% endblock %}
 
 {% block body %}
+    <link href="{% static 'css/dashboard/myunits.css'%}" rel="stylesheet">
     <a href="http://localhost:8080/xapi/get_statement?statementId=71c25cb2-9058-4ea1-b298-a0c8480f5722">Test get Statements from LRS</a><br/>
     <a href="http://localhost:8080/xapi/">Test Auth</a>
     {% for membership in memberships %}
@@ -20,6 +21,16 @@
                     <!-- /.panel-heading -->
                     <div class="panel-body">
                         {{ membership.unit }}
+                        {% for key, value in has_token_list.items %} 
+                            {% if key == membership.unit.code and not value.has_user_token %}
+                            <div>
+                                <div class="alert alert-danger" role="alert">
+                                    <h4 class="no-token">Give permission</h4>
+                                    <p><a href="/xapi/get_lrs_access_token?provider_id={{ membership.unit.lrs_provider_id }}">Click here</a> to allow the CLA toolkit to import your social media content to LRS.</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
                         {% if role == "Staff" or membership.admin == True %}
                             <p>
                                 All Platforms [<a
@@ -166,6 +177,7 @@
                                 <div class="alert alert-warning">
                                     <strong>Note:</strong> Your social media content has not been imported. Imports are
                                     scheduled overnight. Please login and check tomorrow.
+                                    <br>
                                     {% if trello_attached_to_acc %}
                                         <!-- Need to add custom filter to perform this functionality (show user their attach board) TODO:-->
                                         <p>
@@ -174,6 +186,7 @@
                                         <div id="{{ membership.unit.code }}" class="trello_board"></div>
                                         </p>
                                     {% else %}
+                                        <br>
                                         <a href="/clatoolkit/socialmediaaccounts/">Add Trello to your account to plan
                                             and monitor your workload</a>
                                     {% endif %}
