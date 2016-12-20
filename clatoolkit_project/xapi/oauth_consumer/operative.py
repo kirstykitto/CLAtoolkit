@@ -57,9 +57,12 @@ class LRS_Auth(object):
         self.REQUEST_TOKEN_URL = app.get_auth_request_url()
         self.ACCESS_TOKEN_URL = app.get_access_token_url()
         self.AUTHORIZATION_URL = app.get_authorization_url()
-        self.CALLBACK_URL = callback + self.CALLBACK_PATH
         self.STATEMENTS_URL = app.get_xapi_statement_url()
         self.PROVIDER_ID = provider_id
+        self.CALLBACK_URL = ''
+        if callback is not None:
+            self.CALLBACK_URL = callback + self.CALLBACK_PATH
+
 
         # Save Access-token exchange url to env TODO: Find a better way to handle this.
         os.environ['ACCESS_TOKEN_URL'] = self.ACCESS_TOKEN_URL
@@ -104,7 +107,7 @@ class LRS_Auth(object):
             if str(code) != '200' and str(code) != '204':
                 raise Exception("Could not send xapi statement with status code %s. Message: %s" % (code,content))
             else:
-                return 'HTTP Code: %s, content: %s' % (code, content)
+                return 'xAPI was successfully sent. HTTP Code: %s, content: %s' % (code, content)
 
 
     def authenticate(self, user_id):

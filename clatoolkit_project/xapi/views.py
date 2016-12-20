@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseServerError
 from django.http import HttpResponseRedirect
 #from django.contrib.auth import authenticate, login
 #from django.http import HttpResponseRedirect, HttpResponse, Http404
@@ -10,7 +10,8 @@ from models import OAuthTempRequestToken, UserAccessToken_LRS, ClientApp
 from oauth_consumer.operative import LRS_Auth
 
 import oauth2 as oauth
-
+from clatoolkit.models import UnitOffering
+from django.core.exceptions import ObjectDoesNotExist
 
 
 @login_required
@@ -42,8 +43,14 @@ def lrs_test_get_statements(request):
 
 @login_required
 def lrs_test_send(request):
+    unit_id = request.GET.get('unit_id')
+    unit = None
+    try:
+        unit = UnitOffering.objects.get(id = unit_id)
+    except ObjectDoesNotExist:
+        return HttpResponseServerError('Error. Unit was not found.')
 
-    lrs = LRS_Auth()
+    lrs = LRS_Auth(provider_id = unit.lrs_provider.id)
     statement = get_test_xAPI()
     return HttpResponse(lrs.transfer_statement(request.user.id, statement = statement))
 
@@ -91,7 +98,7 @@ def get_callback_base_url(request):
 
 def get_test_xAPI():
     return """{
-        "id": "dc382d58-173a-4782-886d-7da23a700004",
+        "id": "dc382d58-173a-4782-886d-7da23a700015",
         "verb": {
             "display": {
                 "en-US": "created"
