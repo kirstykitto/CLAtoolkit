@@ -476,7 +476,7 @@ def registerclientapp(request):
             app = form.save(commit=False)
             app.protocol = form.cleaned_data["protocol"]
             app.save()
-            return render(request, 'clatoolkit/registerclientapp_success.html', 
+            return render(request, 'clatoolkit/registerclientapp.html', 
                 {'registered': True, 'verb': 'registered', 'form': None})
     else:
         form = RegisterClientAppForm()

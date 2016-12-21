@@ -16,6 +16,7 @@
             <div class="panel-body">
             {% if registered %}
                 <h4> Client application has been {{ verb }}.</h4>
+                <a href="/dashboard/myunits/">Go back to dashboard</a>
             {% else %}
                 <form role="form" id="user_form" method="post">
                     {% csrf_token %}
