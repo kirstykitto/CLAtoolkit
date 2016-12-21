@@ -4,6 +4,7 @@ from django.db import connection
 from django.contrib.auth.models import User
 from clatoolkit.models import UserProfile, UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, Classification
 from django.db.models import Q, Count
+import uuid
 
 
 def get_user_from_screen_name(screen_name, platform):
@@ -197,3 +198,5 @@ def get_smids_fromusername(username):
     github_id = user.userprofile.github_account_name
     return twitter_id, fb_id, forum_id, google_id, github_id
 
+def get_uuid4():
+    return str(uuid.uuid4())

@@ -180,9 +180,7 @@ def socialmedia_builder(statement_id, verb, platform, account_name, account_home
 
     # Xapi spec requires that the learning provider SHOULD provide the authority
     # Authority is a group with Agent as oauth consumer app where name is token url and homepage is consumer_key
-    # Instiantiate our LRS_Auth library to obtain token url and consumer key
-    lrs_client = LRS_Auth()
-    account = AgentAccount(name=lrs_client.CONSUMER_KEY, home_page=lrs_client.ACCESS_TOKEN_URL)
+    account = AgentAccount(name=unit.get_lrs_key(), home_page=unit.get_lrs_access_token_url())
 
     authority = Group(Agent(account=account))
 

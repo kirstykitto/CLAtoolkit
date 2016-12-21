@@ -11,6 +11,7 @@ from di_utils import *
 from clatoolkit.models import LearningRecord,SocialRelationship
 
 from xapi.statement.builder import socialmedia_builder, pretty_print_json
+from xapi.statement.xapi_settings import xapi_settings
 
 #from dataintegration.core.utils import check_ifnotinlocallrs
 
@@ -20,22 +21,27 @@ def insert_share(user, post_id, share_id, comment_message, comment_created_time,
     from xapi.oauth_consumer.operative import LRS_Auth
 
     if check_ifnotinlocallrs(unit, platform, share_id):
+        verb = xapi_settings.VERB_SHARED
+        obj = xapi_settings.OBJECT_NOTE
 
         # Setup statement builder parameters and lrs using default lrs. TODO: Institutions required in xapi maybe?
-        lrs_client = LRS_Auth()
+        lrs_client = LRS_Auth(provider_id = unit.get_lrs_id())
         account_name = user.userprofile.get_username_for_platform(platform)
         _parent_user = parent_user if parent_user else parent_external_user
-        statement_id = uuid.uuid4()
+        statement_id = get_uuid4()
 
         #lrs.xapi = the "transaction" uuid
-        lrs = LearningRecord(xapi=statement_id, unit=unit, verb='shared', platform=platform, user=user, platformid=share_id,
-                             platformparentid=post_id, parent_user=parent_user,
+        lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, user=user, 
+                             platformid=share_id, platformparentid=post_id, parent_user=parent_user,
                              parent_user_external=parent_external_user, message=comment_message,
                              datetimestamp=comment_created_time)
         lrs.save()
 
         #Send xapi to lrs or cache for later
-        stm = socialmedia_builder(statement_id=statement_id, verb='shared', platform=platform, account_name=account_name, account_homepage=platform_url, object_type='Note', object_id=share_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=user.email, user_name=_parent_user, unit=unit, tags=tags )
+        stm = socialmedia_builder(statement_id=statement_id, verb=verb, platform=platform, account_name=account_name, 
+          account_homepage=platform_url, object_type=obj, object_id=share_id, message=comment_message, 
+          parent_id=post_id, parent_object_type=obj, timestamp=comment_created_time, account_email=user.email, 
+          user_name=_parent_user, unit=unit, tags=tags )
         jsn = stm.to_json()
         #Transfer xapi to lrs TODO: Handle caching for failed sends
         print 'Sending xapi..'
@@ -43,40 +49,42 @@ def insert_share(user, post_id, share_id, comment_message, comment_created_time,
 
         print 'Tried to send xapi to lrs: status %s, response: %s' % (status,content)
 
-        sr = SocialRelationship(verb="shared", from_user=user, to_user=parent_user,
+        sr = SocialRelationship(verb=verb, from_user=user, to_user=parent_user,
                                 to_external_user=parent_external_user, platform=platform, message=comment_message,
-                                datetimestamp=comment_created_time, course_code=unit.code, platformid=share_id)
+                                datetimestamp=comment_created_time, unit=unit, platformid=share_id)
         sr.save()
 
 def insert_post(user, post_id, message, created_time, unit, platform, platform_url, tags=()):
-    verb = 'created'
+    # verb = 'created'
+    verb = xapi_settings.VERB_CREATED
+    obj = xapi_settings.OBJECT_NOTE
 
     #TODO: update for lrs connection as it happens
     if check_ifnotinlocallrs(unit, platform, post_id, user, verb):
         from xapi.oauth_consumer.operative import LRS_Auth
 
         #Setup statment builder with param and build lrs using defualt rs
-        lrs_client = LRS_Auth()
+        lrs_client = LRS_Auth(provider_id = unit.get_lrs_id())
         account_name = user.userprofile.get_username_for_platform(platform)
-        statement_id = uuid.uuid4()
+        statement_id = get_uuid4()
 
         #lrs.xapi = the "transaction" uuid
-        lrs = LearningRecord(xapi=statement_id, unit=unit, verb=verb, platform=platform, user=user, platformid=post_id,
-                             message=message, datetimestamp=created_time)
+        lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, user=user, 
+                            platformid=post_id, message=message, datetimestamp=created_time)
         lrs.save()
 
         #Transfer xapi to lrs of cache for later
         stm = socialmedia_builder(statement_id=statement_id, verb=verb, platform=platform, account_name=get_smid(user, platform),
-                                  account_homepage=platform_url, object_type='Note', object_id=post_id, message=message,
-                                  timestamp=created_time, account_email=user.email, user_name=user.username, unit=unit.code,
-                                  tags=tags)
+                                  account_homepage=platform_url, object_type=obj, 
+                                  object_id=post_id, message=message, timestamp=created_time, account_email=user.email, 
+                                  user_name=user.username, unit=unit, tags=tags)
         jsn = stm.to_json()
-
-        print 'sending xapi'
+        # print 'sending xapi... '
+        # print jsn
 
         status,content = lrs_client.transfer_statement(user.id, statement=jsn)
 
-        print 'Tried to send xapi to lrs: %s' % content
+        # print 'in insert_post(): Response status/code from LRS: %s/%s' % (status, content)
 
         for tag in tags:
             if tag[0] == "@":
@@ -96,14 +104,21 @@ def insert_post(user, post_id, message, created_time, unit, platform, platform_u
 def insert_blogpost(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url, tags=[]):
     #print 'from_name: %s\n from_uid: %s\n' % (from_name,from_uid)
     if check_ifnotinlocallrs(course_code, platform, post_id):
-        stm = socialmedia_builder(verb='created', platform=platform, account_name=from_name, account_homepage=platform_url, object_type='Article', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_uid, course_code=course_code, tags=tags)
+        stm = socialmedia_builder(verb='created', platform=platform, account_name=from_name, 
+          account_homepage=platform_url, object_type='Article', object_id=post_id, message=message, 
+          timestamp=created_time, account_email=usr_dict['email'], user_name=from_uid, course_code=course_code, tags=tags)
+
         jsn = ast.literal_eval(stm.to_json())
         stm_json = pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=from_name, platformid=post_id, message=message, datetimestamp=created_time)
+        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, 
+          username=from_name, platformid=post_id, message=message, datetimestamp=created_time)
         lrs.save()
         for tag in tags:
             if tag[0]=="@":
-                socialrelationship = SocialRelationship(verb = "mentioned", fromusername=get_username_fromsmid(from_name,platform), tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
+                socialrelationship = SocialRelationship(verb = "mentioned", 
+                  fromusername=get_username_fromsmid(from_name,platform), 
+                  tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, 
+                  datetimestamp=created_time, course_code=course_code, platformid=post_id)
 
                 socialrelationship.save()
 

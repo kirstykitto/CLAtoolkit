@@ -220,6 +220,18 @@ class UnitOffering(models.Model):
 
         return platforms
 
+    def get_lrs_id(self):
+        return self.lrs_provider.id
+
+    def get_lrs_key(self):
+        return self.lrs_provider.get_key()
+
+    def get_lrs_secret(self):
+        return self.lrs_provider.get_secret()
+
+    def get_lrs_access_token_url(self):
+        return self.lrs_provider.get_access_token_url()
+
 
 class UnitOfferingMembership(models.Model):
     user = models.ForeignKey(User)
@@ -236,9 +248,10 @@ class UnitOfferingMembership(models.Model):
 
 class LearningRecord(models.Model):
     xapi = JsonField()
+    statement_id = models.CharField(max_length=256, blank=False)
     unit = models.ForeignKey(UnitOffering)
-    platform = models.CharField(max_length=5000, blank=False)
-    verb = models.CharField(max_length=5000, blank=False)
+    platform = models.CharField(max_length=100, blank=False)
+    verb = models.CharField(max_length=50, blank=False)
     user = models.ForeignKey(User)
     platformid = models.CharField(max_length=5000, blank=True)
     # TODO - Use foreign key to link to parent learning record

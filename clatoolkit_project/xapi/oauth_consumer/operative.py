@@ -107,7 +107,8 @@ class LRS_Auth(object):
             if str(code) != '200' and str(code) != '204':
                 raise Exception("Could not send xapi statement with status code %s. Message: %s" % (code,content))
             else:
-                return 'xAPI was successfully sent. HTTP Code: %s, content: %s' % (code, content)
+                # return 'xAPI was successfully sent. HTTP Code: %s, content: %s' % (code, content)
+                return code, content
 
 
     def authenticate(self, user_id):
