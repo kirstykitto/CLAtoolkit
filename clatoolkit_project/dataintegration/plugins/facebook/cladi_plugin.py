@@ -15,7 +15,9 @@ import os
 class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMixin):
 
     platform = "facebook"
-    platform_url = "http://www.facebook.com/"
+    # platform_url = "http://www.facebook.com/"
+    platform_url = 'https://www.facebook.com/'
+    group_base_url = platform_url + 'groups/'
 
     xapi_verbs = ['created', 'shared', 'liked', 'commented']
     xapi_objects = ['Note']
@@ -63,18 +65,21 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
         :param course_code: The unit offering code
         :return:
         """
+        # group URL
+        group_url = self.group_base_url + retrieval_param + '/'
 
+        # retrieval_param contains FB group ID
         url = 'https://graph.facebook.com/v2.8/'+retrieval_param+'/feed'
         params = {"fields": "created_time,from,message,likes,comments{created_time,from,message}"}
         access_response = authomatic_result.provider.access(url, params=params)
         data = access_response.data.get('data')
-
-        print 'got facebook data: %s' % access_response.data
-
+        
+        # print 'got facebook data: %s' % access_response.data
+        
         paging = access_response.data.get('paging')
         while True:
             try:
-                self.insert_facebook_lrs(data, unit)
+                self.insert_facebook_lrs(data, unit, group_url)
                 fb_resp = requests.get(paging['next']).json()
                 data = fb_resp['data']
                 if 'paging' not in fb_resp:
@@ -86,7 +91,7 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
                 # loop and end the script.
                 break
 
-    def insert_facebook_lrs(self, fb_feed, unit):
+    def insert_facebook_lrs(self, fb_feed, unit, group_url):
         """
         1. Parses facebook feed
         2. Uses construct_tincan_statement to format data ready to send for the LRS
@@ -95,7 +100,6 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
         :param unit: A UnitOffering object
         :return:
         """
-
         for post in fb_feed:
             if 'message' in post:
                 created_time = dateutil.parser.parse(post['created_time'])
@@ -107,17 +111,25 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
 
                 if username_exists(from_uid, unit, self.platform):
                     user = get_user_from_screen_name(from_uid, self.platform)
-                    print("User {} exists".format(user.first_name))
+                    # print("User {} exists".format(user.first_name))
 
+                    # create IRI so xAPI can be accepted by LRS
+                    post_id = post_id.split('_')[1]
+                    post_id = group_url + post_id
                     insert_post(user, post_id, message, created_time, unit, self.platform, self.platform_url)
+
+                    # print 'object ID: %s' % post_id
 
                     if 'likes' in post:
                         for like in post['likes']['data']:
                             like_uid = like['id']
+                            like_id = group_url + like_uid
+                            # print 'like ID: %s' % like_id
 
                             if username_exists(like_uid, unit, self.platform):
                                 like_user = get_user_from_screen_name(from_uid, self.platform)
-                                insert_like(like_user, post_id, message, unit, self.platform, created_time, parent_user=user)
+                                insert_like(like_user, like_id, message, unit, self.platform, self.platform_url, 
+                                    post_id, xapi_settings.OBJECT_NOTE, created_time, parent_user=user)
 
                     if 'comments' in post:
                         for comment in post['comments']['data']:
@@ -125,6 +137,8 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
                             comment_from_uid = comment['from']['id']
                             comment_message = comment['message']
                             comment_id = comment['id']
+                            comment_id = group_url + comment_id
+                            # print 'comment ID: %s' % comment_id
 
                             if username_exists(comment_from_uid, unit, self.platform):
                                 comment_user = get_user_from_screen_name(comment_from_uid, self.platform)

@@ -25,6 +25,7 @@ class xapi_settings(object):
     VERB_DELETED = 'deleted'
     VERB_OPENED = 'opened'
     VERB_CLOSED = 'closed'
+    VERB_MENTIONED = 'mentioned'
 
     # Objects
     OBJECT_NOTE = 'Note'

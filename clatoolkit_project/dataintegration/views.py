@@ -315,7 +315,7 @@ def dipluginauthomaticlogin(request):
         # Don't write anything to the response if there is no result!
         if result:
             # If there is result, the login procedure is over and we can write to response.
-            html_response.write('<a href="..">Home</a>')
+            html_response.write('<a href="/dashboard/myunits/">Go back to dashboard</a>')
 
             if result.error:
                 # Login procedure finished with an error.
@@ -329,7 +329,7 @@ def dipluginauthomaticlogin(request):
                     result.user.update()
 
                 # Welcome the user.
-                html_response.write(u'<p>Hi {0}</p>'.format(result.user.name))
+                # html_response.write(u'<p>Hi {0}</p>'.format(result.user.name))
                 # response.write(u'<h2>Your id is: {0}</h2>'.format(result.user.id))
                 # response.write(u'<h2>Your email is: {0}</h2>'.format(result.user.email))
 
@@ -341,14 +341,14 @@ def dipluginauthomaticlogin(request):
                     unit = UnitOffering.objects.get(id=unit_id)
                     if result.provider.name == 'fb':
                         di_plugin.perform_import(group_id, unit, result)
-
                         post_smimport(unit, "facebook")
 
                         #Remove all data stored in session for this view to avoid cache issues
                         del request.session['platform']
                         del request.session['unit']
                         del request.session['group_id']
-                        html_response.write('Updating Facebook for {} {}'.format(unit.code, unit.name))
+
+                        html_response.write('<h2>Facebook data import is complete.</h2>')
         else:
             html_response.write('Auth Returned no Response.')
 
