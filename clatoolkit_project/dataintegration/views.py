@@ -33,6 +33,8 @@ from django.contrib.sites.shortcuts import get_current_site
 import os
 import requests
 
+from xapi.statement.xapi_settings import xapi_settings
+
 ##############################################
 # Process Trello Link
 ##############################################
@@ -110,12 +112,17 @@ def refreshgithub(request):
 # Data Extraction for YouTube
 ##############################################
 def refreshgoogleauthflow(request):
-    course_code = request.GET.get('course_code')
-    channelIds = request.GET.get('channelIds')
+    course_id = request.GET.get('course_id')
+    channel_ids = request.GET.get('channel_ids')
     platform = request.GET.get('platform')
+    unit = None
+    try:
+        unit = UnitOffering.objects.get(id=course_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
 
     user = request.user
-    youtube_plugin = settings.DATAINTEGRATION_PLUGINS['YouTube']
+    youtube_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_YOUTUBE]
 
     #print 'Got youtube plugin: %s' % (youtube_plugin)
     #print 'With client ID and Secret key: %s and %s' % (youtube_plugin.api_config_dict['CLIENT_ID'], youtube_plugin.api_config_dict['CLIENT_SECRET'])
@@ -127,12 +134,13 @@ def refreshgoogleauthflow(request):
     # and session var won't save due to redirect
     twitter_id, fb_id, forum_id, google_id, github_id, trello_id = get_smids_fromuid(user.id)
     t = OauthFlowTemp.objects.filter(googleid=google_id).delete()
-    temp_transfer_data = OauthFlowTemp(googleid=google_id, course_code=course_code, platform=platform, transferdata=channelIds)
+    temp_transfer_data = OauthFlowTemp(googleid=google_id, platform=platform, 
+        transferdata=channel_ids, unit=unit)
     temp_transfer_data.save()
 
     FLOW_YOUTUBE = OAuth2WebServerFlow(
-        client_id=youtube_plugin.api_config_dict['CLIENT_ID'],
-        client_secret=youtube_plugin.api_config_dict['CLIENT_SECRET'],
+        client_id=os.environ.get("YOUTUBE_CLIENT_ID"),
+        client_secret=os.environ.get("YOUTUBE_CLIENT_SECRET"),
         scope=youtube_plugin.scope,
         redirect_uri=redirecturl
     )
@@ -141,17 +149,15 @@ def refreshgoogleauthflow(request):
     #Redirect to REDIRECT_URI
     return HttpResponseRedirect(authUri)
 
+
 def ytAuthCallback(request):
-
     html_response = HttpResponse()
-
-    youtube_plugin = settings.DATAINTEGRATION_PLUGINS['YouTube']
-
+    youtube_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_YOUTUBE]
     redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/ytAuthCallback'
 
     FLOW_YOUTUBE = OAuth2WebServerFlow(
-        client_id=youtube_plugin.api_config_dict['CLIENT_ID'],
-        client_secret=youtube_plugin.api_config_dict['CLIENT_SECRET'],
+        client_id=os.environ.get("YOUTUBE_CLIENT_ID"),
+        client_secret=os.environ.get("YOUTUBE_CLIENT_SECRET"),
         scope=youtube_plugin.scope,
         redirect_uri=redirecturl
     )
@@ -165,7 +171,7 @@ def ytAuthCallback(request):
   #  if not len(t):
     #t = OauthFlowTemp.objects.filter(googleid=user_channelid)
     #print t.all()
-    course_code = t[0].course_code
+    unit = t[0].unit
     platform = t[0].platform
     channelIds = t[0].transferdata
 
@@ -181,17 +187,18 @@ def ytAuthCallback(request):
 
     return render(request, 'dataintegration/ytresult.html', context_dict)
 
+
 ##############################################
 # Data Extraction for YouTube
 ##############################################
 def get_youtubechannel(request):
-    youtube_plugin = settings.DATAINTEGRATION_PLUGINS['YouTube']
+    youtube_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_YOUTUBE]
 
     redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/showyoutubechannel'
 
     FLOW_YOUTUBE = OAuth2WebServerFlow(
-        client_id=youtube_plugin.api_config_dict['CLIENT_ID'],
-        client_secret=youtube_plugin.api_config_dict['CLIENT_SECRET'],
+        client_id=os.environ.get("YOUTUBE_CLIENT_ID"),
+        client_secret=os.environ.get("YOUTUBE_CLIENT_SECRET"),
         scope=youtube_plugin.scope,
         redirect_uri=redirecturl
     )
@@ -200,27 +207,35 @@ def get_youtubechannel(request):
     #Redirect to REDIRECT_URI
     return HttpResponseRedirect(authUri)
 
+
+
 def showyoutubechannel(request):
 
-    youtube_plugin = settings.DATAINTEGRATION_PLUGINS['YouTube']
-
+    youtube_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_YOUTUBE]
     redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/showyoutubechannel'
 
     FLOW_YOUTUBE = OAuth2WebServerFlow(
-        client_id=youtube_plugin.api_config_dict['CLIENT_ID'],
-        client_secret=youtube_plugin.api_config_dict['CLIENT_SECRET'],
+        client_id=os.environ.get("YOUTUBE_CLIENT_ID"),
+        client_secret=os.environ.get("YOUTUBE_CLIENT_SECRET"),
         scope=youtube_plugin.scope,
         redirect_uri=redirecturl
     )
 
     http = googleAuth(request, FLOW_YOUTUBE)
-
     channel_url = youtube_getpersonalchannel(request, http)
-
     html_response = HttpResponse()
 
     if channel_url:
-        html_response.write(u'<h2>Your YouTube Channel URL is: http://www.youtube.com/channel/{0}</h2>'.format(channel_url))
+        # Automatically set user's channel url in the textbox
+        script_set_id = 'window.opener.$("#id_google_account_name").val("http://www.youtube.com/channel/%s");' % (channel_url)
+        script_set_msg = 'window.opener.$("#youtube_channel_url_msg").html("%s");' % ('Got your YouTube channel URL!')
+        # script_set_token = 'window.opener.$("#github_token").val("%s");' % (token)
+        script_set_msg = script_set_msg + 'window.opener.$("#youtube_channel_url_msg").show();'
+        script_set_msg = script_set_msg + 'window.opener.$("#youtube_auth_link").hide();'
+        # Script for closing the popup window automatically
+        html_resp = '<script>' + script_set_id + script_set_msg + 'window.close();</script>'
+        html_response = HttpResponse()
+        html_response.write(html_resp)
     else:
         html_response.write('No Channel url found. Please ensure that you are logged into YouTube and try again.')
 

@@ -77,12 +77,6 @@ class OfflinePlatformAuthToken(models.Model):
     token = models.CharField(max_length=1000, blank=False)
     platform = models.CharField(max_length=1000, blank=False)
 
-class OauthFlowTemp(models.Model):
-    googleid = models.CharField(max_length=1000, blank=False)
-    platform = models.CharField(max_length=1000, blank=True)
-    course_code = models.CharField(max_length=1000, blank=True)
-    transferdata = models.CharField(max_length=1000, blank=True)
-
 class UnitOffering(models.Model):
     code = models.CharField(max_length=5000, blank=False, verbose_name="Unit Code", unique=True)
     name = models.CharField(max_length=5000, blank=False, verbose_name="Unit Name")
@@ -231,6 +225,13 @@ class UnitOffering(models.Model):
 
     def get_lrs_access_token_url(self):
         return self.lrs_provider.get_access_token_url()
+
+
+class OauthFlowTemp(models.Model):
+    googleid = models.CharField(max_length=1000, blank=False)
+    platform = models.CharField(max_length=1000, blank=True)
+    transferdata = models.CharField(max_length=1000, blank=True)
+    unit = models.ForeignKey(UnitOffering)
 
 
 class UnitOfferingMembership(models.Model):

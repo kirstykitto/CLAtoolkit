@@ -6,6 +6,7 @@
 {% block heading %}User Profile{% endblock %}
 
 {% block body %}
+<link href="{% static 'css/clatoolkit/common.css'%}" rel="stylesheet">
 <div class="row">
   <div class="col-lg-6">
       <div class="panel panel-info">
@@ -52,7 +53,9 @@
                   <label for="id_google_account_name">Youtube Channel URL:</label><br />
                   {{ profile_form.google_account_name }}
                   <p>
-                    <a href="/dataintegration/get_youtubechannel" target="_blank">Click here to get your YouTube Channel ID - you will need to be logged into YouTube (opens in new tab)</a>
+                    <!-- <a href="/dataintegration/get_youtubechannel" target="_blank">Click here to get your YouTube Channel ID - you will need to be logged into YouTube (opens in new tab)</a> -->
+                     <a id="youtube_auth_link" href="#" onclick="javascript:getYouTubeUserChannelURL();" target="_blank">Click here to get your YouTube Channel ID - you will need to be logged into YouTube (opens in new tab)</a>
+                     <p id="youtube_channel_url_msg" class="auth-msg"></p>
                   </p>
                 </div>
                 <div class="form-group">
@@ -160,6 +163,9 @@
 
     }
 
+    function getYouTubeUserChannelURL() {
+      window.open('/dataintegration/get_youtubechannel', 'youtube_auth_window', 'menubar=no, resizable=yes, toolbar=no, scrollbars=yes');
+    }
 
     </script>
 
