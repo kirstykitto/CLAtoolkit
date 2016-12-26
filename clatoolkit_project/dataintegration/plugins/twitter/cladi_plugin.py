@@ -10,6 +10,8 @@ from xapi.statement.builder import * #Formerly dataintegration.core.socialmediab
 import dateutil.parser
 from twython import Twython
 import os
+from xapi.statement.xapi_settings import xapi_settings
+
 
 class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
 

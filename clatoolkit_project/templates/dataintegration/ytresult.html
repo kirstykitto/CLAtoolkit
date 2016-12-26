@@ -18,60 +18,6 @@
 
 	<body style="margin:30px;">
 		<h2>YouTube Data Has been Refreshed.</h2>
-		<!--
-		{% if vNum == 0 %}
-			<h3>No new likes found.</h3>
-		{% else %}
-			<h3>Newly collected "Like" videos: ({{ vNum }} videos)</h3>
-			<div style="margin:40px;">
-				<table class="result">
-					<tr>
-						<th>Title</th>
-						<th>URL</th>
-					</tr>
-					{% for yt in vList %}
-					<tr>
-						<td>{{ yt.videoTitle }}</td>
-						<td><a href={{ yt.videoUrl }} target="_blank">{{ yt.videoUrl }}</a></td>
-					</tr>
-					{% endfor %}
-				</table>
-			</div>
-		{% endif %}
-			<hr>
-		-->
-		{% if commNum == 0 %}
-			<h3>No new comments found.</h3>
-		{% else %}
-			<h3>Newly collected Comments: ({{ commNum }} comments) </h3>
-			<div style="margin:40px;">
-				<table class="result">
-					<tr>
-						<th>Type</th>
-						<th>Comment</th>
-						<th>Comment Author</th>
-						<th>Channel URL</th>
-						<th>Video URL</th>
-					</tr>
-					{% for comm in commList %}
-					<tr>
-						<td>{% if comm.isReply %}Reply{% else %}Comment{% endif %}</td>
-						<td>{{ comm.text }}</td>
-						<td>{{ comm.authorDispName }}</td>
-						<td>
-							{% if comm.channelUrl != None %}
-								<a href={{ comm.channelUrl }} target="_blank">{{ comm.channelUrl }}</a>
-							{% endif %}
-						</td>
-						<td>
-							{% if comm.videoUrl != None %}
-								<a href={{ comm.videoUrl }} target="_blank">{{ comm.videoUrl }}</a>
-							{% endif %}
-						</td>
-					</tr>
-					{% endfor %}
-				</table>
-			</div>
-		{% endif %}
+		<p><a href="/dashboard/myunits/">Go back to dashboard</a></p>
 	</body>
 </html>

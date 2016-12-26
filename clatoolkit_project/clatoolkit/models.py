@@ -232,6 +232,7 @@ class OauthFlowTemp(models.Model):
     platform = models.CharField(max_length=1000, blank=True)
     transferdata = models.CharField(max_length=1000, blank=True)
     unit = models.ForeignKey(UnitOffering)
+    user = models.ForeignKey(User)
 
 
 class UnitOfferingMembership(models.Model):

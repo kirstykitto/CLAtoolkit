@@ -12,12 +12,13 @@ from oauth_consumer.operative import LRS_Auth
 import oauth2 as oauth
 from clatoolkit.models import UnitOffering
 from django.core.exceptions import ObjectDoesNotExist
+from common.util import Utility
 
 
 @login_required
 def get_lrs_access_token(request):
     provider_id = request.GET.get('provider_id')
-    auth = LRS_Auth(provider_id = provider_id, callback = get_callback_base_url(request))
+    auth = LRS_Auth(provider_id = provider_id, callback = Utility.get_site_url(request))
     return HttpResponseRedirect(auth.authenticate(request.user.id))
 
 
@@ -88,12 +89,6 @@ def lrs_oauth_callback(request):
                             clientapp = app).save()
         from django.shortcuts import render_to_response
         return render_to_response('xapi/get_access_token_successful.html')
-
-
-def get_callback_base_url(request):
-    protocol = 'https' if request.is_secure() else 'http'
-    host_name = '%s://%s' % (protocol, request.get_host())
-    return host_name
 
 
 def get_test_xAPI():

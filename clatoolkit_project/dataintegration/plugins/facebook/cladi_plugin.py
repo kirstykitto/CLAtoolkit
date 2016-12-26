@@ -10,6 +10,7 @@ import dateutil.parser
 from authomatic.providers import oauth2
 import requests
 import os
+from xapi.statement.xapi_settings import xapi_settings
 
 
 class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMixin):

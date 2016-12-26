@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from clatoolkit.models import UserProfile, UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, Classification
 from django.db.models import Q, Count
 import uuid
+from common.util import Utility
 
 
 def get_user_from_screen_name(screen_name, platform):
@@ -200,3 +201,11 @@ def get_smids_fromusername(username):
 
 def get_uuid4():
     return str(uuid.uuid4())
+
+
+def get_youtube_callback_url(request):
+    return Utility.get_site_url(request) + '/dataintegration/ytAuthCallback'
+
+
+def get_youtube_user_channel_url(request):
+    return Utility.get_site_url(request) + '/dataintegration/showyoutubechannel'

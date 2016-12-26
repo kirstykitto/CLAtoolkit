@@ -1,7 +1,7 @@
 # example/simple/views.py
 from __future__ import absolute_import
 
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, Http404, HttpResponseServerError
 from django.shortcuts import render, render_to_response
 from authomatic import Authomatic
 from authomatic.adapters import DjangoAdapter
@@ -34,6 +34,8 @@ import os
 import requests
 
 from xapi.statement.xapi_settings import xapi_settings
+from common.util import Utility
+
 
 ##############################################
 # Process Trello Link
@@ -122,27 +124,35 @@ def refreshgoogleauthflow(request):
         raise Http404
 
     user = request.user
-    youtube_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_YOUTUBE]
+    platform_plugin = settings.DATAINTEGRATION_PLUGINS[platform]
 
-    #print 'Got youtube plugin: %s' % (youtube_plugin)
-    #print 'With client ID and Secret key: %s and %s' % (youtube_plugin.api_config_dict['CLIENT_ID'], youtube_plugin.api_config_dict['CLIENT_SECRET'])
-
-    redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/ytAuthCallback'
+    #print 'Got youtube plugin: %s' % (platform_plugin)
+    #print 'With client ID and Secret key: %s and %s' % (platform_plugin.api_config_dict['CLIENT_ID'], platform_plugin.api_config_dict['CLIENT_SECRET'])
 
     # store request data in temp table
     # there is no other way to send these with the url (in querystring) as the return url must be registered
     # and session var won't save due to redirect
     twitter_id, fb_id, forum_id, google_id, github_id, trello_id = get_smids_fromuid(user.id)
-    t = OauthFlowTemp.objects.filter(googleid=google_id).delete()
-    temp_transfer_data = OauthFlowTemp(googleid=google_id, platform=platform, 
-        transferdata=channel_ids, unit=unit)
+    t = OauthFlowTemp.objects.filter(user = request.user).delete()
+    temp_transfer_data = OauthFlowTemp(platform=platform, transferdata=channel_ids, unit=unit, user = request.user)
     temp_transfer_data.save()
 
+    client_id = ''
+    client_secret = ''
+    redirecturl = ''
+    if platform == xapi_settings.PLATFORM_YOUTUBE:
+        client_id = os.environ.get("YOUTUBE_CLIENT_ID")
+        client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
+        redirecturl = get_youtube_callback_url(request)
+    else:
+        # When other Google service is integrated, there will be code here
+        return HttpResponseServerError
+
     FLOW_YOUTUBE = OAuth2WebServerFlow(
-        client_id=os.environ.get("YOUTUBE_CLIENT_ID"),
-        client_secret=os.environ.get("YOUTUBE_CLIENT_SECRET"),
-        scope=youtube_plugin.scope,
-        redirect_uri=redirecturl
+        client_id = client_id,
+        client_secret = client_secret,
+        scope = platform_plugin.scope,
+        redirect_uri = redirecturl
     )
 
     authUri = FLOW_YOUTUBE.step1_get_authorize_url()
@@ -153,7 +163,7 @@ def refreshgoogleauthflow(request):
 def ytAuthCallback(request):
     html_response = HttpResponse()
     youtube_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_YOUTUBE]
-    redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/ytAuthCallback'
+    redirecturl = get_youtube_callback_url(request)
 
     FLOW_YOUTUBE = OAuth2WebServerFlow(
         client_id=os.environ.get("YOUTUBE_CLIENT_ID"),
@@ -164,26 +174,23 @@ def ytAuthCallback(request):
 
     http = googleAuth(request, FLOW_YOUTUBE)
     user = request.user
+    t = OauthFlowTemp.objects.filter(user = request.user, platform = xapi_settings.PLATFORM_YOUTUBE)
 
-    user_channelid = youtube_getpersonalchannel(request, http)
-    #print user_channelid
-    t = OauthFlowTemp.objects.filter(googleid='http://www.youtube.com/channel/'+user_channelid)
-  #  if not len(t):
-    #t = OauthFlowTemp.objects.filter(googleid=user_channelid)
-    #print t.all()
     unit = t[0].unit
     platform = t[0].platform
-    channelIds = t[0].transferdata
+    channel_ids = t[0].transferdata
 
-    ytList = youtube_plugin.perform_import(channelIds, course_code, http)
+    # print '%s, %s, %s' % (unit, platform, channel_ids)
 
-    vList = ytList[0]
-    vNum = len(vList)
-    commList = ytList[1]
-    commNum = len(commList)
-    context_dict = {"vList": vList, "vNum": vNum, "commList": commList, "commNum": commNum}
+    youtube_plugin.perform_import(channel_ids, unit, http)
 
-    post_smimport(course_code, platform)
+    # vList = ytList[0]
+    # vNum = len(vList)
+    # commList = ytList[1]
+    # commNum = len(commList)
+    # context_dict = {"vList": vList, "vNum": vNum, "commList": commList, "commNum": commNum}
+    context_dict = {}
+    # post_smimport(course_code, platform)
 
     return render(request, 'dataintegration/ytresult.html', context_dict)
 
@@ -193,8 +200,8 @@ def ytAuthCallback(request):
 ##############################################
 def get_youtubechannel(request):
     youtube_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_YOUTUBE]
-
-    redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/showyoutubechannel'
+    # redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/showyoutubechannel'
+    redirecturl = get_youtube_user_channel_url(request)
 
     FLOW_YOUTUBE = OAuth2WebServerFlow(
         client_id=os.environ.get("YOUTUBE_CLIENT_ID"),
@@ -212,7 +219,8 @@ def get_youtubechannel(request):
 def showyoutubechannel(request):
 
     youtube_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_YOUTUBE]
-    redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/showyoutubechannel'
+    # redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/showyoutubechannel'
+    redirecturl = get_youtube_user_channel_url(request)
 
     FLOW_YOUTUBE = OAuth2WebServerFlow(
         client_id=os.environ.get("YOUTUBE_CLIENT_ID"),
@@ -240,6 +248,7 @@ def showyoutubechannel(request):
         html_response.write('No Channel url found. Please ensure that you are logged into YouTube and try again.')
 
     return html_response
+
 
 def home(request):
     form = FacebookGatherForm()
