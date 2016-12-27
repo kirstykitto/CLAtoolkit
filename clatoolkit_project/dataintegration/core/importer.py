@@ -96,34 +96,34 @@ def insert_post(user, post_id, message, created_time, unit, platform, platform_u
                 sr.save()
 
 
-# def insert_blogpost(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url, tags=[]):
-def insert_blogpost(user, post_id, message, from_name, from_uid, created_time, unit, platform, platform_url, tags=[]):
-    if check_ifnotinlocallrs(unit, platform, post_id):
-        lrs_client = LRS_Auth(provider_id = unit.get_lrs_id())
-        account_name = user.userprofile.get_username_for_platform(platform)
-        statement_id = get_uuid4()
+# # def insert_blogpost(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url, tags=[]):
+# def insert_blogpost(user, post_id, message, from_name, from_uid, created_time, unit, platform, platform_url, tags=[]):
+#     if check_ifnotinlocallrs(unit, platform, post_id):
+#         lrs_client = LRS_Auth(provider_id = unit.get_lrs_id())
+#         account_name = user.userprofile.get_username_for_platform(platform)
+#         statement_id = get_uuid4()
 
-        lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=xapi_settings.VERB_CREATED, 
-                            platform=platform, user=user, platformid=post_id, message=message, datetimestamp=created_time)
-        lrs.save()
+#         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=xapi_settings.VERB_CREATED, 
+#                             platform=platform, user=user, platformid=post_id, message=message, datetimestamp=created_time)
+#         lrs.save()
 
-        #Transfer xapi to lrs of cache for later
-        stm = socialmedia_builder(statement_id=statement_id, verb=xapi_settings.VERB_CREATED, platform=platform, 
-                                  account_name=account_name, account_homepage=platform_url, 
-                                  object_type=xapi_settings.OBJECT_ARTICLE, object_id=post_id, message=message, 
-                                  timestamp=created_time, unit=unit, tags=tags)
+#         #Transfer xapi to lrs of cache for later
+#         stm = socialmedia_builder(statement_id=statement_id, verb=xapi_settings.VERB_CREATED, platform=platform, 
+#                                   account_name=account_name, account_homepage=platform_url, 
+#                                   object_type=xapi_settings.OBJECT_ARTICLE, object_id=post_id, message=message, 
+#                                   timestamp=created_time, unit=unit, tags=tags)
 
-        jsn = stm.to_json()
-        status,content = lrs_client.transfer_statement(user.id, statement=jsn)
+#         jsn = stm.to_json()
+#         status,content = lrs_client.transfer_statement(user.id, statement=jsn)
 
-        for tag in tags:
-            if tag[0]=="@":
-                to_user = get_username_fromsmid(tag[1:], platform)
+#         for tag in tags:
+#             if tag[0]=="@":
+#                 to_user = get_username_fromsmid(tag[1:], platform)
 
-                sr = SocialRelationship(verb=xapi_settings.VERB_MENTIONED, from_user=user, to_user=to_user,
-                                        platform=platform, message=message, datetimestamp=created_time, 
-                                        unit=unit, platformid=post_id)
-                sr.save()
+#                 sr = SocialRelationship(verb=xapi_settings.VERB_MENTIONED, from_user=user, to_user=to_user,
+#                                         platform=platform, message=message, datetimestamp=created_time, 
+#                                         unit=unit, platformid=post_id)
+#                 sr.save()
 
 
     # if check_ifnotinlocallrs(course_code, platform, post_id):

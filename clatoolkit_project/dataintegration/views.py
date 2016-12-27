@@ -291,18 +291,23 @@ def refreshdiigo(request):
 def refreshblog(request):
     html_response = HttpResponse()
 
-    blog_plugin = settings.DATAINTEGRATION_PLUGINS['Blog']
+    blog_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_BLOG]
 
-    course_code = request.GET.get('course_code')
+    course_id = request.GET.get('course_id')
     hastags = request.GET.get('urls')
+    unit = None
+    try:
+        unit = UnitOffering.objects.get(id=course_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
 
     urls = hastags.split(',')
     for url in urls:
-        blog_plugin.perform_import(url, course_code)
+        blog_plugin.perform_import(url, unit)
 
-    post_smimport(course_code, "Blog")
+    post_smimport(unit, xapi_settings.PLATFORM_BLOG)
 
-    html_response.write('Blog Refreshed.')
+    html_response.write('Blog Refreshed.<br><p><a href="/dashboard/myunits/">Go back to dashboard</a></p>'>)
     return html_response
 
 
