@@ -307,7 +307,7 @@ def refreshblog(request):
 
     post_smimport(unit, xapi_settings.PLATFORM_BLOG)
 
-    html_response.write('Blog Refreshed.<br><p><a href="/dashboard/myunits/">Go back to dashboard</a></p>'>)
+    html_response.write('Blog Refreshed.<br><p><a href="/dashboard/myunits/">Go back to dashboard</a></p>')
     return html_response
 
 

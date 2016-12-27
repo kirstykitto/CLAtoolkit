@@ -15,13 +15,13 @@ from xapi.statement.xapi_settings import xapi_settings
 
 class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMixin):
 
-    platform = "facebook"
-    # platform_url = "http://www.facebook.com/"
+    platform = xapi_settings.PLATFORM_FACEBOOK
     platform_url = 'https://www.facebook.com/'
     group_base_url = platform_url + 'groups/'
 
-    xapi_verbs = ['created', 'shared', 'liked', 'commented']
-    xapi_objects = ['Note']
+    xapi_verbs = [xapi_settings.VERB_CREATED, xapi_settings.VERB_SHARED, 
+                  xapi_settings.VERB_LIKED, xapi_settings.VERB_COMMENTED]
+    xapi_objects = [xapi_settings.OBJECT_NOTE]
 
     user_api_association_name = 'Facebook UID' # eg the username for a signed up user that will appear in data extracted via a social API
     unit_api_association_name = 'Group ID' # eg hashtags or a group name
@@ -29,8 +29,9 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
     config_json_keys = ['consumer_key', 'consumer_secret']
 
     #from DIPluginDashboardMixin
-    xapi_objects_to_includein_platformactivitywidget = ['Note']
-    xapi_verbs_to_includein_verbactivitywidget = ['created', 'shared', 'liked', 'commented']
+    xapi_objects_to_includein_platformactivitywidget = [xapi_settings.OBJECT_NOTE]
+    xapi_verbs_to_includein_verbactivitywidget = [xapi_settings.VERB_CREATED, xapi_settings.VERB_SHARED, 
+                                                  xapi_settings.VERB_LIKED, xapi_settings.VERB_COMMENTED]
 
     #from AuthomaticPluginMixin
     authomatic_config_json = {}
