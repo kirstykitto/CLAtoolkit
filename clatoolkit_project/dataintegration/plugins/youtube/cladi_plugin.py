@@ -41,26 +41,21 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
 
     def perform_import(self, retrieval_param, unit, webserverflow_result):
         print "Start YouTube data import....."
-        vList = []
-        ytList = []
         self.import_comments(unit, retrieval_param, webserverflow_result)
+        print 'YouTube data import done.'
 
 
 
     def import_comments(self, unit, channel_ids, http):
+        # Note: discussion tab on a channel is disabled when a user creates a channel.
+        #       A user has to activate it manually.
         self.import_comment_from_channel_discussion(unit, channel_ids, http)
         # print "Channel ID comment extraction result: " + str(len(channelCommList))
         #Don't think this code above works had to write another method to get the comment thread from a channel
 
-        # Retrieve all video IDs in registered channels, and then retrieve all user's comments in the videos.
-        # channelIDList = channel_ids.split('\r\n')
         video_ids, playlists = self.get_all_video_ids_in_channel(channel_ids, http)
         vidsinplaylist = self.get_all_video_ids_in_playlist(playlists, http)
         video_ids.extend(vidsinplaylist)
-        #channelcommentthreads = getChannelCommentThreads(channelIDList, http)
-        print 'video ids in channel ids'
-        print video_ids
-
         self.import_comment_from_video(unit, video_ids, http)
 
 
@@ -117,7 +112,6 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
 
                 self.insert_comments(unit, vid, api_response, retrieved_from_video)
 
-                # commList.extend(tempList)
                 is_first = False
 
             # Initialize the flag for next loop
@@ -131,7 +125,6 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
         #Loop to get all items
         for item in api_response['items']:
 
-            # comment_id = STR_YT_CHANNEL_BASE_URL + object_id + '/' + item['id']
             comment_id = self.create_url_by_search_type(object_id, item['id'], retrieved_from_video)
             comment_author_channel_url = item['snippet']['topLevelComment']['snippet']['authorChannelUrl']
 
@@ -170,7 +163,6 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
             return
 
         for reply in replies[u'comments']:
-            # reply_id = STR_YT_CHANNEL_BASE_URL + object_id + reply['id']
             reply_id = self.create_url_by_search_type(object_id, reply['id'], retrieved_from_video)
 
             snippet = reply['snippet']
@@ -190,6 +182,7 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
 
                 insert_comment(user, parent_id, reply_id, reply_text, reply_date, unit, 
                                self.platform, self.platform_url, parent_user = parent_user)
+
 
 
     def create_url_by_search_type(self, object_id, comment_id, is_video_url):
@@ -246,8 +239,6 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
 
                 #Loop to get all items
                 for item in searchRet['items']:
-                    #print "Video Ids"
-                    #print item['id']
                     info = item['id']
                     if info.get('videoId'):
                         ret.append(item['id']['videoId'])
@@ -263,63 +254,6 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
 
         return ret,playlists
 
-
-    # ###################################################################################
-    # # Get comment threads directly linked to a channel (i.e., under the discussion tab)
-    # ###################################################################################
-    # def getChannelCommentThreads(self, channelIds, http):
-    #     ret = []
-    #     is_first_time = True
-    #     nextPageToken = ""
-
-    #     #Create youtube API controller
-    #     service = build('youtube', 'v3', http=http)
-    #     idVal = "id"
-    #     resultOrder = "time"
-    #     maxResultsNum = 50
-
-    #     for cid in channelIds:
-    #         while is_first_time or nextPageToken is not "":
-    #             if nextPageToken is not "":
-    #                 searchRet = service.commentThreads().list(
-    #                     part = idVal,
-    #                     maxResults = maxResultsNum,
-    #                     order = resultOrder,
-    #                     channelId = cid,
-    #                     pageToken = nextPageToken
-    #                 ).execute()
-    #             else:
-    #                 searchRet = service.commentThreads().list(
-    #                     part = idVal,
-    #                     maxResults = maxResultsNum,
-    #                     order = resultOrder,
-    #                     channelId = cid
-    #                 ).execute()
-
-    #             #When an error occurs
-    #             if searchRet.get('error'):
-    #                 print "An error has occured in getChannelCommentThreads() method."
-    #                 return ret
-
-    #             if searchRet.get('nextPageToken'):
-    #                 nextPageToken = str(searchRet['nextPageToken'])
-    #             else:
-    #                 nextPageToken = ""
-
-    #             #Loop to get all items
-    #             for item in searchRet['items']:
-    #                 #print "Video Ids"
-    #                 #print item['id']
-    #                 if item['id']:
-    #                     ret.append(item['id'])
-
-    #             is_first_time = False
-
-    #         # Initialize the flag for next loop
-    #         is_first_time = True
-    #         nextPageToken = ""
-
-    #     return ret
 
 
     ##############################################
@@ -353,7 +287,7 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
 
                 #When an error occurs
                 if searchRet.get('error'):
-                    print "An error has occured in getAllVideoIDsInPlaylist() method."
+                    print "An error has occured in get_all_video_ids_in_playlist() method."
                     return ret
 
                 if searchRet.get('nextPageToken'):
@@ -425,94 +359,5 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
         return ret
 
 
-    #############################################################
-    # Retrieve comments from YouTube API response
-    #############################################################
-    def getCommentsFromResponse(self, api_response, unit):
-        commList = []
-        id_creator_dict = {}
-        id_creator_displayname_dict = {}
-
-        #When an error occurs
-        if api_response.get('error'):
-            return commList
-
-        #Loop to get all items
-        for item in api_response['items']:
-            #Check if the comment is already in DB
-            replies = None
-            if u'replies' in item:
-                replies = item[u'replies']
-            else:
-                print "No replies"
-
-            author = item['snippet']['topLevelComment']['snippet']['authorDisplayName']
-            authorChannelUrl = item['snippet']['topLevelComment']['snippet']['authorChannelUrl']
-
-            comm = Comment()
-            comm.commId = item['id']
-            # Top level comment's parent ID is the same as ID
-            comm.parentId = item['id'] # Todo - This is incorrect and should not be assigned here
-            comm.authorDispName = authorChannelUrl #author
-
-            comm.isReply = False
-
-            snippet = item['snippet']
-            secondSnippet = item['snippet']['topLevelComment']['snippet']
-            if secondSnippet.get('textOriginal'):
-                comm.text = secondSnippet['textOriginal']
-            else:
-                comm.text = secondSnippet['textDisplay']
-
-            if snippet.get('videoId'):
-                comm.videoId = snippet['videoId']
-                comm.videoUrl = STR_YT_VIDEO_BASE_URL + comm.videoId
-            if snippet.get('channelId'):
-                comm.channelId = snippet['channelId']
-                comm.channelUrl = STR_YT_CHANNEL_BASE_URL + comm.channelId
-
-            # Timestamp that the comment was published.
-            # UpdatedAt is the same as publishedAt when the comment isn't updated.
-            comm.updatedAt = secondSnippet['updatedAt']
-            commList.append(comm)
-            id_creator_dict[item['id']] = authorChannelUrl
-            id_creator_displayname_dict[item['id']] = author
-
-            #Check if replies exist
-
-            if replies is not None:
-
-                for reply in replies[u'comments']:
-
-                    author = reply['snippet']['authorDisplayName']
-                    authorChannelUrl = reply['snippet']['authorChannelUrl']
-
-                    replyComm = Comment()
-                    replyComm.isReply = True
-                    replyComm.commId = reply['id']
-                    snippet = reply['snippet']
-                    replyComm.authorDispName = snippet['authorChannelUrl'] #snippet['authorDisplayName']
-                    id_creator_dict[reply['id']] = snippet['authorChannelUrl']
-                    id_creator_displayname_dict[reply['id']] = author
-
-                    replyComm.parentId = snippet['parentId'] #snippet['parentId']
-
-                    if snippet.get('textOriginal'):
-                        replyComm.text = snippet['textOriginal']
-                    else:
-                        replyComm.text = snippet['textDisplay']
-
-                    if snippet.get('videoId'):
-                        replyComm.videoId = snippet['videoId']
-                        replyComm.videoUrl = STR_YT_VIDEO_BASE_URL + replyComm.videoId
-                    if snippet.get('channelId'):
-                        replyComm.channelId = snippet['channelId']
-                        replyComm.channelUrl = STR_YT_CHANNEL_BASE_URL + replyComm.channelId
-
-                    replyComm.updatedAt = snippet['updatedAt']
-
-                    commList.append(replyComm)
-
-        return commList,id_creator_dict,id_creator_displayname_dict
 
 registry.register(YoutubePlugin)
