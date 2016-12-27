@@ -179,20 +179,13 @@ def ytAuthCallback(request):
     unit = t[0].unit
     platform = t[0].platform
     channel_ids = t[0].transferdata
+    # Delete the record
+    t.delete()
 
-    # print '%s, %s, %s' % (unit, platform, channel_ids)
-
+    # Start data import
     youtube_plugin.perform_import(channel_ids, unit, http)
 
-    # vList = ytList[0]
-    # vNum = len(vList)
-    # commList = ytList[1]
-    # commNum = len(commList)
-    # context_dict = {"vList": vList, "vNum": vNum, "commList": commList, "commNum": commNum}
-    context_dict = {}
-    # post_smimport(course_code, platform)
-
-    return render(request, 'dataintegration/ytresult.html', context_dict)
+    return render(request, 'dataintegration/ytresult.html', {})
 
 
 ##############################################
