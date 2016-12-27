@@ -97,7 +97,13 @@ class LRS_Auth(object):
         if not batch and statement is not None:
             #Get user access token
             user = User.objects.get(id=user_id)
-            t = AccessToken.objects.get(user_id=user)
+            t = None
+            try:
+                t = AccessToken.objects.get(user_id=user)
+            except AccessToken.DoesNotExist:
+                # raise Exception("Error has occurred. User %s does not have LRS access token." % (user.username))
+                print "Error has occurred. User %s does not have LRS access token. Data will not be imported." % (user.username)
+                return
 
             consumer = AuthRequest(self.CONSUMER_KEY,self.CONSUMER_SECRET,
                                    token=t.access_token,token_secret=t.access_token_secret)
