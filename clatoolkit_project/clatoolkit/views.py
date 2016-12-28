@@ -288,6 +288,7 @@ def socialmediaaccounts(request):
     context = RequestContext(request)
     user_id = request.user.id
     usr_profile = UserProfile.objects.get(user_id=user_id)
+    trello_api_key = os.environ.get('TRELLO_API_KEY')
 
     if request.method == 'POST':
         profile_form = SocialMediaUpdateForm(data=request.POST,instance=usr_profile)
@@ -301,7 +302,6 @@ def socialmediaaccounts(request):
 
             print profile_form.errors
 
-
     # Not a HTTP POST, so we render our form using two ModelForm instances.
     # These forms will be blank, ready for user input.
     else:
@@ -311,7 +311,7 @@ def socialmediaaccounts(request):
     # Render the template depending on the context.
     return render_to_response(
         'clatoolkit/socialmediaaccounts.html',
-            {'profile_form': profile_form, 'units': units}, context)
+            {'profile_form': profile_form, 'units': units, 'trello_api_key': trello_api_key}, context)
 
 
 def eventregistration(request):

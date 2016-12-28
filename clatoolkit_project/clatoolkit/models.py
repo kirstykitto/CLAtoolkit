@@ -67,11 +67,6 @@ class UserProfile(models.Model):
 
         return platform_map[platform.lower()]
 
-class UserTrelloCourseBoardMap(models.Model):
-    user = models.ForeignKey(User)
-    course_code = models.CharField(max_length=1000, blank=False)
-    board_id = models.CharField(max_length=5000, blank=False)
-
 class OfflinePlatformAuthToken(models.Model):
     user_smid = models.CharField(max_length=1000, blank=False)
     token = models.CharField(max_length=1000, blank=False)
@@ -307,6 +302,16 @@ class UserClassification(models.Model):
     trained = models.BooleanField(blank=False, default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+# class UserTrelloCourseBoardMap(models.Model):
+#     user = models.ForeignKey(User)
+#     course_code = models.CharField(max_length=1000, blank=False)
+#     board_id = models.CharField(max_length=5000, blank=False)
+
+class UserPlatformResourceMap(models.Model):
+    user = models.ForeignKey(User)
+    unit = models.ForeignKey(UnitOffering)
+    resource_id = models.CharField(max_length=5000, blank=False)
+    platform = models.CharField(max_length=100, blank=False)
 
 class ApiCredentials(models.Model):
     platform_uid = models.CharField(max_length=5000, blank=False)

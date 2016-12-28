@@ -12,7 +12,7 @@ from dataintegration.tasks import *
 from .forms import FacebookGatherForm
 import json
 from pprint import pprint
-from clatoolkit.models import UserProfile, OfflinePlatformAuthToken, UserTrelloCourseBoardMap, ApiCredentials, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp
+from clatoolkit.models import UserProfile, OfflinePlatformAuthToken, UserPlatformResourceMap, ApiCredentials, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp
 from django.db import connection
 import dateutil.parser
 from dashboard.utils import *
@@ -43,8 +43,8 @@ from common.util import Utility
 @api_view(['GET'])
 def process_trello(request):
     token = request.GET.get("token")
-    key = request.GET.get("key")
-
+    # key = request.GET.get("key")
+    key = os.environ.get('TRELLO_API_KEY')
     trello_member_url = 'https://api.trello.com/1/tokens/%s/member?key=%s' % (token, key)
 
     #Get trello member ID
@@ -53,9 +53,16 @@ def process_trello(request):
     member_json = r.json()
     member_id = member_json['id']
 
-    token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform='trello') #OauthFlowTemp(googleid=member_id, transferdata=token, platform='trello')
+    tokens = OfflinePlatformAuthToken.objects.filter(user_smid=member_id, platform=xapi_settings.PLATFORM_TRELLO)
+    if len(tokens) == 1:
+        # Update token
+        token_storage = tokens[0]
+        token_storage.token = token
+    elif len(tokens) > 1:
+        return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>More than one records were found.</p>')
+    else:
+        token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform=xapi_settings.PLATFORM_TRELLO)
     token_storage.save()
-
     return Response(member_id)
 
 
@@ -65,28 +72,35 @@ def process_trello(request):
 # TODO: ADD STUDENT REFRESH
 @api_view()
 def refreshtrello(request):
-    course_code = request.GET.get('course_code')
+    course_id = request.GET.get('course_id')
+    unit = UnitOffering.objects.get(id = course_id)
     trello_courseboard_ids = request.GET.get('boards')
     trello_courseboard_ids = trello_courseboard_ids.split(',')
+    user_count = len(trello_courseboard_ids)
 
-    trello_plugin = settings.DATAINTEGRATION_PLUGINS['trello']
+    trello_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_TRELLO]
     diag_count = 0
-
+    # remove deplicated board IDs
+    trello_courseboard_ids = list(set(trello_courseboard_ids))
     for board_id in trello_courseboard_ids:
-        trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(board_id=board_id).filter(course_code=course_code)[0]
-        #print 'got trello user course board map: %s' % (trello_user_course_map)
+        trello_user_course_map = UserPlatformResourceMap.objects.filter(
+            unit=unit, platform=xapi_settings.PLATFORM_TRELLO).filter(resource_id=board_id)[0]
 
         user = trello_user_course_map.user
         usr_profile = UserProfile.objects.get(user=user)
         usr_offline_auth = OfflinePlatformAuthToken.objects.get(user_smid=usr_profile.trello_account_name)
 
         #print 'Performing Trello Board Import for User: %s' % (user)
-        trello_plugin.perform_import(board_id, course_code, token=usr_offline_auth.token)
+        trello_plugin.perform_import(board_id, unit, token = usr_offline_auth.token)
         diag_count = diag_count + 1
 
-    post_smimport(course_code, 'trello')
+    post_smimport(unit, xapi_settings.PLATFORM_TRELLO)
 
-    return Response('<b>Trello refresh complete: %s users updated.</b>' % (diag_count))
+    # return Response('<b>Trello refresh complete: %s users updated.</b>' % (str(user_count)))
+    html_response = HttpResponse()
+    html_response.write('<b>Trello refresh complete: %s users updated.</b>' % (str(user_count)))
+    html_response.write('<p><a href="/dashboard/myunits/">Go back to dashboard</a></p>')
+    return html_response
 
 
 ##############################################

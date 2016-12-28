@@ -24,7 +24,13 @@ def get_user_from_screen_name(screen_name, platform):
 
     kwargs = {platform_param_name: screen_name}
 
-    return UserProfile.objects.get(**kwargs).user
+    user = None
+    try:
+        user = UserProfile.objects.get(**kwargs).user
+    except UserProfile.DoesNotExist:
+        print 'screen_name %s does not exist. Platform: %s' % (screen_name, platform)
+        
+    return user
 
 
 def get_smid(user, platform):
