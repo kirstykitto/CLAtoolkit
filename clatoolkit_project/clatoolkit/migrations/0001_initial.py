@@ -74,8 +74,9 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('xapi', django_pgjson.fields.JsonField()),
-                ('platform', models.CharField(max_length=5000)),
-                ('verb', models.CharField(max_length=5000)),
+                ('statement_id', models.CharField(max_length=256)),
+                ('platform', models.CharField(max_length=100)),
+                ('verb', models.CharField(max_length=50)),
                 ('platformid', models.CharField(max_length=5000, blank=True)),
                 ('platformparentid', models.CharField(max_length=5000, blank=True)),
                 ('parent_user_external', models.CharField(max_length=5000, null=True, blank=True)),
@@ -91,7 +92,6 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('googleid', models.CharField(max_length=1000)),
                 ('platform', models.CharField(max_length=1000, blank=True)),
-                ('course_code', models.CharField(max_length=1000, blank=True)),
                 ('transferdata', models.CharField(max_length=1000, blank=True)),
             ],
         ),
@@ -167,6 +167,16 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
+            name='UserPlatformResourceMap',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('resource_id', models.CharField(max_length=5000)),
+                ('platform', models.CharField(max_length=100)),
+                ('unit', models.ForeignKey(to='clatoolkit.UnitOffering')),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+            ],
+        ),
+        migrations.CreateModel(
             name='UserProfile',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
@@ -182,15 +192,6 @@ class Migration(migrations.Migration):
                 ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
             ],
         ),
-        migrations.CreateModel(
-            name='UserTrelloCourseBoardMap',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('course_code', models.CharField(max_length=1000)),
-                ('board_id', models.CharField(max_length=5000)),
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
-            ],
-        ),
         migrations.AddField(
             model_name='unitoffering',
             name='users',
@@ -200,6 +201,16 @@ class Migration(migrations.Migration):
             model_name='socialrelationship',
             name='unit',
             field=models.ForeignKey(to='clatoolkit.UnitOffering'),
+        ),
+        migrations.AddField(
+            model_name='oauthflowtemp',
+            name='unit',
+            field=models.ForeignKey(to='clatoolkit.UnitOffering'),
+        ),
+        migrations.AddField(
+            model_name='oauthflowtemp',
+            name='user',
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name='learningrecord',
