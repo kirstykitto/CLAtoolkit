@@ -164,10 +164,9 @@ def insert_bookmark(usr_dict, post_id,message,from_name,from_uid, created_time, 
         lrs.save()
 
 
-
-def insert_commit(user, commit_id, message, from_uid, from_name, committed_time, 
-    parent_id, unit, platform, platform_id, commit_username, account_homepage, tags=[], other_contexts = []):
-    if check_ifnotinlocallrs(unit, platform, platform_id):
+def insert_commit(user, parent_id, commit_id, message, committed_time, unit, platform, platform_url, 
+                  tags=[], other_contexts = []):
+    if check_ifnotinlocallrs(unit, platform, commit_id):
         verb = xapi_settings.VERB_CREATED
         object_type = xapi_settings.OBJECT_COLLECTION
         parent_obj_type = xapi_settings.OBJECT_COLLECTION
@@ -177,55 +176,37 @@ def insert_commit(user, commit_id, message, from_uid, from_name, committed_time,
         statement_id = get_uuid4()
 
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, user=user, 
-            platformid=platform_id, platformparentid=parent_id, message=message, datetimestamp=committed_time)
+            platformid=commit_id, platformparentid=parent_id, message=message, datetimestamp=committed_time)
         lrs.save()
 
-        # sr = SocialRelationship(verb = verb, from_user=user, to_user=get_uid_fromsmid(commit_username, platform),
-        #                         platform=platform, message=message, 
-        #                         datetimestamp=committed_time, unit=unit, platformid=commit_id)
-        # sr.save()
-
         stm = socialmedia_builder(statement_id=statement_id, verb=verb, platform=platform, 
-            account_name=account_name, account_homepage=account_homepage, object_type=object_type, 
+            account_name=account_name, account_homepage=platform_url, object_type=object_type, 
             object_id=commit_id, message=message, parent_id=parent_id, parent_object_type=parent_obj_type, 
             timestamp=committed_time, unit=unit, tags=tags, other_contexts = other_contexts)
 
         jsn = stm.to_json()
         status,content = lrs_client.transfer_statement(user.id, statement=jsn)
 
-# def insert_commit(user, repo_id, commit_id, message, committed_time, unit, platform, committer=None):
-#     if check_ifnotinlocallrs(unit, platform, commit_id):
-#         verb = "created"
-
-#         lrs = LearningRecord(xapi=None, unit=unit, verb=verb, platform=platform, user=user, platformid=commit_id,
-#                              platformparentid=repo_id, message=message, datetimestamp=committed_time)
-#         lrs.save()
 
 
-
-def insert_file(user, file_id, message, from_uid, from_name, committed_time, unit, parent_id, platform, platform_id, 
-    platform_parentid, verb, commit_username, account_homepage, tags=[], other_contexts = []):
-    if check_ifnotinlocallrs(unit, platform, platform_id):
+def insert_file(user, parent_id, file_id, message, committed_time, unit, platform, platform_url, verb, 
+                tags=[], other_contexts = []):
+    if check_ifnotinlocallrs(unit, platform, file_id):
         obj = xapi_settings.OBJECT_FILE
-        parentObj = xapi_settings.OBJECT_COLLECTION
+        parent_obj_type = xapi_settings.OBJECT_COLLECTION
 
         lrs_client = LRS_Auth(provider_id = unit.get_lrs_id())
         account_name = user.userprofile.get_username_for_platform(platform)
         statement_id = get_uuid4()
 
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, 
-            user=user, platformid=platform_id, platformparentid=platform_parentid, 
+            user=user, platformid=file_id, platformparentid=parent_id, 
             message=message, datetimestamp=committed_time)
         lrs.save()
 
-        # sr = SocialRelationship(verb = verb, from_user=user, to_user=get_uid_fromsmid(commit_username, platform),
-        #                         platform=platform, message=message, 
-        #                         datetimestamp=committed_time, unit=unit, platformid=file_id)
-        # sr.save()
-
         stm = socialmedia_builder(statement_id=statement_id, verb=verb, platform=platform, 
-            account_name=account_name, account_homepage=account_homepage, object_type=obj, 
-            object_id=file_id, message=message, parent_id=parent_id, parent_object_type=parentObj, 
+            account_name=account_name, account_homepage=platform_url, object_type=obj, 
+            object_id=file_id, message=message, parent_id=parent_id, parent_object_type=parent_obj_type, 
             timestamp=committed_time, unit=unit, tags=tags, other_contexts = other_contexts)
 
         jsn = stm.to_json()
@@ -237,7 +218,6 @@ def insert_file(user, file_id, message, from_uid, from_name, committed_time, uni
 #         lrs = LearningRecord(xapi=None, unit=unit, verb=verb, platform=platform, user=user, platformid=file_id,
 #                              platformparentid=commit_id, message=message, datetimestamp=committed_time)
 #         lrs.save()
-
 
 
 def insert_issue(user, issue_id, verb, object_type, parent_object_type, message, from_name, from_uid, created_time, 

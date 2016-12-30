@@ -198,6 +198,11 @@ def myunits(request):
     show_dashboardnav = False
     shownocontentwarning = False
     trello_attached = not request.user.userprofile.trello_account_name == ''
+    github_attached = False
+    tokens = OfflinePlatformAuthToken.objects.filter(
+        user_smid=request.user.userprofile.github_account_name, platform=xapi_settings.PLATFORM_GITHUB)
+    if len(tokens) == 1:
+        github_attached = True
 
     has_token_list = {}
     for membership in memberships:
@@ -216,7 +221,8 @@ def myunits(request):
 
     context_dict = {'title': "My Units", 'memberships': memberships, 'show_dashboardnav': show_dashboardnav,
                     'shownocontentwarning': shownocontentwarning, 'role': role,
-                    'trello_attached_to_acc': trello_attached, 'has_token_list': has_token_list}
+                    'trello_attached_to_acc': trello_attached, 'has_token_list': has_token_list,
+                    'github_attached': github_attached}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
 
@@ -739,7 +745,7 @@ def ccadata(request):
 
 
 @login_required
-def get_platform_timeseries(request):
+def get_platform_timeseries_data(request):
 
     context = RequestContext(request)
     # platform = request.GET.get('platform')
@@ -760,7 +766,7 @@ def get_platform_timeseries(request):
 
 
 @login_required
-def get_platform_activity(request):
+def get_platform_activities(request):
     context = RequestContext(request)
     # platform = request.GET.get('platform')
     platform_names = []
@@ -771,3 +777,94 @@ def get_platform_activity(request):
     val = get_activity_dataset(request.GET.get('course_code'), platform_names)
     response = JsonResponse(val, status=status.HTTP_200_OK)
     return response
+
+
+def get_user_acitivities(request):
+    platform_names = request.GET.get('platform').split(',')
+    val = get_user_acitivities_dataset(request.GET.get('course_code'), platform_names)
+    response = JsonResponse(val, status=status.HTTP_200_OK)
+    return response
+
+
+@login_required
+def get_all_repos(request):
+    tokens = OfflinePlatformAuthToken.objects.filter(
+        user_smid=request.user.userprofile.github_account_name, platform=xapi_settings.PLATFORM_GITHUB)
+    if len(tokens) == 0 or len(tokens) > 1:
+        return []
+
+    val = get_all_reponames(tokens[0].token)
+    return JsonResponse(val, status=status.HTTP_200_OK)
+
+
+@login_required
+def add_repo_to_course(request):
+    course_id = request.GET.get('course_id')
+    course = UnitOffering.objects.get(id=course_id)
+    repo_name = request.GET.get('repo')
+    ret = {'result': 'success'}
+
+    resource_map = UserPlatformResourceMap.objects.filter(
+        user=request.user, unit=course_id, platform=xapi_settings.PLATFORM_GITHUB)
+    # If the same record exist, update the repository name
+    if len(resource_map) == 1:
+        resource_map[0].resource_id = repo_name
+        resource_map[0].save()
+    elif len(resource_map) > 1:
+        # When more than one records were found (Usually this doesn't happen)
+        ret = {'result': 'error', 'message': 'More than one records were found. Could not update repository name.'}
+    else:
+        # Add a new record
+        resource_map = UserPlatformResourceMap(
+            user=request.user, unit=course, resource_id=repo_name, platform=xapi_settings.PLATFORM_GITHUB)
+        resource_map.save()
+
+    return JsonResponse(ret, status=status.HTTP_200_OK)
+
+
+@login_required
+def get_github_attached_repo(request):
+    course_id = request.GET.get('course_id')
+    if course_id is None or course_id == '':
+        return JsonResponse({'result': 'error', 'message': 'Course ID not found.'}, status=status.HTTP_200_OK)
+
+    resource_map = UserPlatformResourceMap.objects.filter(
+        user=request.user, unit=course_id, platform=xapi_settings.PLATFORM_GITHUB)
+
+    if len(resource_map) == 0:
+        return JsonResponse({'result': 'error', 'message': 'No records found.'}, status=status.HTTP_200_OK)
+
+    resource = resource_map[0]
+    gh_settings = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_GITHUB]
+    obj = OrderedDict([
+        ('result', 'success'),
+        ('name', resource.resource_id),
+        ('url', gh_settings.platform_url + resource.resource_id),
+    ])
+
+    return JsonResponse(obj, status=status.HTTP_200_OK)
+
+
+@login_required
+def remove_attached_repo(request):
+    course_id = request.GET.get('course_id')
+    if course_id is None or course_id == '':
+        return JsonResponse({'result': 'error', 'message': 'Course ID not found.'}, status=status.HTTP_200_OK)
+
+    resource_map = UserPlatformResourceMap.objects.filter(
+        user=request.user, unit=course_id, platform=xapi_settings.PLATFORM_GITHUB)
+    if len(resource_map) > 1:
+        return JsonResponse({'result': 'error', 'message': 'More than one records were found.'}, status=status.HTTP_200_OK)
+
+    resource_map.delete()
+    ret = {'result': 'success'}
+    return JsonResponse(ret, status=status.HTTP_200_OK)
+
+
+@login_required
+def get_github_contribution(request):
+    # Get all issues and issues that each user was assigned to.
+    course_code = request.GET.get('course_code')
+    contribution = get_issue_list(course_code)
+    
+    return JsonResponse(contribution, status=status.HTTP_200_OK)

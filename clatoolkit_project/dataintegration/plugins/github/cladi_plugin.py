@@ -172,6 +172,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 if issue_event['event'] != self.ISSUE_EVENT_ASSIGNED:
                     continue
 
+                event_url = issue_event['url']
                 assignee = issue_event['assignee']
                 assigner = issue_event['assigner']
                 issue_url = issue['issue_html_url']
@@ -182,6 +183,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 assigner_name = str(assigner['login'])
                 assigner_url = assigner['html_url']
 
+                assignee_id = str(assignee['id'])
                 assignee_name = str(assignee['login'])
                 assignee_url = assignee['html_url']
                 date = issue_event['created_at']
@@ -201,11 +203,12 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     repo_url, 'Object', repo_name, 
                     xapi_settings.get_verb_iri(xapi_settings.VERB_ADDED)))
 
-                if username_exists(assigner_id, unit, self.platform.lower()):
-                    usr_dict = ClaUserUtil.get_user_details_by_smid(assigner_id, self.platform)
-                    insert_added_object(usr_dict, issue_url, event_id, assignee_name, assigner_id, assigner_name, date,
-                                        unit, self.platform, assigner_url, object_type,
-                                        shared_displayname = issue_url, other_contexts = other_context_list)
+                # When both assignee and assigner exist in the CLA toolkit, import data.
+                if username_exists(assigner_id, unit, self.platform) and username_exists(assignee_id, unit, self.platform):
+                    user = get_user_from_screen_name(assigner_id, self.platform)
+                    insert_added_object(user, issue_url, event_url, assignee_name, date, unit, self.platform, self.platform_url,
+                                        object_type, parent_user_external = issue_title, 
+                                        other_contexts = other_context_list)
 
 
 
@@ -292,13 +295,10 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             repo_url, 'Object', repo_name, 
             xapi_settings.get_verb_iri(xapi_settings.VERB_COMMENTED)))
         
-        if username_exists(author_id, unit, self.platform.lower()):
-            usr_dict = ClaUserUtil.get_user_details_by_smid(author_id, self.platform)
-            # cla_userame = get_username_fromsmid(author_id, self.platform.lower())
-            insert_comment(usr_dict, commit_url, com_comment_url, 
-                body, author_id, author_name, date, unit, self.platform, author_homepage,
-                shared_username = commit_message, shared_displayname = commit_message, 
-                other_contexts = other_context_list)
+        if username_exists(author_id, unit, self.platform):
+            user = get_user_from_screen_name(author_id, self.platform)
+            insert_comment(user, commit_url, com_comment_url, body, date, unit, self.platform, self.platform_url,
+                parent_user_external = commit_message, other_contexts = other_context_list)
 
 
     def import_issue_comments(self, event, unit, repo_url, repo_name):
@@ -334,13 +334,10 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             repo_url, 'Object', repo_name, 
             xapi_settings.get_verb_iri(xapi_settings.VERB_COMMENTED)))
         
-        if username_exists(author_id, unit, self.platform.lower()):
-            usr_dict = ClaUserUtil.get_user_details_by_smid(author_id, self.platform)
-            # cla_userame = get_username_fromsmid(author_id, self.platform.lower())
-            insert_comment(usr_dict, issue_url, iss_comment_url, 
-                body, author_id, author_name, date, unit, self.platform, author_homepage,
-                shared_username = issue_title, shared_displayname = issue_title, 
-                other_contexts = other_context_list)
+        if username_exists(author_id, unit, self.platform):
+            user = get_user_from_screen_name(author_id, self.platform)
+            insert_comment(user, issue_url, iss_comment_url, body, date, unit, self.platform, self.platform_url,
+                parent_user_external = issue_title, other_contexts = other_context_list)
 
 
     def import_issues(self, event, unit, repo_url, repo_name):
@@ -370,7 +367,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             verb = xapi_settings.VERB_OPENED
             evety_type = self.EVENT_TYPE_REOPEN_ISSUE
 
-        print 'action: %s ..... verb: %s' % (action, verb)
+        # print 'action: %s ..... verb: %s' % (action, verb)
 
         other_context_list = []
         # Import event type
@@ -385,11 +382,10 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         if username_exists(author_id, unit, self.platform):
             user = get_user_from_screen_name(author_id, self.platform)
-            
-            insert_issue(usr_dict, issue_url, verb, xapi_settings.OBJECT_NOTE, 
-                xapi_settings.OBJECT_COLLECTION, title, author_name, author_id, date, 
-                unit, repo_url, self.platform, event.id, author_homepage,
-                shared_displayname = repo_name, other_contexts = other_context_list)
+            insert_closedopen_object(user, issue_url, title, date, unit, self.platform, self.platform_url,
+                                 xapi_settings.OBJECT_NOTE, verb, parent_id = repo_url,
+                                 obj_parent_type = xapi_settings.OBJECT_COLLECTION,
+                                 other_contexts = other_context_list)
 
         # Return the issue number for assignees & assigner data import
         # return issue['number']
@@ -446,15 +442,13 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         other_context_list.append(get_other_contextActivity(
             pr_url, 'Object', body, xapi_settings.get_verb_iri(verb)))
         
-        if username_exists(author_id, unit, self.platform.lower()):
-            usr_dict = ClaUserUtil.get_user_details_by_smid(author_id, self.platform)
-            ###
-            ### TODO: Select (or create) appropriate object type (review isn't quite appropriate to represent PR)
-            ### 
-            insert_issue(usr_dict, pr_url, verb, xapi_settings.OBJECT_REVIEW, 
-                xapi_settings.OBJECT_COLLECTION, title, author_name, author_id, date, 
-                unit, repo_url, self.platform, event.id, author_homepage,
-                shared_displayname = repo_name, other_contexts = other_context_list)
+        if username_exists(author_id, unit, self.platform):
+            # TODO: Is review correct object?
+            user = get_user_from_screen_name(author_id, self.platform)
+            insert_closedopen_object(user, pr_url, title, date, unit, self.platform, self.platform_url,
+                                 xapi_settings.OBJECT_REVIEW, verb, parent_id = repo_url,
+                                 obj_parent_type = xapi_settings.OBJECT_COLLECTION,
+                                 other_contexts = other_context_list)
 
 
     ###################################################################
@@ -492,6 +486,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         print "Commit data import done."
 
+
+
     def import_commits(self, commit, unit, repo_url, repo_name):
         author_id = ''
         author_name = ''
@@ -520,7 +516,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         # ID is all numbers, and thus needs to be converted to string
         author_id = str(author_id)
         # Rare case but committer name does not exist in some cases 
-        if not username_exists(author_id, unit, self.platform.lower()):
+        if not username_exists(author_id, unit, self.platform):
             # commit.commit.author does not have the element "login" or "id"
             author_id = commit.commit.author.name
             author_name = commit.commit.author.name
@@ -533,8 +529,12 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         commit_url = commit.html_url
         commit_sha = commit.sha
 
+        # Don't process when user does not exist
+        if not username_exists(author_id, unit, self.platform):
+            return
+
         # create other context activity value
-        print 'Commit changes :%d, adds: %d, dels: %d' % (commit.stats.total, commit.stats.additions, commit.stats.deletions)
+        # print 'Commit changes :%d, adds: %d, dels: %d' % (commit.stats.total, commit.stats.additions, commit.stats.deletions)
         total_list = []
         total_list.append(str(commit.stats.total))
         total_list.append(str(commit.stats.additions))
@@ -573,14 +573,8 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             commit_url, 'Object', ','.join(deletions_list),
             xapi_settings.get_verb_iri(xapi_settings.VERB_CREATED)))
 
-        # TODO: Add shared_username and shared_displayname? 
-        if not username_exists(author_id, unit, self.platform.lower()):
-            return
-
-        usr_dict = ClaUserUtil.get_user_details_by_smid(author_id, self.platform)
-        # cla_userame = get_username_fromsmid(author_id, self.platform.lower())
-        insert_commit(usr_dict, commit_sha, commit_title, author_id, author_name,
-            date, unit, repo_url, self.platform, commit_sha, author_id, author_homepage,
+        user = get_user_from_screen_name(author_id, self.platform)
+        insert_commit(user, repo_url, commit_url, commit_title, date, unit, self.platform, self.platform_url, 
             other_contexts = other_context_list)
 
         author_details = {'author_id': author_id, 'author_name': author_name, 'author_homepage': author_homepage}
@@ -637,12 +631,9 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         other_context_list.append(get_other_contextActivity(
             file_url, 'Object', str(file.deletions), xapi_settings.get_verb_iri(verb)))
 
-        if username_exists(author_id, unit, self.platform.lower()):
-            usr_dict = ClaUserUtil.get_user_details_by_smid(author_id, self.platform)
-            # cla_userame = get_username_fromsmid(author_id, self.platform.lower())
-            insert_file(usr_dict, file_url, patch, author_id, author_name,
-                commit_date, unit, commit_sha, self.platform, file_url, 
-                commit_url, verb, repo_url, author_id, author_homepage,
+        if username_exists(author_id, unit, self.platform):
+            user = get_user_from_screen_name(author_id, self.platform)
+            insert_file(user, commit_url, file_url, patch, commit_date, unit, self.platform, self.platform_url, verb, 
                 other_contexts = other_context_list)
 
 

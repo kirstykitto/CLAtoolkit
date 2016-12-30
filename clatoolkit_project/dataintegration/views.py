@@ -25,6 +25,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from django.conf import settings
+from django.shortcuts import redirect
 
 from dataintegration.googleLib import *
 from oauth2client.client import OAuth2WebServerFlow
@@ -109,19 +110,38 @@ def refreshtrello(request):
 def refreshgithub(request):
 
     html_response = HttpResponse()
-    unit_id = request.GET.get('unit')
+    course_id = request.GET.get('course_id')
+    unit = None
     try:
-        unit = UnitOffering.objects.get(id=unit_id)
+        unit = UnitOffering.objects.get(id=course_id)
     except UnitOffering.DoesNotExist:
         raise Http404
+    
+    resources = UserPlatformResourceMap.objects.filter(unit=course_id, platform=xapi_settings.PLATFORM_GITHUB)
 
-    repoUrls = request.GET.get('urls')
+    id_list = []
+    details = []
+    for resource in resources:
+        # Save the repo name to avoid retrieving the same data again and again
+        # If the repository name (resource_id) is in the id_list, the repo is already processed, so skip the process.
+        if resource.resource_id in id_list:
+            continue
 
-    github_plugin = settings.DATAINTEGRATION_PLUGINS['GitHub']
-    github_plugin.perform_import(repoUrls, unit)
-    post_smimport(unit, "GitHub")
+        # Get user's token
+        user = User.objects.get(pk=resource.user_id)
+        token = OfflinePlatformAuthToken.objects.get(
+            user_smid=user.userprofile.github_account_name, platform=xapi_settings.PLATFORM_GITHUB)
+        obj = {'repo_name': resource.resource_id, 'token': token.token}
+        details.append(obj)
+        id_list.append(resource.resource_id)
+
+    github_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_GITHUB]
+    github_plugin.perform_import(details, unit)
+    post_smimport(unit, xapi_settings.PLATFORM_GITHUB)
 
     return render(request, 'dataintegration/githubresult.html')
+
+
 
 
 ##############################################
@@ -484,3 +504,61 @@ def assigngroups(request):
     html_response.write('Groups Assigned')
     return html_response
 
+
+def github_auth(request):
+    # Redirect to GitHub OAuth authentication page
+    url = "https://github.com/login/oauth/authorize?"
+    url = url + "client_id=%s" % (os.environ.get('GITHUB_CLIENT_ID'))
+    url = url + "&redirect_uri=%s" % (os.environ.get('GITHUB_AUTH_REDIRECT_URL'))
+    url = url + "&scope=user public_repo repo read:org"
+    return redirect(url)
+
+def github_client_auth(request):
+    # This method is redirect url after user log in to GitHub and allows the CLA toolkit to
+    # access to the user's information on GitHub.
+    code = request.GET.get('code')
+    url = "https://github.com/login/oauth/access_token?"
+    # url = url + "scope=user public_repo repo read:org"
+    url = url + "client_id=%s" % (os.environ.get('GITHUB_CLIENT_ID'))
+    url = url + "&client_secret=%s" % (os.environ.get('GITHUB_CLIENT_SECRET'))
+    url = url + "&code=%s" % (code)
+    
+    res = requests.get(url)
+    res = res.text.split('&')[0]
+    token = res.replace('access_token=', '')
+
+    # Get access token 
+    user_detail_url = "https://api.github.com/user?access_token=%s" % (token)
+    res = requests.get(user_detail_url)
+    user_json = json.loads(res.text)
+    print user_json
+
+    if not user_json.has_key('id'):
+        return HttpResponseServerError('<h3>Error has occurred.</h3><p>Message: %s</p>' % (user_json['message']))
+    # Save GitHub token
+    # token_storage = OfflinePlatformAuthToken.objects.get(user_smid=user_json['id'], platform=xapi_settings.PLATFORM_GITHUB)
+    # if token_storage:
+    #     token_storage.token = token
+    # else:
+    #     token_storage = OfflinePlatformAuthToken(user_smid=user_json['id'], token=token, platform=xapi_settings.PLATFORM_GITHUB)
+    tokens = OfflinePlatformAuthToken.objects.filter(user_smid=user_json['id'], platform=xapi_settings.PLATFORM_GITHUB)
+    if len(tokens) == 1:
+        token_storage = tokens[0]
+        token_storage.token = token
+    elif len(tokens) > 1:
+        return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>More than one records were found.</h1>')
+    else:
+        token_storage = OfflinePlatformAuthToken(user_smid=user_json['id'], token=token, platform=xapi_settings.PLATFORM_GITHUB)
+    token_storage.save()
+
+    # Set user ID and access token in social media ID register or update page
+    script_set_id = 'window.opener.$("#id_github_account_name").val("%s");' % (user_json['id'])
+    script_set_msg = 'window.opener.$("#github-auth-msg").html("%s");' % ('GitHub user ID linked!')
+    # script_set_token = 'window.opener.$("#github_token").val("%s");' % (token)
+    script_set_msg = script_set_msg + 'window.opener.$("#github-auth-msg").show();'
+    script_set_msg = script_set_msg + 'window.opener.$("#github_auth_link").hide();'
+
+    html_resp = '<script>' + script_set_id + script_set_msg + 'window.close();</script>'
+    html_response = HttpResponse()
+    html_response.write(html_resp)
+    return html_response

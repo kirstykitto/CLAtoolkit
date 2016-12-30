@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django_pgjson.fields import JsonField
 from django.core.exceptions import ObjectDoesNotExist
 import os
+from xapi.statement.xapi_settings import xapi_settings
 
 from xapi.models import ClientApp
 
@@ -180,6 +181,11 @@ class UnitOffering(models.Model):
             return self.github_urls.split(os.linesep)
         else:
             return []
+
+    def github_member_count(self):
+        # Count the number of GitHub users in the course
+        resources = UserPlatformResourceMap.objects.filter(unit=self.id, platform=xapi_settings.PLATFORM_GITHUB)
+        return len(resources)
 
     def coi_platforms_as_list(self):
         if self.coi_platforms:

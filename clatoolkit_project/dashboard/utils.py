@@ -25,6 +25,7 @@ import subprocess
 import igraph
 from collections import OrderedDict
 import copy
+from xapi.statement.xapi_settings import xapi_settings
 
 def getPluginKey(platform):
     return settings.DATAINTEGRATION_PLUGINS[platform].api_config_dict['api_key']
@@ -1148,3 +1149,42 @@ def count_verbs_by_users(verbs, platform, course_code):
     # print data
     # print categories
     return categories, data
+
+
+# This returns all repository name that user has. 
+# Private and organization repositories are included (It actually depends on the parameter scope
+def get_all_reponames(token):
+    from github import Github
+
+    github_settings = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_GITHUB]
+    gh = Github(login_or_token = token, per_page = github_settings.per_page)
+
+    count = 0
+    gh_user = gh.get_user()
+    repos = gh_user.get_repos(type='all', sort='full_name', direction='asc').get_page(count)
+
+    ret = []
+    while True:
+        for repo in repos:
+            owner = OrderedDict([
+                ('name', repo.owner.login),
+                ('url', repo.owner.html_url),
+                ('avatar_url', repo.owner.avatar_url),
+            ])
+            obj = OrderedDict([
+                ('name', repo.full_name),
+                ('url', repo.html_url),
+                ('owner', owner),
+            ])
+            ret.append(obj)
+
+        # Code for paging 
+        count = count + 1
+        repos = gh_user.get_repos(type='all', sort='full_name', direction='asc').get_page(count)
+        temp = list(repos)
+        if len(temp) == 0:
+            #Break from while
+            break;
+
+    return OrderedDict([('repos', ret)])
+

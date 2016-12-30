@@ -28,7 +28,8 @@ def get_user_from_screen_name(screen_name, platform):
     try:
         user = UserProfile.objects.get(**kwargs).user
     except UserProfile.DoesNotExist:
-        print 'screen_name %s does not exist. Platform: %s' % (screen_name, platform)
+        # print 'screen_name %s does not exist. Platform: %s' % (screen_name, platform)
+        pass
         
     return user
 

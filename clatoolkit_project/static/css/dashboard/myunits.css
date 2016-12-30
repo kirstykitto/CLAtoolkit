@@ -18,26 +18,27 @@
 	font-size: 12px;
 }
 .repo_icon {
-	content:url('/static/img/github/repo.png');
+	content:url('/static/img/github/repo.svg');
 	padding-right: 5px;
+	width: 18px;
 }
 .repo_list li {
-
 	/*!
 	 * repo.png is lisenced under the SIL Open Font License 1.1
 	 * by https://octicons.github.com/
 	 */
-	background:url(/static/img/github/repo.png) left no-repeat;
+	background:url(/static/img/github/repo.svg) left no-repeat;
 	text-indent:18px;
 	padding: 3px;
+	background-size: 18px;
 }
 .jump_to_repo {
-
 	/*!
 	 * link-external.png is lisenced under the SIL Open Font License 1.1
 	 * by https://octicons.github.com/
 	 */
-	content:url('/static/img/github/link-external.png');
-	width: 12px;
-	height: 12px;
+	content:url('/static/img/github/link-external.svg');
+	text-indent:18px;
+	padding: 3px;
+	background-size: 12px;
 }

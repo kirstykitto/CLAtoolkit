@@ -113,16 +113,10 @@
                                         Imported Data</a>
                                 {% endif %}
                                 <br/>
-                                {% if membership.unit.github_urls_as_list|length > 0 %}
-                                    GitHub URLs: {% for url in membership.unit.github_urls_as_list %}
-                                    <a href="{{ url }}" target="_blank">{{ url }}</a>  {% endfor %} [
-                                    <a href="/dashboard/?course_code={{ membership.unit.code }}&platform=GitHub">Activity</a>
-                                    |
-                                    <a href="/dashboard/ca_dashboard?course_code={{ membership.unit.code }}&platform=GitHub">Content
-                                        Analysis</a> |
-                                    <a href="/dashboard/sna_dashboard?course_code={{ membership.unit.code }}&platform=GitHub">Social
-                                        Network Analysis</a>] |
-                                    <a href="/dataintegration/refreshgithub/?course_code={{ membership.unit.code }}&course_id={{ membership.unit.id }}&urls={{ membership.unit.github_urls|urlencode }}&platform=GitHub">Refresh
+                                {% if membership.unit.github_member_count > 0 %}
+                                    <br/>
+                                    GitHub signed up: {{ membership.unit.github_member_count }} || 
+                                    <a href="/dataintegration/refreshgithub/?course_id={{ membership.unit.id }}&platform=GitHub">Refresh
                                         Imported Data</a>
                                 {% endif %}
                                 <br/>
@@ -192,6 +186,19 @@
                                         <a href="/clatoolkit/socialmediaaccounts/">Add Trello to your account to plan
                                             and monitor your workload</a>
                                     {% endif %}
+                                    {% if github_attached %}
+                                        <p>
+                                            <h5>GitHub Workload Management</h5>
+                                            <span id="{{ membership.unit.id }}" class="getReposList" ></span>
+                                            <a id="get_repo_list" href="#">Attach a GitHub Repository to plan your Work!</a>
+                                            <p id="reposList"></p>
+                                        </p>
+                                    {% else %}
+                                        <p>
+                                            <a href="/clatoolkit/socialmediaaccounts/">Add GitHub to your account to plan
+                                            and monitor your workload</a>
+                                        </p>
+                                    {% endif %}
                                 </div>
 
                             {% else %}
@@ -222,6 +229,19 @@
                                 {% else %}
                                     <a href="/clatoolkit/socialmediaaccounts/">Add Trello to your account to plan and
                                         monitor your workload</a>
+                                {% endif %}
+                                {% if github_attached %}
+                                    <p>
+                                        <h5>GitHub Workload Management</h5>
+                                        <span id="{{ membership.unit.id }}" class="getReposList" ></span>
+                                        <a id="get_repo_list" href="#">Attach a GitHub Repository to plan your Work!</a>
+                                        <p id="reposList"></p>
+                                    </p>
+                                {% else %}
+                                    <p>
+                                        <a href="/clatoolkit/socialmediaaccounts/">Add GitHub to your account to plan
+                                        and monitor your workload</a>
+                                    </p>
                                 {% endif %}
                             {% endif %}
 
