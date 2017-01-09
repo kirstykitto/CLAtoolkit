@@ -4,6 +4,7 @@ import requests
 import time
 import json
 from urllib import urlencode
+import urllib
 
 """
 AuthRequest: a quick wrapper class to create signed oauth requests to lrs
@@ -136,12 +137,16 @@ class AuthRequest():
         header = "OAuth "
         sorted_params = sorted(params.keys())
 
+        encode = urllib.quote_plus
+
         for i in range(len(sorted_params)):
-            header = header + str(sorted_params[i]) + "=\"" + str(params[sorted_params[i]]) + "\""
+            header = header + str(sorted_params[i]) + "=\"" + encode(str(params[sorted_params[i]]), "") + "\""
 
             if i < len(sorted_params) - 1:
                 header = header + ","
 
+        # print 'header-------------- '
+        # print header
         # Return the headers as a string
         return header
 
@@ -175,14 +180,9 @@ class Crytpo(object):
         return binascii.b2a_base64(hash.digest())[:-1]
 
     def generate_base_string(self, url, params, method="GET"):
-        import urllib
-
         #print "PARAMS: %s" % params
-
         encode = urllib.quote_plus
-
         basestring = method + "&" + encode(url) + "&"
-
         keys = sorted(params.keys())
 
         for i in range(len(keys)):
@@ -190,14 +190,13 @@ class Crytpo(object):
             if keys[i] == 'oauth_callback':
                 basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + encode(encode(params[keys[i]]), "")
             elif keys[i] == 'statementId':
-                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + str(self.get_param_value(params[keys[i]]))
+                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + encode(str(self.get_param_value(params[keys[i]])), "")
             else:
-                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + encode(self.get_param_value(str(params[keys[i]])), "")
+                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + self.escape(encode(str(self.get_param_value(params[keys[i]])), ""))
 
             if i < len(keys) - 1:
                 basestring = basestring + encode("&")
 
-        print basestring
         return basestring.encode('ascii')
 
 
@@ -207,3 +206,7 @@ class Crytpo(object):
 
         return ','.join(values)
 
+    @classmethod
+    def escape(self, s):
+        """Escape a URL including any /."""
+        return urllib.quote(s, safe='~')

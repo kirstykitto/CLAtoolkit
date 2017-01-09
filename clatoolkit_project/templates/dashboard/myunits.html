@@ -7,9 +7,8 @@
 
 {% block body %}
     <link href="{% static 'css/dashboard/myunits.css'%}" rel="stylesheet">
-    <a href="http://localhost:8080/xapi/get_statement?statementId=71c25cb2-9058-4ea1-b298-a0c8480f5722">Test get Statements from LRS</a>
-    <br/>
-    <a href="/xapi/send_statment?unit_id=4">Send test xAPI statement to LRS</a>
+    <a href="http://localhost:8080/xapi/get_statement?statementId=f81285dd-9d96-4ee7-acc4-a3ca56b07e92">Test get Statements from LRS</a>
+    <!-- <a href="http://localhost:8080/xapi/get_statement?verb=opened">Test get Statements from LRS</a> -->
     <br>
     {% for membership in memberships %}
         <div class="row">

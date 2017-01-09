@@ -3,29 +3,31 @@ from gensim import corpora, models, similarities
 from collections import defaultdict
 import pyLDAvis.gensim
 import os
+import re
 import json
+import copy
 import funcy as fp
+import numpy as np
+import subprocess
+import igraph
 from pprint import pprint
-#from dateutil.parser import parse
+from collections import OrderedDict
+from django.conf import settings
 from django.contrib.auth.models import User
-from clatoolkit.models import UserProfile, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, Classification
 from django.db.models import Q, Count
 from django.utils.html import strip_tags
-import re
-from vaderSentiment.vaderSentiment import sentiment as vaderSentiment
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import decomposition
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
-import numpy as np
 from sklearn.cluster import AffinityPropagation
+from vaderSentiment.vaderSentiment import sentiment as vaderSentiment
+from clatoolkit.models import UserProfile, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, Classification
 
-from django.conf import settings
-
-import subprocess
-import igraph
-from collections import OrderedDict
-import copy
 from xapi.statement.xapi_settings import xapi_settings
+from xapi.statement.xapi_getter import xapi_getter
+from xapi.oauth_consumer.operative import LRS_Auth
+
+
 
 def getPluginKey(platform):
     return settings.DATAINTEGRATION_PLUGINS[platform].api_config_dict['api_key']
@@ -132,7 +134,45 @@ def get_smids_fromusername(username):
 def get_timeseries(sm_verb, sm_platform, unit, username=None):
     # more info on postgres timeseries
     # http://no0p.github.io/postgresql/2014/05/08/timeseries-tips-pg.html
+    
+    platformclause = ""
+    if sm_platform != "all":
+        platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (sm_platform)
 
+    userclause = ""
+    if username is not None:
+        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
+        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+        #userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
+
+    cursor = connection.cursor()
+    cursor.execute("""
+    with filled_dates as (
+      select day, 0 as blank_count from
+        generate_series('2015-06-01 00:00'::timestamptz, current_date::timestamptz, '1 day')
+          as day
+    ),
+    daily_counts as (
+    select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
+    FROM clatoolkit_learningrecord
+    WHERE clatoolkit_learningrecord.verb='%s' %s AND clatoolkit_learningrecord.course_code='%s' %s
+    group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
+    order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
+    )
+    select filled_dates.day,
+           coalesce(daily_counts.smcount, filled_dates.blank_count) as signups
+      from filled_dates
+        left outer join daily_counts on daily_counts.day = filled_dates.day
+      order by filled_dates.day;
+    """ % (sm_verb, platformclause, course_code, userclause))
+    result = cursor.fetchall()
+    dataset_list = []
+    for row in result:
+        curdate = row[0] #parse(row[0])
+        datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year,curdate.month-1,curdate.day,row[1])
+        dataset_list.append(datapoint)
+    dataset = ','.join(map(str, dataset_list))
+    return dataset
 
 
     """platformclause = ""
@@ -1188,3 +1228,54 @@ def get_all_reponames(token):
 
     return OrderedDict([('repos', ret)])
 
+def get_timeline_data(unit, user):
+    # TODO: implement this method
+    # posts_timeline = get_timeseries('created', platform, course_code, username=username)
+    # shares_timeline = get_timeseries('shared', platform, course_code, username=username)
+    # likes_timeline = get_timeseries('liked', platform, course_code, username=username)
+    # comments_timeline = get_timeseries('commented', platform, course_code, username=username)
+    return {'posts': [], 'shares': [], 'likes': [], 'comments': []}
+
+
+def get_platform_timeline_data(unit, user):
+    # TODO: implement this method
+    #     twitter_timeline = get_timeseries_byplatform("Twitter", course_code, username)
+    #     facebook_timeline = get_timeseries_byplatform("Facebook", course_code, username)
+    #     forum_timeline = get_timeseries_byplatform("Forum", course_code, username)
+    #     youtube_timeline = get_timeseries_byplatform("YouTube", course_code, username)
+    #     diigo_timeline = get_timeseries_byplatform("Diigo", course_code, username)
+    #     blog_timeline = get_timeseries_byplatform("Blog", course_code, username)
+    return {xapi_settings.PLATFORM_TWITTER: [], xapi_settings.PLATFORM_FACEBOOK: [], 
+            xapi_settings.PLATFORM_BLOG: [], xapi_settings.PLATFORM_YOUTUBE: [],
+            xapi_settings.PLATFORM_TRELLO: [], xapi_settings.PLATFORM_GITHUB: []}
+
+
+# def get_activity_pie_series(unit, user):
+#     getter = xapi_getter()
+#     verb_counts = getter.get_verb_counts(unit.id, user.id)
+
+#     activity_pie_series = ""
+#     for vcounts in verb_counts:
+#         verbs = vcounts['verb']
+#         for v in verbs:
+#             verb_name = xapi_settings.get_verb_by_iri(v['verb'])
+#             activity_pie_series = activity_pie_series + "['%s', %s]," % (verb_name, v['count'])
+        
+#     return activity_pie_series
+
+
+def get_pie_series(unit, count_type, user_id = None):
+    getter = xapi_getter()
+    obj_counts = getter.get_object_counts(unit.id, count_type, user_id)
+
+    pie_series = ""
+    for oc in obj_counts:
+        objs = oc[count_type]
+        for obj in objs:
+            obj_name = obj[count_type]
+            if count_type == 'verb':
+                obj_name = xapi_settings.get_verb_by_iri(obj[count_type])
+
+            pie_series = pie_series + "['%s', %s]," % (obj_name, obj['count'])
+        
+    return pie_series

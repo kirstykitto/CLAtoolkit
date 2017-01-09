@@ -25,22 +25,31 @@ def get_lrs_access_token(request):
 # Create your views here.
 @login_required
 def lrs_test_get_statements(request):
-    key, secret = get_consumer_key_and_secret()
+    # unit_id = request.GET.get('unit_id')
+    unit_id = '4'
+    unit = None
+    try:
+        unit = UnitOffering.objects.get(id = unit_id)
+    except ObjectDoesNotExist:
+        return HttpResponseServerError('Error. Unit was not found.')
+
     params = None
 
     if request.GET:
         params = dict(request.GET.iterlists())
-
         keys = params.keys()
-
         # Convert key:listvalue from querydict to items suitable for dict
         for i in range(len(keys)):
             if type(params[keys[i]]) is 'list' and len(params[keys[i]]) == 1:
                 params[keys[i]] = params[keys[i]][0]
 
-    lrs = LRS_Auth()
+    # params = {}
+    # params['verb'] = ['opened']
+    print params
+    lrs = LRS_Auth(provider_id = unit.lrs_provider.id)
 
     return HttpResponse(lrs.get_statement(request.user.id, filters=params))
+
 
 @login_required
 def lrs_test_send(request):
