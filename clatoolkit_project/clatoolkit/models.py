@@ -308,11 +308,6 @@ class UserClassification(models.Model):
     trained = models.BooleanField(blank=False, default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
-# class UserTrelloCourseBoardMap(models.Model):
-#     user = models.ForeignKey(User)
-#     course_code = models.CharField(max_length=1000, blank=False)
-#     board_id = models.CharField(max_length=5000, blank=False)
-
 class UserPlatformResourceMap(models.Model):
     user = models.ForeignKey(User)
     unit = models.ForeignKey(UnitOffering)
@@ -324,7 +319,7 @@ class ApiCredentials(models.Model):
     credentials_json = JsonField()
 
 class DashboardReflection(models.Model):
-    username = models.CharField(max_length=5000, blank=False)
+    user = models.ForeignKey(User)
     strategy = models.TextField(blank=False)
 
     HAPPY = 'Happy'

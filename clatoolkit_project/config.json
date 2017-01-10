@@ -1,12 +1,12 @@
 {
 
-  "server": "",
+  "server": "localhost",
 
-  "db_name": "cladjangodb",
+  "db_name": "clapgdb",
 
   "db_credentials": {
-    "username": "",
-    "password": ""
+    "username": "koji",
+    "password": "clatoolkitdev123!"
   },
 
   "model_file": "nb_IFN614_Blog.model"

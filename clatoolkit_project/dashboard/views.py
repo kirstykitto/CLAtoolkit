@@ -596,17 +596,24 @@ def mydashboard(request):
     timeline_data = get_timeline_data(unit, user)
     platform_timeline_data = get_platform_timeline_data(unit, user)
 
-    # Get the number of verbs and platforms
-    activity_pie_series = get_pie_series(unit, 'verb', user.id)
-    platformactivity_pie_series = get_pie_series(unit, 'platform', user.id)
-
+    # A flag for showing a platform activity time series and pie chart
     show_allplatforms_widgets = True
     if platform != "all":
         show_allplatforms_widgets = False
+
+    # Get the number of verbs and platforms
+    activity_pie_series = get_pie_series(unit, 'verb', user.id)
+    platformactivity_pie_series = get_pie_series(unit, 'platform', user.id)
     
     # Word cloud tags
     tags = get_wordcloud(platform, unit, user = user)
+    # Sentiments pie chart
+    sentiments = getClassifiedCounts(platform, unit, username=username, classifier="VaderSentiment")
+    # Community of Inquiry
+    coi = getClassifiedCounts(platform, unit, username=username, classifier="nb_"+course_code+"_"+platform+".model")
 
+    reflections = DashboardReflection.objects.filter(user = user)
+    
     # TODO: Fix get_timeseries() method 
     # posts_timeline = get_timeseries('created', platform, course_code, username=username)
     # shares_timeline = get_timeseries('shared', platform, course_code, username=username)
@@ -663,8 +670,8 @@ def mydashboard(request):
     # centrality = getCentrality(sna_json)
     # tags = get_wordcloud(platform, unit, username=username)
 
-    sentiments = getClassifiedCounts(platform, unit, username=username, classifier="VaderSentiment")
-    coi = getClassifiedCounts(platform, unit, username=username, classifier="nb_"+course_code+"_"+platform+".model")
+    # sentiments = getClassifiedCounts(platform, unit, username=username, classifier="VaderSentiment")
+    # coi = getClassifiedCounts(platform, unit, username=username, classifier="nb_"+course_code+"_"+platform+".model")
 
     # reflections = DashboardReflection.objects.filter(username=username)
     # context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 
@@ -688,7 +695,7 @@ def mydashboard(request):
         'platformactivity_pie_series':platformactivity_pie_series, 
         'show_allplatforms_widgets': show_allplatforms_widgets,
         'platform':platform, 'tags': tags, 'sna_json': [], 'centrality': [],
-        'sentiments': sentiments, 'coi': coi
+        'sentiments': sentiments, 'coi': coi, 'reflections':reflections
         }
 
     return render_to_response('dashboard/mydashboard.html', context_dict, context)
