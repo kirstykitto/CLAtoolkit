@@ -25,6 +25,7 @@ from clatoolkit.models import UserProfile, UnitOffering, DashboardReflection, Le
 
 from xapi.statement.xapi_settings import xapi_settings
 from xapi.statement.xapi_getter import xapi_getter
+from xapi.statement.xapi_filter import xapi_filter
 from xapi.oauth_consumer.operative import LRS_Auth
 
 
@@ -357,40 +358,33 @@ def child_count_by_verb(lr, verb, unit):
                                          Q(unit=unit)).count()
 
 
-def get_allcontent_byplatform(platform, unit, username=None, start_date=None, end_date=None):
-
-    dateclause = ""
+def get_allcontent_byplatform(platform, unit, user = None, start_date=None, end_date=None):
+    # Create filters to retrieve xAPI
+    filters = xapi_filter()
+    filters.course = unit.code
     if start_date is not None:
-        dateclause = " AND clatoolkit_learningrecord.datetimestamp BETWEEN '%s' AND '%s'" % (start_date, end_date)
+        filters.since = start_date
 
-    platformclause = ""
+    if end_date is not None:
+        filters.until = end_date
+
     if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
+        filters.platform = platform
 
-    userclause = ""
-    if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
+    getter = xapi_getter()
+    statements = getter.get_xapi_statements(unit.id, user.id, filters)
 
-    cursor = connection.cursor()
-    cursor.execute("""
-        SELECT clatoolkit_learningrecord.message as content, clatoolkit_learningrecord.id
-        FROM clatoolkit_learningrecord
-        WHERE clatoolkit_learningrecord.unit_id='%s' %s %s %s
-    """ % (unit.id, platformclause, userclause, dateclause))
-    result = cursor.fetchall()
     content_list = []
     id_list = []
-    for row in result:
-        #content_list.append(row[0])
-        content = strip_tags(row[0])
+    for row in statements:
+        content = strip_tags(str(row['object']['definition']['name']['en-US']))
         content = content.replace('"','')
         content = re.sub(r'[^\w\s]','',content) #quick fix to remove punctuation
         content_list.append(content)
-        id_list.append(row[1])
+        # Is id_list used?
+        id_list.append(row['id'])
 
-    return content_list,id_list
+    return content_list, id_list
 
 
 def getClassifiedCounts(platform, unit, username=None, start_date=None, end_date=None, classifier=None):
@@ -406,12 +400,15 @@ def getClassifiedCounts(platform, unit, username=None, start_date=None, end_date
         kwargs['classifier']=classifier
     else:
         classifier_name = "nb_%s_%s.model" % (unit.id, platform)
-
         kwargs['classifier'] = classifier_name
-    if username is not None:
-        kwargs['xapistatement__username']=username
+
+    # How is this used??
+    # if username is not None:
+    #     kwargs['xapistatement__username']=username
     if start_date is not None:
-        kwargs['xapistatement__datetimestamp__range']=(start_date, end_date)
+        # kwargs['xapistatement__datetimestamp__range']=(start_date, end_date)
+        kwargs['created_at__range']=(start_date, end_date)
+        
 
     counts_for_pie = ""
     counts = Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification'))
@@ -567,14 +564,14 @@ def nmf(platform, no_topics, course_code, start_date=None, end_date=None):
     return topic_output, d3_dataset
 
 
-def get_wordcloud(platform, unit, username=None, start_date=None, end_date=None):
+def get_wordcloud(platform, unit, user = None, start_date=None, end_date=None):
     docs = None
     ids = None
     documents = None
-    if username is not None:
-        docs,ids = get_allcontent_byplatform(platform, unit, username=username, start_date=start_date, end_date=end_date)
+    if user is not None:
+        docs, ids = get_allcontent_byplatform(platform, unit, user = user, start_date=start_date, end_date=end_date)
     else:
-        docs,ids = get_allcontent_byplatform(platform, unit, start_date=start_date, end_date=end_date)
+        docs, ids = get_allcontent_byplatform(platform, unit, start_date=start_date, end_date=end_date)
 
     documents = remove_stopwords(docs)
     #print documents

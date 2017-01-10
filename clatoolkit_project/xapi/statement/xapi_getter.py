@@ -16,8 +16,8 @@ class xapi_getter(object):
 	def __init__(self):
 		filters = None
 
-	# @classmethod
-	def get_xapi_statements(self, course_id, user_id = None, filters = None):
+
+	def get_xapi_statements(self, course_id, user_id = None, xapi_filters = None):
 		unit = UnitOffering.objects.get(id = course_id)
 		lrs_client = LRS_Auth(provider_id = unit.get_lrs_id())
 
@@ -45,7 +45,7 @@ class xapi_getter(object):
 			#     statement_list.append(stmts)
 
 			# Access to LRS to retrieve xAPI 
-			stmts = lrs_client.get_statement(uid, filters = filters)
+			stmts = lrs_client.get_statement(uid, filters = xapi_filters.to_dict())
 			# print stmts
 			statement_list = stmts['statements']
 

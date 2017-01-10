@@ -601,6 +601,11 @@ def mydashboard(request):
     platformactivity_pie_series = get_pie_series(unit, 'platform', user.id)
 
     show_allplatforms_widgets = True
+    if platform != "all":
+        show_allplatforms_widgets = False
+    
+    # Word cloud tags
+    tags = get_wordcloud(platform, unit, user = user)
 
     # TODO: Fix get_timeseries() method 
     # posts_timeline = get_timeseries('created', platform, course_code, username=username)
@@ -656,12 +661,10 @@ def mydashboard(request):
 
     # sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
     # centrality = getCentrality(sna_json)
-    # tags = get_wordcloud(platform, course_code, username=username)
+    # tags = get_wordcloud(platform, unit, username=username)
 
-    # sentiments = getClassifiedCounts(platform, course_code, username=username, classifier="VaderSentiment")
-
-    # coi = getClassifiedCounts(platform, course_code, username=username, classifier="nb_"+course_code+"_"+platform+".model")
-
+    sentiments = getClassifiedCounts(platform, unit, username=username, classifier="VaderSentiment")
+    coi = getClassifiedCounts(platform, unit, username=username, classifier="nb_"+course_code+"_"+platform+".model")
 
     # reflections = DashboardReflection.objects.filter(username=username)
     # context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 
@@ -683,8 +686,9 @@ def mydashboard(request):
         'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
         'activity_pie_series': activity_pie_series,
         'platformactivity_pie_series':platformactivity_pie_series, 
-        'show_allplatforms_widgets': show_allplatforms_widgets, 
-        'platform':platform, 'tags': [], 'sna_json': [], 'centrality': []
+        'show_allplatforms_widgets': show_allplatforms_widgets,
+        'platform':platform, 'tags': tags, 'sna_json': [], 'centrality': [],
+        'sentiments': sentiments, 'coi': coi
         }
 
     return render_to_response('dashboard/mydashboard.html', context_dict, context)
