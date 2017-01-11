@@ -562,7 +562,6 @@ def mydashboard(request):
     course_code = None
     platform = None
     user = request.user
-    username = user.username
 
     if request.method == 'POST':
         course_code = request.POST['course_code']
@@ -571,7 +570,7 @@ def mydashboard(request):
         # save reflection
         reflectiontext = request.POST['reflectiontext']
         rating = request.POST['rating']
-        reflect = DashboardReflection(strategy=reflectiontext,rating=rating,username=username)
+        reflect = DashboardReflection(strategy = reflectiontext, rating = rating, user = user)
         reflect.save()
 
     else:
@@ -589,7 +588,7 @@ def mydashboard(request):
     # sm_usernames = [twitter_id, fb_id, forum_id]
     # sm_usernames_str = ','.join("'{0}'".format(x) for x in sm_usernames)
 
-    title = "Student Dashboard: %s, %s" % (course_code, username)
+    title = "Student Dashboard: %s, %s" % (course_code, user.username)
     show_dashboardnav = True
 
     # Activity Time line data (verbs and platform)
@@ -608,10 +607,10 @@ def mydashboard(request):
     # Word cloud tags
     tags = get_wordcloud(platform, unit, user = user)
     # Sentiments pie chart
-    sentiments = getClassifiedCounts(platform, unit, username=username, classifier="VaderSentiment")
+    sentiments = getClassifiedCounts(platform, unit, user = user, classifier="VaderSentiment")
     # Community of Inquiry
-    coi = getClassifiedCounts(platform, unit, username=username, classifier="nb_"+course_code+"_"+platform+".model")
-
+    coi = getClassifiedCounts(platform, unit, user = user, classifier="nb_"+course_code+"_"+platform+".model")
+    # Dashboard reflection
     reflections = DashboardReflection.objects.filter(user = user)
     
     # TODO: Fix get_timeseries() method 
@@ -688,7 +687,7 @@ def mydashboard(request):
     #     'centrality': centrality
     # }
     context_dict = {
-        'title': title, 'course_code':course_code, 'username': username,
+        'title': title, 'course_code':course_code, 'username': user.username,
         'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
         'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
         'activity_pie_series': activity_pie_series,

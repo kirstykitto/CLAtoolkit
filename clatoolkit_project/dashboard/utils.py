@@ -387,7 +387,7 @@ def get_allcontent_byplatform(platform, unit, user = None, start_date=None, end_
     return content_list, id_list
 
 
-def getClassifiedCounts(platform, unit, username=None, start_date=None, end_date=None, classifier=None):
+def getClassifiedCounts(platform, unit, user = None, start_date=None, end_date=None, classifier=None):
     classification_dict = None
     if classifier == "VaderSentiment":
         classification_dict = {'positive':0, 'neutral':0, 'negative':0}
@@ -402,20 +402,25 @@ def getClassifiedCounts(platform, unit, username=None, start_date=None, end_date
         classifier_name = "nb_%s_%s.model" % (unit.id, platform)
         kwargs['classifier'] = classifier_name
 
-    # How is this used??
-    # if username is not None:
-    #     kwargs['xapistatement__username']=username
-    if start_date is not None:
+    if user is not None:
+        # kwargs['xapistatement__username']=username
+        records = LearningRecord.objects.filter(user = user)
+        record_id_list = []
+        for record in records:
+            record_id_list.append(record.id)
+
+        kwargs['xapistatement__id__in'] = record_id_list
+    if start_date is not None and end_date is not None:
         # kwargs['xapistatement__datetimestamp__range']=(start_date, end_date)
         kwargs['created_at__range']=(start_date, end_date)
-        
 
     counts_for_pie = ""
     counts = Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification'))
     for count in counts:
         #print count
-        counts_for_pie = counts_for_pie + "['%s',  %s]," % (count['classification'],count['classification__count'])
+        counts_for_pie = counts_for_pie + "['%s', %s]," % (count['classification'],count['classification__count'])
     return counts_for_pie
+
 
 def loadStopWords(stopWordFile):
     stopWords = []
@@ -423,6 +428,7 @@ def loadStopWords(stopWordFile):
         for word in line.split( ): #in case more than one per line
             stopWords.append(word)
     return stopWords
+
 
 def remove_stopwords(documents):
     stop_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),'englishstop.txt')
