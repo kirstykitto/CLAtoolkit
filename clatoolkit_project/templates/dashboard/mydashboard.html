@@ -405,11 +405,13 @@
       resturl = "/api/learningrecord";
       if (platform!="all")
       {
-        restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        // restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        restparams = {format: "json", unit:"{{unit}}", platform:"{{platform}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
       else
       {
-        restparams = {format: "json", course_code:"{{course_code}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        // restparams = {format: "json", course_code:"{{course_code}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        restparams = {format: "json", unit:"{{unit}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
     }
     else
@@ -440,11 +442,13 @@
       resturl = "/api/socialrelationship";
       if (platform!="all")
       {
-        restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        // restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        restparams = {format: "json", unit:"{{unit}}", platform:"{{platform}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
       else
       {
-        restparams = {format: "json", course_code:"{{course_code}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        // restparams = {format: "json", course_code:"{{course_code}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        restparams = {format: "json", unit:"{{unit}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
     }
     console.log(resturl);

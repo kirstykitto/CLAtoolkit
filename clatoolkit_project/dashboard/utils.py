@@ -638,27 +638,30 @@ def get_nodes_by_platform(unit, start_date=None, end_date=None, platform=None):
     node_dict = {}
     count = 1
     for row in result:
+        # Get user id for now. Username will be obtained later.
         node_dict[row[0]] = count
         count += 1
     #print "node_dict", node_dict
     return node_dict
 
 
-def get_relationships_byplatform(platform, unit, username=None, start_date=None, end_date=None, relationshipstoinclude=None):
+def get_relationships_byplatform(platform, unit, user = None, start_date=None, end_date=None, 
+                                 relationshipstoinclude=None):
     platformclause = ""
     if platform != "all":
         platformclause = " AND clatoolkit_socialrelationship.platform='%s'" % (platform)
 
     userclause = ""
-    if username is not None:
-        userclause = " AND (clatoolkit_socialrelationship.fromusername='%s' OR clatoolkit_socialrelationship.tousername='%s')" % (username,username)
+    if user is not None:
+        userclause = " AND (clatoolkit_socialrelationship.from_user_id='%s'", \
+                            " OR clatoolkit_socialrelationship.to_user_id='%s')" % (user.id, user.id)
 
     dateclause = ""
     if start_date is not None:
         dateclause = " AND clatoolkit_socialrelationship.datetimestamp BETWEEN '%s' AND '%s'" % (start_date, end_date)
 
     relationshipclause = ""
-    if relationshipstoinclude is not None and relationshipstoinclude!='-':
+    if relationshipstoinclude is not None and relationshipstoinclude != '-':
         relationshipclause = " AND clatoolkit_socialrelationship.verb IN (%s) " % (relationshipstoinclude)
     else:
         relationshipclause = " AND clatoolkit_socialrelationship.verb NOT IN ('mentioned','shared','liked','commented') "
@@ -667,23 +670,32 @@ def get_relationships_byplatform(platform, unit, username=None, start_date=None,
     nodes_in_sna_dict = {}
 
     sql = """
-            SELECT clatoolkit_socialrelationship.from_user_id, clatoolkit_socialrelationship.to_user_id, clatoolkit_socialrelationship.verb, clatoolkit_socialrelationship.platform
+            SELECT clatoolkit_socialrelationship.from_user_id, 
+                   clatoolkit_socialrelationship.to_user_id, 
+                   clatoolkit_socialrelationship.verb, 
+                   clatoolkit_socialrelationship.platform
             FROM   clatoolkit_socialrelationship
             WHERE  clatoolkit_socialrelationship.unit_id='%s' %s %s %s %s
           """ % (unit.id, platformclause, userclause, dateclause, relationshipclause)
-    #print sql
+    # print sql
     cursor = connection.cursor()
     cursor.execute(sql)
     result = cursor.fetchall()
+
+    count = 1
+    nodes_in_sna_dict = {}
 
     edge_dict = defaultdict(int)
     mention_dict = defaultdict(int)
     comment_dict = defaultdict(int)
     share_dict = defaultdict(int)
     for row in result:
-        display_username = row[0]
+        from_user = User.objects.get(id = row[0])
+        to_user = User.objects.get(id = row[1])
+
+        display_username = from_user.username
+        display_related_username = to_user.username
         verb = row[2]
-        display_related_username = row[1]
         row_platform = row[3]
         from_node = display_username
         to_node = display_related_username
@@ -704,6 +716,7 @@ def get_relationships_byplatform(platform, unit, username=None, start_date=None,
     return edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict
 
 
+
 def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None, relationshipstoinclude=None):
 
     node_dict = None
@@ -715,11 +728,12 @@ def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None,
     #    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
     #else:
     node_dict = get_nodes_by_platform(unit, start_date, end_date, platform)
-    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform,
-                                                                                                        unit,
-                                                                                                        start_date=start_date,
-                                                                                                        end_date=end_date,
-                                                                                                        relationshipstoinclude=relationshipstoinclude)
+    edge_dict, nodes_in_sna_dict, mention_dict, \
+    share_dict, comment_dict = get_relationships_byplatform(platform,
+                                                            unit,
+                                                            start_date=start_date,
+                                                            end_date=end_date,
+                                                            relationshipstoinclude=relationshipstoinclude)
 
     #node_dict.update(nodes_in_sna_dict)
     for key in nodes_in_sna_dict:
@@ -731,13 +745,13 @@ def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None,
 
     #print node_dict, node_dict
 
-    node_type_colours = {'Staff':{'border':'#661A00','fill':'#CC3300'}, 'Student':{'border':'#003D99','fill':'#0066FF'}, 'Visitor':{'border':'black','fill':'white'}}
+    node_type_colours = {'Staff':{'border':'#661A00','fill':'#CC3300'}, \
+                         'Student':{'border':'#003D99','fill':'#0066FF'}, \
+                         'Visitor':{'border':'black','fill':'white'}}
     dict_types = {'mention': mention_dict, 'share': share_dict, 'comment': comment_dict}
     relationship_type_colours = {'mention': 'grey', 'share': 'green', 'comment': 'red'}
 
-
     json_str_list = []
-
     node_degree_dict = {}
     for node in node_dict:
         node_degree_dict[node] = 1
@@ -755,12 +769,21 @@ def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None,
     #count = 1
     for node in node_dict:
         #print node
-        username = node
+        # username = node
+        u = None
+        try:
+            # Node is user id and we want user name
+            u = User.objects.get(id = node)
+            u = u.username
+        except:
+            u = node
+        username = u
         role = get_role_fromusername(node, platform)
         node_border = node_type_colours[role]['border']
         node_fill = node_type_colours[role]['fill']
         #json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, degree[node_dict[node]]))
-        json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, node_degree_dict[node]))
+        json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % 
+                            (node_dict[node], username, node_fill, node_border, node_degree_dict[node]))
         #count = count + 1
     #json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
 
@@ -835,31 +858,27 @@ def getNeighbours(jsonStr):
     allNeighbours = json.dumps(allNeighbours)
     return allNeighbours
 
-def getCentrality(jsonStr):
-
-    print jsonStr
-
-    print type(jsonStr)
-    g = _createGraphElements(json.loads(str(jsonStr)))
+def get_centrality(jsonStr):
+    g = _create_graphElements(json.loads(str(jsonStr)))
     #print(g)
     #layout = g.layout("kk")
     #igraph.plot(g, layout=layout)
     dc = OrderedDict({"ids": g.vs["ids"], "label": g.vs["label"]})
     digits = 2
     numOfNodes = g.vcount()
-    dc["inDegree"] = _roundNumbers(_normaliseDegree(g.degree(mode="in"), numOfNodes), digits)
-    dc["outDegree"] = _roundNumbers(_normaliseDegree(g.degree(mode="out"), numOfNodes), digits)
-    dc["totalDegree"] = _roundNumbers(_normaliseDegree(g.degree(), numOfNodes), digits)
-    dc["betweenness"] = _roundNumbers(g.betweenness(directed=True), digits)
-    dc["inCloseness"] = _roundNumbers(g.closeness(mode="in"), digits)
-    dc["outCloseness"] = _roundNumbers(g.closeness(mode="out"), digits)
-    dc["totalCloseness"] = _roundNumbers(g.closeness(), digits)
-    dc["eigenvector"] = _roundNumbers(g.eigenvector_centrality(directed=True, scale=True), digits)
-    dc["density"] = _roundNumber(g.density(loops=True), digits)
+    dc["inDegree"] = _round_numbers(_normaliseDegree(g.degree(mode="in"), numOfNodes), digits)
+    dc["outDegree"] = _round_numbers(_normaliseDegree(g.degree(mode="out"), numOfNodes), digits)
+    dc["totalDegree"] = _round_numbers(_normaliseDegree(g.degree(), numOfNodes), digits)
+    dc["betweenness"] = _round_numbers(g.betweenness(directed=True), digits)
+    dc["inCloseness"] = _round_numbers(g.closeness(mode="in"), digits)
+    dc["outCloseness"] = _round_numbers(g.closeness(mode="out"), digits)
+    dc["totalCloseness"] = _round_numbers(g.closeness(), digits)
+    dc["eigenvector"] = _round_numbers(g.eigenvector_centrality(directed=True, scale=True), digits)
+    dc["density"] = _round_number(g.density(loops=True), digits)
 
     return json.dumps(dc)
 
-def _createGraphElements(jdata):
+def _create_graphElements(jdata):
     ids = []
     labels = []
     for node in jdata["nodes"]:
@@ -898,16 +917,16 @@ def _normaliseDegree(targetArray, numOfNodes):
 
     return targetArray
 
-def _roundNumbers(targetArray, digits):
+def _round_numbers(targetArray, digits):
     print targetArray
     index = 0
     for num in targetArray:
-        targetArray[index] = _roundNumber(num, digits)
+        targetArray[index] = _round_number(num, digits)
         index = index + 1
 
     return targetArray
 
-def _roundNumber(target, digits):
+def _round_number(target, digits):
     return round(target, digits)
 
 
@@ -1251,20 +1270,6 @@ def get_platform_timeline_data(unit, user):
     return {xapi_settings.PLATFORM_TWITTER: [], xapi_settings.PLATFORM_FACEBOOK: [], 
             xapi_settings.PLATFORM_BLOG: [], xapi_settings.PLATFORM_YOUTUBE: [],
             xapi_settings.PLATFORM_TRELLO: [], xapi_settings.PLATFORM_GITHUB: []}
-
-
-# def get_activity_pie_series(unit, user):
-#     getter = xapi_getter()
-#     verb_counts = getter.get_verb_counts(unit.id, user.id)
-
-#     activity_pie_series = ""
-#     for vcounts in verb_counts:
-#         verbs = vcounts['verb']
-#         for v in verbs:
-#             verb_name = xapi_settings.get_verb_by_iri(v['verb'])
-#             activity_pie_series = activity_pie_series + "['%s', %s]," % (verb_name, v['count'])
-        
-#     return activity_pie_series
 
 
 def get_pie_series(unit, count_type, user_id = None):

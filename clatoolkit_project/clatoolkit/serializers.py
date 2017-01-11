@@ -5,17 +5,34 @@ class LearningRecordSerializer(serializers.ModelSerializer):
     """
     Serializing all the Learning Records
     """
+    # course_code = serializers.RelatedField(source='code', read_only=True)
+    # user = serializers.RelatedField(source='user', read_only=True)
+    # parent_user = serializers.RelatedField(source='parent_user', read_only=True)
+    # print course_code
+    # course_code = unit.code
+    # username = user.username
+    # parentusername = parent_user.username
     class Meta:
         model = LearningRecord
-        fields = ('id', 'course_code', 'platform', 'verb', 'username', 'platformid', 'platformparentid', 'parentusername', 'message', 'datetimestamp', 'senttolrs')
+        fields = ('id', 'unit', 'platform', 'verb', 'user', 'platformid', 'platformparentid', 
+                  'parent_user', 'message', 'datetimestamp', 'senttolrs')
 
 class SocialRelationshipSerializer(serializers.ModelSerializer):
     """
     Serializing all the Relationships for Social Network Analysis
     """
+    
+    # unit = serializers.RelatedField(source='unit', read_only=True)
+    # to_user = serializers.RelatedField(source='to_user', read_only=True)
+    # from_user = serializers.RelatedField(source='from_user', read_only=True)
+    # course_code = unit.code
+    # tousername = to_user.username
+    # fromusername = from_user.username
+
     class Meta:
         model = SocialRelationship
-        fields = ('id', 'course_code', 'platform', 'verb', 'fromusername', 'tousername', 'platformid', 'message', 'datetimestamp')
+        fields = ('id', 'unit', 'platform', 'verb', 'from_user', 'to_user', 'platformid', 'message', 'datetimestamp')
+
 
 class ClassificationSerializer(serializers.ModelSerializer):
     """

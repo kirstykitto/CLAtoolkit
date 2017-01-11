@@ -397,7 +397,7 @@ def snadashboard(request):
 
         sna_json = sna_buildjson(platform, unit, relationshipstoinclude="'mentioned','liked','shared','commented'")
         #sna_neighbours = getNeighbours(sna_json)
-        centrality = getCentrality(sna_json)
+        centrality = get_centrality(sna_json)
         context_dict = {'show_dashboardnav': show_dashboardnav, 'unit': unit, 'platform': platform, 'title': title,
                         'sna_json': sna_json, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline,
                         'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
@@ -612,7 +612,20 @@ def mydashboard(request):
     coi = getClassifiedCounts(platform, unit, user = user, classifier="nb_"+course_code+"_"+platform+".model")
     # Dashboard reflection
     reflections = DashboardReflection.objects.filter(user = user)
+    # SNA explorer data 
+    sna_json = sna_buildjson(platform, unit, 
+        # relationshipstoinclude="'mentioned','liked','shared','commented'")
+        relationshipstoinclude = "'%s', '%s', '%s', '%s'" % (xapi_settings.VERB_MENTIONED, xapi_settings.VERB_LIKED, \
+                                                             xapi_settings.VERB_SHARED, xapi_settings.VERB_COMMENTED))
     
+    # Centrality data
+    centrality = get_centrality(sna_json)
+    
+    print 'sna json ----------'
+    print sna_json
+    print 'centrality json ----------'
+    print centrality
+
     # TODO: Fix get_timeseries() method 
     # posts_timeline = get_timeseries('created', platform, course_code, username=username)
     # shares_timeline = get_timeseries('shared', platform, course_code, username=username)
@@ -687,13 +700,13 @@ def mydashboard(request):
     #     'centrality': centrality
     # }
     context_dict = {
-        'title': title, 'course_code':course_code, 'username': user.username,
+        'title': title, 'course_code':course_code, 'unit': unit.id, 'username': user.username,
         'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
         'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
         'activity_pie_series': activity_pie_series,
         'platformactivity_pie_series':platformactivity_pie_series, 
         'show_allplatforms_widgets': show_allplatforms_widgets,
-        'platform':platform, 'tags': tags, 'sna_json': [], 'centrality': [],
+        'platform':platform, 'tags': tags, 'sna_json': sna_json, 'centrality': centrality,
         'sentiments': sentiments, 'coi': coi, 'reflections':reflections
         }
 
