@@ -690,8 +690,16 @@ def get_relationships_byplatform(platform, unit, user = None, start_date=None, e
     comment_dict = defaultdict(int)
     share_dict = defaultdict(int)
     for row in result:
-        from_user = User.objects.get(id = row[0])
-        to_user = User.objects.get(id = row[1])
+        from_user = None
+        to_user = None
+        try:
+            from_user = User.objects.get(id = row[0])
+        except:
+            from_user = ''
+        try:
+            to_user = User.objects.get(id = row[1])
+        except:
+            to_user = ''
 
         display_username = from_user.username
         display_related_username = to_user.username
@@ -735,6 +743,8 @@ def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None,
                                                             end_date=end_date,
                                                             relationshipstoinclude=relationshipstoinclude)
 
+    # print '-----'
+    # print node_dict
     #node_dict.update(nodes_in_sna_dict)
     for key in nodes_in_sna_dict:
         node_dict[key] = 1
@@ -771,19 +781,22 @@ def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None,
         #print node
         # username = node
         u = None
+        uid = None
         try:
             # Node is user id and we want user name
             u = User.objects.get(id = node)
-            u = u.username
+            username = u.username
+            uid = str(u.id)
         except:
-            u = node
-        username = u
+            username = node
+            uid = ''
+        
         role = get_role_fromusername(node, platform)
         node_border = node_type_colours[role]['border']
         node_fill = node_type_colours[role]['fill']
         #json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % (node_dict[node], username, node_fill, node_border, degree[node_dict[node]]))
-        json_str_list.append('{"id": %d, "label": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % 
-                            (node_dict[node], username, node_fill, node_border, node_degree_dict[node]))
+        json_str_list.append('{"id": %d, "label": "%s", "uid": "%s", "color": {"background":"%s", "border":"%s"}, "value": %d},' % 
+                            (node_dict[node], username, uid, node_fill, node_border, node_degree_dict[node]))
         #count = count + 1
     #json_str_list[len(json_str_list)-1] = json_str_list[len(json_str_list)-1][0:-1]
 
@@ -859,6 +872,7 @@ def getNeighbours(jsonStr):
     return allNeighbours
 
 def get_centrality(jsonStr):
+    print jsonStr
     g = _create_graphElements(json.loads(str(jsonStr)))
     #print(g)
     #layout = g.layout("kk")

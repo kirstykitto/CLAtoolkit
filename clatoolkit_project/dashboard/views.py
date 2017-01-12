@@ -620,11 +620,6 @@ def mydashboard(request):
     
     # Centrality data
     centrality = get_centrality(sna_json)
-    
-    print 'sna json ----------'
-    print sna_json
-    print 'centrality json ----------'
-    print centrality
 
     # TODO: Fix get_timeseries() method 
     # posts_timeline = get_timeseries('created', platform, course_code, username=username)
