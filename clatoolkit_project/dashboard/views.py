@@ -21,6 +21,7 @@ from rest_framework.response import Response
 
 from xapi.models import ClientApp, UserAccessToken_LRS
 from xapi.statement.xapi_settings import xapi_settings
+from xapi.statement.xapi_filter import xapi_filter
 
 
 
@@ -237,91 +238,125 @@ def dashboard(request):
 
     # If the user is an admin for the course
     if UnitOfferingMembership.is_admin(request.user, unit):
-
+        user = request.user
         platform = request.GET.get('platform')
 
         title = "Activity Dashboard: %s (Platform: %s)" % (unit.code, platform)
         show_dashboardnav = True
 
-        profiling = ""
-        profiling = profiling + "| Verb Timelines %s" % (str(datetime.datetime.now()))
-        posts_timeline = get_timeseries('created', platform, unit)
-        shares_timeline = get_timeseries('shared', platform, unit)
-        likes_timeline = get_timeseries('liked', platform, unit)
-        comments_timeline = get_timeseries('commented', platform, unit)
+        # Get the number of verbs
+        activity_pie_series = get_pie_series(unit, xapi_filter.COUNT_TYPE_VERB, platform = platform)
+        platformactivity_pie_series = get_pie_series(unit, xapi_filter.COUNT_TYPE_PLATFORM, platform = platform)
 
-        show_allplatforms_widgets = False
-        twitter_timeline = ""
-        facebook_timeline = ""
-        forum_timeline = ""
-        youtube_timeline = ""
-        diigo_timeline = ""
-        blog_timeline = ""
-        github_timeline = ""
-        trello_timeline = ""
-
-        profiling = profiling + "| Platform Timelines %s" % (str(datetime.datetime.now()))
-        platformclause = ""
-
-        #TODO: This will need to change upon implementation of teaching periods
-
-        if platform != "all":
-            platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
-        else:
-            twitter_timeline = get_timeseries_byplatform("Twitter", unit)
-            facebook_timeline = get_timeseries_byplatform("Facebook", unit)
-            forum_timeline = get_timeseries_byplatform("Forum", unit)
-            youtube_timeline = get_timeseries_byplatform("YouTube", unit)
-            diigo_timeline = get_timeseries_byplatform("Diigo", unit)
-            blog_timeline = get_timeseries_byplatform("Blog", unit)
-            github_timeline = get_timeseries_byplatform("GitHub", unit)
-            trello_timeline = get_timeseries_byplatform("trello", unit)
-            show_allplatforms_widgets = True
-
-        profiling = profiling + "| Pies %s" % (str(datetime.datetime.now()))
-        cursor = connection.cursor()
-        cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
-                            FROM clatoolkit_learningrecord
-                            WHERE clatoolkit_learningrecord.unit_id='%s' %s
-                            GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
-                        """ % (unit.id, platformclause))
-        result = cursor.fetchall()
-
-        activity_pie_series = ""
-        for row in result:
-            activity_pie_series = activity_pie_series + "['%s',  %s]," % (row[0],row[1])
-
-        cursor = connection.cursor()
-        cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'context'->>'platform' as platform, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
-                            FROM clatoolkit_learningrecord
-                            WHERE clatoolkit_learningrecord.unit_id='%s'
-                            GROUP BY clatoolkit_learningrecord.xapi->'context'->>'platform';
-                        """ % (unit.id))
-        result = cursor.fetchall()
-
-        platformactivity_pie_series = ""
-        for row in result:
-            platformactivity_pie_series = platformactivity_pie_series + "['%s',  %s]," % (row[0],row[1])
-
-        #active members table
-        profiling = profiling + "| Active Members %s" % (str(datetime.datetime.now()))
+        # TODO: Fix get_timeseries() method
+        # Activity Time line data (verbs and platform)
+        timeline_data = get_timeline_data(unit, user)
+        platform_timeline_data = get_platform_timeline_data(unit, user)
 
         p = platform if platform != "all" else None
         activememberstable = get_active_members_table(unit, p)
+        # topcontenttable = get_cached_top_content(platform, unit)
 
-        profiling = profiling + "| Top Content %s" % (str(datetime.datetime.now()))
-        topcontenttable = get_cached_top_content(platform, unit)
-        profiling = profiling + "| End Top Content %s" % (str(datetime.datetime.now()))
 
-        context_dict = {'profiling': profiling, 'show_dashboardnav':show_dashboardnav,
-        'course_code':unit.code, 'platform':platform,
-        'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline': forum_timeline,
-        'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline,
-        'github_timeline': github_timeline, 'trello_timeline': trello_timeline,
-        'show_allplatforms_widgets': show_allplatforms_widgets, 'platformactivity_pie_series': platformactivity_pie_series,
-        'title': title, 'activememberstable': activememberstable, 'topcontenttable': topcontenttable,
-        'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline,
-        'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+
+        # title = "Activity Dashboard: %s (Platform: %s)" % (unit.code, platform)
+        # show_dashboardnav = True
+
+        # profiling = ""
+        # profiling = profiling + "| Verb Timelines %s" % (str(datetime.datetime.now()))
+        # posts_timeline = get_timeseries('created', platform, unit)
+        # shares_timeline = get_timeseries('shared', platform, unit)
+        # likes_timeline = get_timeseries('liked', platform, unit)
+        # comments_timeline = get_timeseries('commented', platform, unit)
+
+        # show_allplatforms_widgets = False
+        # twitter_timeline = ""
+        # facebook_timeline = ""
+        # forum_timeline = ""
+        # youtube_timeline = ""
+        # diigo_timeline = ""
+        # blog_timeline = ""
+        # github_timeline = ""
+        # trello_timeline = ""
+
+        # profiling = profiling + "| Platform Timelines %s" % (str(datetime.datetime.now()))
+        # platformclause = ""
+
+        # #TODO: This will need to change upon implementation of teaching periods
+
+        # if platform != "all":
+        #     platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
+        # else:
+        #     twitter_timeline = get_timeseries_byplatform("Twitter", unit)
+        #     facebook_timeline = get_timeseries_byplatform("Facebook", unit)
+        #     forum_timeline = get_timeseries_byplatform("Forum", unit)
+        #     youtube_timeline = get_timeseries_byplatform("YouTube", unit)
+        #     diigo_timeline = get_timeseries_byplatform("Diigo", unit)
+        #     blog_timeline = get_timeseries_byplatform("Blog", unit)
+        #     github_timeline = get_timeseries_byplatform("GitHub", unit)
+        #     trello_timeline = get_timeseries_byplatform("trello", unit)
+        #     show_allplatforms_widgets = True
+
+        # profiling = profiling + "| Pies %s" % (str(datetime.datetime.now()))
+        # cursor = connection.cursor()
+        # cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
+        #                     FROM clatoolkit_learningrecord
+        #                     WHERE clatoolkit_learningrecord.unit_id='%s' %s
+        #                     GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
+        #                 """ % (unit.id, platformclause))
+        # result = cursor.fetchall()
+
+        # activity_pie_series = ""
+        # for row in result:
+        #     activity_pie_series = activity_pie_series + "['%s',  %s]," % (row[0],row[1])
+
+        # cursor = connection.cursor()
+        # cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'context'->>'platform' as platform, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
+        #                     FROM clatoolkit_learningrecord
+        #                     WHERE clatoolkit_learningrecord.unit_id='%s'
+        #                     GROUP BY clatoolkit_learningrecord.xapi->'context'->>'platform';
+        #                 """ % (unit.id))
+        # result = cursor.fetchall()
+
+        # platformactivity_pie_series = ""
+        # for row in result:
+        #     platformactivity_pie_series = platformactivity_pie_series + "['%s',  %s]," % (row[0],row[1])
+
+        # #active members table
+        # profiling = profiling + "| Active Members %s" % (str(datetime.datetime.now()))
+
+        # p = platform if platform != "all" else None
+        # activememberstable = get_active_members_table(unit, p)
+
+        # profiling = profiling + "| Top Content %s" % (str(datetime.datetime.now()))
+        # topcontenttable = get_cached_top_content(platform, unit)
+        # profiling = profiling + "| End Top Content %s" % (str(datetime.datetime.now()))
+
+        # context_dict = {'profiling': profiling, 'show_dashboardnav':show_dashboardnav,
+        # 'course_code':unit.code, 'platform':platform,
+        # 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline': forum_timeline,
+        # 'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline,
+        # 'github_timeline': github_timeline, 'trello_timeline': trello_timeline,
+        # 'show_allplatforms_widgets': show_allplatforms_widgets, 'platformactivity_pie_series': platformactivity_pie_series,
+        # 'title': title, 'activememberstable': activememberstable, 'topcontenttable': topcontenttable,
+        # 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline,
+        # 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+
+        context_dict = {
+            'title': title, 'course_code':unit.code, 'platform':platform, 'show_dashboardnav':show_dashboardnav,
+            'activememberstable': activememberstable, 
+            'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
+            'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
+
+            'twitter_timeline': platform_timeline_data[xapi_settings.PLATFORM_TWITTER], 
+            'facebook_timeline': platform_timeline_data[xapi_settings.PLATFORM_FACEBOOK], 
+            'youtube_timeline': platform_timeline_data[xapi_settings.PLATFORM_YOUTUBE], 
+            'blog_timeline': platform_timeline_data[xapi_settings.PLATFORM_BLOG], 
+            'trello_timeline': platform_timeline_data[xapi_settings.PLATFORM_TRELLO], 
+            'github_timeline': platform_timeline_data[xapi_settings.PLATFORM_GITHUB], 
+            'forum_timeline': [], 'diigo_timeline':[], # These haven't been implemented
+
+            'activity_pie_series': activity_pie_series}
 
         return render_to_response('dashboard/dashboard.html', context_dict, context)
 
@@ -564,7 +599,7 @@ def mydashboard(request):
     user = request.user
 
     if request.method == 'POST':
-        course_code = request.POST['course_code']
+        # course_code = request.POST['course_code']
         platform = request.POST['platform']
 
         # save reflection
@@ -601,8 +636,8 @@ def mydashboard(request):
         show_allplatforms_widgets = False
 
     # Get the number of verbs and platforms
-    activity_pie_series = get_pie_series(unit, 'verb', user.id)
-    platformactivity_pie_series = get_pie_series(unit, 'platform', user.id)
+    activity_pie_series = get_pie_series(unit, xapi_filter.COUNT_TYPE_VERB, user.id)
+    platformactivity_pie_series = get_pie_series(unit, xapi_filter.COUNT_TYPE_PLATFORM, user.id)
     
     # Word cloud tags
     tags = get_wordcloud(platform, unit, user = user)
@@ -627,18 +662,6 @@ def mydashboard(request):
     # likes_timeline = get_timeseries('liked', platform, course_code, username=username)
     # comments_timeline = get_timeseries('commented', platform, course_code, username=username)
 
-    # cursor = connection.cursor()
-    # cursor.execute("""SELECT clatoolkit_learningrecord.verb as verb, count(clatoolkit_learningrecord.verb) as counts
-    #                     FROM clatoolkit_learningrecord
-    #                     WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
-    #                     GROUP BY clatoolkit_learningrecord.verb;
-    #                 """ % (course_code, username))
-    # result = cursor.fetchall()
-
-    # activity_pie_series = ""
-    # for row in result:
-    #     activity_pie_series = activity_pie_series + "['%s',  %s]," % (row[0],row[1])
-
     # show_allplatforms_widgets = False
     # twitter_timeline = ""
     # facebook_timeline = ""
@@ -658,49 +681,23 @@ def mydashboard(request):
     #     diigo_timeline = get_timeseries_byplatform("Diigo", course_code, username)
     #     blog_timeline = get_timeseries_byplatform("Blog", course_code, username)
     #     show_allplatforms_widgets = True
-
-    # cursor = connection.cursor()
-    # cursor.execute("""SELECT clatoolkit_learningrecord.platform as platform, count(clatoolkit_learningrecord.verb) as counts
-    #                     FROM clatoolkit_learningrecord
-    #                     WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
-    #                     GROUP BY clatoolkit_learningrecord.platform;
-    #                 """ % (course_code, username))
-    # result = cursor.fetchall()
-
-    # platformactivity_pie_series = ""
-    # for row in result:
-    #     platformactivity_pie_series = platformactivity_pie_series + "['%s',  %s]," % (row[0],row[1])
-
-    # #topcontenttable = get_top_content_table(platform, course_code, username=username)
-
-    # sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
-    # centrality = getCentrality(sna_json)
-    # tags = get_wordcloud(platform, unit, username=username)
-
-    # sentiments = getClassifiedCounts(platform, unit, username=username, classifier="VaderSentiment")
-    # coi = getClassifiedCounts(platform, unit, username=username, classifier="nb_"+course_code+"_"+platform+".model")
-
-    # reflections = DashboardReflection.objects.filter(username=username)
-    # context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 
-    #     'forum_timeline': forum_timeline, 'twitter_timeline': twitter_timeline, 
-    #     'facebook_timeline': facebook_timeline, 'youtube_timeline': youtube_timeline, 
-    #     'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 
-    #     'platformactivity_pie_series':platformactivity_pie_series, 
-    #     'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 
-    #     'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 
-    #     'username':username, 'reflections':reflections, 'sna_json': sna_json,
-    #     'tags': tags, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 
-    #     'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 
-    #     'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi,
-    #     'centrality': centrality
-    # }
+    
     context_dict = {
         'title': title, 'course_code':course_code, 'unit': unit.id, 'username': user.username,
         'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
         'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
+
+        'twitter_timeline': platform_timeline_data[xapi_settings.PLATFORM_TWITTER], 
+        'facebook_timeline': platform_timeline_data[xapi_settings.PLATFORM_FACEBOOK], 
+        'youtube_timeline': platform_timeline_data[xapi_settings.PLATFORM_YOUTUBE], 
+        'blog_timeline': platform_timeline_data[xapi_settings.PLATFORM_BLOG], 
+        'trello_timeline': platform_timeline_data[xapi_settings.PLATFORM_TRELLO], 
+        'github_timeline': platform_timeline_data[xapi_settings.PLATFORM_GITHUB], 
+        'forum_timeline': [], 'diigo_timeline':[], # These haven't been implemented
+
         'activity_pie_series': activity_pie_series,
         'platformactivity_pie_series':platformactivity_pie_series, 
-        'show_allplatforms_widgets': show_allplatforms_widgets,
+        'show_allplatforms_widgets': show_allplatforms_widgets, 'show_dashboardnav': True,
         'platform':platform, 'tags': tags, 'sna_json': sna_json, 'centrality': centrality,
         'sentiments': sentiments, 'coi': coi, 'reflections':reflections
         }

@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 
 from clatoolkit.models import UnitOffering, UnitOfferingMembership
 from xapi.oauth_consumer.operative import LRS_Auth
+from xapi.statement.xapi_settings import xapi_settings
 
 
 class xapi_getter(object):
@@ -53,7 +54,18 @@ class xapi_getter(object):
 		return statement_list
 
 
-	def get_object_counts(self, course_id, count_type, user_id = None):
+	def get_verb_count(self, course_id, count_type, user_id = None, xapi_filters = None):
+		obj_counts = self.get_object_counts(course_id, count_type, user_id, xapi_filters)
+
+		for oc in obj_counts:
+			objs = oc[count_type]
+			for obj in objs:
+				obj[count_type] = xapi_settings.get_verb_by_iri(obj[count_type])
+
+		return obj_counts
+
+
+	def get_object_counts(self, course_id, count_type, user_id = None, xapi_filters = None):
 		unit = UnitOffering.objects.get(id = course_id)
 		lrs_client = LRS_Auth(provider_id = unit.get_lrs_id())
 
@@ -69,10 +81,8 @@ class xapi_getter(object):
 			count_list.append({'id': user.id, 'username': user.username})
 
 		stmts = None
-		filters = {'counttype': count_type}
-		# count_list = {}
 		for user in count_list:
-			stmts = lrs_client.get_statement(user['id'], filters = filters)
-			user[count_type] = stmts[count_type]
+			stmts = lrs_client.get_statement(user['id'], filters = xapi_filters.to_dict())
+			user[count_type] = [] if stmts is None else stmts[count_type]
 
 		return count_list

@@ -275,14 +275,42 @@ def get_active_members_table(unit, platform=None):
         else:
             platforms = platform
 
-        num_posts = get_user_verb_use(user, "created", unit, platform)
-        num_likes = get_user_verb_use(user, "liked", unit, platform)
-        num_shares = get_user_verb_use(user, "shared", unit, platform)
-        num_comments = get_user_verb_use(user, "commented", unit, platform)
+        # num_posts = get_user_verb_use(user, "created", unit, platform)
+        # num_likes = get_user_verb_use(user, "liked", unit, platform)
+        # num_shares = get_user_verb_use(user, "shared", unit, platform)
+        # num_comments = get_user_verb_use(user, "commented", unit, platform)
 
-        table_html = """<tr><td><a href="/dashboard/student_dashboard?unit={}&platform={}&user={}">{} {}</a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>""".format(
-            unit.id, platform, user.id, user.first_name, user.last_name, num_posts, num_likes, num_shares, num_comments,
-            platforms)
+        num_posts = 0
+        num_likes = 0
+        num_shares = 0
+        num_comments = 0
+
+        filters = xapi_filter()
+        filters.course = unit.code
+        filters.counttype = filters.COUNT_TYPE_VERB
+
+        if platform is not None and platform != 'all':
+            filters.platform = platform
+        
+        getter = xapi_getter()
+        obj_counts = getter.get_verb_count(unit.id, filters.COUNT_TYPE_VERB, user.id, filters)
+
+        for oc in obj_counts:
+            objs = oc[filters.COUNT_TYPE_VERB]
+            for obj in objs:
+                if obj['verb'] == xapi_settings.VERB_CREATED:
+                    num_posts = obj['count']
+                elif obj['verb'] == xapi_settings.VERB_LIKED:
+                    num_likes = obj['count']
+                elif obj['verb'] == xapi_settings.VERB_SHARED:
+                    num_shares = obj['count']
+                elif obj['verb'] == xapi_settings.VERB_COMMENTED:
+                    num_comments = obj['count']
+
+        table_html = '<tr><td><a href="/dashboard/student_dashboard?unit={}&platform={}&user={}">' \
+                     '{} {}</a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
+                        unit.id, platform, user.id, user.first_name, user.last_name, num_posts, 
+                        num_likes, num_shares, num_comments, platforms)
 
         table.append(table_html)
 
@@ -1286,18 +1314,25 @@ def get_platform_timeline_data(unit, user):
             xapi_settings.PLATFORM_TRELLO: [], xapi_settings.PLATFORM_GITHUB: []}
 
 
-def get_pie_series(unit, count_type, user_id = None):
+def get_pie_series(unit, count_type, user_id = None, platform = None):
+    filters = xapi_filter()
+    filters.course = unit.code
+    filters.counttype = count_type
+
+    if platform is not None and platform != 'all':
+        filters.platform = platform
+    
     getter = xapi_getter()
-    obj_counts = getter.get_object_counts(unit.id, count_type, user_id)
+    obj_counts = []
+    if count_type == xapi_filter.COUNT_TYPE_VERB:
+        obj_counts = getter.get_verb_count(unit.id, count_type, user_id, filters)
+    else:
+        obj_counts = getter.get_object_counts(unit.id, count_type, user_id, filters)
 
     pie_series = ""
     for oc in obj_counts:
         objs = oc[count_type]
         for obj in objs:
-            obj_name = obj[count_type]
-            if count_type == 'verb':
-                obj_name = xapi_settings.get_verb_by_iri(obj[count_type])
-
-            pie_series = pie_series + "['%s', %s]," % (obj_name, obj['count'])
+            pie_series = pie_series + "['%s', %s]," % (obj[count_type], obj['count'])
         
     return pie_series

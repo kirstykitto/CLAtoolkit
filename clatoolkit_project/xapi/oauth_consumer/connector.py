@@ -111,9 +111,10 @@ class AuthRequest():
 
         # Add in extra params if they exist, right now we're only support 1 param (xapi filters)
         # TODO: Might have to handle multiple params
-        if extra_params and len(extra_params) == 1:
-            # print 'EXTRA_PARAMS: %s' % extra_params
-            params.update(extra_params)
+        # if extra_params and len(extra_params) == 1:
+        #     # print 'EXTRA_PARAMS: %s' % extra_params
+        #     params.update(extra_params)
+        params.update(extra_params)
 
         # We can tell this in Auth-flow request by considering token, token_secret, callback and the http method
         # GET requests without an access_token&secret and WITH a callback are auth requests
@@ -188,11 +189,14 @@ class Crytpo(object):
         for i in range(len(keys)):
 
             if keys[i] == 'oauth_callback':
-                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + encode(encode(params[keys[i]]), "")
+                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") \
+                    + encode(encode(params[keys[i]]), "")
             elif keys[i] == 'statementId':
-                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + encode(str(self.get_param_value(params[keys[i]])), "")
+                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") \
+                    + encode(str(self.get_param_value(params[keys[i]])), "")
             else:
-                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + self.escape(encode(str(self.get_param_value(params[keys[i]])), ""))
+                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") \
+                    + self.escape(encode(str(self.get_param_value(params[keys[i]])), ""))
 
             if i < len(keys) - 1:
                 basestring = basestring + encode("&")

@@ -7,9 +7,6 @@
 
 {% block body %}
     <link href="{% static 'css/dashboard/myunits.css'%}" rel="stylesheet">
-    <a href="http://localhost:8080/xapi/get_statement?statementId=f81285dd-9d96-4ee7-acc4-a3ca56b07e92">Test get Statements from LRS</a>
-    <!-- <a href="http://localhost:8080/xapi/get_statement?verb=opened">Test get Statements from LRS</a> -->
-    <br>
     {% for membership in memberships %}
         <div class="row">
             <div class="col-lg-12">
