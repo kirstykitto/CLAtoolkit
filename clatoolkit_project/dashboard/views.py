@@ -22,6 +22,7 @@ from rest_framework.response import Response
 from xapi.models import ClientApp, UserAccessToken_LRS
 from xapi.statement.xapi_settings import xapi_settings
 from xapi.statement.xapi_filter import xapi_filter
+from xapi.statement.xapi_getter import xapi_getter
 
 
 
@@ -106,9 +107,9 @@ def check_access(required_roles=None):
 
             if correct_role:
                 if request.method == 'POST':
-                    course_id = request.POST['unit']
+                    course_id = request.POST['course_id']
                 else:
-                    course_id = request.GET.get('unit')
+                    course_id = request.GET.get('course_id')
 
                 # Check that user is a member of the course
                 unit = UnitOffering.objects.filter(id = course_id, users = request.user.id)
@@ -256,7 +257,7 @@ def dashboard(request):
 
         p = platform if platform != "all" else None
         activememberstable = get_active_members_table(unit, p)
-        # topcontenttable = get_cached_top_content(platform, unit)
+        topcontenttable = get_cached_top_content(platform, unit)
 
 
 
@@ -347,7 +348,7 @@ def dashboard(request):
             'title': title, 'course_code':unit.code, 'platform':platform, 'show_dashboardnav':show_dashboardnav,
             'activememberstable': activememberstable, 
             # TODO: Get topcontenttable (fix the method)
-            #'topcontenttable': topcontenttable, 
+            'topcontenttable': topcontenttable, 
             'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
             'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 
@@ -473,7 +474,7 @@ def studentdashboard(request):
     context = RequestContext(request)
 
     selected_user_id = request.GET.get('user')
-    course_id = request.GET.get('unit')
+    course_id = request.GET.get('course_id')
     platform = request.GET.get('platform')
     unit = None
     user = None
@@ -686,11 +687,12 @@ def mydashboard(request):
         reflect.save()
 
     else:
-        course_code = request.GET.get('course_code')
+        course_id = request.GET.get('course_id')
         platform = request.GET.get('platform')
         #username = request.GET.get('username')
 
-    unit = UnitOffering.objects.get(code = course_code)
+    unit = UnitOffering.objects.get(id = course_id)
+    course_code = unit.code
 
     # TODO: What are these for?? weren't used...
     # twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id = get_smids_fromuid(uid)
@@ -987,3 +989,48 @@ def get_github_contribution(request):
     contribution = get_issue_list(course_code)
     
     return JsonResponse(contribution, status=status.HTTP_200_OK)
+
+
+@login_required
+def get_learning_records(request):
+    course_id = request.GET.get('unit')
+    user_id = request.GET.get('user')
+    platform = request.GET.get('platform')
+    unit = None
+    user = None
+    
+    print course_id, platform, user_id
+    try:
+        unit = UnitOffering.objects.get(id = course_id)
+        user = User.objects.get(id = user_id)
+    except:
+        raise HttpResponseServerError('Unit or user not found.')
+
+    # Get xAPI statements
+    filters = xapi_filter()
+    filters.course = unit.code
+    if platform is not None and platform != 'all' and platform != '':
+        filters.platform = platform
+    getter = xapi_getter()
+    statements = getter.get_xapi_statements(unit.id, user_id, filters)
+    lang = 'en-US'
+    results = []
+    for stmt in statements:
+        parent_username = None
+        try:
+            learning_record = LearningRecord.objects.get(statement_id = stmt['id'])
+            parent_user = User.objects.get(id = learning_record.parent_user_id)
+            parent_username = parent_user.username
+        except:
+            pass
+
+        obj = {}
+        obj['username'] = stmt['authority']['member'][0]['name']
+        obj['parentusername'] = parent_username
+        obj['message'] = stmt['object']['definition']['name'][lang]
+        obj['verb'] = stmt['verb']['display'][lang]
+        obj['platform'] = stmt['context']['platform']
+        obj['datetimestamp'] = stmt['timestamp']
+        results.append(obj)
+
+    return JsonResponse({'results': results}, status=status.HTTP_200_OK)

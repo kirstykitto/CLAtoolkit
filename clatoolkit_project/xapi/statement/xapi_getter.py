@@ -34,7 +34,7 @@ class xapi_getter(object):
 
 		statement_list = []
 		for uid in user_list:
-			user = User.objects.get(id = uid)
+			# user = User.objects.get(id = uid)
 			# Get statement IDs from learningrecord table
 			# records = LearningRecord.objects.filter(user = user, unit = unit)
 			# for row in records:
@@ -61,11 +61,13 @@ class xapi_getter(object):
 	def get_verb_count(self, course_id, count_type, user_id = None, xapi_filters = None):
 		obj_counts = self.get_object_counts(course_id, count_type, user_id, xapi_filters)
 
-		for oc in obj_counts:
-			objs = oc[count_type]
-			for obj in objs:
-				obj[count_type] = xapi_settings.get_verb_by_iri(obj[count_type])
+		obj = {}
+		total_dict = obj_counts['total']
+		for key, value in total_dict.iteritems():
+			# Convert verb IRI into verb
+			obj[xapi_settings.get_verb_by_iri(key)] = value
 
+		obj_counts['total'] = obj
 		return obj_counts
 
 
@@ -89,4 +91,14 @@ class xapi_getter(object):
 			stmts = lrs_client.get_statement(user['id'], filters = xapi_filters.to_dict())
 			user[count_type] = [] if stmts is None else stmts[count_type]
 
-		return count_list
+		new_obj = {}
+		for c in count_list:
+			objs = c[count_type]
+			for obj in objs:
+				if obj[count_type] in new_obj:
+					new_obj[obj[count_type]] = int(new_obj[obj[count_type]]) + int(obj['count'])
+				else:
+					new_obj[obj[count_type]] = int(obj['count'])
+
+		return_obj = {'total': new_obj, 'users': count_list}
+		return return_obj

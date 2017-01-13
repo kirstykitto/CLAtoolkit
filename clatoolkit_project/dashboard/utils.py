@@ -291,19 +291,18 @@ def get_active_members_table(unit, platform=None):
         getter = xapi_getter()
         obj_counts = getter.get_verb_count(unit.id, filters.COUNT_TYPE_VERB, user.id, filters)
 
-        for oc in obj_counts:
-            objs = oc[filters.COUNT_TYPE_VERB]
-            for obj in objs:
-                if obj['verb'] == xapi_settings.VERB_CREATED:
-                    num_posts = obj['count']
-                elif obj['verb'] == xapi_settings.VERB_LIKED:
-                    num_likes = obj['count']
-                elif obj['verb'] == xapi_settings.VERB_SHARED:
-                    num_shares = obj['count']
-                elif obj['verb'] == xapi_settings.VERB_COMMENTED:
-                    num_comments = obj['count']
+        total_dict = obj_counts['total']
+        for key, value in total_dict.iteritems():
+            if total_dict[key] == xapi_settings.VERB_CREATED:
+                num_posts = obj['count']
+            elif total_dict[key] == xapi_settings.VERB_LIKED:
+                num_likes = obj['count']
+            elif total_dict[key] == xapi_settings.VERB_SHARED:
+                num_shares = obj['count']
+            elif total_dict[key] == xapi_settings.VERB_COMMENTED:
+                num_comments = obj['count']
 
-        table_html = '<tr><td><a href="/dashboard/student_dashboard?unit={}&platform={}&user={}">' \
+        table_html = '<tr><td><a href="/dashboard/student_dashboard?course_id={}&platform={}&user={}">' \
                      '{} {}</a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
                         unit.id, platform, user.id, user.first_name, user.last_name, num_posts, 
                         num_likes, num_shares, num_comments, platforms)
@@ -337,9 +336,6 @@ def get_top_content_table(unit, platform=None, user=None):
     table = []
 
     for lr in records:
-        # num_likes = child_count_by_verb(lr, "liked", unit)
-        # num_shares = child_count_by_verb(lr, "shared", unit)
-        # num_comments = child_count_by_verb(lr, "commented", unit)
         num_likes = child_count_by_verb(lr, xapi_settings.VERB_LIKED, unit)
         num_shares = child_count_by_verb(lr, xapi_settings.VERB_SHARED, unit)
         num_comments = child_count_by_verb(lr, xapi_settings.VERB_COMMENTED, unit)
@@ -415,7 +411,12 @@ def get_allcontent_byplatform(platform, unit, user = None, start_date=None, end_
     content_list = []
     id_list = []
     for row in statements:
-        content = strip_tags(str(row['object']['definition']['name']['en-US']))
+        # content = ''
+        # try:
+        #     content = strip_tags(row['object']['definition']['name']['en-US'])
+        # except
+        #     content = row['object']['definition']['name']['en-US']
+        content = strip_tags(row['object']['definition']['name']['en-US'])
         content = content.replace('"','')
         content = re.sub(r'[^\w\s]','',content) #quick fix to remove punctuation
         content_list.append(content)
@@ -730,17 +731,20 @@ def get_relationships_byplatform(platform, unit, user = None, start_date=None, e
     for row in result:
         from_user = None
         to_user = None
+        display_username = ''
+        display_related_username = ''
         try:
             from_user = User.objects.get(id = row[0])
+            display_username = from_user.username
         except:
-            from_user = ''
+            display_username = ''
+
         try:
             to_user = User.objects.get(id = row[1])
+            display_related_username = to_user.username
         except:
-            to_user = ''
+            display_related_username = ''
 
-        display_username = from_user.username
-        display_related_username = to_user.username
         verb = row[2]
         row_platform = row[3]
         from_node = display_username
@@ -1349,9 +1353,13 @@ def get_pie_series(unit, count_type, user_id = None, platform = None):
         obj_counts = getter.get_object_counts(unit.id, count_type, user_id, filters)
 
     pie_series = ""
-    for oc in obj_counts:
-        objs = oc[count_type]
-        for obj in objs:
-            pie_series = pie_series + "['%s', %s]," % (obj[count_type], obj['count'])
+    # for oc in obj_counts:
+    #     objs = oc[count_type]
+    #     for obj in objs:
+    #         pie_series = pie_series + "['%s', %s]," % (obj[count_type], obj['count'])
+    
+    total_dict = obj_counts['total']
+    for key, value in total_dict.iteritems():
+        pie_series = pie_series + "['%s', %s]," % (key, value)
         
     return pie_series

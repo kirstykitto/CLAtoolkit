@@ -277,16 +277,20 @@ function update_messages(nodes, edges)
   {
     // get node label
     username = getnodelabel(nodes[0])
+    // get node (user) ID
+    uid = getNodeUid(nodes[0]);
+
     $('#relationships').html('<h3>Selected User: ' + username + '</h3>');
     console.log("Selected User:" + username)
     resturl = "/api/learningrecord";
     if (platform!="all")
     {
-      restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", unit:"{{unit}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      resturl = '/dashboard/api/get_learning_records';
     }
     else
     {
-      restparams = {format: "json", course_code:"{{course_code}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", unit:"{{unit}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
   }
   else
@@ -296,6 +300,16 @@ function update_messages(nodes, edges)
     fromusername = usernames[0]
     tousername = usernames[1]
     link_label = usernames[2]
+
+    if(fromusername == null && tousername == null) {
+      $('#relationships').html('');
+      return;
+    }
+
+    uids = getNodeUids(edges[0]);
+    from_user = uids[0];
+    to_user = uids[1];
+    link_label = uids[2];
     if (link_label == "mention")
     {
       verb = "mentioned";
@@ -317,27 +331,31 @@ function update_messages(nodes, edges)
     resturl = "/api/socialrelationship";
     if (platform!="all")
     {
-      restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", unit:"{{unit}}", platform:"{{platform}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
     else
     {
-      restparams = {format: "json", course_code:"{{course_code}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", unit:"{{unit}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
   }
   console.log(resturl);
   $.getJSON(resturl, restparams,
     function(data){
-      console.log(data.results);
+      // console.log(data.results);
       datatable_array = []
       for (i=0;i<data.results.length;i++)
       {
         var datarow;
         if (typeofrequest == "Node")
         {
-          datarow = [data.results[i].username, data.results[i].parentusername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
+          var parentUsername = data.results[i].parentusername == null ? "" : data.results[i].parentusername;
+          datarow = [data.results[i].username, parentUsername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
         }
         else {
-          datarow = [data.results[i].fromusername, data.results[i].tousername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
+          var fromUsername = data.results[i].fromusername == null ? "" : data.results[i].fromusername;
+          var toUserName = data.results[i].tousername == null ? "" : data.results[i].tousername;
+
+          datarow = [fromUsername, toUserName, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
         }
         datatable_array.push(datarow)
       }

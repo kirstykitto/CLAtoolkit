@@ -11,8 +11,9 @@ class LearningRecordSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LearningRecord
-        fields = ('id', 'course_code', 'platform', 'verb', 'username', 'platformid', 'platformparentid', 
-                  'parent_username', 'message', 'datetimestamp', 'senttolrs')
+        # fields = ('id', 'course_code', 'platform', 'verb', 'username', 'platformid', 'platformparentid', 
+        #           'parent_username', 'message', 'datetimestamp', 'senttolrs')
+        fields = ('id', 'course_code', 'platform', 'verb', 'username', 'platformid', 'platformparentid')
 
 class SocialRelationshipSerializer(serializers.ModelSerializer):
     """

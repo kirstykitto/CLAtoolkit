@@ -33,7 +33,8 @@ def insert_share(user, post_id, share_id, comment_message, comment_created_time,
         #                      parent_user_external=parent_external_user, message=comment_message,
         #                      datetimestamp=comment_created_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=xapi_settings.VERB_SHARED, 
-                             platform=platform, user=user, platformid=share_id, platformparentid=post_id)
+                             platform=platform, user=user, platformid=share_id, platformparentid=post_id,
+                             parent_user=parent_user)
         lrs.save()
 
         #Send xapi to lrs or cache for later
@@ -114,7 +115,7 @@ def insert_like(user, object_id, message, unit, platform, platform_url, parent_i
         #                      platformid=object_id, message=message, platformparentid=object_id, parent_user=parent_user,
         #                      parent_user_external=parent_user_external, datetimestamp=created_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, user=user, 
-                             platformid=object_id, platformparentid=object_id)
+                             platformid=object_id, platformparentid=object_id, parent_user=parent_user)
         lrs.save()
 
         sr = SocialRelationship(verb=verb, from_user=user, to_user=parent_user,
@@ -145,7 +146,7 @@ def insert_comment(user, post_id, comment_id, comment_message, comment_created_t
         #                      parent_user_external=parent_user_external, message=comment_message,
         #                      datetimestamp=comment_created_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=xapi_settings.VERB_COMMENTED, platform=platform, 
-                             user=user, platformid=comment_id, platformparentid=post_id)
+                             user=user, platformid=comment_id, platformparentid=post_id, parent_user=parent_user)
         lrs.save()
 
         sr = SocialRelationship(verb=xapi_settings.VERB_COMMENTED, from_user=user, to_user=parent_user,
@@ -265,24 +266,6 @@ def insert_issue(user, issue_id, verb, object_type, parent_object_type, message,
                 socialrelationship.save()
         """
 
-# def insert_issue(user, repo_id, issue_id, message, created_time, unit, platform):
-#     if check_ifnotinlocallrs(unit, platform, issue_id):
-#         verb = 'created'
-
-#         lrs = LearningRecord(xapi=None, unit=unit, verb=verb, platform=platform, platformid=issue_id, user=user,
-#                              platformparentid=repo_id, message=message, datetimestamp=created_time)
-#         lrs.save()
-#         """
-#         for tag in tags:
-#             if tag[0]=="@":
-#                 socialrelationship = SocialRelationship(
-#                     verb = "mentioned", fromusername=get_username_fromsmid(from_uid,platform),
-#                     tousername=get_username_fromsmid(tag[1:],platform),
-#                     platform=platform, message=message, datetimestamp=created_time,
-#                     course_code=course_code, platformid=platform_id)
-#                 socialrelationship.save()
-#         """
-
 
 def insert_task(user, task_id, task_name, task_created_time, unit, platform, platform_url, parent_id=None, other_contexts = []):
 
@@ -333,28 +316,6 @@ def insert_added_object(user, target_id, object_id, object_text, obj_created_tim
         status,content = lrs_client.transfer_statement(user.id, statement=jsn)
 
 
-# def insert_added_object(usr_dict, target_id, object_id, object_text, obj_from_uid, obj_from_name, obj_created_time,
-#                         course_code, platform, platform_url, obj_type, shared_usrname=None, shared_displayname=None,
-#                         other_contexts = []):
-#     if check_ifnotinlocallrs(course_code, platform, object_id):
-#         if shared_displayname is not None:
-#             stm = socialmedia_builder(verb='added', platform=platform, account_name=obj_from_uid, account_homepage=platform_url,
-#                                       object_type=obj_type, object_id=object_id, message=object_text, parent_id=target_id,
-#                                       parent_object_type='Task', timestamp=obj_created_time, account_email=usr_dict['email'],
-#                                       user_name=obj_from_name, course_code=course_code, other_contexts = other_contexts)
-#             jsn = ast.literal_eval(stm.to_json())
-#             stm_jsn = pretty_print_json(jsn)
-#             lrs = LearningRecord(xapi=stm_jsn, course_code=course_code, verb='added', platform=platform,
-#                                  username=get_username_fromsmid(obj_from_uid, platform),
-#                                  platformid=object_id, platformparentid=target_id,
-#                                  parentusername=get_username_fromsmid(shared_displayname,platform),
-#                                  parentdisplayname=shared_displayname, message=object_text,
-#                                  datetimestamp=obj_created_time)
-#             lrs.save()
-
-#             '''Maybe social relationship stuff...
-#             '''
-
 def insert_updated_object(user, object_id, object_message, obj_update_time, unit, platform, platform_url, 
                           obj_type, parent_id=None, obj_parent_type=None, other_contexts = []):
 
@@ -378,26 +339,6 @@ def insert_updated_object(user, object_id, object_message, obj_update_time, unit
 
         jsn = stm.to_json()
         status,content = lrs_client.transfer_statement(user.id, statement=jsn)
-
-
-
-# def insert_updated_object(usr_dict, object_id, object_text, obj_updater_uid, obj_updater_name, obj_update_time,
-#                           course_code, platform, platform_url, obj_type, obj_parent=None, obj_parent_type=None,
-#                           other_contexts = []):
-#     if check_ifnotinlocallrs(course_code, platform, object_id):
-#         if obj_parent is not None:
-#             stm = socialmedia_builder(verb='updated', platform=platform, account_name=obj_updater_uid, account_homepage=platform_url,
-#                                       object_type=obj_type, object_id=object_id, message=object_text, parent_id=obj_parent,
-#                                       parent_object_type=obj_parent_type, timestamp=obj_update_time, account_email=usr_dict['email'],
-#                                       user_name=obj_updater_name, course_code=course_code, other_contexts = other_contexts)
-#             jsn = ast.literal_eval(stm.to_json())
-#             stm_jsn = pretty_print_json(jsn)
-#             lrs = LearningRecord(xapi=stm_jsn, course_code=course_code, verb='updated', platform=platform,
-#                                  username=get_username_fromsmid(obj_updater_uid, platform),
-#                                  platformid=object_id, platformparentid=obj_parent,
-#                                  message=object_text, datetimestamp=obj_update_time)
-#             lrs.save()
-
 
 
 def insert_closedopen_object(user, object_id, object_message, obj_update_time, unit, platform, platform_url, 

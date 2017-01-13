@@ -405,13 +405,15 @@
       $('#relationships').html('<h3>Selected User: ' + username + '</h3>');
       console.log("Selected User :" + uid)
       resturl = "/api/learningrecord";
-      if (platform!="all")
+      console.log(platform);
+      if (platform !="all")
       {
         restparams = {format: "json", unit:"{{unit}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
       else
       {
         restparams = {format: "json", unit:"{{unit}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        resturl = '/dashboard/api/get_learning_records';
       }
     }
     else
@@ -459,7 +461,7 @@
         restparams = {format: "json", unit:"{{unit}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
     }
-    // console.log(resturl);
+    console.log(resturl);
     $.getJSON(resturl, restparams,
       function(data){
         // console.log(data.results);

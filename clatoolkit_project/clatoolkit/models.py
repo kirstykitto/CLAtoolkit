@@ -258,9 +258,9 @@ class LearningRecord(models.Model):
     user = models.ForeignKey(User)
     # xapi = JsonField()
     # TODO - Use foreign key to link to parent learning record
-    #        Store parent xAPI statement ID here? Anyway, it's gotta be fixed
+    #        Store parent xAPI statement ID here?
     platformparentid = models.CharField(max_length=5000, blank=True)
-    # parent_user = models.ForeignKey(User, null=True, related_name="parent_user")
+    parent_user = models.ForeignKey(User, null=True, related_name="parent_user")
     # parent_user_external = models.CharField(max_length=5000, blank=True, null=True)
     # message = models.TextField(blank=True)
     # datetimestamp = models.DateTimeField(auto_now_add=True, null=True)

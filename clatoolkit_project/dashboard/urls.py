@@ -29,4 +29,5 @@ urlpatterns = patterns('',
     url(r'^api/removeAttachedRepo$', views.remove_attached_repo, name='remove_attached_repo'),
     url(r'^api/get_user_acitivities/$', views.get_user_acitivities, name='get_user_acitivities'),
     url(r'^api/get_github_contribution/$', views.get_github_contribution, name='get_github_contribution'),
+    url(r'^api/get_learning_records/$', views.get_learning_records, name='get_learning_records'),
 )
