@@ -11,12 +11,17 @@ class xapi_filter(object):
 	platform = None
 	course = None
 	counttype = None
+	statement_id = None
 
 	def __init__(self):
 		pass
 
 	def to_dict(self):
 		filters = {}
+		# When statement ID is specified, anything else will not be used.
+		if self.statement_id:
+			filters['statementId'] = self.statement_id
+
 		if self.until:
 			filters['until'] = self.until
 		if self.since:

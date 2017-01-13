@@ -250,20 +250,21 @@ class UnitOfferingMembership(models.Model):
 
 
 class LearningRecord(models.Model):
-    xapi = JsonField()
     statement_id = models.CharField(max_length=256, blank=False)
-    unit = models.ForeignKey(UnitOffering)
-    platform = models.CharField(max_length=100, blank=False)
-    verb = models.CharField(max_length=50, blank=False)
-    user = models.ForeignKey(User)
     platformid = models.CharField(max_length=5000, blank=True)
+    verb = models.CharField(max_length=50, blank=False)
+    platform = models.CharField(max_length=100, blank=False)
+    unit = models.ForeignKey(UnitOffering)
+    user = models.ForeignKey(User)
+    # xapi = JsonField()
     # TODO - Use foreign key to link to parent learning record
+    #        Store parent xAPI statement ID here? Anyway, it's gotta be fixed
     platformparentid = models.CharField(max_length=5000, blank=True)
-    parent_user = models.ForeignKey(User, null=True, related_name="parent_user")
-    parent_user_external = models.CharField(max_length=5000, blank=True, null=True)
-    message = models.TextField(blank=True)
-    datetimestamp = models.DateTimeField(auto_now_add=True, null=True)
-    senttolrs = models.CharField(max_length=5000, blank=True)
+    # parent_user = models.ForeignKey(User, null=True, related_name="parent_user")
+    # parent_user_external = models.CharField(max_length=5000, blank=True, null=True)
+    # message = models.TextField(blank=True)
+    # datetimestamp = models.DateTimeField(auto_now_add=True, null=True)
+    # senttolrs = models.CharField(max_length=5000, blank=True)
 
 
 class SocialRelationship(models.Model):

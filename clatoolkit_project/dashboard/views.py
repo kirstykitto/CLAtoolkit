@@ -256,7 +256,7 @@ def dashboard(request):
 
         p = platform if platform != "all" else None
         activememberstable = get_active_members_table(unit, p)
-        topcontenttable = get_cached_top_content(platform, unit)
+        # topcontenttable = get_cached_top_content(platform, unit)
 
 
 
@@ -345,7 +345,9 @@ def dashboard(request):
 
         context_dict = {
             'title': title, 'course_code':unit.code, 'platform':platform, 'show_dashboardnav':show_dashboardnav,
-            'activememberstable': activememberstable, 'topcontenttable': topcontenttable,
+            'activememberstable': activememberstable, 
+            # TODO: Get topcontenttable (fix the method)
+            #'topcontenttable': topcontenttable, 
             'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
             'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 

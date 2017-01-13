@@ -275,16 +275,12 @@ def get_active_members_table(unit, platform=None):
         else:
             platforms = platform
 
-        # num_posts = get_user_verb_use(user, "created", unit, platform)
-        # num_likes = get_user_verb_use(user, "liked", unit, platform)
-        # num_shares = get_user_verb_use(user, "shared", unit, platform)
-        # num_comments = get_user_verb_use(user, "commented", unit, platform)
-
         num_posts = 0
         num_likes = 0
         num_shares = 0
         num_comments = 0
 
+        # Get verb counts
         filters = xapi_filter()
         filters.course = unit.code
         filters.counttype = filters.COUNT_TYPE_VERB
@@ -341,12 +337,26 @@ def get_top_content_table(unit, platform=None, user=None):
     table = []
 
     for lr in records:
-        num_likes = child_count_by_verb(lr, "liked", unit)
-        num_shares = child_count_by_verb(lr, "shared", unit)
-        num_comments = child_count_by_verb(lr, "commented", unit)
+        # num_likes = child_count_by_verb(lr, "liked", unit)
+        # num_shares = child_count_by_verb(lr, "shared", unit)
+        # num_comments = child_count_by_verb(lr, "commented", unit)
+        num_likes = child_count_by_verb(lr, xapi_settings.VERB_LIKED, unit)
+        num_shares = child_count_by_verb(lr, xapi_settings.VERB_SHARED, unit)
+        num_comments = child_count_by_verb(lr, xapi_settings.VERB_COMMENTED, unit)
 
+        # Get xAPI from LRS
+        filters = xapi_filter()
+        getter = xapi_getter()
+        filters.statement_id = lr.statement_id
+        stmt = getter.get_xapi_statements(lr.unit_id, lr.user_id, filters)
+
+        message = stmt[0]['object']['definition']['name']['en-US']
+        activity_date = stmt[0]['timestamp']
+        # table_html = """<tr><td>{} {}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>""".format(
+        #     lr.user.first_name, lr.user.last_name, lr.message, lr.datetimestamp, num_likes, num_shares, num_comments,
+        #     lr.platform)
         table_html = """<tr><td>{} {}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>""".format(
-            lr.user.first_name, lr.user.last_name, lr.message, lr.datetimestamp, num_likes, num_shares, num_comments,
+            lr.user.first_name, lr.user.last_name, message, activity_date, num_likes, num_shares, num_comments,
             lr.platform)
 
         table.append(table_html)
@@ -863,7 +873,16 @@ def sentiment_classifier(unit):
     sm_objs = LearningRecord.objects.filter(unit=unit)
 
     for sm_obj in sm_objs:
-        message = sm_obj.message.encode('utf-8', 'replace')
+
+        # Get xAPI from LRS
+        filters = xapi_filter()
+        getter = xapi_getter()
+        filters.statement_id = sm_obj.statement_id
+        stmt = getter.get_xapi_statements(sm_obj.unit_id, sm_obj.user_id, filters)
+        message = stmt[0]['object']['definition']['name']['en-US']
+
+        # message = sm_obj.message.encode('utf-8', 'replace')
+        message  = message.encode('utf-8', 'replace')
         sentiment = "Neutral"
         vs = vaderSentiment(message)
         #print vs, message

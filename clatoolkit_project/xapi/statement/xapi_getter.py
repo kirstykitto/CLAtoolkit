@@ -47,8 +47,12 @@ class xapi_getter(object):
 
 			# Access to LRS to retrieve xAPI 
 			stmts = lrs_client.get_statement(uid, filters = xapi_filters.to_dict())
+			# print '---------------- xAPI statement retrieved from LRS ----------------'
 			# print stmts
-			statement_list = stmts['statements']
+			if 'statements' in stmts:
+				statement_list = stmts['statements']
+			else:
+				statement_list = [stmts]
 
 		# print statement_list
 		return statement_list

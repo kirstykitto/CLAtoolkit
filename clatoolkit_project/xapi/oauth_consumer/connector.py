@@ -114,7 +114,8 @@ class AuthRequest():
         # if extra_params and len(extra_params) == 1:
         #     # print 'EXTRA_PARAMS: %s' % extra_params
         #     params.update(extra_params)
-        params.update(extra_params)
+        if extra_params and len(extra_params) > 0:
+            params.update(extra_params)
 
         # We can tell this in Auth-flow request by considering token, token_secret, callback and the http method
         # GET requests without an access_token&secret and WITH a callback are auth requests

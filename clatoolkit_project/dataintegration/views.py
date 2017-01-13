@@ -166,7 +166,7 @@ def refreshgoogleauthflow(request):
     # store request data in temp table
     # there is no other way to send these with the url (in querystring) as the return url must be registered
     # and session var won't save due to redirect
-    twitter_id, fb_id, forum_id, google_id, github_id, trello_id = get_smids_fromuid(user.id)
+    twitter_id, fb_id, forum_id, blog_id, google_id, github_id, trello_id = get_smids_fromuid(user.id)
     t = OauthFlowTemp.objects.filter(user = request.user).delete()
     temp_transfer_data = OauthFlowTemp(platform=platform, transferdata=channel_ids, unit=unit, user = request.user)
     temp_transfer_data.save()
@@ -397,7 +397,7 @@ def dipluginauthomaticlogin(request):
                     unit = UnitOffering.objects.get(id=unit_id)
                     if result.provider.name == 'fb':
                         di_plugin.perform_import(group_id, unit, result)
-                        post_smimport(unit, "facebook")
+                        post_smimport(unit, xapi_settings.PLATFORM_FACEBOOK)
 
                         #Remove all data stored in session for this view to avoid cache issues
                         del request.session['platform']
