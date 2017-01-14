@@ -411,11 +411,6 @@ def get_allcontent_byplatform(platform, unit, user = None, start_date=None, end_
     content_list = []
     id_list = []
     for row in statements:
-        # content = ''
-        # try:
-        #     content = strip_tags(row['object']['definition']['name']['en-US'])
-        # except
-        #     content = row['object']['definition']['name']['en-US']
         content = strip_tags(row['object']['definition']['name']['en-US'])
         content = content.replace('"','')
         content = re.sub(r'[^\w\s]','',content) #quick fix to remove punctuation
@@ -656,32 +651,71 @@ def get_wordcloud(platform, unit, user = None, start_date=None, end_date=None):
 
 
 def get_nodes_by_platform(unit, start_date=None, end_date=None, platform=None):
-
     platformclause = ""
     if platform != "all":
         platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
 
+    # TODO: Fix datetime filter. LearningRecord table does not datetimestamp any more
     dateclause = ""
-    if start_date is not None:
-        dateclause = " AND clatoolkit_learningrecord.datetimestamp BETWEEN '%s' AND '%s'" % (start_date, end_date)
+    # if start_date is not None:
+    #     dateclause = " AND clatoolkit_learningrecord.datetimestamp BETWEEN '%s' AND '%s'" % (start_date, end_date)
 
     sql = """
-            SELECT distinct user_id
+            SELECT distinct user_id, statement_id
             FROM clatoolkit_learningrecord
-            WHERE unit_id='%s' %s
-          """ % (unit.id, dateclause)
-    #print sql
+            WHERE unit_id='%s' %s %s
+          """ % (unit.id, platformclause, dateclause)
+    # print sql
     cursor = connection.cursor()
     cursor.execute(sql)
     result = cursor.fetchall()
+
     node_dict = {}
     count = 1
     for row in result:
-        # Get user id for now. Username will be obtained later.
         node_dict[row[0]] = count
         count += 1
-    #print "node_dict", node_dict
+    print "node_dict -------- ", node_dict
     return node_dict
+
+    # TODOL 
+    # Fix datetime filter. LearningRecord table does not datetimestamp any more.
+    # Get xAPI statement and compare the date with start & end date
+    # 
+    # filters = xapi_filter()
+    # getter = xapi_getter()
+
+    # # from datetime import datetime as dt
+    # start_date_obj = None
+    # end_date_obj = None
+    # # if start_date:
+    # #     start_date_obj = dt.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    # # if end_date:
+    # #     end_date_obj = dt.strptime(end_date, '%Y-%m-%d %H:%M:%S')
+
+    # node_dict = {}
+    # count = 1
+    # for row in result:
+    #     # Get xAPI to check if the statement is between the dates (if dates are specified)
+    #     filters.statement_id = row[1]
+    #     result = getter.get_xapi_statements(unit.id, user_id = row[0], xapi_filters = filters)
+    #     if result is not None:
+    #         stmt = result[0]
+    #         # tdatetime = dt.strptime(stmt['timestamp'], '%Y-%m-%d %H:%M:%S')
+    #         # print tdatetime
+
+    #         if start_date_obj is None and end_date_obj is None:
+    #             node_dict[row[0]] = count
+    #             count += 1
+
+    #         # elif (start_date_obj is not None and end_date_obj is not None) \
+    #         #     and (start_date_obj <= tdatetime and tdatetime >= end_date_obj):
+    #         #     node_dict[row[0]] = count
+    #         #     count += 1
+
+    # print "node_dict -------- ", node_dict
+    # return node_dict
+
 
 
 def get_relationships_byplatform(platform, unit, user = None, start_date=None, end_date=None, 
@@ -884,9 +918,8 @@ def sentiment_classifier(unit):
         filters.statement_id = sm_obj.statement_id
         stmt = getter.get_xapi_statements(sm_obj.unit_id, sm_obj.user_id, filters)
         message = stmt[0]['object']['definition']['name']['en-US']
-
-        # message = sm_obj.message.encode('utf-8', 'replace')
         message  = message.encode('utf-8', 'replace')
+
         sentiment = "Neutral"
         vs = vaderSentiment(message)
         #print vs, message

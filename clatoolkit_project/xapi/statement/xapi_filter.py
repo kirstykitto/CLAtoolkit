@@ -5,6 +5,7 @@ __author__ = 'Koji'
 class xapi_filter(object):
 	COUNT_TYPE_VERB = 'verb'
 	COUNT_TYPE_PLATFORM = 'platform'
+	COUNT_TYPE_USER_ID = 'user_id'
 
 	since = None
 	until = None

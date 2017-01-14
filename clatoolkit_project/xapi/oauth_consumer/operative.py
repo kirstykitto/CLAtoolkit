@@ -76,7 +76,7 @@ class LRS_Auth(object):
             t = AccessToken.objects.get(user_id=user)
         except AccessToken.DoesNotExist:
             # raise Exception("Error has occurred. User %s does not have LRS access token." % (user.username))
-            print "Error has occurred. User %s does not have LRS access token. Data will not be imported." % (user.username)
+            print "***** Error has occurred. User %s does not have LRS access token. *****" % (user.username)
             return
 
         consumer = AuthRequest(self.CONSUMER_KEY,self.CONSUMER_SECRET,

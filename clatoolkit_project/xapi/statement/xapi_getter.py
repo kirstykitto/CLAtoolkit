@@ -49,10 +49,14 @@ class xapi_getter(object):
 			stmts = lrs_client.get_statement(uid, filters = xapi_filters.to_dict())
 			# print '---------------- xAPI statement retrieved from LRS ----------------'
 			# print stmts
+			if stmts is None:
+				continue
+
 			if 'statements' in stmts:
-				statement_list = stmts['statements']
+				for stmt in stmts['statements']:
+					statement_list.append(stmt)
 			else:
-				statement_list = [stmts]
+				statement_list.append(stmts)
 
 		# print statement_list
 		return statement_list

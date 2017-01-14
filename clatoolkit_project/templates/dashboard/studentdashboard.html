@@ -285,12 +285,12 @@ function update_messages(nodes, edges)
     resturl = "/api/learningrecord";
     if (platform!="all")
     {
-      restparams = {format: "json", unit:"{{unit}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
       resturl = '/dashboard/api/get_learning_records';
     }
     else
     {
-      restparams = {format: "json", unit:"{{unit}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", course_id:"{{course_id}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
   }
   else
@@ -331,11 +331,11 @@ function update_messages(nodes, edges)
     resturl = "/api/socialrelationship";
     if (platform!="all")
     {
-      restparams = {format: "json", unit:"{{unit}}", platform:"{{platform}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
     else
     {
-      restparams = {format: "json", unit:"{{unit}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", course_id:"{{course_id}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
   }
   console.log(resturl);
@@ -362,6 +362,39 @@ function update_messages(nodes, edges)
       render_messages(datatable_array);
     });
 
+}
+
+function getNodeUid(node_id)
+{
+  var uid;
+  for (i=0;i<sna_data.nodes.length;i++)
+  {
+    if (sna_data.nodes[i].id == node_id)
+    {
+      uid = sna_data.nodes[i].uid;
+      break;
+    }
+  }
+  return uid;
+}
+
+function getNodeUids(edge_id)
+{
+  var fromid, toid, fromuser, touser, verb;
+  // console.log(sna_data.edges)
+  for (i=0;i<sna_data.edges.length;i++)
+  {
+    if (sna_data.edges[i].id == edge_id)
+    {
+      fromid = sna_data.edges[i].from;
+      toid = sna_data.edges[i].to;
+      verb = sna_data.edges[i].label;
+      break;
+    }
+  }
+  fromuser = getNodeUid(fromid);
+  touser = getNodeUid(toid);
+  return [fromuser, touser, verb]
 }
 
 function getnodelabel(node_id)

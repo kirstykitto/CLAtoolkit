@@ -586,17 +586,21 @@ class SNARESTView(DefaultsMixin, APIView):
 
     def get(self, request, *args, **kw):
 
-        course_code = request.GET.get('course_code', None)
+        course_id = request.GET.get('course_id', None)
         platform = request.GET.get('platform', None)
         start_date = request.GET.get('start_date', None)
         end_date = request.GET.get('end_date', None)
         username = request.GET.get('username', None)
         relationshipstoinclude = request.GET.get('relationshipstoinclude', None)
 
+        unit = UnitOffering.objects.get(id = course_id)
+
         # Any URL parameters get passed in **kw
         #myClass = CalcClass(get_arg1, get_arg2, *args, **kw)
         #print sna_buildjson(platform, course_code)
-        result = json.loads(sna_buildjson(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude))
+        sna_data = sna_buildjson(platform, unit, username=username, start_date=start_date, 
+                                 end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+        result = json.loads(sna_data)
         result["neighbours"] = json.loads(getNeighbours(json.dumps(result)))
         #{'nodes':["test sna","2nd test"]} #myClass.do_work()
         response = Response(result, status=status.HTTP_200_OK)

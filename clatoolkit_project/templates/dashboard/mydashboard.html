@@ -220,9 +220,9 @@
                     {% endfor %}
                     <form method="post" action="/dashboard/mydashboard/">
                       {% csrf_token %}
-                      <input type="hidden" name="course_code" value="{{course_code}}" />
+                      <input type="hidden" name="course_id" value="{{course_id}}" />
                       <input type="hidden" name="platform" value="{{platform}}" />
-                      <input type="hidden" name="username" value="{{username}}" />
+                      <!-- <input type="hidden" name="username" value="{{username}}" /> -->
                       <div class="form-group">
                           <label>How will you improve your community contribution?</label>
                           <textarea name="reflectiontext" class="form-control" rows="3"></textarea>
@@ -298,7 +298,7 @@
     $('#selectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
     //console.log("start_date:" + start_date)
     //console.log("end_date:" + end_date)
-    $.get("/clatoolkit/sna", { course_code:"{{course_code}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date, relationshipstoinclude:"'mentioned','liked','shared','commented'"},
+    $.get("/clatoolkit/sna", { course_id:"{{course_id}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date, relationshipstoinclude:"'mentioned','liked','shared','commented'"},
       function(data){
         //console.log("SNA: " + data);
         sna_data = data;
@@ -405,14 +405,13 @@
       $('#relationships').html('<h3>Selected User: ' + username + '</h3>');
       console.log("Selected User :" + uid)
       resturl = "/api/learningrecord";
-      console.log(platform);
       if (platform !="all")
       {
-        restparams = {format: "json", unit:"{{unit}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
       else
       {
-        restparams = {format: "json", unit:"{{unit}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        restparams = {format: "json", course_id:"{{course_id}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
         resturl = '/dashboard/api/get_learning_records';
       }
     }
@@ -454,11 +453,11 @@
       resturl = "/api/socialrelationship";
       if (platform!="all")
       {
-        restparams = {format: "json", unit:"{{unit}}", platform:"{{platform}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
       else
       {
-        restparams = {format: "json", unit:"{{unit}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        restparams = {format: "json", course_id:"{{course_id}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
     }
     console.log(resturl);

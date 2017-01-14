@@ -647,7 +647,7 @@ def studentdashboard(request):
     # 'sentiments': sentiments, 'coi': coi }
 
     context_dict = {
-        'title': title, 'course_code':course_code, 'platform':platform, 'username':username,
+        'title': title, 'course_code':course_code, 'course_id': unit.id, 'platform':platform, 'username':username,
         'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
         'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 
@@ -661,8 +661,8 @@ def studentdashboard(request):
 
         'activity_pie_series': activity_pie_series,
         'platformactivity_pie_series':platformactivity_pie_series,
-        'sna_json': sna_json,  'tags': tags, 'sentiments': sentiments, 'coi': coi,
-        'show_allplatforms_widgets': show_allplatforms_widgets, 'show_dashboardnav':show_dashboardnav
+        'sna_json': sna_json, 'tags': tags, 'sentiments': sentiments, 'coi': coi,
+        'show_allplatforms_widgets': show_allplatforms_widgets, 'show_dashboardnav':True
     }
 
     return render_to_response('dashboard/studentdashboard.html', context_dict, context)
@@ -677,7 +677,7 @@ def mydashboard(request):
     user = request.user
 
     if request.method == 'POST':
-        # course_code = request.POST['course_code']
+        course_id = request.POST['course_id']
         platform = request.POST['platform']
 
         # save reflection
@@ -685,7 +685,7 @@ def mydashboard(request):
         rating = request.POST['rating']
         reflect = DashboardReflection(strategy = reflectiontext, rating = rating, user = user)
         reflect.save()
-
+        
     else:
         course_id = request.GET.get('course_id')
         platform = request.GET.get('platform')
@@ -762,7 +762,7 @@ def mydashboard(request):
     #     show_allplatforms_widgets = True
     
     context_dict = {
-        'title': title, 'course_code':course_code, 'unit': unit.id, 'username': user.username,
+        'title': title, 'course_code':course_code, 'course_id': unit.id, 'platform':platform, 'username': user.username,
         'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
         'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 
@@ -777,7 +777,7 @@ def mydashboard(request):
         'activity_pie_series': activity_pie_series,
         'platformactivity_pie_series':platformactivity_pie_series, 
         'show_allplatforms_widgets': show_allplatforms_widgets, 'show_dashboardnav': True,
-        'platform':platform, 'tags': tags, 'sna_json': sna_json, 'centrality': centrality,
+        'sna_json': sna_json, 'tags': tags, 'centrality': centrality,
         'sentiments': sentiments, 'coi': coi, 'reflections':reflections
         }
 
@@ -993,7 +993,7 @@ def get_github_contribution(request):
 
 @login_required
 def get_learning_records(request):
-    course_id = request.GET.get('unit')
+    course_id = request.GET.get('course_id')
     user_id = request.GET.get('user')
     platform = request.GET.get('platform')
     unit = None
