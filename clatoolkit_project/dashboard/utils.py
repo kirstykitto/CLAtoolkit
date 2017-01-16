@@ -405,8 +405,11 @@ def get_allcontent_byplatform(platform, unit, user = None, start_date=None, end_
     if platform != "all":
         filters.platform = platform
 
+    user_id = None
+    if user:
+        user_id = user.id
     getter = xapi_getter()
-    statements = getter.get_xapi_statements(unit.id, user.id, filters)
+    statements = getter.get_xapi_statements(unit.id, user_id, filters)
 
     content_list = []
     id_list = []
@@ -503,8 +506,8 @@ def get_LDAVis_JSON(platform, num_topics, course_code, start_date=None, end_date
 
     return tmp
 
-def nmf(platform, no_topics, course_code, start_date=None, end_date=None):
-    documents,ids = get_allcontent_byplatform(platform, course_code, start_date=start_date, end_date=end_date)
+def nmf(platform, no_topics, unit, start_date=None, end_date=None):
+    documents,ids = get_allcontent_byplatform(platform, unit, start_date=start_date, end_date=end_date)
     if len(documents)<5:
         d3_dataset = ""
         topic_output = "Not enough text to run Topic Modeling."
@@ -551,7 +554,6 @@ def nmf(platform, no_topics, course_code, start_date=None, end_date=None):
                 topic_output = topic_output + "<li>%s</li>" % (doc)
             topic_output = topic_output + "</ul>"
 
-        #print nmf_topic_doc_ids
         # find the % sentiment classification of each topic
         classification_dict = None
         classifier = 'VaderSentiment'
@@ -563,6 +565,27 @@ def nmf(platform, no_topics, course_code, start_date=None, end_date=None):
         '''
         piebubblechart = {}
         feature_matrix = np.zeros(shape=(no_topics,3))
+        course_code = unit.code
+
+        # Get xAPI statement ID from statement ID
+        new_nmf_topic_doc_ids = {}
+        for t in nmf_topic_terms:
+            id_list = []
+            for stmt_id in nmf_topic_doc_ids[t]:
+                try:
+                    print stmt_id
+                    # statement id is unique, so don't have to check unit code
+                    lrecord = LearningRecord.objects.get(statement_id = stmt_id)
+                    id_list.append(lrecord.id)
+                except:
+                    pass
+
+                new_nmf_topic_doc_ids[t] = id_list
+
+        # Replace with new list (it has xapi statement IDs)
+        nmf_topic_doc_ids = new_nmf_topic_doc_ids
+        # print '==============='
+        # print nmf_topic_doc_ids
 
         for topic in nmf_topic_terms:
             vals = ""
@@ -570,7 +593,11 @@ def nmf(platform, no_topics, course_code, start_date=None, end_date=None):
             topiclabel = "Topic %d" % (topic + 1)
 
             classification_dict = {'Positive':0, 'Neutral':0, 'Negative':0}
-            kwargs = {'classifier':classifier, 'xapistatement__course_code': course_code, 'xapistatement__id__in':nmf_topic_doc_ids[topic]}
+            # kwargs = {'classifier':classifier, 'xapistatement__course_code': course_code, 'xapistatement__id__in':nmf_topic_doc_ids[topic]}
+            kwargs = {'classifier':classifier, 'xapistatement__id__in':nmf_topic_doc_ids[topic]}
+            # print '------ kwargs -------'
+            # print kwargs
+
             #print Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification')).query
             counts = Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification'))
             for count in counts:

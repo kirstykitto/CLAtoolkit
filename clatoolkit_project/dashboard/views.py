@@ -386,30 +386,59 @@ def cadashboard(request):
     unit = UnitOffering.objects.get(id=unit_id)
 
     if UnitOfferingMembership.is_admin(request.user, unit):
-
         title = "Content Analysis Dashboard: %s (Platform: %s)" % (unit.code, platform)
-        show_dashboardnav = True
+        # show_dashboardnav = True
 
-        posts_timeline = get_timeseries('created', platform, unit)
-        shares_timeline = get_timeseries('shared', platform, unit)
-        likes_timeline = get_timeseries('liked', platform, unit)
-        comments_timeline = get_timeseries('commented', platform, unit)
+        # TODO: fix get_timeseries() method
+        # posts_timeline = get_timeseries('created', platform, unit)
+        # shares_timeline = get_timeseries('shared', platform, unit)
+        # likes_timeline = get_timeseries('liked', platform, unit)
+        # comments_timeline = get_timeseries('commented', platform, unit)
 
+        timeline_data = get_timeline_data(unit, None)
+        # Word Cloud
         tags = get_wordcloud(platform, unit)
-
+        # Sentiments pie chart
         sentiments = getClassifiedCounts(platform, unit, classifier="VaderSentiment")
+        # Community of Inquiry
         coi = getClassifiedCounts(platform, unit, classifier="NaiveBayes_t1.model")
 
         topic_model_output, sentimenttopic_piebubblesdataset = nmf(platform, no_topics, unit, start_date=None, end_date=None)
 
-        context_dict = {'show_dashboardnav': show_dashboardnav, 'unit': unit, 'platform': platform, 'title': title,
-                        'sentiments': sentiments, 'coi': coi, 'tags': tags, 'posts_timeline': posts_timeline,
-                        'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline,
-                        'comments_timeline': comments_timeline, 'no_topics': no_topics,
-                        'topic_model_output': topic_model_output,
+        context_dict = {'show_dashboardnav': True, 'unit': unit, 'platform': platform, 'title': title,
+
+                        'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
+                        'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
+
+                        'sentiments': sentiments, 'coi': coi, 'tags': tags, 
+                        'no_topics': no_topics, 'topic_model_output': topic_model_output,
                         'sentimenttopic_piebubblesdataset': sentimenttopic_piebubblesdataset}
 
         return render_to_response('dashboard/cadashboard.html', context_dict, context)
+
+        # title = "Content Analysis Dashboard: %s (Platform: %s)" % (unit.code, platform)
+        # show_dashboardnav = True
+
+        # posts_timeline = get_timeseries('created', platform, unit)
+        # shares_timeline = get_timeseries('shared', platform, unit)
+        # likes_timeline = get_timeseries('liked', platform, unit)
+        # comments_timeline = get_timeseries('commented', platform, unit)
+
+        # tags = get_wordcloud(platform, unit)
+
+        # sentiments = getClassifiedCounts(platform, unit, classifier="VaderSentiment")
+        # coi = getClassifiedCounts(platform, unit, classifier="NaiveBayes_t1.model")
+
+        # topic_model_output, sentimenttopic_piebubblesdataset = nmf(platform, no_topics, unit, start_date=None, end_date=None)
+
+        # context_dict = {'show_dashboardnav': show_dashboardnav, 'unit': unit, 'platform': platform, 'title': title,
+        #                 'sentiments': sentiments, 'coi': coi, 'tags': tags, 'posts_timeline': posts_timeline,
+        #                 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline,
+        #                 'comments_timeline': comments_timeline, 'no_topics': no_topics,
+        #                 'topic_model_output': topic_model_output,
+        #                 'sentimenttopic_piebubblesdataset': sentimenttopic_piebubblesdataset}
+
+        # return render_to_response('dashboard/cadashboard.html', context_dict, context)
 
     else:
         raise PermissionDenied
