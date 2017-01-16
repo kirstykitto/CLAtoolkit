@@ -204,7 +204,7 @@ function update_snadata(start_date, end_date)
   $('#selectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
   //console.log("start_date:" + start_date)
   //console.log("end_date:" + end_date)
-  $.get("/clatoolkit/sna", { course_code:"{{course_code}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date, relationshipstoinclude:"'mentioned','liked','shared','commented'"},
+  $.get("/clatoolkit/sna", { course_id:"{{course_id}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date, relationshipstoinclude:"'mentioned','liked','shared','commented'"},
     function(data){
       //console.log("SNA: " + data);
       sna_data = data;
