@@ -573,7 +573,6 @@ def nmf(platform, no_topics, unit, start_date=None, end_date=None):
             id_list = []
             for stmt_id in nmf_topic_doc_ids[t]:
                 try:
-                    print stmt_id
                     # statement id is unique, so don't have to check unit code
                     lrecord = LearningRecord.objects.get(statement_id = stmt_id)
                     id_list.append(lrecord.id)

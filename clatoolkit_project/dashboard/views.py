@@ -458,20 +458,49 @@ def snadashboard(request):
         title = "SNA Dashboard: {} {} (Platform: {})".format(unit.code, unit.name, platform)
         show_dashboardnav = True
 
-        posts_timeline = get_timeseries('created', platform, unit)
-        shares_timeline = get_timeseries('shared', platform, unit)
-        likes_timeline = get_timeseries('liked', platform, unit)
-        comments_timeline = get_timeseries('commented', platform, unit)
+        # TODO: Fix get_timeseries() method
+        # posts_timeline = get_timeseries('created', platform, unit)
+        # shares_timeline = get_timeseries('shared', platform, unit)
+        # likes_timeline = get_timeseries('liked', platform, unit)
+        # comments_timeline = get_timeseries('commented', platform, unit)
+        
+        # Activity Time line data (verbs and platform)
+        timeline_data = get_timeline_data(unit, None)
 
-        sna_json = sna_buildjson(platform, unit, relationshipstoinclude="'mentioned','liked','shared','commented'")
+        sna_json = sna_buildjson(platform, unit, 
+            relationshipstoinclude = "'%s', '%s', '%s', '%s'" % (xapi_settings.VERB_MENTIONED, xapi_settings.VERB_LIKED, \
+                                                                 xapi_settings.VERB_SHARED, xapi_settings.VERB_COMMENTED))
+
+
         #sna_neighbours = getNeighbours(sna_json)
         centrality = get_centrality(sna_json)
         context_dict = {'show_dashboardnav': show_dashboardnav, 'unit': unit, 'platform': platform, 'title': title,
-                        'sna_json': sna_json, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline,
-                        'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
-                        'centrality': centrality}
+                        'sna_json': sna_json, 'centrality': centrality, 'course_id': unit.id,
+
+                        'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
+                        'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments']}
 
         return render_to_response('dashboard/snadashboard.html', context_dict, context)
+
+        # platform = request.GET.get('platform')
+
+        # title = "SNA Dashboard: {} {} (Platform: {})".format(unit.code, unit.name, platform)
+        # show_dashboardnav = True
+
+        # posts_timeline = get_timeseries('created', platform, unit)
+        # shares_timeline = get_timeseries('shared', platform, unit)
+        # likes_timeline = get_timeseries('liked', platform, unit)
+        # comments_timeline = get_timeseries('commented', platform, unit)
+
+        # sna_json = sna_buildjson(platform, unit, relationshipstoinclude="'mentioned','liked','shared','commented'")
+        # #sna_neighbours = getNeighbours(sna_json)
+        # centrality = get_centrality(sna_json)
+        # context_dict = {'show_dashboardnav': show_dashboardnav, 'unit': unit, 'platform': platform, 'title': title,
+        #                 'sna_json': sna_json, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline,
+        #                 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
+        #                 'centrality': centrality}
+
+        # return render_to_response('dashboard/snadashboard.html', context_dict, context)
 
     else:
         raise PermissionDenied

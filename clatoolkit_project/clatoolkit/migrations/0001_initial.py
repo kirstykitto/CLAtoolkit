@@ -9,8 +9,8 @@ from django.conf import settings
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('xapi', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ('xapi', '0001_initial'),
     ]
 
     operations = [
@@ -54,10 +54,10 @@ class Migration(migrations.Migration):
             name='DashboardReflection',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('username', models.CharField(max_length=5000)),
                 ('strategy', models.TextField()),
                 ('rating', models.CharField(default=b'Satisfied', max_length=50, choices=[(b'Happy', b'Happy'), (b'Satisfied', b'Satisfied'), (b'Unhappy', b'Unhappy')])),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -73,16 +73,11 @@ class Migration(migrations.Migration):
             name='LearningRecord',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('xapi', django_pgjson.fields.JsonField()),
                 ('statement_id', models.CharField(max_length=256)),
-                ('platform', models.CharField(max_length=100)),
-                ('verb', models.CharField(max_length=50)),
                 ('platformid', models.CharField(max_length=5000, blank=True)),
+                ('verb', models.CharField(max_length=50)),
+                ('platform', models.CharField(max_length=100)),
                 ('platformparentid', models.CharField(max_length=5000, blank=True)),
-                ('parent_user_external', models.CharField(max_length=5000, null=True, blank=True)),
-                ('message', models.TextField(blank=True)),
-                ('datetimestamp', models.DateTimeField(auto_now_add=True, null=True)),
-                ('senttolrs', models.CharField(max_length=5000, blank=True)),
                 ('parent_user', models.ForeignKey(related_name='parent_user', to=settings.AUTH_USER_MODEL, null=True)),
             ],
         ),
