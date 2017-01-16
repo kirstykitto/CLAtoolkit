@@ -661,7 +661,7 @@ def get_nodes_by_platform(unit, start_date=None, end_date=None, platform=None):
     #     dateclause = " AND clatoolkit_learningrecord.datetimestamp BETWEEN '%s' AND '%s'" % (start_date, end_date)
 
     sql = """
-            SELECT distinct user_id, statement_id
+            SELECT distinct user_id --, statement_id
             FROM clatoolkit_learningrecord
             WHERE unit_id='%s' %s %s
           """ % (unit.id, platformclause, dateclause)
@@ -675,10 +675,10 @@ def get_nodes_by_platform(unit, start_date=None, end_date=None, platform=None):
     for row in result:
         node_dict[row[0]] = count
         count += 1
-    print "node_dict -------- ", node_dict
+
     return node_dict
 
-    # TODOL 
+    # TODO: 
     # Fix datetime filter. LearningRecord table does not datetimestamp any more.
     # Get xAPI statement and compare the date with start & end date
     # 
@@ -765,19 +765,20 @@ def get_relationships_byplatform(platform, unit, user = None, start_date=None, e
     for row in result:
         from_user = None
         to_user = None
-        display_username = ''
-        display_related_username = ''
+        # These are actually user ID, not user name.
+        display_username = row[0]
+        display_related_username = row[1]
         try:
             from_user = User.objects.get(id = row[0])
             display_username = from_user.username
         except:
-            display_username = ''
+            display_username = 'Unknown user'
 
         try:
             to_user = User.objects.get(id = row[1])
             display_related_username = to_user.username
         except:
-            display_related_username = ''
+            display_related_username = 'Unknown user'
 
         verb = row[2]
         row_platform = row[3]
@@ -812,6 +813,26 @@ def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None,
     #    edge_dict, nodes_in_sna_dict, mention_dict, share_dict, comment_dict = get_relationships_byplatform(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude)
     #else:
     node_dict = get_nodes_by_platform(unit, start_date, end_date, platform)
+
+    # print '----- node_dict -----'
+    # print node_dict
+
+    count = 1
+    # Get user name from user ID
+    new_node_dict = {}
+    for key in node_dict:
+        user = None
+        try:
+            user = User.objects.get(id = key)
+            new_node_dict[user.username] = count
+        except:
+            new_node_dict[key] = count
+            
+        count = count + 1
+
+    # replace the original dict with new one
+    node_dict = new_node_dict
+
     edge_dict, nodes_in_sna_dict, mention_dict, \
     share_dict, comment_dict = get_relationships_byplatform(platform,
                                                             unit,
@@ -819,9 +840,9 @@ def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None,
                                                             end_date=end_date,
                                                             relationshipstoinclude=relationshipstoinclude)
 
-    # print '-----'
-    # print node_dict
-    #node_dict.update(nodes_in_sna_dict)
+    # print '----- nodes_in_sna_dict -----'
+    # print nodes_in_sna_dict
+    # node_dict.update(nodes_in_sna_dict)
     for key in nodes_in_sna_dict:
         node_dict[key] = 1
     count = 1
@@ -830,6 +851,9 @@ def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None,
         count = count + 1
 
     #print node_dict, node_dict
+
+    # print '----- node_dict -----'
+    # print node_dict
 
     node_type_colours = {'Staff':{'border':'#661A00','fill':'#CC3300'}, \
                          'Student':{'border':'#003D99','fill':'#0066FF'}, \
@@ -855,13 +879,13 @@ def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None,
     #count = 1
     for node in node_dict:
         #print node
-        # username = node
+        username = node
         u = None
         uid = None
         try:
             # Node is user id and we want user name
-            u = User.objects.get(id = node)
-            username = u.username
+            u = User.objects.get(username = node)
+            # username = u.username
             uid = str(u.id)
         except:
             username = node
