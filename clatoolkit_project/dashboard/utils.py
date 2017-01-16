@@ -1066,7 +1066,9 @@ def _normaliseDegree(targetArray, numOfNodes):
     return targetArray
 
 def _round_numbers(targetArray, digits):
-    print targetArray
+    if type(targetArray) is not list:
+        return [targetArray]
+
     index = 0
     for num in targetArray:
         targetArray[index] = _round_number(num, digits)
