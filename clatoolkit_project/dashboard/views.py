@@ -346,7 +346,7 @@ def dashboard(request):
 
         context_dict = {
             'title': title, 'course_code':unit.code, 'platform':platform, 'show_dashboardnav':show_dashboardnav,
-            'activememberstable': activememberstable, 
+            'activememberstable': activememberstable, 'unit': unit,
             # TODO: Get topcontenttable (fix the method)
             'topcontenttable': topcontenttable, 
             'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
@@ -705,7 +705,8 @@ def studentdashboard(request):
     # 'sentiments': sentiments, 'coi': coi }
 
     context_dict = {
-        'title': title, 'course_code':course_code, 'course_id': unit.id, 'platform':platform, 'username':username,
+        'title': title, 'course_code':course_code, 'course_id': unit.id, 'platform':platform, 
+        'username':username, 'unit': unit,
         'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
         'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 
@@ -820,7 +821,8 @@ def mydashboard(request):
     #     show_allplatforms_widgets = True
     
     context_dict = {
-        'title': title, 'course_code':course_code, 'course_id': unit.id, 'platform':platform, 'username': user.username,
+        'title': title, 'course_code':course_code, 'course_id': unit.id, 'platform':platform, 
+        'username': user.username, 'unit': unit,
         'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
         'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 

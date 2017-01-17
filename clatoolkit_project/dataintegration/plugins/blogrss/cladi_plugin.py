@@ -186,8 +186,12 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     except:
                         pass
 
-                    insert_comment(user, parent_link, link, message, post_date, unit, self.platform, self.platform_url, 
-                        parent_user = parent_user)
+                    if parent_user is not None:
+                        insert_comment(user, parent_link, link, message, post_date, unit, self.platform, self.platform_url, 
+                            parent_user = parent_user)
+                    else:
+                        insert_comment(user, parent_link, link, message, post_date, unit, self.platform, self.platform_url, 
+                            parent_user = parent_user, parent_user_external = post_username)
 
 
 registry.register(BlogrssPlugin)
