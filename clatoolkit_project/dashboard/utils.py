@@ -302,6 +302,8 @@ def get_active_members_table(unit, platform=None):
             elif total_dict[key] == xapi_settings.VERB_COMMENTED:
                 num_comments = obj['count']
 
+        if platform is None:
+            platform = 'all'
         table_html = '<tr><td><a href="/dashboard/student_dashboard?course_id={}&platform={}&user={}">' \
                      '{} {}</a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
                         unit.id, platform, user.id, user.first_name, user.last_name, num_posts, 
@@ -594,8 +596,6 @@ def nmf(platform, no_topics, unit, start_date=None, end_date=None):
             classification_dict = {'Positive':0, 'Neutral':0, 'Negative':0}
             # kwargs = {'classifier':classifier, 'xapistatement__course_code': course_code, 'xapistatement__id__in':nmf_topic_doc_ids[topic]}
             kwargs = {'classifier':classifier, 'xapistatement__id__in':nmf_topic_doc_ids[topic]}
-            # print '------ kwargs -------'
-            # print kwargs
 
             #print Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification')).query
             counts = Classification.objects.values('classification').filter(**kwargs).order_by().annotate(Count('classification'))
