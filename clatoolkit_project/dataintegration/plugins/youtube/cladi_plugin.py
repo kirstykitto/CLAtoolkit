@@ -200,10 +200,12 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
     def get_parent_external(self, snippet, retrieved_from_video, http):
         if retrieved_from_video:
             data = self.get_video(snippet['videoId'], http)
+            title = "[video] " + data['items'][0]['snippet']['title']
         else:
             data = self.get_channel(snippet['channelId'], http)
+            title = "[channel] " + data['items'][0]['snippet']['title']
 
-        return data['items'][0]['snippet']['title']
+        return title
 
 
     def get_video(self, video_id, http):

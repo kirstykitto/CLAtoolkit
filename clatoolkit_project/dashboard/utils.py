@@ -772,7 +772,8 @@ def get_relationships_byplatform(platform, unit, user = None, start_date=None, e
             SELECT clatoolkit_socialrelationship.from_user_id, 
                    clatoolkit_socialrelationship.to_user_id, 
                    clatoolkit_socialrelationship.verb, 
-                   clatoolkit_socialrelationship.platform
+                   clatoolkit_socialrelationship.platform,
+                   clatoolkit_socialrelationship.to_external_user
             FROM   clatoolkit_socialrelationship
             WHERE  clatoolkit_socialrelationship.unit_id='%s' %s %s %s %s
           """ % (unit.id, platformclause, userclause, dateclause, relationshipclause)
@@ -798,13 +799,14 @@ def get_relationships_byplatform(platform, unit, user = None, start_date=None, e
             from_user = User.objects.get(id = row[0])
             display_username = from_user.username
         except:
-            display_username = 'Unknown user'
+            display_username = row[0]
 
         try:
             to_user = User.objects.get(id = row[1])
             display_related_username = to_user.username
         except:
-            display_related_username = 'Unknown user'
+            # get parent user from to_external_user column
+            display_related_username = row[4]
 
         verb = row[2]
         row_platform = row[3]
@@ -858,6 +860,9 @@ def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None,
 
     # replace the original dict with new one
     node_dict = new_node_dict
+
+    print 'node_dict'
+    print node_dict
 
     edge_dict, nodes_in_sna_dict, mention_dict, \
     share_dict, comment_dict = get_relationships_byplatform(platform,
