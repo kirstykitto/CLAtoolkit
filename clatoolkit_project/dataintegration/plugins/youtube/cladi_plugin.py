@@ -42,7 +42,7 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
     def perform_import(self, retrieval_param, unit, webserverflow_result):
         print "Start YouTube data import....."
         self.import_comments(unit, retrieval_param, webserverflow_result)
-        print 'YouTube data import done.'
+        print 'YouTube data import complete.'
 
 
 
@@ -80,7 +80,7 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
                 if api_response.get('error'):
                     break
 
-                self.insert_comments(unit, cid, api_response, retrieved_from_video)
+                self.insert_comments(unit, cid, api_response, retrieved_from_video, http)
 
                 # commList.extend(tempList)
                 is_first = False
@@ -110,7 +110,7 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
                 if api_response.get('error'):
                     break
 
-                self.insert_comments(unit, vid, api_response, retrieved_from_video)
+                self.insert_comments(unit, vid, api_response, retrieved_from_video, http)
 
                 is_first = False
 
@@ -121,7 +121,7 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
 
 
     # If retrieved_from_video is False, comments were retrieved from discussion tab in a channel
-    def insert_comments(self, unit, object_id, api_response, retrieved_from_video):
+    def insert_comments(self, unit, object_id, api_response, retrieved_from_video, http):
         #Loop to get all items
         for item in api_response['items']:
 
@@ -142,20 +142,34 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
             # UpdatedAt is the same as publishedAt when the comment isn't updated.
             comment_date = secondSnippet['updatedAt']
 
+            # paretn_external is either video title or channel title.
+            # Sser leaves comments on a video or a channel in discussion tab
+            parent_external = self.get_parent_external(snippet, retrieved_from_video, http)
+
             user = None
             if username_exists(comment_author_channel_url, unit, self.platform):
                 user = get_user_from_screen_name(comment_author_channel_url, self.platform)
-
                 insert_comment(user, parent_id, comment_id, comment_text, comment_date, unit, 
-                               self.platform, self.platform_url)
+                               self.platform, self.platform_url, parent_user_external = parent_external)
 
+            # User may reply to a user who's not registered in the clatoolkit
+            # In that case, parent user is stored as external user
+            non_registered_user = ''
+            if user is None:
+                if 'authorDisplayName' in secondSnippet:
+                    non_registered_user = secondSnippet['authorDisplayName']
+                else:
+                    non_registered_user = None
+
+            print 'non_registered_user: '
+            print parent_external
             # Import replies on the comment
-            self.insert_replies(unit, object_id, comment_id, item, user, retrieved_from_video)
+            self.insert_replies(unit, object_id, comment_id, item, user, non_registered_user, retrieved_from_video)
 
 
 
     # If retrieved_from_video is False, comments were retrieved from discussion tab in a channel
-    def insert_replies(self, unit, object_id, comment_id, item, parent_user, retrieved_from_video):
+    def insert_replies(self, unit, object_id, comment_id, item, parent_user, parent_external, retrieved_from_video):
         replies = None
         if u'replies' in item:
             replies = item[u'replies']
@@ -179,10 +193,27 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
 
             if username_exists(reply_author_channel_url, unit, self.platform):
                 user = get_user_from_screen_name(reply_author_channel_url, self.platform)
-
                 insert_comment(user, parent_id, reply_id, reply_text, reply_date, unit, 
-                               self.platform, self.platform_url, parent_user = parent_user)
+                               self.platform, self.platform_url, parent_user = parent_user,
+                               parent_user_external = parent_external)
 
+    def get_parent_external(self, snippet, retrieved_from_video, http):
+        if retrieved_from_video:
+            data = self.get_video(snippet['videoId'], http)
+        else:
+            data = self.get_channel(snippet['channelId'], http)
+
+        return data['items'][0]['snippet']['title']
+
+
+    def get_video(self, video_id, http):
+        service = build('youtube', 'v3', http=http)
+        return service.videos().list(part = 'id,snippet', id = video_id).execute()
+
+
+    def get_channel(self, channel_id, http):
+        service = build('youtube', 'v3', http=http)
+        return service.channels().list(part = 'id,snippet', id = channel_id).execute()
 
 
     def create_url_by_search_type(self, object_id, comment_id, is_video_url):
