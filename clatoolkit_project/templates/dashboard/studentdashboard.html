@@ -113,6 +113,10 @@
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
+                <div id="popup" title="Centrality">
+                  <table class="table table-striped table-bordered table-hover" id="centrality-popup">
+                  </table>
+                </div>
                 <div id="mynetwork" style="height: 350px;"></div>
                 <div id="relationships""></div>
             </div>
@@ -159,6 +163,26 @@
         <!-- /.col-lg-12 -->
 </div>
 <!-- /.row -->
+<div class="row">
+    <div class="col-lg-12">
+
+        <div class="panel panel-default">
+          <div class="panel-heading">
+              <i class="fa fa-bar-chart-o fa-fw"></i>Centrality
+          </div>
+          <!-- /.panel-heading -->
+          <div class="panel-body">
+            <div class="dataTable_wrapper">
+                <table class="table table-striped table-bordered table-hover" id="dctable">
+                </table>
+            </div>
+          </div>
+          <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+</div>
+
 {% endblock %}
 
 {% block js_block %}
@@ -171,6 +195,7 @@ var wordcloud_data = {{tags|safe}};
 var platform = "{{platform}}";
 var username = "{{username}}";
 var start_date, end_date;
+var centrality = {{centrality}};
 
 function update_data(chartid)
 {
@@ -258,7 +283,61 @@ function render_sna(data)
         params.event = "[original event]";
         document.getElementById('relationships').innerHTML = '<h2>Click event:</h2>' + JSON.stringify(params, null, 4);
         update_messages(params.nodes,params.edges);
+        showCentralityPopup(params);
   });
+}
+
+function showCentralityPopup(params)
+{
+  data = getCentralityDataSetByUser(params);
+  if(data.length == 0) {
+    return;
+  }
+  // console.log("centrality data in pop-up table:");
+  // console.log(data);
+  
+  $('#centrality-popup').dataTable().fnDestroy();
+  $('#centrality-popup').DataTable( {
+        bFilter: false,
+        bInfo: false,
+        bPaginate: false,
+        bLengthChange: false,
+        data: data,
+        columns: [
+            { title: "Measure"},
+            { title: "Value" }
+        ]
+    } );
+  
+  $('#popup').dialog("open");
+  $('#popup').dialog("option", "width", 300);
+}
+
+
+function getCentralityDataSetByUser(params)
+{
+  label = getnodelabel(params.nodes[0])
+
+  var ret = [];
+  for(var i = 0; i < centrality.label.length; i++)
+  {
+    if (centrality.label[i] == label) {
+      var datarow = ["In degree", centrality.inDegree[i]];
+      ret.push(datarow);
+      datarow = ["Out degree", centrality.outDegree[i]];
+      ret.push(datarow);
+      datarow = ["Betweenness", centrality.betweenness[i]];
+      ret.push(datarow);
+      datarow = ["In Closeness", centrality.inCloseness[i]];
+      ret.push(datarow);
+      datarow = ["Out Closeness", centrality.outCloseness[i]];
+      ret.push(datarow);
+      datarow = ["Eigenvector", centrality.eigenvector[i]];
+      ret.push(datarow);
+      break;
+    }
+  }
+  return ret;
 }
 
 function update_messages(nodes, edges)
@@ -281,12 +360,11 @@ function update_messages(nodes, edges)
     uid = getNodeUid(nodes[0]);
 
     $('#relationships').html('<h3>Selected User: ' + username + '</h3>');
-    console.log("Selected User:" + username)
-    resturl = "/api/learningrecord";
+    console.log("Selected User:" + username);
+    resturl = '/dashboard/api/get_learning_records';
     if (platform!="all")
     {
       restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
-      resturl = '/dashboard/api/get_learning_records';
     }
     else
     {
@@ -341,8 +419,15 @@ function update_messages(nodes, edges)
   console.log(resturl);
   $.getJSON(resturl, restparams,
     function(data){
+      datatable_array = [];
       // console.log(data.results);
-      datatable_array = []
+      if(data.results.error) {
+        // When error occur (e.g. User clicks a non-registered user/an object)
+        // console.log(data.results.error);
+        render_messages(datatable_array);
+        return;
+      }
+      
       for (i=0;i<data.results.length;i++)
       {
         var datarow;
@@ -449,6 +534,22 @@ function render_messages(dataSet)
             { title: "Date" }
         ]
     } );
+}
+
+function getCentralityDataSet(centr)
+{
+  var ret = [];
+  var index = 0;
+  for(var i = 0; i < centr.ids.length; i++)
+  {
+    var datarow = [centr.ids[i], centr.label[i], centr.inDegree[i], 
+          centr.outDegree[i], centr.totalDegree[i], centr.betweenness[i],
+          centr.inCloseness[i], centr.outCloseness[i], centr.totalCloseness[i],
+          centr.eigenvector[i]
+        ];
+    ret.push(datarow);
+  }
+  return ret;
 }
 
 $(function() {
@@ -746,6 +847,44 @@ $(function() {
               { title: "Date" }
           ]
       } );
+
+    // This table always shows the same data regardless of the dates users select
+    dc = getCentralityDataSet(centrality);
+    $('#dctable').DataTable( {
+          data: dc,
+          columns: [
+              { title: "ids", "bVisible": false },
+              { title: "Users" },
+              { title: "In Degree" },
+              { title: "Out Degree" },
+              { title: "Total Degree" },
+              { title: "Betweenness" },
+              { title: "In Closeness" },
+              { title: "Out Closeness" },
+              { title: "Total Closeness" },
+              { title: "Eigenvector" }
+          ]
+      } );
+    var density = centrality.density;
+    $("#dctable_filter").append("<div id='density'></div>");
+    $("#density").html("Density: " + density + " ");
+    $("#density").css("font-weight", "bold");
+    $("#density").css("font-size", "16px");
+    $('#popup').dialog({
+        autoOpen: false,
+        buttons: {
+          "OK": function(){
+            $(this).dialog('close');
+          }
+        }
+    });
+    $('#centrality-popup').DataTable({
+          data: [],
+          columns: [
+              { title: "measure"},
+              { title: "value" }
+          ]
+    });
 });
 </script>
 {% endautoescape %}

@@ -404,7 +404,7 @@
 
       $('#relationships').html('<h3>Selected User: ' + username + '</h3>');
       console.log("Selected User :" + uid)
-      resturl = "/api/learningrecord";
+    resturl = '/dashboard/api/get_learning_records';
       if (platform !="all")
       {
         restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
@@ -412,7 +412,6 @@
       else
       {
         restparams = {format: "json", course_id:"{{course_id}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
-        resturl = '/dashboard/api/get_learning_records';
       }
     }
     else
@@ -463,8 +462,15 @@
     console.log(resturl);
     $.getJSON(resturl, restparams,
       function(data){
+        datatable_array = [];
         // console.log(data.results);
-        datatable_array = []
+        if(data.results.error) {
+          // When error occur (e.g. User clicks a non-registered user/an object)
+          // console.log(data.results.error);
+          render_messages(datatable_array);
+          return;
+        }
+        
         for (i=0;i<data.results.length;i++)
         {
           var datarow;
@@ -876,6 +882,7 @@ $(function() {
           ]
     } );
 
+    // This table always shows the same data regardless of the dates users select
     dc = getCentralityDataSet(centrality);
     // console.log(dc);
     $("#dctable").DataTable( {

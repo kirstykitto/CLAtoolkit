@@ -190,7 +190,7 @@ function update_messages(nodes,edges)
     uid = getNodeUid(nodes[0]);
 
     console.log("Selected User:" + username)
-    resturl = "/api/learningrecord";
+    resturl = '/dashboard/api/get_learning_records';
     if (platform!="all")
     {
       restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
@@ -198,7 +198,6 @@ function update_messages(nodes,edges)
     else
     {
       restparams = {format: "json", course_id:"{{course_id}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
-      resturl = '/dashboard/api/get_learning_records';
     }
     $('#relationships').html('<h3>Selected User: ' + username + '</h3>');
 
@@ -251,8 +250,15 @@ function update_messages(nodes,edges)
   console.log(resturl);
   $.getJSON(resturl, restparams,
     function(data){
-      console.log(data.results);
-      datatable_array = []
+      datatable_array = [];
+      // console.log(data.results);
+      if(data.results.error) {
+        // When error occur (e.g. User clicks a non-registered user/an object)
+        // console.log(data.results.error);
+        render_messages(datatable_array);
+        return;
+      }
+      
       for (i=0;i<data.results.length;i++)
       {
         var datarow;
@@ -374,7 +380,7 @@ function render_sna(data)
         params.event = "[original event]";
         //document.getElementById('relationships').innerHTML = '<h2>Click event:</h2>' + JSON.stringify(params, null, 4);
         update_messages(params.nodes,params.edges);
-        showCentralityPopup(params)
+        showCentralityPopup(params);
   });
 }
 
@@ -404,8 +410,6 @@ function showCentralityPopup(params)
   $('#popup').dialog("option", "width", 300);
   //$('#popup').dialog( "option", "position", { my: "left top", at: "left bottom", of: button } );
 }
-
-
 
 function getDrawOption()
 {

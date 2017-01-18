@@ -577,6 +577,8 @@ def studentdashboard(request):
             relationshipstoinclude = "'%s', '%s', '%s', '%s'" % (xapi_settings.VERB_MENTIONED, xapi_settings.VERB_LIKED, \
                                                                  xapi_settings.VERB_SHARED, xapi_settings.VERB_COMMENTED))
 
+    # Centrality data
+    centrality = get_centrality(sna_json)
     # Word cloud tags
     tags = get_wordcloud(platform, unit, user = user)
     # Sentiments pie chart
@@ -720,7 +722,7 @@ def studentdashboard(request):
 
         'activity_pie_series': activity_pie_series,
         'platformactivity_pie_series':platformactivity_pie_series,
-        'sna_json': sna_json, 'tags': tags, 'sentiments': sentiments, 'coi': coi,
+        'sna_json': sna_json, 'tags': tags, 'sentiments': sentiments, 'coi': coi, 'centrality': centrality,
         'show_allplatforms_widgets': show_allplatforms_widgets, 'show_dashboardnav':True
     }
 
@@ -1058,13 +1060,21 @@ def get_learning_records(request):
     platform = request.GET.get('platform')
     unit = None
     user = None
-    
-    print course_id, platform, user_id
+
     try:
         unit = UnitOffering.objects.get(id = course_id)
-        user = User.objects.get(id = user_id)
-    except:
-        raise HttpResponseServerError('Unit or user not found.')
+        if user_id and user_id != '':
+            user = User.objects.get(id = user_id)
+        else:
+            raise User.DoesNotExist
+
+    except UnitOffering.DoesNotExist:
+        # raise HttpResponseServerError('Unit or user not found.')
+        # A selected user in SNA Explorer could be non-registered user.
+        # So, instead of raising an error, return JSON error message
+        return JsonResponse({'results': {'error': 'Unit not found.'}}, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return JsonResponse({'results': {'error': 'User not found.'}}, status=status.HTTP_200_OK)
 
     # Get xAPI statements
     filters = xapi_filter()
