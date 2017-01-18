@@ -1081,18 +1081,28 @@ def get_learning_records(request):
     filters.course = unit.code
     if platform is not None and platform != 'all' and platform != '':
         filters.platform = platform
+    print filters.to_dict()
+
     getter = xapi_getter()
     statements = getter.get_xapi_statements(unit.id, user_id, filters)
     lang = 'en-US'
     results = []
     for stmt in statements:
         parent_username = None
+        learning_record = None
         try:
             learning_record = LearningRecord.objects.get(statement_id = stmt['id'])
             parent_user = User.objects.get(id = learning_record.parent_user_id)
             parent_username = parent_user.username
         except:
-            pass
+            # Get parent user (external user) from social relationship table
+            if learning_record is not None:
+                try:
+                    sr = SocialRelationship.objects.get(platformid = learning_record.platformid,
+                        unit = unit, user = user, verb = learning_record.verb, platform = learning_record.platform)
+                    parent_username = sr.to_external_user
+                except:
+                    pass
 
         obj = {}
         obj['username'] = stmt['authority']['member'][0]['name']

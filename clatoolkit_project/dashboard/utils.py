@@ -777,7 +777,7 @@ def get_relationships_byplatform(platform, unit, user = None, start_date=None, e
             FROM   clatoolkit_socialrelationship
             WHERE  clatoolkit_socialrelationship.unit_id='%s' %s %s %s %s
           """ % (unit.id, platformclause, userclause, dateclause, relationshipclause)
-    # print sql
+    print sql
     cursor = connection.cursor()
     cursor.execute(sql)
     result = cursor.fetchall()
