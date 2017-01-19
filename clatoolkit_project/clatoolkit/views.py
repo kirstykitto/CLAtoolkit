@@ -412,6 +412,27 @@ def create_offering(request):
             provider = post_data.pop("provider")[0]
             app = ClientApp.objects.get(provider = provider)
             unit.lrs_provider = app
+            # Start & end date 
+            start_date = post_data.pop("start_date")[0]
+            end_date = post_data.pop("end_date")[0]
+
+            from datetime import datetime as dt
+            client_format = '%d / %m / %Y'
+            database_format = '%Y-%m-%d'
+
+            # Create a Date object
+            start_date = dt.strptime(start_date, client_format)
+            end_date = dt.strptime(end_date, client_format)
+            # Get formatted date string 
+            start_date = start_date.strftime(database_format)
+            end_date = end_date.strftime(database_format)
+            # Create a Date object whose format suits database column format
+            start_date = dt.strptime(start_date, database_format)
+            end_date = dt.strptime(end_date, database_format)
+            
+            unit.start_date = start_date
+            unit.end_date = end_date
+            
             unit.save()
 
             m = UnitOfferingMembership(user=request.user, unit=unit, admin=True)
@@ -442,6 +463,26 @@ def update_offering(request, unit_id):
                 provider = post_data.pop("provider")[0]
                 app = ClientApp.objects.get(provider = provider)
                 unit.lrs_provider = app
+                # Start & end date 
+                start_date = post_data.pop("start_date")[0]
+                end_date = post_data.pop("end_date")[0]
+
+                from datetime import datetime as dt
+                client_format = '%d / %m / %Y'
+                database_format = '%Y-%m-%d'
+
+                # Create a Date object
+                start_date = dt.strptime(start_date, client_format)
+                end_date = dt.strptime(end_date, client_format)
+                # Get formatted date string 
+                start_date = start_date.strftime(database_format)
+                end_date = end_date.strftime(database_format)
+                # Create a Date object whose format suits database column format
+                start_date = dt.strptime(start_date, database_format)
+                end_date = dt.strptime(end_date, database_format)
+                
+                unit.start_date = start_date
+                unit.end_date = end_date
                 unit = form.save()
                 return render(request, 'clatoolkit/createoffering_success.html', {'verb': 'updated', 'unit': unit})
 

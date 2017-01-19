@@ -12,13 +12,12 @@
             <div class="col-lg-12">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        {{ membership.unit.code }}: {{ membership.unit.name }} ({{ membership.unit.semester }})
+                        {{ membership.unit.code }}: {{ membership.unit.name }} ({{ membership.unit.semester }}) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Period: {{ membership.unit.start_date|date:'d/m/Y' }} to {{ membership.unit.end_date|date:'d/m/Y' }}
 
                         <div id="{{ membership.unit.code }}_sm"></div>
                     </div>
                     <!-- /.panel-heading -->
                     <div class="panel-body">
-                        {{ membership.unit }}
                         {% for key, value in has_token_list.items %} 
                             {% if key == membership.unit.code and not value.has_user_token %}
                             <div>

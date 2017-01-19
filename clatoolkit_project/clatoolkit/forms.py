@@ -64,18 +64,29 @@ class CreateOfferingForm(forms.ModelForm):
     name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
     semester = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
     provider = forms.CharField(label='LRS', widget=forms.TextInput(attrs={'class': 'form-control'}))
+    start_date = forms.DateField(label='Start Date', 
+        widget=forms.DateInput(attrs={'class': 'form-control'}), input_formats=['%d / %m / %Y'])
+    end_date = forms.DateField(label='End Date', 
+        widget=forms.DateInput(attrs={'class': 'form-control'}), input_formats=['%d / %m / %Y'])
 
     class Meta:
         model = UnitOffering
         fields = ("code", "name", "semester", "description", "twitter_hashtags", "google_groups", 
             "facebook_groups", "forum_urls", "youtube_channelIds", "diigo_tags", "blogmember_urls", 
-            "github_urls", "attached_trello_boards", "provider")
+            "github_urls", "attached_trello_boards", "provider", "start_date", "end_date")
 
-    def clean_code(self):
+    def clean(self):
         code = self.cleaned_data.get('code')
         if not re.match(r'^[a-zA-Z0-9_-]+$', code):
-            raise forms.ValidationError("Alphabet, number, hyphen and under score are available.")
-        return code
+            self._errors['code'] = self.error_class(['Alphabet, number, hyphen and under score are available.'])
+
+        start_date = self.cleaned_data.get('start_date')
+        end_date = self.cleaned_data.get('end_date')
+        if start_date and end_date and start_date >= end_date:
+            self._errors['start_date'] = self.error_class(['Start date must be earlier than end date.'])
+
+        return self.cleaned_data
+
 
 class SocialMediaUpdateForm(forms.ModelForm):
     fb_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
@@ -166,10 +177,6 @@ class LearningRecordFilter(django_filters.FilterSet):
 
     class Meta:
         model = LearningRecord
-
-        # fields = ('id', 'unit', 'platform', 'verb', 'user', 'platformid', 'platformparentid', 'parent_user',
-        #           'parent_user_external', 'message', 'datetimestamp', 'senttolrs', 'datetimestamp_min',
-        #           'datetimestamp_max')
         fields = ('id', 'unit', 'platform', 'verb', 'user', 'platformid', 'platformparentid')
 
 

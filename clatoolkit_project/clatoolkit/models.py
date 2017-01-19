@@ -1,10 +1,9 @@
+import os
 from django.db import models
 from django.contrib.auth.models import User
 from django_pgjson.fields import JsonField
 from django.core.exceptions import ObjectDoesNotExist
-import os
 from xapi.statement.xapi_settings import xapi_settings
-
 from xapi.models import ClientApp
 
 class UserProfile(models.Model):
@@ -117,8 +116,11 @@ class UnitOffering(models.Model):
 
     # Determines which platforms should be utilized by COI classifier
     coi_platforms = models.TextField(blank=True)
-
-
+    # Unit start date
+    start_date = models.DateField(auto_now=False, auto_now_add=False, blank=False)
+    # Unit end date
+    end_date = models.DateField(auto_now=False, auto_now_add=False, blank=False)
+ 
     # LRS Integration - to send users data to unit LRS
     #ll_endpoint = models.CharField(max_length=60, blank=True)
     #ll_username = models.CharField(max_length=60, blank=True)

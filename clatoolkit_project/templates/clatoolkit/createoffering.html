@@ -7,7 +7,6 @@
 {% block heading %}{% endblock %}
 
 {% block body %}
-<script src="{% static 'js/jquery-ui-1.11.4.custom/jquery-ui.js'%}"></script>
 <div class="row">
     <div class="col-md-6 col-md-offset-3">
         <div class="panel panel-info">
@@ -37,9 +36,15 @@
                             {% else %}
                                 {% if field.name == "provider" %}
                                     <input class="form-control" id="id_provider" name="provider" type="text" value="{{ field.value }}" readonly>
-                                    <br>
+                                    <!-- <br> -->
                                     <a class="lrs-link" onclick="javascript:getLRSList();">Select your own LRS</a>
                                     <div id="lrs-list" class="lrs"></div>
+                                {% elif field.name == "start_date" %}
+                                    <input type="hidden" id="startDate" value="{{field.value}}">
+                                    <input class="form-control" id="id_start_date" name="start_date" type="text" value="{% if field.value %}{{ field.value }}{% endif %}">
+                                {% elif field.name == "end_date" %}
+                                    <input type="hidden" id="endDate" value="{{field.value}}">
+                                    <input class="form-control" id="id_end_date" name="end_date" type="text" value="{% if field.value %}{{ field.value }}{% endif %}">
                                 {% else %}
                                     {{ field }}
                                 {% endif %}
@@ -61,6 +66,7 @@
     }
     .lrs {
         font-size: 16px;
+        margin-top: 10px;
     }
     div .lrs-link {
         cursor: pointer;
@@ -78,7 +84,9 @@
             type: 'GET',
             success: function (response) {
                 var lrsList = $("#lrs-list");
-                lrsList.html('<br><p>Click the LRS name you would like to use.</p>');
+                lrsList.css('border', 'solid 1px #CCCCCC');
+                lrsList.css('padding', '3px');
+                lrsList.html('<p>Click the LRS name you would like to use.</p>');
                 $.each(response["result"], function(key, val) {
                     var url = val["protocol"] + "://" + val["domain"] + ":" + val["port"];
                     var app = '<a class="lrs-link" onclick="javascript:selectLRS(\'' + val["provider"] + '\');">' + val["provider"] + "</a>: " + url;
@@ -90,7 +98,33 @@
     function selectLRS(providerName) {
         $("#id_provider").val(providerName);
     }
+
+    function initialise() {
+        // jQuery.js will be loaded AFTER this template html file is loaded, so initialisation process must be delayed.
+        setTimeout( function() {
+            var dateFormat = 'DD / MM / YYYY';
+            if($('#startDate').val() != 'None'){
+                var startDate = new Date($('#startDate').val());
+                var endDate = new Date($('#endDate').val());
+                $('#id_start_date').datetimepicker({ format: dateFormat });
+                $('#id_end_date').datetimepicker({ format: dateFormat });
+                $('#id_start_date').val(toString(startDate));
+                $('#id_end_date').val(toString(endDate));
+            } else {
+                $('#id_start_date').datetimepicker({ format: dateFormat });
+                $('#id_end_date').datetimepicker({ format: dateFormat });
+            }
+        }, 2000);
+    }
+    function toString( date ) {
+        return [
+                ("00" + (date.getDate())).slice(-2), 
+                ("00" + (date.getMonth() + 1)).slice(-2), 
+                date.getFullYear()
+               ].join(' / ');
+    }
+// Initialise datetime picker
+initialise();
 </script>
 {% endautoescape %}
 {% endblock %}
-
