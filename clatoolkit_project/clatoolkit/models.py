@@ -333,6 +333,7 @@ class DashboardReflection(models.Model):
     )
     rating = models.CharField(max_length=50, choices=RATING_OPTIONS, default=SATISFIED)
     created_at = models.DateTimeField(auto_now_add=True)
+    unit = models.ForeignKey(UnitOffering)
 
     def __unicode__(self):
         return self.id + ": " + self.username

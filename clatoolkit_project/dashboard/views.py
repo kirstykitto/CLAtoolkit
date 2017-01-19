@@ -740,11 +740,12 @@ def mydashboard(request):
     if request.method == 'POST':
         course_id = request.POST['course_id']
         platform = request.POST['platform']
+        unit = UnitOffering.objects.get(id = course_id)
 
         # save reflection
         reflectiontext = request.POST['reflectiontext']
         rating = request.POST['rating']
-        reflect = DashboardReflection(strategy = reflectiontext, rating = rating, user = user)
+        reflect = DashboardReflection(strategy = reflectiontext, rating = rating, user = user, unit = unit)
         reflect.save()
         
     else:
@@ -786,7 +787,7 @@ def mydashboard(request):
     # Community of Inquiry
     coi = getClassifiedCounts(platform, unit, user = user, classifier="nb_"+course_code+"_"+platform+".model")
     # Dashboard reflection
-    reflections = DashboardReflection.objects.filter(user = user)
+    reflections = DashboardReflection.objects.filter(user = user, unit = unit)
     # SNA explorer data 
     sna_json = sna_buildjson(platform, unit, 
         # relationshipstoinclude="'mentioned','liked','shared','commented'")
