@@ -87,7 +87,9 @@ class LRS_Auth(object):
         if filters is not None:
             kwargs['filters'] = filters
 
+        # url = 'http://localhost:8000/xapi/statements/more/75f555ce0cf8b7fda4928ef3f45de618'
         (code,content) = consumer.request(self.STATEMENTS_URL, **kwargs)
+        # (code,content) = consumer.request(url, **kwargs)
 
         if str(code) != '200':
             raise Exception("Could not get xapi statments. Status: %s, Message: %s" % (code,content))

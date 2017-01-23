@@ -972,12 +972,13 @@ def get_user_acitivities(request):
 
 @login_required
 def get_all_repos(request):
+    course_id = request.GET.get('course_id')
     tokens = OfflinePlatformAuthToken.objects.filter(
         user_smid=request.user.userprofile.github_account_name, platform=xapi_settings.PLATFORM_GITHUB)
     if len(tokens) == 0 or len(tokens) > 1:
         return []
 
-    val = get_all_reponames(tokens[0].token)
+    val = get_all_reponames(tokens[0].token, course_id)
     return JsonResponse(val, status=status.HTTP_200_OK)
 
 
@@ -1010,13 +1011,15 @@ def add_repo_to_course(request):
 def get_github_attached_repo(request):
     course_id = request.GET.get('course_id')
     if course_id is None or course_id == '':
-        return JsonResponse({'result': 'error', 'message': 'Course ID not found.'}, status=status.HTTP_200_OK)
+        return JsonResponse({'result': 'error', 'message': 'Course ID not found.', 
+            'course_id': course_id}, status=status.HTTP_200_OK)
 
     resource_map = UserPlatformResourceMap.objects.filter(
         user=request.user, unit=course_id, platform=xapi_settings.PLATFORM_GITHUB)
 
     if len(resource_map) == 0:
-        return JsonResponse({'result': 'error', 'message': 'No records found.'}, status=status.HTTP_200_OK)
+        return JsonResponse({'result': 'error', 'message': 'No records found.', 
+            'course_id': course_id}, status=status.HTTP_200_OK)
 
     resource = resource_map[0]
     gh_settings = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_GITHUB]
@@ -1024,6 +1027,7 @@ def get_github_attached_repo(request):
         ('result', 'success'),
         ('name', resource.resource_id),
         ('url', gh_settings.platform_url + resource.resource_id),
+        ('course_id', course_id),
     ])
 
     return JsonResponse(obj, status=status.HTTP_200_OK)

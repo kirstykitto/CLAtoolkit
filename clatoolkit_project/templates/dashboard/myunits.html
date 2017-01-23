@@ -8,6 +8,8 @@
 {% block body %}
     <link href="{% static 'css/dashboard/myunits.css'%}" rel="stylesheet">
     {% for membership in memberships %}
+        <a href="http://localhost:8080/xapi/get_statement?unit_id=4&user_id=42">Get statements from LRS</a>
+        <br/>
         <div class="row">
             <div class="col-lg-12">
                 <div class="panel panel-default">
@@ -185,8 +187,8 @@
                                         <p>
                                             <h5>GitHub Workload Management</h5>
                                             <span id="{{ membership.unit.id }}" class="getReposList" ></span>
-                                            <a id="get_repo_list" href="#">Attach a GitHub Repository to plan your Work!</a>
-                                            <p id="reposList"></p>
+                                            <a id="get_repo_list{{ membership.unit.id }}" href="#">Attach a GitHub Repository to plan your Work!</a>
+                                            <p id="reposList{{ membership.unit.id }}"></p>
                                         </p>
                                     {% else %}
                                         <p>
@@ -229,8 +231,8 @@
                                     <p>
                                         <h5>GitHub Workload Management</h5>
                                         <span id="{{ membership.unit.id }}" class="getReposList" ></span>
-                                        <a id="get_repo_list" href="#">Attach a GitHub Repository to plan your Work!</a>
-                                        <p id="reposList"></p>
+                                        <a id="get_repo_list{{ membership.unit.id }}" href="#">Attach a GitHub Repository to plan your Work!</a>
+                                        <p id="reposList{{ membership.unit.id }}"></p>
                                     </p>
                                 {% else %}
                                     <p>

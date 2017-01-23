@@ -132,19 +132,30 @@ def get_smids_fromusername(username):
     diigo_id = user.userprofile.diigo_username
     return twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id
 
-def get_timeseries(sm_verb, sm_platform, unit, username=None):
+def get_timeseries(sm_verb, sm_platform, unit, user = None):
     # more info on postgres timeseries
     # http://no0p.github.io/postgresql/2014/05/08/timeseries-tips-pg.html
-    
-    platformclause = ""
-    if sm_platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (sm_platform)
 
-    userclause = ""
-    if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
+
+    # Get verb counts
+    user_id = None
+    filters = xapi_filter()
+    filters.course = unit.code
+
+    if sm_platform != "all":
+        filters.platform = sm_platform
+
+    if user is not None:
+        user_id = user
+
+    getter = xapi_getter()
+    statements = getter.get_xapi_statements(unit.id, user_id, filters)
+    from datetime import datetime as dt
+    for stmt in statements:
+        stmt_date = stmt['timestamp']
+        tdatetime = dt.strptime(stmt_date, '%Y-%m-%d %H:%M:%S%z')
+        print tdatetime
+
 
     cursor = connection.cursor()
     cursor.execute("""
@@ -1370,7 +1381,7 @@ def count_verbs_by_users(verbs, platform, course_code):
 
 # This returns all repository name that user has. 
 # Private and organization repositories are included (It actually depends on the parameter scope
-def get_all_reponames(token):
+def get_all_reponames(token, course_id):
     from github import Github
 
     github_settings = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_GITHUB]
@@ -1403,7 +1414,8 @@ def get_all_reponames(token):
             #Break from while
             break;
 
-    return OrderedDict([('repos', ret)])
+    return OrderedDict([('repos', ret), ('course_id', course_id)])
+    
 
 def get_timeline_data(unit, user):
     # TODO: implement this method

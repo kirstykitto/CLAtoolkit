@@ -9,14 +9,9 @@ from xapi.statement.xapi_settings import xapi_settings
 
 
 class xapi_getter(object):
-	filters = None
-
-	# verb filter. Use verb IRI
-	verb = None
-
+	
 	def __init__(self):
-		filters = None
-
+		pass
 
 	def get_xapi_statements(self, course_id, user_id = None, xapi_filters = None):
 		unit = UnitOffering.objects.get(id = course_id)
@@ -34,24 +29,19 @@ class xapi_getter(object):
 
 		statement_list = []
 		for uid in user_list:
-			# user = User.objects.get(id = uid)
-			# Get statement IDs from learningrecord table
-			# records = LearningRecord.objects.filter(user = user, unit = unit)
-			# for row in records:
-			#     # params = {'statementId': [row.statement_id]}
-			#     params = {'verb': 'http://www.w3.org/ns/activitystreams#Create'}
-			#     # print params
-			#     # Access to LRS to retrieve xAPI 
-			#     stmts = lrs_client.get_statement(uid, filters = params)
-			#     statement_list.append(stmts)
-
-			# Access to LRS to retrieve xAPI 
+			# Access to LRS to retrieve xAPI statements
 			stmts = lrs_client.get_statement(uid, filters = xapi_filters.to_dict())
-			# print '---------------- xAPI statement retrieved from LRS ----------------'
 			# print stmts
 			if stmts is None:
 				continue
 
+			# 
+			# TODO: get more data if "more" element exist in stmts dict.
+			# 
+			# print '-------------------------'
+			# for key, value in stmts.iteritems():
+			# 	print key
+			# print stmts['more']
 			if 'statements' in stmts:
 				for stmt in stmts['statements']:
 					statement_list.append(stmt)

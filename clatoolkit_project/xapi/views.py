@@ -1,18 +1,17 @@
+import oauth2 as oauth
+from clatoolkit.models import UnitOffering
+from common.util import Utility
 from django.http import HttpResponse, HttpResponseServerError
 from django.http import HttpResponseRedirect
-#from django.contrib.auth import authenticate, login
-#from django.http import HttpResponseRedirect, HttpResponse, Http404
-
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist
 
 from models import OAuthTempRequestToken, UserAccessToken_LRS, ClientApp
 from oauth_consumer.operative import LRS_Auth
+from xapi.statement.xapi_getter import xapi_getter
+from xapi.statement.xapi_filter import xapi_filter
 
-import oauth2 as oauth
-from clatoolkit.models import UnitOffering
-from django.core.exceptions import ObjectDoesNotExist
-from common.util import Utility
 
 
 @login_required
@@ -25,16 +24,20 @@ def get_lrs_access_token(request):
 # Create your views here.
 @login_required
 def lrs_test_get_statements(request):
-    # unit_id = request.GET.get('unit_id')
-    unit_id = '4'
+    unit_id = request.GET.get('unit_id')
+    user_id = request.GET.get('user_id')
+    
     unit = None
+    user = None
     try:
         unit = UnitOffering.objects.get(id = unit_id)
     except ObjectDoesNotExist:
         return HttpResponseServerError('Error. Unit was not found.')
 
-    params = None
+    if user_id is None or user_id == '':
+        return HttpResponseServerError('Error. User was not found.')
 
+    params = None
     if request.GET:
         params = dict(request.GET.iterlists())
         keys = params.keys()
@@ -43,12 +46,36 @@ def lrs_test_get_statements(request):
             if type(params[keys[i]]) is 'list' and len(params[keys[i]]) == 1:
                 params[keys[i]] = params[keys[i]][0]
 
-    # params = {}
-    # params['verb'] = ['opened']
-    print params
+    filters = xapi_filter()
+    getter = xapi_getter()
+    ret = getter.get_xapi_statements(unit_id, user_id, filters)
     lrs = LRS_Auth(provider_id = unit.lrs_provider.id)
+    ret = lrs.get_statement(user_id, filters=params)
+    print ret
+    
+    # filters = xapi_filter()
+    # filters.course = unit.code
 
-    return HttpResponse(lrs.get_statement(request.user.id, filters=params))
+    # # if platform is not None and platform != "all":
+    # #     filters.platform = platform
+
+    # getter = xapi_getter()
+    # ret = getter.get_xapi_statements(unit_id, user_id, filters)
+
+    # print 'statements count: %s ' % str(len(ret))
+    
+    # from datetime import datetime
+    # import pytz
+    # zone = pytz.timezone('Brisbane')
+
+
+    # for stmt in ret:
+    #     stmt_date = stmt['timestamp']
+    #     # tdatetime = datetime.strptime(stmt_date, '%Y-%m-%d %H:%M:%S%z')
+    #     jst_datetime_str = datetime.strftime(jst_datetime, '%Y-%m-%d %H:%M:%S %z')
+    #     print tdatetime
+
+    return HttpResponse(ret)
 
 
 @login_required
