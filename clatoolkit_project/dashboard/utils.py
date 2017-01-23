@@ -788,7 +788,7 @@ def get_relationships_byplatform(platform, unit, user = None, start_date=None, e
             FROM   clatoolkit_socialrelationship
             WHERE  clatoolkit_socialrelationship.unit_id='%s' %s %s %s %s
           """ % (unit.id, platformclause, userclause, dateclause, relationshipclause)
-    print sql
+    # print sql
     cursor = connection.cursor()
     cursor.execute(sql)
     result = cursor.fetchall()
@@ -872,8 +872,8 @@ def sna_buildjson(platform, unit, username=None, start_date=None, end_date=None,
     # replace the original dict with new one
     node_dict = new_node_dict
 
-    print 'node_dict'
-    print node_dict
+    # print 'node_dict'
+    # print node_dict
 
     edge_dict, nodes_in_sna_dict, mention_dict, \
     share_dict, comment_dict = get_relationships_byplatform(platform,
@@ -1022,7 +1022,6 @@ def getNeighbours(jsonStr):
     return allNeighbours
 
 def get_centrality(jsonStr):
-    print jsonStr
     g = _create_graphElements(json.loads(str(jsonStr)))
     #print(g)
     #layout = g.layout("kk")
@@ -1415,7 +1414,7 @@ def get_all_reponames(token, course_id):
             break;
 
     return OrderedDict([('repos', ret), ('course_id', course_id)])
-    
+
 
 def get_timeline_data(unit, user):
     # TODO: implement this method
