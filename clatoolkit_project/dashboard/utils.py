@@ -132,60 +132,80 @@ def get_smids_fromusername(username):
     diigo_id = user.userprofile.diigo_username
     return twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id
 
-def get_timeseries(sm_verb, sm_platform, unit, user = None):
+
+def get_timeseries(unit, sm_verb = None, sm_platform = None, user = None):
     # more info on postgres timeseries
     # http://no0p.github.io/postgresql/2014/05/08/timeseries-tips-pg.html
 
+    platformclause = ""
+    if sm_platform is not None and sm_platform != "all":
+        platformclause = " and clatoolkit_learningrecord.platform = '%s' " % (sm_platform)
 
-    # Get verb counts
-    user_id = None
-    filters = xapi_filter()
-    filters.course = unit.code
-
-    if sm_platform != "all":
-        filters.platform = sm_platform
-
+    verb_clause = ""
+    if sm_verb is not None:
+        verb_clause = " and clatoolkit_learningrecord.verb = '%s' " % (sm_verb)
+        
+    userclause = ""
     if user is not None:
-        user_id = user
+        userclause = " and clatoolkit_learningrecord.user_id = %s " % (user.id)
 
-    getter = xapi_getter()
-    statements = getter.get_xapi_statements(unit.id, user_id, filters)
-    from datetime import datetime as dt
-    for stmt in statements:
-        stmt_date = stmt['timestamp']
-        tdatetime = dt.strptime(stmt_date, '%Y-%m-%d %H:%M:%S%z')
-        print tdatetime
-
+    # with filled_dates: Generate date series with count 0 
+    # E.g.
+    # 2016-12-01 00:00:00+10", 0
+    # 2016-12-02 00:00:00+10", 0
+    # 2016-12-03 00:00:00+10", 0 
+    # ...
+    #
+    # with daily_counts: Count the number of verbs on each day
+    # E.g. 
+    # 2016-12-23 00:00:00+10, 3
+    # 2017-01-25 00:00:00+10, 1
+    #
+    # Main SQL: Select date series with actual count
+    # If the same date exist in daily_counts, value of smcount will be returned as a result.
+    # 2016-12-01, 0
+    # ...
+    # 2016-12-23, 3
+    # 2016-12-24, 0 
+    # ...
+    sql = """
+        with filled_dates as (
+            SELECT generate_series( 
+                (select start_date from clatoolkit_unitoffering where id = %s)
+                 ,(select end_date from clatoolkit_unitoffering where id = %s)
+                 , interval '1 day'
+            ) as day, 0 as blank_count
+        ),
+        daily_counts as (
+            select 
+            date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.datetimestamp as text) from 1 for 11), 'YYYY-MM-DD')) as day, 
+            count(*) as smcount
+            FROM clatoolkit_learningrecord
+            WHERE clatoolkit_learningrecord.unit_id = %s 
+            %s %s %s
+            group by day
+            order by day asc
+        )
+        select 
+        to_date(to_char(filled_dates.day, 'YYYY-MM-DD'), 'YYYY-MM-DD') date
+        , coalesce(daily_counts.smcount, filled_dates.blank_count) as counts
+        from filled_dates
+        left outer join daily_counts on daily_counts.day = filled_dates.day
+        order by filled_dates.day;
+    """ % (unit.id, unit.id, unit.id, userclause, platformclause, verb_clause)
 
     cursor = connection.cursor()
-    cursor.execute("""
-    with filled_dates as (
-      select day, 0 as blank_count from
-        generate_series('2015-06-01 00:00'::timestamptz, current_date::timestamptz, '1 day')
-          as day
-    ),
-    daily_counts as (
-    select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
-    FROM clatoolkit_learningrecord
-    WHERE clatoolkit_learningrecord.verb='%s' %s AND clatoolkit_learningrecord.course_code='%s' %s
-    group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
-    order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
-    )
-    select filled_dates.day,
-           coalesce(daily_counts.smcount, filled_dates.blank_count) as signups
-      from filled_dates
-        left outer join daily_counts on daily_counts.day = filled_dates.day
-      order by filled_dates.day;
-    """ % (sm_verb, platformclause, course_code, userclause))
+    cursor.execute(sql)
     result = cursor.fetchall()
     dataset_list = []
+
     for row in result:
-        curdate = row[0] #parse(row[0])
-        datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year,curdate.month-1,curdate.day,row[1])
+        curdate = row[0]
+        # In JavaScript, month starts at 0, thus subtract 1 from the month
+        datapoint = "[Date.UTC(%s, %s, %s), %s]" % (curdate.year, curdate.month - 1, curdate.day, row[1])
         dataset_list.append(datapoint)
     dataset = ','.join(map(str, dataset_list))
     return dataset
-
 
     """platformclause = ""
     if sm_platform != "all":
@@ -1416,26 +1436,25 @@ def get_all_reponames(token, course_id):
     return OrderedDict([('repos', ret), ('course_id', course_id)])
 
 
-def get_timeline_data(unit, user):
-    # TODO: implement this method
-    # posts_timeline = get_timeseries('created', platform, course_code, username=username)
-    # shares_timeline = get_timeseries('shared', platform, course_code, username=username)
-    # likes_timeline = get_timeseries('liked', platform, course_code, username=username)
-    # comments_timeline = get_timeseries('commented', platform, course_code, username=username)
-    return {'posts': [], 'shares': [], 'likes': [], 'comments': []}
+def get_verb_timeline_data(unit, platform = None, user = None):
+    posts_series = get_timeseries(unit, xapi_settings.VERB_CREATED, platform, user)
+    shares_series = get_timeseries(unit, xapi_settings.VERB_SHARED, platform, user)
+    likes_series = get_timeseries(unit, xapi_settings.VERB_LIKED, platform, user)
+    comments_series = get_timeseries(unit, xapi_settings.VERB_COMMENTED, platform, user)
+    return {'posts': posts_series, 'shares': shares_series, 'likes': likes_series, 'comments': comments_series}
 
 
-def get_platform_timeline_data(unit, user):
-    # TODO: implement this method
-    #     twitter_timeline = get_timeseries_byplatform("Twitter", course_code, username)
-    #     facebook_timeline = get_timeseries_byplatform("Facebook", course_code, username)
-    #     forum_timeline = get_timeseries_byplatform("Forum", course_code, username)
-    #     youtube_timeline = get_timeseries_byplatform("YouTube", course_code, username)
-    #     diigo_timeline = get_timeseries_byplatform("Diigo", course_code, username)
-    #     blog_timeline = get_timeseries_byplatform("Blog", course_code, username)
-    return {xapi_settings.PLATFORM_TWITTER: [], xapi_settings.PLATFORM_FACEBOOK: [], 
-            xapi_settings.PLATFORM_BLOG: [], xapi_settings.PLATFORM_YOUTUBE: [],
-            xapi_settings.PLATFORM_TRELLO: [], xapi_settings.PLATFORM_GITHUB: []}
+def get_platform_timeline_data(unit, platform = None, user = None):
+    tw_series = get_timeseries(unit, None, xapi_settings.PLATFORM_TWITTER, user)
+    fb_series = get_timeseries(unit, None, xapi_settings.PLATFORM_FACEBOOK, user)
+    bl_series = get_timeseries(unit, None, xapi_settings.PLATFORM_BLOG, user)
+    yt_series = get_timeseries(unit, None, xapi_settings.PLATFORM_YOUTUBE, user)
+    tr_series = get_timeseries(unit, None, xapi_settings.PLATFORM_TRELLO, user)
+    gh_series = get_timeseries(unit, None, xapi_settings.PLATFORM_GITHUB, user)
+
+    return {xapi_settings.PLATFORM_TWITTER: tw_series, xapi_settings.PLATFORM_FACEBOOK: fb_series, 
+            xapi_settings.PLATFORM_BLOG: bl_series, xapi_settings.PLATFORM_YOUTUBE: yt_series,
+            xapi_settings.PLATFORM_TRELLO: tr_series, xapi_settings.PLATFORM_GITHUB: gh_series}
 
 
 def get_pie_series(unit, count_type, user_id = None, platform = None):

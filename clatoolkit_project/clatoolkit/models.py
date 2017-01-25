@@ -265,7 +265,7 @@ class LearningRecord(models.Model):
     parent_user = models.ForeignKey(User, null=True, related_name="parent_user")
     # parent_user_external = models.CharField(max_length=5000, blank=True, null=True)
     # message = models.TextField(blank=True)
-    # datetimestamp = models.DateTimeField(auto_now_add=True, null=True)
+    datetimestamp = models.DateTimeField(auto_now_add=False, null=False)
     # senttolrs = models.CharField(max_length=5000, blank=True)
 
 

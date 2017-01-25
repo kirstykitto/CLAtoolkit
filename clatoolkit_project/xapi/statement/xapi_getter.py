@@ -65,6 +65,34 @@ class xapi_getter(object):
 		return obj_counts
 
 
+	def get_object_count_with_date(self, course_id, ts_count_type, user_id = None, xapi_filters = None):
+		obj_counts = self.get_object_counts(course_id, ts_count_type, user_id, xapi_filters)
+
+		date_dict = {}
+		for user in obj_counts['users']:
+			for count_type_obj in user['verb']:
+				# When date exists in date_dict
+				if count_type_obj['date'] in date_dict:
+					# date_dict[date] has a dict: {'verb': <verb count>}
+					# Check out if the verb already exists in date_dict[date]
+					date = count_type_obj['date']
+					if count_type_obj[ts_count_type] in date_dict[date]:
+						# If it does, add up
+						date_dict[date][count_type_obj[ts_count_type]] = \
+							int(date_dict[date][count_type_obj[ts_count_type]]) + int(count_type_obj['count'])
+					else:
+						# If not, insert the value to date_dict[date][verb]
+						date_dict[date][count_type_obj[ts_count_type]] = int(count_type_obj['count'])
+
+				else:
+					# When the date does not exist in date_dict
+					date_dict[count_type_obj['date']] = {count_type_obj[ts_count_type]: int(count_type_obj['count'])}
+
+		# sorted() method returns an array object
+		return sorted(date_dict.items())
+
+
+
 	def get_object_counts(self, course_id, count_type, user_id = None, xapi_filters = None):
 		unit = UnitOffering.objects.get(id = course_id)
 		lrs_client = LRS_Auth(provider_id = unit.get_lrs_id())
@@ -80,6 +108,8 @@ class xapi_getter(object):
 			user = User.objects.get(id = user_id)
 			count_list.append({'id': user.id, 'username': user.username})
 
+		# Test code
+		# count_list.append({'id': 43, 'username': 'clatoolkitdev2'})
 		stmts = None
 		for user in count_list:
 			stmts = lrs_client.get_statement(user['id'], filters = xapi_filters.to_dict())
@@ -96,3 +126,4 @@ class xapi_getter(object):
 
 		return_obj = {'total': new_obj, 'users': count_list}
 		return return_obj
+

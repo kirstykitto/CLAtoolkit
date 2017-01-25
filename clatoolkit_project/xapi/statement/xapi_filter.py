@@ -12,6 +12,7 @@ class xapi_filter(object):
 	platform = None
 	course = None
 	counttype = None
+	timeseries_counttype = None
 	statement_id = None
 
 	def __init__(self):

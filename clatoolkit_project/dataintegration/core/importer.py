@@ -34,7 +34,7 @@ def insert_share(user, post_id, share_id, comment_message, comment_created_time,
         #                      datetimestamp=comment_created_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=xapi_settings.VERB_SHARED, 
                              platform=platform, user=user, platformid=share_id, platformparentid=post_id,
-                             parent_user=parent_user)
+                             parent_user=parent_user, datetimestamp=comment_created_time)
         lrs.save()
 
         #Send xapi to lrs or cache for later
@@ -70,7 +70,7 @@ def insert_post(user, post_id, message, created_time, unit, platform, platform_u
         # lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, user=user, 
         #                     platformid=post_id, message=message, datetimestamp=created_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, 
-                             user=user, platformid=post_id)
+                             user=user, platformid=post_id, datetimestamp=created_time)
         lrs.save()
 
         #Transfer xapi to lrs of cache for later
@@ -115,7 +115,8 @@ def insert_like(user, object_id, message, unit, platform, platform_url, parent_i
         #                      platformid=object_id, message=message, platformparentid=object_id, parent_user=parent_user,
         #                      parent_user_external=parent_user_external, datetimestamp=created_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, user=user, 
-                             platformid=object_id, platformparentid=object_id, parent_user=parent_user)
+                             platformid=object_id, platformparentid=object_id, parent_user=parent_user,
+                             datetimestamp=created_time)
         lrs.save()
 
         sr = SocialRelationship(verb=verb, from_user=user, to_user=parent_user,
@@ -146,7 +147,8 @@ def insert_comment(user, post_id, comment_id, comment_message, comment_created_t
         #                      parent_user_external=parent_user_external, message=comment_message,
         #                      datetimestamp=comment_created_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=xapi_settings.VERB_COMMENTED, platform=platform, 
-                             user=user, platformid=comment_id, platformparentid=post_id, parent_user=parent_user)
+                             user=user, platformid=comment_id, platformparentid=post_id, parent_user=parent_user, 
+                             datetimestamp=comment_created_time)
         lrs.save()
 
         sr = SocialRelationship(verb=xapi_settings.VERB_COMMENTED, from_user=user, to_user=parent_user,
@@ -187,7 +189,7 @@ def insert_commit(user, parent_id, commit_id, message, committed_time, unit, pla
         # lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, user=user, 
         #     platformid=commit_id, platformparentid=parent_id, message=message, datetimestamp=committed_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, user=user, 
-                             platformid=commit_id, platformparentid=parent_id)
+                             platformid=commit_id, platformparentid=parent_id, datetimestamp=committed_time)
         lrs.save()
 
         stm = socialmedia_builder(statement_id=statement_id, verb=verb, platform=platform, 
@@ -214,7 +216,7 @@ def insert_file(user, parent_id, file_id, message, committed_time, unit, platfor
         #     user=user, platformid=file_id, platformparentid=parent_id, 
         #     message=message, datetimestamp=committed_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, 
-                             user=user, platformid=file_id, platformparentid=parent_id)
+                             user=user, platformid=file_id, platformparentid=parent_id, datetimestamp=committed_time)
         lrs.save()
 
         stm = socialmedia_builder(statement_id=statement_id, verb=verb, platform=platform, 
@@ -244,7 +246,7 @@ def insert_issue(user, issue_id, verb, object_type, parent_object_type, message,
         #                      platformid=platform_id, platformparentid=parent_id, 
         #                      message=message, datetimestamp=created_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, user=user,
-                             platformid=platform_id, platformparentid=parent_id)
+                             platformid=platform_id, platformparentid=parent_id, datetimestamp=created_time)
         lrs.save()
 
         stm = socialmedia_builder(statement_id=statement_id, verb=verb, platform=platform, 
@@ -277,7 +279,7 @@ def insert_task(user, task_id, task_name, task_created_time, unit, platform, pla
         # lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=xapi_settings.VERB_CREATED, platform=platform, 
         #                      user=user, platformid=task_id, message=task_name, datetimestamp=task_created_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=xapi_settings.VERB_CREATED, platform=platform, 
-                             user=user, platformid=task_id)
+                             user=user, platformid=task_id, datetimestamp=task_created_time)
         lrs.save()
 
         stm = socialmedia_builder(statement_id=statement_id, verb=xapi_settings.VERB_CREATED, platform=platform, 
@@ -303,7 +305,8 @@ def insert_added_object(user, target_id, object_id, object_text, obj_created_tim
         #                      platform=platform, user=user, platformid=object_id, platformparentid=target_id,
         #                      message=object_text, datetimestamp=obj_created_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=xapi_settings.VERB_ADDED, 
-                             platform=platform, user=user, platformid=object_id, platformparentid=target_id)
+                             platform=platform, user=user, platformid=object_id, platformparentid=target_id,
+                             datetimestamp=obj_created_time)
         lrs.save()
 
         stm = socialmedia_builder(statement_id=statement_id, verb=xapi_settings.VERB_ADDED, platform=platform, 
@@ -328,7 +331,8 @@ def insert_updated_object(user, object_id, object_message, obj_update_time, unit
         #                      platform=platform, user=user, platformid=object_id, platformparentid=parent_id,
         #                      message=object_message, datetimestamp=obj_update_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=xapi_settings.VERB_UPDATED, 
-                             platform=platform, user=user, platformid=object_id, platformparentid=parent_id)
+                             platform=platform, user=user, platformid=object_id, platformparentid=parent_id,
+                             datetimestamp=obj_update_time)
         lrs.save()
 
         stm = socialmedia_builder(statement_id=statement_id, verb=xapi_settings.VERB_UPDATED, platform=platform, 
@@ -352,7 +356,8 @@ def insert_closedopen_object(user, object_id, object_message, obj_update_time, u
         #                      platform=platform, user=user, platformid=object_id, platformparentid=parent_id,
         #                      message=object_message, datetimestamp=obj_update_time)
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, 
-                             user=user, platformid=object_id, platformparentid=parent_id)
+                             user=user, platformid=object_id, platformparentid=parent_id,
+                             datetimestamp=obj_update_time)
         lrs.save()
 
         stm = socialmedia_builder(statement_id=statement_id, verb=verb, platform=platform, 

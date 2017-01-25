@@ -240,11 +240,16 @@ def dashboard(request):
 
     # If the user is an admin for the course
     if UnitOfferingMembership.is_admin(request.user, unit):
-        user = request.user
+        # user = request.user
         platform = request.GET.get('platform')
 
         title = "Activity Dashboard: %s (Platform: %s)" % (unit.code, platform)
         show_dashboardnav = True
+
+        # A flag for showing a platform activity time series and pie chart
+        show_allplatforms_widgets = True
+        if platform != "all":
+            show_allplatforms_widgets = False
 
         # Get the number of verbs
         activity_pie_series = get_pie_series(unit, xapi_filter.COUNT_TYPE_VERB, platform = platform)
@@ -252,8 +257,8 @@ def dashboard(request):
 
         # TODO: Fix get_timeseries() method
         # Activity Time line data (verbs and platform)
-        timeline_data = get_timeline_data(unit, user)
-        platform_timeline_data = get_platform_timeline_data(unit, user)
+        timeline_data = get_verb_timeline_data(unit, platform, None)
+        platform_timeline_data = get_platform_timeline_data(unit, platform, None)
 
         p = platform if platform != "all" else None
         activememberstable = get_active_members_table(unit, p)
@@ -346,9 +351,9 @@ def dashboard(request):
 
         context_dict = {
             'title': title, 'course_code':unit.code, 'platform':platform, 'show_dashboardnav':show_dashboardnav,
-            'activememberstable': activememberstable, 'unit': unit,
-            # TODO: Get topcontenttable (fix the method)
-            'topcontenttable': topcontenttable, 
+            'activememberstable': activememberstable, 'unit': unit, 
+            'topcontenttable': topcontenttable, 'show_allplatforms_widgets': show_allplatforms_widgets,
+            
             'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
             'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 
@@ -395,7 +400,8 @@ def cadashboard(request):
         # likes_timeline = get_timeseries('liked', platform, unit)
         # comments_timeline = get_timeseries('commented', platform, unit)
 
-        timeline_data = get_timeline_data(unit, None)
+        # timeline_data = get_verb_timeline_data(unit, None)
+        timeline_data = get_verb_timeline_data(unit, platform, None)
         # Word Cloud
         tags = get_wordcloud(platform, unit)
         # Sentiments pie chart
@@ -454,27 +460,18 @@ def snadashboard(request):
     if UnitOfferingMembership.is_admin(request.user, unit):
 
         platform = request.GET.get('platform')
-
         title = "SNA Dashboard: {} {} (Platform: {})".format(unit.code, unit.name, platform)
-        show_dashboardnav = True
 
-        # TODO: Fix get_timeseries() method
-        # posts_timeline = get_timeseries('created', platform, unit)
-        # shares_timeline = get_timeseries('shared', platform, unit)
-        # likes_timeline = get_timeseries('liked', platform, unit)
-        # comments_timeline = get_timeseries('commented', platform, unit)
-        
         # Activity Time line data (verbs and platform)
-        timeline_data = get_timeline_data(unit, None)
+        timeline_data = get_verb_timeline_data(unit, platform, None)
 
         sna_json = sna_buildjson(platform, unit, 
             relationshipstoinclude = "'%s', '%s', '%s', '%s'" % (xapi_settings.VERB_MENTIONED, xapi_settings.VERB_LIKED, \
                                                                  xapi_settings.VERB_SHARED, xapi_settings.VERB_COMMENTED))
 
-
         #sna_neighbours = getNeighbours(sna_json)
         centrality = get_centrality(sna_json)
-        context_dict = {'show_dashboardnav': show_dashboardnav, 'unit': unit, 'platform': platform, 'title': title,
+        context_dict = {'show_dashboardnav': True, 'unit': unit, 'platform': platform, 'title': title,
                         'sna_json': sna_json, 'centrality': centrality, 'course_id': unit.id,
 
                         'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
@@ -547,11 +544,11 @@ def studentdashboard(request):
     username = user.username
 
     title = "Student Dashboard: %s" % course_code
-    show_dashboardnav = True
+    # show_dashboardnav = True
 
     # Activity Time line data (verbs and platform)
-    timeline_data = get_timeline_data(unit, user)
-    platform_timeline_data = get_platform_timeline_data(unit, user)
+    timeline_data = get_verb_timeline_data(unit, platform, user)
+    platform_timeline_data = get_platform_timeline_data(unit, platform, user)
 
     # A flag for showing a platform activity time series and pie chart
     show_allplatforms_widgets = True
@@ -633,20 +630,11 @@ def mydashboard(request):
     unit = UnitOffering.objects.get(id = course_id)
     course_code = unit.code
 
-    # TODO: What are these for?? weren't used...
-    # twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id = get_smids_fromuid(uid)
-    # twitter_id = user.userprofile.twitter_id
-    # fb_id = user.userprofile.fb_id
-    # forum_id = user.userprofile.forum_id
-    # sm_usernames = [twitter_id, fb_id, forum_id]
-    # sm_usernames_str = ','.join("'{0}'".format(x) for x in sm_usernames)
-
     title = "Student Dashboard: %s, %s" % (course_code, user.username)
-    show_dashboardnav = True
 
     # Activity Time line data (verbs and platform)
-    timeline_data = get_timeline_data(unit, user)
-    platform_timeline_data = get_platform_timeline_data(unit, user)
+    timeline_data = get_verb_timeline_data(unit, platform, user)
+    platform_timeline_data = get_platform_timeline_data(unit, platform, user)
 
     # A flag for showing a platform activity time series and pie chart
     show_allplatforms_widgets = True
