@@ -626,7 +626,6 @@ class UserClassificationViewSet(DefaultsMixin, viewsets.ModelViewSet):
 class SNARESTView(DefaultsMixin, APIView):
 
     def get(self, request, *args, **kw):
-
         course_id = request.GET.get('course_id', None)
         platform = request.GET.get('platform', None)
         start_date = request.GET.get('start_date', None)
@@ -635,7 +634,6 @@ class SNARESTView(DefaultsMixin, APIView):
         relationshipstoinclude = request.GET.get('relationshipstoinclude', None)
 
         unit = UnitOffering.objects.get(id = course_id)
-
         # Any URL parameters get passed in **kw
         #myClass = CalcClass(get_arg1, get_arg2, *args, **kw)
         #print sna_buildjson(platform, course_code)
@@ -651,13 +649,15 @@ class WORDCLOUDView(DefaultsMixin, APIView):
 
     def get(self, request, *args, **kw):
 
-        course_code = request.GET.get('course_code', None)
+        course_id = request.GET.get('course_id', None)
         platform = request.GET.get('platform', None)
         start_date = request.GET.get('start_date', None)
         end_date = request.GET.get('end_date', None)
-        username = request.GET.get('username', None)
+        user_id = request.GET.get('user_id', None)
+        unit = UnitOffering.objects.get(id = course_id)
+        user = User.objects.get(id = user_id)
 
-        result = json.loads(get_wordcloud(platform, course_code, username=username, start_date=start_date, end_date=end_date))
+        result = json.loads(get_wordcloud(platform, unit, user = user, start_date=start_date, end_date=end_date))
         response = Response(result, status=status.HTTP_200_OK)
         return response
 

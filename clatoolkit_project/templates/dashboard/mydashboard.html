@@ -283,7 +283,8 @@
   function update_wordcloud(start_date, end_date)
   {
     $('#wordcloudselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
-    restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date};
+    restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", 
+                  user_id:"{{ user_id }}", start_date:start_date, end_date:end_date};
     $.getJSON("/clatoolkit/wordcloud", restparams,
       function(data){
         wordcloud_data = data;
@@ -404,7 +405,7 @@
 
       $('#relationships').html('<h3>Selected User: ' + username + '</h3>');
       console.log("Selected User :" + uid)
-    resturl = '/dashboard/api/get_learning_records';
+      resturl = '/dashboard/api/get_learning_records';
       if (platform !="all")
       {
         restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};

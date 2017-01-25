@@ -430,10 +430,14 @@ def get_allcontent_byplatform(platform, unit, user = None, start_date=None, end_
     filters = xapi_filter()
     filters.course = unit.code
     if start_date is not None:
-        filters.since = start_date
+        # Create a valid ISO8601 timestamp (e.g. 2017-07-16T19:20:30+01:00), or LRS will reject other timestamp formats
+        # Start time is set to 00:00:00 to retrieve all data on the start day
+        filters.since = start_date + 'T00:00:00+00:00'
 
     if end_date is not None:
-        filters.until = end_date
+        # Create a valid ISO8601 timestamp (e.g. 2017-07-16T19:20:30+01:00), or LRS will reject other timestamp formats
+        # End time is set to 23:59:59 to retrieve all data on the end day
+        filters.until = end_date + 'T23:59:59+00:00'
 
     if platform != "all":
         filters.platform = platform
@@ -712,10 +716,9 @@ def get_nodes_by_platform(unit, start_date=None, end_date=None, platform=None):
     if platform != "all":
         platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
 
-    # TODO: Fix datetime filter. LearningRecord table does not datetimestamp any more
     dateclause = ""
-    # if start_date is not None:
-    #     dateclause = " AND clatoolkit_learningrecord.datetimestamp BETWEEN '%s' AND '%s'" % (start_date, end_date)
+    if start_date is not None:
+        dateclause = " AND clatoolkit_learningrecord.datetimestamp BETWEEN '%s' AND '%s'" % (start_date, end_date)
 
     sql = """
             SELECT distinct user_id --, statement_id
@@ -734,45 +737,6 @@ def get_nodes_by_platform(unit, start_date=None, end_date=None, platform=None):
         count += 1
 
     return node_dict
-
-    # TODO: 
-    # Fix datetime filter. LearningRecord table does not datetimestamp any more.
-    # Get xAPI statement and compare the date with start & end date
-    # 
-    # filters = xapi_filter()
-    # getter = xapi_getter()
-
-    # # from datetime import datetime as dt
-    # start_date_obj = None
-    # end_date_obj = None
-    # # if start_date:
-    # #     start_date_obj = dt.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    # # if end_date:
-    # #     end_date_obj = dt.strptime(end_date, '%Y-%m-%d %H:%M:%S')
-
-    # node_dict = {}
-    # count = 1
-    # for row in result:
-    #     # Get xAPI to check if the statement is between the dates (if dates are specified)
-    #     filters.statement_id = row[1]
-    #     result = getter.get_xapi_statements(unit.id, user_id = row[0], xapi_filters = filters)
-    #     if result is not None:
-    #         stmt = result[0]
-    #         # tdatetime = dt.strptime(stmt['timestamp'], '%Y-%m-%d %H:%M:%S')
-    #         # print tdatetime
-
-    #         if start_date_obj is None and end_date_obj is None:
-    #             node_dict[row[0]] = count
-    #             count += 1
-
-    #         # elif (start_date_obj is not None and end_date_obj is not None) \
-    #         #     and (start_date_obj <= tdatetime and tdatetime >= end_date_obj):
-    #         #     node_dict[row[0]] = count
-    #         #     count += 1
-
-    # print "node_dict -------- ", node_dict
-    # return node_dict
-
 
 
 def get_relationships_byplatform(platform, unit, user = None, start_date=None, end_date=None, 

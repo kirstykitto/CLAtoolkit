@@ -138,30 +138,31 @@
 var wordcloud_data = {{tags|safe}};
 var platform = "{{platform}}";
 
-function update_data()
-{
-  var chart = $('#pageview_chart').highcharts();
-  var start_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().min);
-  var end_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().max);
-  update_wordcloud(start_date, end_date);
-  //update_topicmodel(start_date, end_date);
-}
+// function update_data()
+// {
+//   var chart = $('#pageview_chart').highcharts();
+//   var start_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().min);
+//   var end_date = Highcharts.dateFormat('%Y-%m-%d', chart.xAxis[0].getExtremes().max);
+//   update_wordcloud(start_date, end_date);
+//   //update_topicmodel(start_date, end_date);
+// }
 
 function render_wordcloud(tag_freqs)
 {
   $('#tag_container').jQCloud('update', tag_freqs);
 }
 
-function update_wordcloud(start_date, end_date)
-{
-  $('#wordcloudselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
-  restparams = {format: "json", unit:"{{ unit.id }}", platform:"{{platform}}", start_date:start_date, end_date:end_date};
-  $.getJSON("/clatoolkit/wordcloud", restparams,
-    function(data){
-      wordcloud_data = data;
-      render_wordcloud(wordcloud_data);
-    });
-}
+// function update_wordcloud(start_date, end_date)
+// {
+//   $('#wordcloudselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
+//   restparams = {format: "json", course_id:"{{ unit.id }}", platform:"{{platform}}", 
+//                 start_date:start_date, end_date:end_date};
+//   $.getJSON("/clatoolkit/wordcloud", restparams,
+//     function(data){
+//       wordcloud_data = data;
+//       render_wordcloud(wordcloud_data);
+//     });
+// }
 
 function update_topicmodel(start_date, end_date)
 {
@@ -315,9 +316,9 @@ $(document).ready(function(){
           data: [{{coi|safe}}]
       }]
   });
-  $('#datefilter').click(function () {
-    update_data();
-  });
+  // $('#datefilter').click(function () {
+  //   update_data();
+  // });
 
   $("#tag_container").jQCloud(wordcloud_data, {
     width: 300,

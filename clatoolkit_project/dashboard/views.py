@@ -580,7 +580,7 @@ def studentdashboard(request):
 
     context_dict = {
         'title': title, 'course_code':course_code, 'course_id': unit.id, 'platform':platform, 
-        'username':username, 'unit': unit,
+        'username':username, 'unit': unit, 'user_id': user.id,
         'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
         'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 
@@ -688,7 +688,7 @@ def mydashboard(request):
     
     context_dict = {
         'title': title, 'course_code':course_code, 'course_id': unit.id, 'platform':platform, 
-        'username': user.username, 'unit': unit,
+        'username': user.username, 'unit': unit, 'user_id': user.id,
         'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
         'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 
