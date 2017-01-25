@@ -1457,29 +1457,31 @@ def get_platform_timeline_data(unit, platform = None, user = None):
             xapi_settings.PLATFORM_TRELLO: tr_series, xapi_settings.PLATFORM_GITHUB: gh_series}
 
 
-def get_pie_series(unit, count_type, user_id = None, platform = None):
-    filters = xapi_filter()
-    filters.course = unit.code
-    filters.counttype = count_type
+def get_verb_pie_data(unit, platform = None, user = None):
+    return get_activity_pie_data(unit, True, platform, user)
 
-    if platform is not None and platform != 'all':
-        filters.platform = platform
-    
-    getter = xapi_getter()
-    obj_counts = []
-    if count_type == xapi_filter.COUNT_TYPE_VERB:
-        obj_counts = getter.get_verb_count(unit.id, count_type, user_id, filters)
-    else:
-        obj_counts = getter.get_object_counts(unit.id, count_type, user_id, filters)
 
-    pie_series = ""
-    # for oc in obj_counts:
-    #     objs = oc[count_type]
-    #     for obj in objs:
-    #         pie_series = pie_series + "['%s', %s]," % (obj[count_type], obj['count'])
-    
-    total_dict = obj_counts['total']
-    for key, value in total_dict.iteritems():
-        pie_series = pie_series + "['%s', %s]," % (key, value)
+def get_platform_pie_data(unit, user = None):
+    return get_activity_pie_data(unit, False, None, user)
+
+
+def get_activity_pie_data(unit, get_verb_count = True, platform = None, user = None):
+    value = 'verb' if get_verb_count else 'platform'
+    records = get_object_count(unit, value, platform, user)
+    pie_series = ''
+    for row in records:
+        pie_series = pie_series + "['%s', %s]," % (row[value], row['count'])
         
     return pie_series
+
+
+def get_object_count(unit, group_by_name, platform = None, user = None):
+    records = LearningRecord.objects.filter(unit = unit)
+    if user is not None:
+        records = records.filter(user = user)
+
+    if platform is not None and platform != 'all':
+        records = records.filter(platform = platform)
+
+    return records.values(group_by_name).annotate(count=Count(group_by_name))
+

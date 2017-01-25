@@ -251,11 +251,9 @@ def dashboard(request):
         if platform != "all":
             show_allplatforms_widgets = False
 
-        # Get the number of verbs
-        activity_pie_series = get_pie_series(unit, xapi_filter.COUNT_TYPE_VERB, platform = platform)
-        platformactivity_pie_series = get_pie_series(unit, xapi_filter.COUNT_TYPE_PLATFORM, platform = platform)
+        activity_pie_series = get_verb_pie_data(unit, platform = platform)
+        platformactivity_pie_series = get_platform_pie_data(unit)
 
-        # TODO: Fix get_timeseries() method
         # Activity Time line data (verbs and platform)
         timeline_data = get_verb_timeline_data(unit, platform, None)
         platform_timeline_data = get_platform_timeline_data(unit, platform, None)
@@ -263,7 +261,6 @@ def dashboard(request):
         p = platform if platform != "all" else None
         activememberstable = get_active_members_table(unit, p)
         topcontenttable = get_cached_top_content(platform, unit)
-
 
 
         # title = "Activity Dashboard: %s (Platform: %s)" % (unit.code, platform)
@@ -363,9 +360,10 @@ def dashboard(request):
             'blog_timeline': platform_timeline_data[xapi_settings.PLATFORM_BLOG], 
             'trello_timeline': platform_timeline_data[xapi_settings.PLATFORM_TRELLO], 
             'github_timeline': platform_timeline_data[xapi_settings.PLATFORM_GITHUB], 
-            'forum_timeline': [], 'diigo_timeline':[], # These haven't been implemented
+            'forum_timeline': [], 'diigo_timeline':[],
 
-            'activity_pie_series': activity_pie_series}
+            'activity_pie_series': activity_pie_series, 'platformactivity_pie_series': platformactivity_pie_series
+            }
 
         return render_to_response('dashboard/dashboard.html', context_dict, context)
 
@@ -543,7 +541,7 @@ def studentdashboard(request):
     course_code = unit.code
     username = user.username
 
-    title = "Student Dashboard: %s" % course_code
+    title = "Student Dashboard: %s, %s" % (course_code, username)
     # show_dashboardnav = True
 
     # Activity Time line data (verbs and platform)
@@ -556,8 +554,8 @@ def studentdashboard(request):
         show_allplatforms_widgets = False
 
     # Get the number of verbs and platforms
-    activity_pie_series = get_pie_series(unit, xapi_filter.COUNT_TYPE_VERB, selected_user_id)
-    platformactivity_pie_series = get_pie_series(unit, xapi_filter.COUNT_TYPE_PLATFORM, selected_user_id)
+    activity_pie_series = get_verb_pie_data(unit, platform = platform, user = user)
+    platformactivity_pie_series = get_platform_pie_data(unit, user = user)
     
     #print "SNA", datetime.datetime.now()
     if course_code == 'IFN614':
@@ -642,9 +640,9 @@ def mydashboard(request):
         show_allplatforms_widgets = False
 
     # Get the number of verbs and platforms
-    activity_pie_series = get_pie_series(unit, xapi_filter.COUNT_TYPE_VERB, user.id)
-    platformactivity_pie_series = get_pie_series(unit, xapi_filter.COUNT_TYPE_PLATFORM, user.id)
-    
+    activity_pie_series = get_verb_pie_data(unit, platform = platform, user = user)
+    platformactivity_pie_series = get_platform_pie_data(unit, user = user)
+
     # Word cloud tags
     tags = get_wordcloud(platform, unit, user = user)
     # Sentiments pie chart
