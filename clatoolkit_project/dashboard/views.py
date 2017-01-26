@@ -258,8 +258,8 @@ def dashboard(request):
         timeline_data = get_verb_timeline_data(unit, platform, None)
         platform_timeline_data = get_platform_timeline_data(unit, platform, None)
 
-        p = platform if platform != "all" else None
-        activememberstable = get_active_members_table(unit, p)
+        # p = platform if platform != "all" else None
+        activememberstable = get_active_members_table(unit, platform)
         topcontenttable = get_cached_top_content(platform, unit)
 
         context_dict = {

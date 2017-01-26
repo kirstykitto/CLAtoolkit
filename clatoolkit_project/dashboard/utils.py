@@ -297,7 +297,7 @@ def get_active_members_table(unit, platform = None):
 
     table = []
     for user in users:
-        if platform is None:
+        if platform is None or platform == 'all':
             platforms = user.learningrecord_set.values_list("platform").distinct()
             platforms = [p[0] for p in platforms]
             platforms = ", ".join(platforms)
@@ -322,7 +322,7 @@ def get_active_members_table(unit, platform = None):
             elif dict_obj[group_by_column] == xapi_settings.VERB_COMMENTED:
                 num_comments = dict_obj['count']
 
-        table_html = '<tr><td><a href="/dashboard/student_dashboard?unit={}&platform={}&user={}">{} {}</a></td>'\
+        table_html = '<tr><td><a href="/dashboard/student_dashboard?course_id={}&platform={}&user={}">{} {}</a></td>'\
                      '<td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
                      unit.id, platform, user.id, user.first_name, user.last_name, 
                      num_posts, num_likes, num_shares, num_comments, platforms)
