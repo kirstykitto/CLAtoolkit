@@ -292,12 +292,10 @@ def get_timeseries_byplatform(sm_platform, unit, username=None, without_date_utc
         return dataset
 
 
-def get_active_members_table(unit, platform=None):
-
-    users = User.objects.filter(learningrecord__unit=unit).distinct()
+def get_active_members_table(unit, platform = None):
+    users = User.objects.filter(learningrecord__unit = unit).distinct()
 
     table = []
-
     for user in users:
         if platform is None:
             platforms = user.learningrecord_set.values_list("platform").distinct()
@@ -310,36 +308,24 @@ def get_active_members_table(unit, platform=None):
         num_likes = 0
         num_shares = 0
         num_comments = 0
-
-        # Get verb counts
-        filters = xapi_filter()
-        filters.course = unit.code
-        filters.counttype = filters.COUNT_TYPE_VERB
-
-        if platform is not None and platform != 'all':
-            filters.platform = platform
         
-        getter = xapi_getter()
-        obj_counts = getter.get_verb_count(unit.id, filters.COUNT_TYPE_VERB, user.id, filters)
+        group_by_column = 'verb'
+        obj_counts = get_object_count(unit, group_by_column, platform, user)
+        
+        for dict_obj in obj_counts:
+            if dict_obj[group_by_column] == xapi_settings.VERB_CREATED:
+                num_posts = dict_obj['count']
+            elif dict_obj[group_by_column] == xapi_settings.VERB_LIKED:
+                num_likes = dict_obj['count']
+            elif dict_obj[group_by_column] == xapi_settings.VERB_SHARED:
+                num_shares = dict_obj['count']
+            elif dict_obj[group_by_column] == xapi_settings.VERB_COMMENTED:
+                num_comments = dict_obj['count']
 
-        total_dict = obj_counts['total']
-        for key, value in total_dict.iteritems():
-            if total_dict[key] == xapi_settings.VERB_CREATED:
-                num_posts = obj['count']
-            elif total_dict[key] == xapi_settings.VERB_LIKED:
-                num_likes = obj['count']
-            elif total_dict[key] == xapi_settings.VERB_SHARED:
-                num_shares = obj['count']
-            elif total_dict[key] == xapi_settings.VERB_COMMENTED:
-                num_comments = obj['count']
-
-        if platform is None:
-            platform = 'all'
-        table_html = '<tr><td><a href="/dashboard/student_dashboard?course_id={}&platform={}&user={}">' \
-                     '{} {}</a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
-                        unit.id, platform, user.id, user.first_name, user.last_name, num_posts, 
-                        num_likes, num_shares, num_comments, platforms)
-
+        table_html = '<tr><td><a href="/dashboard/student_dashboard?unit={}&platform={}&user={}">{} {}</a></td>'\
+                     '<td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
+                     unit.id, platform, user.id, user.first_name, user.last_name, 
+                     num_posts, num_likes, num_shares, num_comments, platforms)
         table.append(table_html)
 
     table_str = ''.join(table)
@@ -1439,13 +1425,16 @@ def get_activity_pie_data(unit, get_verb_count = True, platform = None, user = N
     return pie_series
 
 
-def get_object_count(unit, group_by_name, platform = None, user = None):
+def get_object_count(unit, group_by_name, platform = None, user = None, verb = None):
     records = LearningRecord.objects.filter(unit = unit)
     if user is not None:
         records = records.filter(user = user)
 
     if platform is not None and platform != 'all':
         records = records.filter(platform = platform)
+
+    if verb is not None:
+        records = records.filter(verb = verb)
 
     return records.values(group_by_name).annotate(count=Count(group_by_name))
 
