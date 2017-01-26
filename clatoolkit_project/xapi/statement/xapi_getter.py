@@ -53,9 +53,9 @@ class xapi_getter(object):
 
 
 	def filter_result(self, statement_list, xapi_filters):
-		# When statement ID is used as a filter, ignore any other filter properties
+		# When statement ID is used as a filter, return as it is
 		if xapi_filters.statement_id:
-			return
+			return statement_list
 
 		new_list = []
 		for stmt in statement_list:

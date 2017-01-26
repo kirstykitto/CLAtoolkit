@@ -161,8 +161,6 @@ class YoutubePlugin(DIBasePlugin, DIPluginDashboardMixin, DIGoogleOAuth2WebServe
                 else:
                     non_registered_user = None
 
-            print 'non_registered_user: '
-            print parent_external
             # Import replies on the comment
             self.insert_replies(unit, object_id, comment_id, item, user, non_registered_user, retrieved_from_video)
 
