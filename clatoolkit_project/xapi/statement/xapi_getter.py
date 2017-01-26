@@ -1,8 +1,8 @@
 __author__ = 'Koji'
+from common.util import Utility
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-
 from clatoolkit.models import UnitOffering, UnitOfferingMembership
 from xapi.oauth_consumer.operative import LRS_Auth
 from xapi.statement.xapi_settings import xapi_settings
@@ -57,29 +57,37 @@ class xapi_getter(object):
 		if xapi_filters.statement_id:
 			return
 
-		# print '========== num of elem in statement_list: %s ' % str(len(statement_list))
-		print xapi_filters.platform
-		print xapi_filters.course
-		# print 'filtering...........'
-
 		new_list = []
 		for stmt in statement_list:
-			# print '---'
-			# print stmt['context']['platform']
-			# print stmt['context']['contextActivities']['grouping'][0]['definition']['name']['en-US']
 
 			if xapi_filters.platform and stmt['context']['platform'] != xapi_filters.platform:
-				# del statement_list[i]
-				# print 'platform filter delete.'
 				continue
 
 			if xapi_filters.course:
 				if stmt['context']['contextActivities']['grouping'][0]['definition']['name']['en-US'] != xapi_filters.course:
-					# del statement_list[i]
-					# print 'course filter delete.'
 					continue
 
+			if xapi_filters.since:
+				timestamp = Utility.convert_to_datetime_object(stmt['timestamp'])
+
+				# Create a valid ISO8601 timestamp (e.g. 2017-07-16T19:20:30+01:00), 
+				# or LRS will reject other timestamp formats
+				# Start time is set to 00:00:00 to retrieve all data on the start day
+				since = Utility.convert_to_datetime_object(xapi_filters.since + 'T00:00:00+00:00')
+				if timestamp < since:
+					continue
+
+			if xapi_filters.until:
+				timestamp = Utility.convert_to_datetime_object(stmt['timestamp'])
+				
+				# Create a valid ISO8601 timestamp (e.g. 2017-07-16T19:20:30+01:00), 
+				# or LRS will reject other timestamp formats
+				# End time is set to 23:59:59 to retrieve all data on the end day
+				until = Utility.convert_to_datetime_object(xapi_filters.until + 'T23:59:59+00:00')
+				if timestamp > until:
+					continue
+
+			# If the statement matches all conditions, it's added to a new list
 			new_list.append(stmt)
 
-		# print '========== num of elem in statement_list after filtering: %s ' % str(len(new_list))
 		return new_list

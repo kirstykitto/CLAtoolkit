@@ -818,6 +818,8 @@ def get_learning_records(request):
     course_id = request.GET.get('course_id')
     user_id = request.GET.get('user')
     platform = request.GET.get('platform')
+    start_date = request.GET.get('datetimestamp_min')
+    end_date = request.GET.get('datetimestamp_max')
     unit = None
     user = None
 
@@ -841,8 +843,13 @@ def get_learning_records(request):
     filters.course = unit.code
     if platform is not None and platform != 'all' and platform != '':
         filters.platform = platform
-    print filters.to_dict()
 
+    if start_date and start_date != '':
+        filters.since = start_date
+
+    if end_date and end_date != '':
+        filters.until = end_date
+        
     getter = xapi_getter()
     statements = getter.get_xapi_statements(unit.id, user_id, filters)
     lang = 'en-US'

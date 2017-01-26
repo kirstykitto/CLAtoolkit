@@ -24,10 +24,17 @@ class xapi_filter(object):
 		if self.statement_id:
 			filters['statementId'] = self.statement_id
 
-		if self.until:
-			filters['until'] = self.until
-		if self.since:
-			filters['since'] = self.since
+		# until and since are checking data stored date, not date of activity occurred, so these are useless...
+		# if self.until:
+		# 	# Create a valid ISO8601 timestamp (e.g. 2017-07-16T19:20:30+01:00), or LRS will reject other timestamp formats
+		# 	# End time is set to 23:59:59 to retrieve all data on the end day
+		# 	filters['until'] = self.until + 'T23:59:59+00:00'
+
+		# if self.since:
+		# 	# Create a valid ISO8601 timestamp (e.g. 2017-07-16T19:20:30+01:00), or LRS will reject other timestamp formats
+		# 	# Start time is set to 00:00:00 to retrieve all data on the start day
+		# 	filters['since'] = self.since + 'T00:00:00+00:00'
+			
 		# if self.platform:
 		# 	filters['platform'] = self.platform
 		# if self.course:

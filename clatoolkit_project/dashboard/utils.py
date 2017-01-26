@@ -416,14 +416,10 @@ def get_allcontent_byplatform(platform, unit, user = None, start_date=None, end_
     filters = xapi_filter()
     filters.course = unit.code
     if start_date is not None:
-        # Create a valid ISO8601 timestamp (e.g. 2017-07-16T19:20:30+01:00), or LRS will reject other timestamp formats
-        # Start time is set to 00:00:00 to retrieve all data on the start day
-        filters.since = start_date + 'T00:00:00+00:00'
+        filters.since = start_date
 
     if end_date is not None:
-        # Create a valid ISO8601 timestamp (e.g. 2017-07-16T19:20:30+01:00), or LRS will reject other timestamp formats
-        # End time is set to 23:59:59 to retrieve all data on the end day
-        filters.until = end_date + 'T23:59:59+00:00'
+        filters.until = end_date
 
     if platform != "all":
         filters.platform = platform
