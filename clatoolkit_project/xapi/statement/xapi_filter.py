@@ -28,11 +28,9 @@ class xapi_filter(object):
 			filters['until'] = self.until
 		if self.since:
 			filters['since'] = self.since
-		if self.platform:
-			filters['platform'] = self.platform
-		if self.course:
-			filters['course'] = self.course
-		if self.counttype:
-			filters['counttype'] = self.counttype
+		# if self.platform:
+		# 	filters['platform'] = self.platform
+		# if self.course:
+		# 	filters['course'] = self.course
 		
 		return filters

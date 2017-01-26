@@ -49,4 +49,37 @@ class xapi_getter(object):
 				statement_list.append(stmts)
 
 		# print statement_list
-		return statement_list
+		return self.filter_result(statement_list, xapi_filters)
+
+
+	def filter_result(self, statement_list, xapi_filters):
+		# When statement ID is used as a filter, ignore any other filter properties
+		if xapi_filters.statement_id:
+			return
+
+		# print '========== num of elem in statement_list: %s ' % str(len(statement_list))
+		print xapi_filters.platform
+		print xapi_filters.course
+		# print 'filtering...........'
+
+		new_list = []
+		for stmt in statement_list:
+			# print '---'
+			# print stmt['context']['platform']
+			# print stmt['context']['contextActivities']['grouping'][0]['definition']['name']['en-US']
+
+			if xapi_filters.platform and stmt['context']['platform'] != xapi_filters.platform:
+				# del statement_list[i]
+				# print 'platform filter delete.'
+				continue
+
+			if xapi_filters.course:
+				if stmt['context']['contextActivities']['grouping'][0]['definition']['name']['en-US'] != xapi_filters.course:
+					# del statement_list[i]
+					# print 'course filter delete.'
+					continue
+
+			new_list.append(stmt)
+
+		# print '========== num of elem in statement_list after filtering: %s ' % str(len(new_list))
+		return new_list
