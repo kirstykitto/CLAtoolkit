@@ -116,7 +116,7 @@ def lrs_oauth_callback(request):
     client = oauth.Client(oauth.Consumer(app.get_key(), app.get_secret()), token)
 
     # Exchange request_token for authed and verified access_token
-    resp,content = client.request(os.environ.get('ACCESS_TOKEN_URL'), "POST")
+    resp,content = client.request(app.get_access_token_url(), "POST")
     access_token = dict(urlparse.parse_qsl(content))
 
     if access_token['oauth_token']:

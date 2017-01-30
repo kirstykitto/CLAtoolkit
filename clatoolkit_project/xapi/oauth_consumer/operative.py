@@ -66,7 +66,7 @@ class LRS_Auth(object):
 
 
         # Save Access-token exchange url to env TODO: Find a better way to handle this.
-        os.environ['ACCESS_TOKEN_URL'] = self.ACCESS_TOKEN_URL
+        # os.environ['ACCESS_TOKEN_URL'] = self.ACCESS_TOKEN_URL
 
 
     def get_statement(self, user_id, filters=None, limit=None, more_path = None):
