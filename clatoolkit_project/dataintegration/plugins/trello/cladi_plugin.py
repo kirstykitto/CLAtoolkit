@@ -426,29 +426,44 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         else:
             return 'Unknown action type'
 
-    def get_detail_values_by_fetch_results(self, result):
+    def get_detail_values_by_fetch_results(self, xapi_statements):
         all_rows = []
-        for row in result:
-            single_row = []
-            single_row.append(row[0]) # user name
-            single_row.append(self.get_action_type_from_context(row[2])) # verb or Trello action type
-            single_row.append(row[3]) # date
-            single_row.append(self.get_object_values_from_context(row)) # object values
-            all_rows.append(single_row)
+        # for row in result:
+        #     single_row = []
+        #     single_row.append(row[0]) # user name
+        #     single_row.append(self.get_action_type_from_context(row[2])) # verb or Trello action type
+        #     single_row.append(row[3]) # date
+        #     single_row.append(self.get_object_values_from_context(row)) # object values
+        #     all_rows.append(single_row)
 
+        # return all_rows
+        for stmt in xapi_statements:
+            single_row = []
+            # user name
+            single_row.append(stmt['authority']['member'][0]['name'])
+            # verb or original action type (E.g. Trello action type)
+            other_context_activities = stmt['context']['contextActivities']['other']
+            single_row.append(self.get_action_type_from_context(other_context_activities))
+            # Date
+            single_row.append(stmt['timestamp'])
+            # Value of an object
+            single_row.append(self.get_object_diaplay_value(stmt))
+            all_rows.append(single_row)
         return all_rows
         
     def get_action_type_from_context(self, json):
         return json[0]['definition']['name']['en-US']
 
 
-    def get_object_values_from_context(self, row):
-        action = self.get_action_type_from_context(row[2])
-        if len(row[2]) <= 1:
-            return row[4]
+    def get_object_diaplay_value(self, stmt):
+        other_context_activities = stmt['context']['contextActivities']['other']
+        action = self.get_action_type_from_context(other_context_activities)
+        object_val = stmt['object']['definition']['name']['en-US']
+        if len(other_context_activities) <= 1:
+            return object_val
 
-        object_val = row[4]
-        contexts = row[2]
+        object_val = object_val
+        contexts = other_context_activities
         value = ''
         index = 1
         if action == self.ACTION_TYPE_CREATE_CARD:

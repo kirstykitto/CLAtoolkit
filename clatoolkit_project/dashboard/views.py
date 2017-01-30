@@ -641,79 +641,34 @@ def myclassifications(request):
 def ccadashboard(request):
     context = RequestContext(request)
 
-    course_code = request.GET.get('course_code')
+    course_id = request.GET.get('course_id')
     platform = request.GET.get('platform')
+    unit = UnitOffering.objects.get(id = course_id)
 
-    title = "CCA Dashboard: %s (Platform: %s)" % (course_code, platform)
-    
-    """
-    show_dashboardnav = True
-
-    posts_timeline = get_timeseries('created', platform, course_code)
-    shares_timeline = get_timeseries('shared', platform, course_code)
-    likes_timeline = get_timeseries('liked', platform, course_code)
-    comments_timeline = get_timeseries('commented', platform, course_code)
-
-    sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
-    centrality = getCentrality(sna_json)
-    context_dict = {
-        'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform, 
-        'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline, 
-        'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
-        'centrality': centrality
-    }
-    """
-    context_dict = {'course_code':course_code, 'platform':platform, 'title': title, }
+    title = "CCA Dashboard: %s (Platform: %s)" % (unit.code, platform)
+    context_dict = {'course_id':course_id, 'platform':platform, 'title': title, }
     
     return render_to_response('dashboard/ccadashboard.html', context_dict, context)
 
 
 @login_required
-def ccadata(request):
-
-    # print request.GET.get('course_code')
-    # print request.GET.get('platform')
-
-    result = getCCAData(request.user, request.GET.get('course_code'), request.GET.get('platform'))
-    
-    #print result
-
-    response = JsonResponse(result, status=status.HTTP_200_OK)
-
-    return response
-
-
-@login_required
 def get_platform_timeseries_data(request):
-
-    context = RequestContext(request)
-    # platform = request.GET.get('platform')
-    platform_names = []
-
-    # Should all platform be shown in timeseries? or ones in the unit?
-    platform_names = ["Twitter", "Facebook", "Forum", "YouTube", "Diigo", "Blog", "trello", "GitHub"]
-    # if request.GET.get('platform') is None:
-    #     platform_names = ["Twitter", "Facebook", "Forum", "YouTube", "Diigo", "Blog", "trello", "GitHub"]
-    # else:
-    #     # TODO: Enable this code if needed. Not tested.
-    #     platform_names = request.GET.get('platform').split(',')
-
-    val = get_platform_timeseries_dataset(request.GET.get('course_code'), platform_names = platform_names)
-    # return HttpResponse(json_str, content_type='application/json; charset=UTF-8', status=status)
+    # context = RequestContext(request)
+    # TODO: Get available platforms in the course dynamically
+    # platform_names = ["Trello", "GitHub"]
+    platform_names = request.GET.get('platform').split(',')
+    val = get_platform_timeseries_dataset(request.GET.get('course_id'), platform_names = platform_names)
     response = JsonResponse(val, status=status.HTTP_200_OK)
     return response
 
 
 @login_required
 def get_platform_activities(request):
-    context = RequestContext(request)
-    # platform = request.GET.get('platform')
-    platform_names = []
-    if request.GET.get('platform') is not None:
-        # TODO: Enable this code if needed. Not tested.
-        platform_names = request.GET.get('platform').split(',')
-
-    val = get_activity_dataset(request.GET.get('course_code'), platform_names)
+    # context = RequestContext(request)
+    # platform_names = []
+    platform_names = request.GET.get('platform').split(',')
+    
+    val = get_platform_activity_dataset(request.GET.get('course_id'), platform_names)
     response = JsonResponse(val, status=status.HTTP_200_OK)
     return response
 

@@ -121,6 +121,9 @@
                                         Imported Data</a>
                                     <div id="trello_import_sucess"></div>
                                 {% endif %}
+                                {% if membership.unit.get_cca_dashboard_params != '' %}
+                                    <a href="/dashboard/ccadashboard/?course_id={{ membership.unit.id }}&platform={{ membership.unit.get_cca_dashboard_params }}">CCA Dashboard</a>
+                                {% endif %}
 
                             {% if unit.enable_coi_classifier %}
                                 <hr/>

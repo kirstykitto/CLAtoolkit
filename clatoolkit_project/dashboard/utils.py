@@ -22,6 +22,7 @@ from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 from sklearn.cluster import AffinityPropagation
 from vaderSentiment.vaderSentiment import sentiment as vaderSentiment
 from clatoolkit.models import UserProfile, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, Classification
+from common.util import Utility
 
 from xapi.statement.xapi_settings import xapi_settings
 from xapi.statement.xapi_getter import xapi_getter
@@ -133,7 +134,7 @@ def get_smids_fromusername(username):
     return twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id
 
 
-def get_timeseries(unit, sm_verb = None, sm_platform = None, user = None):
+def get_timeseries(unit, sm_verb = None, sm_platform = None, user = None, without_date_utc = False):
     # more info on postgres timeseries
     # http://no0p.github.io/postgresql/2014/05/08/timeseries-tips-pg.html
 
@@ -202,94 +203,62 @@ def get_timeseries(unit, sm_verb = None, sm_platform = None, user = None):
     for row in result:
         curdate = row[0]
         # In JavaScript, month starts at 0, thus subtract 1 from the month
-        datapoint = "[Date.UTC(%s, %s, %s), %s]" % (curdate.year, curdate.month - 1, curdate.day, row[1])
-        dataset_list.append(datapoint)
-    dataset = ','.join(map(str, dataset_list))
-    return dataset
-
-    """platformclause = ""
-    if sm_platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (sm_platform)
-
-    userclause = ""
-    if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        #sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        #userclause = " AND clatoolkit_learningrecord.username IN (%s)" % (sm_usernames_str)
-
-    cursor = connection.cursor()
-    cursor.execute("""
-    """with filled_dates as (
-      select day, 0 as blank_count from
-        generate_series('2015-06-01 00:00'::timestamptz, current_date::timestamptz, '1 day')
-          as day
-    ),
-    daily_counts as (
-    select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
-    FROM clatoolkit_learningrecord
-    WHERE clatoolkit_learningrecord.verb='%s' %s AND clatoolkit_learningrecord.unit_id='%s' %s
-    group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
-    order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
-    )
-    select filled_dates.day,
-           coalesce(daily_counts.smcount, filled_dates.blank_count) as signups
-      from filled_dates
-        left outer join daily_counts on daily_counts.day = filled_dates.day
-      order by filled_dates.day;
-    """ """% (sm_verb, platformclause, unit.id, userclause))"""
-    """result = cursor.fetchall()
-    dataset_list = []
-    for row in result:
-        curdate = row[0] #parse(row[0])
-        datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year,curdate.month-1,curdate.day,row[1])
-        dataset_list.append(datapoint)
-    dataset = ','.join(map(str, dataset_list))
-    return dataset"""
-
-
-def get_timeseries_byplatform(sm_platform, unit, username=None, without_date_utc=False):
-    userclause = ""
-    if username is not None:
-        userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-        # sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-        # userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s])" % (sm_usernames_str)
-
-    cursor = connection.cursor()
-    cursor.execute("""
-    with filled_dates as (
-      select day, 0 as blank_count from
-        generate_series('2015-06-01 00:00'::timestamptz, current_date::timestamptz, '1 day')
-          as day
-    ),
-    daily_counts as (
-    select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
-    FROM clatoolkit_learningrecord
-    WHERE clatoolkit_learningrecord.xapi->'context'->>'platform'='%s' AND clatoolkit_learningrecord.unit_id='%s' %s
-    group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
-    order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
-    )
-    select filled_dates.day,
-           coalesce(daily_counts.smcount, filled_dates.blank_count) as signups
-      from filled_dates
-        left outer join daily_counts on daily_counts.day = filled_dates.day
-      order by filled_dates.day;
-    """ % (sm_platform, unit.id, userclause))
-    result = cursor.fetchall()
-    dataset_list = []
-    for row in result:
-        curdate = row[0]  # parse(row[0])
         datapoint = ""
         if without_date_utc:
-            datapoint = "%s,%s,%s,%s" % (curdate.year, curdate.month - 1, curdate.day, row[1])
+            datapoint = "%s,%s,%s,%s" % (curdate.year,curdate.month-1,curdate.day,row[1])
         else:
-            datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year, curdate.month - 1, curdate.day, row[1])
+            datapoint = "[Date.UTC(%s, %s, %s), %s]" % (curdate.year, curdate.month - 1, curdate.day, row[1])
         dataset_list.append(datapoint)
 
     if without_date_utc:
         return dataset_list
     else:
-        dataset = ','.join(map(str, dataset_list))
-        return dataset
+        return ','.join(map(str, dataset_list))
+
+
+# def get_timeseries_byplatform(sm_platform, unit, username=None, without_date_utc=False):
+#     userclause = ""
+#     if username is not None:
+#         userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
+#         # sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
+#         # userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s])" % (sm_usernames_str)
+
+#     cursor = connection.cursor()
+#     cursor.execute("""
+#     with filled_dates as (
+#       select day, 0 as blank_count from
+#         generate_series('2015-06-01 00:00'::timestamptz, current_date::timestamptz, '1 day')
+#           as day
+#     ),
+#     daily_counts as (
+#     select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
+#     FROM clatoolkit_learningrecord
+#     WHERE clatoolkit_learningrecord.xapi->'context'->>'platform'='%s' AND clatoolkit_learningrecord.unit_id='%s' %s
+#     group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
+#     order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
+#     )
+#     select filled_dates.day,
+#            coalesce(daily_counts.smcount, filled_dates.blank_count) as signups
+#       from filled_dates
+#         left outer join daily_counts on daily_counts.day = filled_dates.day
+#       order by filled_dates.day;
+#     """ % (sm_platform, unit.id, userclause))
+#     result = cursor.fetchall()
+#     dataset_list = []
+#     for row in result:
+#         curdate = row[0]  # parse(row[0])
+#         datapoint = ""
+#         if without_date_utc:
+#             datapoint = "%s,%s,%s,%s" % (curdate.year, curdate.month - 1, curdate.day, row[1])
+#         else:
+#             datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year, curdate.month - 1, curdate.day, row[1])
+#         dataset_list.append(datapoint)
+
+#     if without_date_utc:
+#         return dataset_list
+#     else:
+#         dataset = ','.join(map(str, dataset_list))
+#         return dataset
 
 
 def get_active_members_table(unit, platform = None):
@@ -1197,90 +1166,219 @@ def getCCAData(user, course_code, platform):
     return result
 
 
-def get_platform_timeseries_dataset(course_code, platform_names, username=None):
+def get_platform_timeseries_dataset(course_id, platform_names, username=None):
 
+    unit = UnitOffering.objects.get(id = course_id)
     series = []
     for platform in platform_names:
         platformVal = OrderedDict ([
                 ('name', platform),
                 ('id', 'dataseries_' + platform),
-                ('data', get_timeseries_byplatform(platform, course_code, without_date_utc = True))
+                ('data', get_timeseries(unit, None, platform, without_date_utc = True))
         ])
         series.append(platformVal)
 
     return OrderedDict([ ('series', series)])
 
 
-def get_activity_dataset(course_code, platform_names, username=None):
+def get_platform_activity_dataset(course_id, platforms, username=None):
+    platform_dataset = {}
 
-    platforms = []
-    i = 0
-    for platform in platform_names:
-        # "T"rello gets errors...
-        if platform == 'Trello':
-            platform = platform.lower()
-        pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
-        verbs = pluginObj.get_verbs()
+    platform_count_data = get_platform_count_chart_data(course_id, platforms, 
+        chart_title = 'Total number of activities', 
+        chart_yAxis_title = 'Total number of activities')
 
-        series = []
-        all_data = []
-        categories, return_data = count_verbs_by_users(verbs, platform, course_code)
-        for data in return_data:
-            all_data.append(data)
+    for platform in platforms:
+        verb_count_data = get_verb_count_chart_data(course_id, platform, 
+            chart_title = 'Total number of activities', 
+            chart_yAxis_title = 'Total number of activities', show_table = 0)
+        platform_setting = settings.DATAINTEGRATION_PLUGINS[platform]
+        detail_data = get_object_values_chart_data(course_id, platform, 
+                        chart_title = 'Activity details', 
+                        chart_yAxis_title = 'Activity details',
+                        obj_mapper = platform_setting.VERB_OBJECT_MAPPER,
+                        obj_disp_names = platform_setting.get_display_names(platform_setting.VERB_OBJECT_MAPPER))
+        # detail_data = []
+        platform_dataset[platform] = {
+            'overview': verb_count_data,
+            'details': detail_data
+        }
 
-        charts = []
-        chartVal = OrderedDict ([
-                ('type', 'column'),
-                ('title', 'Total number of activities'),
-                ('categories', categories),
-                ('seriesname', verbs),
-                ('yAxis', OrderedDict([('title', 'Total number of activities')])),
-                ('data', all_data)
-        ])
-        charts.append(chartVal)
+    # set total activities of each platform
+    platform_dataset['total'] = {
+        'total': platform_count_data
+    }
+    # Set total
+    # platform_dataset['total'] = platform_count_data
+    ret = OrderedDict ([
+            # ('platforms', platforms),
+            ('charts', platform_dataset)
+    ])
 
-        tables = []
-        tableVal = OrderedDict([('chartIndex', i)])
-        tables.append(tableVal)
-
-        val = OrderedDict ([
-                ('index', i),
-                ('platform', platform),
-                ('charts', charts),
-                ('tables', tables)
-        ])
-        platforms.append(val)
-        i = i + 1
-
-    # print platforms
-    return OrderedDict([ ('platforms', platforms)])
+    return ret
 
 
-def count_verbs_by_users(verbs, platform, course_code):
+def get_platform_count_chart_data(course_id, platforms, chart_title = '', chart_yAxis_title = ''):
+    categories, all_data = get_platform_count(platforms, course_id)
+
+    return create_chart_data_obj(categories, platforms, all_data, chart_title = chart_title, 
+        chart_yAxis_title = chart_yAxis_title, show_table = 0, countable = 1)
+
+
+def get_object_values_chart_data(course_id, platform, chart_title = '', 
+    chart_yAxis_title = '', obj_mapper = None, obj_disp_names = None):
+    pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
+    verbs = sorted(pluginObj.get_verbs())
+    other_context_types = pluginObj.get_other_contextActivity_types(verbs)
+    categories, all_data = get_object_values(platform, course_id)
+
+    return create_chart_data_obj(categories, other_context_types, all_data, chart_title = chart_title, 
+        chart_yAxis_title = chart_yAxis_title, obj_mapper = obj_mapper, 
+        obj_disp_names = obj_disp_names, show_table = 0, countable = 0)
+
+
+def get_verb_count_chart_data(course_id, platform, chart_title = '', chart_yAxis_title = '', show_table = 1):
+    pluginObj = settings.DATAINTEGRATION_PLUGINS[platform]
+    # Need to be sorted
+    verbs = sorted(pluginObj.get_verbs())
+    categories, all_data = get_verb_count(platform, course_id)
+
+    charts = []
+    # if chart_type is None or chart_type == '':
+    #     chart_type = 'column'
+
+    if show_table is None or show_table != 1:
+        show_table = 0
+
+    return create_chart_data_obj(categories, verbs, all_data, chart_title = chart_title, 
+        chart_yAxis_title = chart_yAxis_title, show_table = show_table, countable = 1)
+
+
+def create_chart_data_obj(categories, seriesname, data, chart_title = '', 
+    chart_yAxis_title = '', obj_mapper = None, obj_disp_names = None,
+    show_table = 1, countable = 1):
+    chartVal = OrderedDict ([
+            # ('type', chart_type),
+            ('title', chart_title),
+            ('categories', categories),
+            ('seriesName', seriesname),
+            ('yAxis', OrderedDict([('title', chart_yAxis_title)])),
+            ('data', data),
+            ('showTable', show_table), # 1 = Show table with the graph, 0 = Don't show table
+            ('countable', countable),
+    ])
+    if obj_mapper is not None:
+        chartVal['objectMapper'] = obj_mapper
+    if obj_disp_names is not None:
+        chartVal['objectDisplayNames'] = obj_disp_names
+
+    return chartVal
+
+
+
+def get_platform_count(platforms, course_id):
+    categories = []
+    data = {}
+    if platforms is None or len(platforms) == 0 or course_id is None or course_id == '':
+        return categories, data
+
     cursor = connection.cursor()
-    cursor.execute("""select username, verb, 
-        to_char(to_date(clatoolkit_learningrecord.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
+    platforms_str = ''
+    for p in platforms:
+        if platforms_str != '':
+            platforms_str = platforms_str + ', '
+        platforms_str = platforms_str + "'" + p + "'"
+
+    sql = """
+        select 
+        user_id
+        , username
+        , platform
+        , to_char(datetimestamp, 'YYYY,MM,DD') as date_imported
         , count(verb)
-        from clatoolkit_learningrecord
+        from clatoolkit_learningrecord as cl
+        join auth_user on cl.user_id = auth_user.id
+        where platform in ({})
+        and unit_id = {}
+        group by user_id, username, platform, date_imported
+        order by user_id, username, platform, date_imported desc
+    """.format(platforms_str, course_id)
+    cursor.execute(sql)
+
+    # print cursor.query
+    result = cursor.fetchall()
+    categories, data, series_names = retrieve_data_from_rows(result)
+    return categories, data
+
+
+def get_verb_count(platform, course_id):
+    categories = []
+    data = {}
+    if platform is None or platform == '' or course_id is None or course_id == '':
+        return categories, data
+
+    cursor = connection.cursor()
+    cursor.execute("""
+        select 
+        user_id
+        , username
+        , verb
+        , to_char(datetimestamp, 'YYYY,MM,DD') as date_imported
+        , count(verb)
+        from clatoolkit_learningrecord as cl
+        join auth_user on cl.user_id = auth_user.id
         where platform = %s
-        and course_code = %s
-        group by username, verb, date_imported
-        order by username, verb, date_imported
-    """, [platform, course_code])
+        and unit_id = %s
+        group by user_id, username, verb, date_imported
+        order by user_id, username, verb, date_imported desc
+    """, [platform, course_id])
 
     result = cursor.fetchall()
+    categories, data, series_names = retrieve_data_from_rows(result)
+    return categories, data
+
+
+
+def get_object_values(platform, course_id):
     categories = []
-    data = []
-    user_data = OrderedDict()
+    data = {}
+    if platform is None or platform == '' or course_id is None or course_id == '':
+        return categories, data
+
+    # cursor = connection.cursor()
+    # cursor.execute("""select username
+    #     , verb
+    #     , xapi->'context'->'contextActivities'->'other' as other_context
+    #     , to_char(to_date(clatoolkit_learningrecord.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
+    #     , clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US' as val
+    #     from clatoolkit_learningrecord
+    #     where platform = %s
+    #     and unit_id = %s
+    #     order by username, verb, date_imported asc
+    # """, [platform, course_id])
+
+    # result = cursor.fetchall()
+    # platform_setting = settings.DATAINTEGRATION_PLUGINS[platform]
+    # result = platform_setting.get_detail_values_by_fetch_results(result)
+
+    unit = UnitOffering.objects.get(id = course_id)
+    filters = xapi_filter()
+    filters.platform = platform
+    filters.course = unit.code
+    getter = xapi_getter()
+    result = settings.DATAINTEGRATION_PLUGINS[platform].get_detail_values_by_fetch_results(
+                                                            getter.get_xapi_statements(course_id, None, filters))
+
+    print result
+
     username = ''
-    series = []
-    verb = ''# verb
-    dates = [] # date
+    series = {}
+    verb = '' # This may not be verb. It could be something else such as Trello action type.
+    dates = []
     values = []
     for row in result:
-        # Subtract 1 from month to avoid calculation in client side (Javascript)
-        dateAry = row[2].split(',')
-        dateString = dateAry[0] + ',' + str(int(dateAry[1]) - 1).zfill(2) + ',' + dateAry[2]
+        hyphen = '-'
+        date_string = Utility.format_date(row[2], hyphen, hyphen, True)
         if username == '' or username != row[0]:
             if username != '':
                 # Save previous all verbs and its values of the user
@@ -1289,28 +1387,33 @@ def count_verbs_by_users(verbs, platform, course_code):
                     ('date', copy.deepcopy(dates)),
                     ('values', copy.deepcopy(values))
                 ])
-                series.append(obj)
-                user_data['category'] = username
-                user_data['series'] = copy.deepcopy(series)
-                data.append(user_data)
+
+                # Multiple Trello actions belong to the same verb 
+                #   (e.g. In Trello data, update checklist status and move card belong to updated)
+                # The two action may be processed one after another in this loop (It depends on what user did in Trello).
+                # For instance, 1. user update checklist status, 2. move a card, 3. update another checklist status, 4. move another card...
+                # In this case, variable "series" already has an element named updateCheckItemStateOnCard when the loop reaches No.3.
+                # Then, date and values in "series" need to be extended (inside if case), not replaced.
+                if series.has_key(verb):
+                    existing = series[verb]
+                    existing['date'].extend(obj['date'])
+                    existing['values'].extend(obj['values'])
+                else:
+                    series[verb] = obj
+                data[username] = series
 
             # Initialise all variables
             username = row[0]
-            user_data = OrderedDict()
-            series = []
-            verb = "" # verb
-            dates = [] # date
-            values = []
-            verb = row[1] # verb
-            dates = [dateString] # date
-            values = [int(row[3])] # number of verbs imported on the date
-
+            series = {}
+            verb = row[1]
+            dates = [date_string]
+            values = [str(row[3])]
             categories.append(username)
 
         elif username == row[0] and verb == row[1]:
             # Same user and same verb.
-            dates.append(dateString)
-            values.append(int(row[3]))
+            dates.append(date_string)
+            values.append(str(row[3]))
 
         elif username == row[0] and verb != row[1]:
             # Save previous verb and its value
@@ -1319,14 +1422,16 @@ def count_verbs_by_users(verbs, platform, course_code):
                 ('date', copy.deepcopy(dates)), 
                 ('values', copy.deepcopy(values))
             ])
-            series.append(obj)
-            # Initialise with new verb, date and value
-            verb = "" # verb
-            dates = [] # date
-            values = []
-            verb = row[1] # verb
-            dates = [dateString] # date
-            values = [int(row[3])] # number of verbs imported on the date
+            if series.has_key(verb):
+                existing = series[verb]
+                existing['date'].extend(obj['date'])
+                existing['values'].extend(obj['values'])
+            else:
+                series[verb] = obj
+
+            verb = row[1]
+            dates = [date_string]
+            values = [str(row[3])]
 
     # Save the last one
     obj = OrderedDict([
@@ -1334,14 +1439,76 @@ def count_verbs_by_users(verbs, platform, course_code):
         ('date', copy.deepcopy(dates)), 
         ('values', copy.deepcopy(values))
     ])
-    series.append(obj)
-    user_data['category'] = username
-    user_data['series'] = copy.deepcopy(series)
-    data.append(user_data)
-
-    # print data
-    # print categories
+    series[verb] = obj
+    data[username] = series
     return categories, data
+
+
+def retrieve_data_from_rows(result):
+    categories = []
+    series_names = []
+    data = {}
+    username = ''
+    series = {}
+    val = ''# val
+    dates = [] # date
+    values = []
+    for row in result:
+        # Format date 
+        comma = ','
+        date_string = Utility.format_date(row[3], comma, comma, True)
+        if username == '' or username != row[1]:
+            if username != '':
+                # Save previous all vals and its values of the user
+                obj = OrderedDict([
+                    ('name', val), # val
+                    ('date', copy.deepcopy(dates)),
+                    ('values', copy.deepcopy(values))
+                ])
+                series[val] = obj
+                if not val in series_names:
+                    series_names.append(val)
+                data[username] = series
+
+            # Initialise all variables
+            username = row[1]
+            series = {}
+            val = row[2] # val
+            dates = [date_string] # date
+            values = [int(row[4])] # number of vals imported on the date
+            categories.append(username)
+
+        elif username == row[1] and val == row[2]:
+            # Same user and same val.
+            dates.append(date_string)
+            values.append(int(row[4]))
+
+        elif username == row[1] and val != row[2]:
+            # Save previous val and its value
+            obj = OrderedDict([
+                ('name', val), # val
+                ('date', copy.deepcopy(dates)), 
+                ('values', copy.deepcopy(values))
+            ])
+            series[val] = obj
+            if not val in series_names:
+                series_names.append(val)
+            val = row[2] # val
+            dates = [date_string] # date
+            values = [int(row[4])] # number of vals imported on the date
+
+    # Save the last one
+    obj = OrderedDict([
+        ('name', val), # val
+        ('date', copy.deepcopy(dates)), 
+        ('values', copy.deepcopy(values))
+    ])
+    series[val] = obj
+    if not val in series_names:
+        series_names.append(val)
+    data[username] = series
+
+    return categories, data, series_names
 
 
 # This returns all repository name that user has. 

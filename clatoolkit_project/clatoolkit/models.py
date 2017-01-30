@@ -229,6 +229,15 @@ class UnitOffering(models.Model):
     def get_lrs_access_token_url(self):
         return self.lrs_provider.get_access_token_url()
 
+    def get_cca_dashboard_params(self):
+        params = []
+        if self.github_member_count() > 0:
+            params.append(xapi_settings.PLATFORM_GITHUB)
+        if len(self.trello_boards_as_list()) > 0:
+            params.append(xapi_settings.PLATFORM_TRELLO)
+
+        return ','.join(params)
+
 
 class OauthFlowTemp(models.Model):
     googleid = models.CharField(max_length=1000, blank=False)
