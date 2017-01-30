@@ -54,6 +54,7 @@ class LRS_Auth(object):
         self.CONSUMER_KEY = app.get_key()
         self.CONSUMER_SECRET = app.get_secret()
 
+        self.BASE_URL = app.get_base_url()
         self.REQUEST_TOKEN_URL = app.get_auth_request_url()
         self.ACCESS_TOKEN_URL = app.get_access_token_url()
         self.AUTHORIZATION_URL = app.get_authorization_url()
@@ -68,7 +69,7 @@ class LRS_Auth(object):
         os.environ['ACCESS_TOKEN_URL'] = self.ACCESS_TOKEN_URL
 
 
-    def get_statement(self, user_id, filters=None, limit=None):
+    def get_statement(self, user_id, filters=None, limit=None, more_path = None):
         #Get user access token
         user = User.objects.get(id=user_id)
         t = None
@@ -79,6 +80,12 @@ class LRS_Auth(object):
             print "***** Error has occurred. User %s does not have LRS access token. *****" % (user.username)
             return
 
+        # When user wants xAPI statements in next page 
+        # (LRS returnes up to 100 statements at once if user does not specify limit)
+        statement_url = self.STATEMENTS_URL
+        if more_path:
+            statement_url = self.BASE_URL + more_path
+
         consumer = AuthRequest(self.CONSUMER_KEY,self.CONSUMER_SECRET,
                                token = t.access_token, token_secret = t.access_token_secret)
 
@@ -87,9 +94,7 @@ class LRS_Auth(object):
         if filters is not None:
             kwargs['filters'] = filters
 
-        # url = 'http://localhost:8000/xapi/statements/more/75f555ce0cf8b7fda4928ef3f45de618'
-        (code,content) = consumer.request(self.STATEMENTS_URL, **kwargs)
-        # (code,content) = consumer.request(url, **kwargs)
+        (code,content) = consumer.request(statement_url, **kwargs)
 
         if str(code) != '200':
             raise Exception("Could not get xapi statments. Status: %s, Message: %s" % (code,content))

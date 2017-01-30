@@ -13,7 +13,7 @@ class xapi_getter(object):
 	def __init__(self):
 		pass
 
-	def get_xapi_statements(self, course_id, user_id = None, xapi_filters = None):
+	def get_xapi_statements(self, course_id, user_id = None, xapi_filters = None, more_path = None):
 		unit = UnitOffering.objects.get(id = course_id)
 		lrs_client = LRS_Auth(provider_id = unit.get_lrs_id())
 
@@ -30,23 +30,23 @@ class xapi_getter(object):
 		statement_list = []
 		for uid in user_list:
 			# Access to LRS to retrieve xAPI statements
-			stmts = lrs_client.get_statement(uid, filters = xapi_filters.to_dict())
+			stmts = lrs_client.get_statement(uid, filters = xapi_filters.to_dict(), more_path = more_path)
 			# print stmts
 			if stmts is None:
 				continue
 
-			# 
-			# TODO: get more data if "more" element exist in stmts dict.
-			# 
-			# print '-------------------------'
-			# for key, value in stmts.iteritems():
-			# 	print key
-			# print stmts['more']
 			if 'statements' in stmts:
 				for stmt in stmts['statements']:
 					statement_list.append(stmt)
 			else:
 				statement_list.append(stmts)
+
+			# print 'user %s - num of stmts = %s' % (uid, str(len(stmts['statements'])))
+			
+			# When there are more statements 
+			if 'more' in stmts and stmts['more'] != '':
+				# print 'Getting more xapi stmts for user id %s. more_path = %s' % (uid, stmts['more'])
+				statement_list += self.get_xapi_statements(course_id, uid, xapi_filters, stmts['more'])
 
 		# print statement_list
 		return self.filter_result(statement_list, xapi_filters)

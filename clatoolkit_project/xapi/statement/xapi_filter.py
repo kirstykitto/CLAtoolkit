@@ -14,6 +14,7 @@ class xapi_filter(object):
 	counttype = None
 	timeseries_counttype = None
 	statement_id = None
+	limit = None
 
 	def __init__(self):
 		pass
@@ -23,6 +24,9 @@ class xapi_filter(object):
 		# When statement ID is specified, anything else will not be used.
 		if self.statement_id:
 			filters['statementId'] = self.statement_id
+
+		if self.limit:
+			filters['limit'] = self.limit
 
 		# until and since are checking data stored date, not date of activity occurred, so these are useless...
 		# if self.until:
