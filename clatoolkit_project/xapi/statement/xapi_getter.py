@@ -1,6 +1,7 @@
 __author__ = 'Koji'
-from common.util import Utility
+import pytz
 
+from common.util import Utility
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from clatoolkit.models import UnitOffering, UnitOfferingMembership
@@ -36,8 +37,9 @@ class xapi_getter(object):
 				continue
 
 			if 'statements' in stmts:
-				for stmt in stmts['statements']:
-					statement_list.append(stmt)
+				statement_list += stmts['statements']
+				# for stmt in stmts['statements']:
+				# 	statement_list.append(stmt)
 			else:
 				statement_list.append(stmts)
 
@@ -69,7 +71,11 @@ class xapi_getter(object):
 
 			if xapi_filters.since:
 				timestamp = Utility.convert_to_datetime_object(stmt['timestamp'])
-
+				if timestamp.tzinfo is None:
+					# When timezone info is None, an error will occur (can't subtract offset-naive and offset-aware datetimes)
+					# Add temporary timezone to avoid the error
+					timestamp = Utility.convert_to_datetime_object(stmt['timestamp'] + '+00:00')
+					
 				# Create a valid ISO8601 timestamp (e.g. 2017-07-16T19:20:30+01:00), 
 				# or LRS will reject other timestamp formats
 				# Start time is set to 00:00:00 to retrieve all data on the start day
@@ -79,6 +85,10 @@ class xapi_getter(object):
 
 			if xapi_filters.until:
 				timestamp = Utility.convert_to_datetime_object(stmt['timestamp'])
+				if timestamp.tzinfo is None:
+					# When timezone info is None, an error will occur (can't subtract offset-naive and offset-aware datetimes)
+					# Add temporary timezone to avoid the error
+					timestamp = Utility.convert_to_datetime_object(stmt['timestamp'] + '+00:00')
 				
 				# Create a valid ISO8601 timestamp (e.g. 2017-07-16T19:20:30+01:00), 
 				# or LRS will reject other timestamp formats
