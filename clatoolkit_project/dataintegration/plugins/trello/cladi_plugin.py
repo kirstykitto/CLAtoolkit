@@ -426,31 +426,29 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         else:
             return 'Unknown action type'
 
+
     def get_detail_values_by_fetch_results(self, xapi_statements):
         all_rows = []
-        # for row in result:
-        #     single_row = []
-        #     single_row.append(row[0]) # user name
-        #     single_row.append(self.get_action_type_from_context(row[2])) # verb or Trello action type
-        #     single_row.append(row[3]) # date
-        #     single_row.append(self.get_object_values_from_context(row)) # object values
-        #     all_rows.append(single_row)
-
         # return all_rows
         for stmt in xapi_statements:
             single_row = []
             # user name
             single_row.append(stmt['authority']['member'][0]['name'])
-            # verb or original action type (E.g. Trello action type)
+            # verb or original action type 
             other_context_activities = stmt['context']['contextActivities']['other']
             single_row.append(self.get_action_type_from_context(other_context_activities))
             # Date
-            single_row.append(stmt['timestamp'])
+            dt = Utility.convert_to_datetime_object(stmt['timestamp'])
+            date_str = str(dt.year) + ',' + str(dt.month) + ',' + str(dt.day)
+            # date_str += ' ' + str(dt.hour) + ':' + str(dt.minute) + ':' + str(dt.second)
+            single_row.append(date_str)
+
             # Value of an object
             single_row.append(self.get_object_diaplay_value(stmt))
             all_rows.append(single_row)
         return all_rows
         
+
     def get_action_type_from_context(self, json):
         return json[0]['definition']['name']['en-US']
 

@@ -380,12 +380,14 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         other_context_list.append(get_other_contextActivity(
             issue_url, 'Object', body, xapi_settings.get_verb_iri(verb)))
 
+        # print 'issue url" %s ' % issue_url
+        # print 'verb: %s ' % verb
         if username_exists(author_id, unit, self.platform):
             user = get_user_from_screen_name(author_id, self.platform)
             insert_closedopen_object(user, issue_url, title, date, unit, self.platform, self.platform_url,
                                  xapi_settings.OBJECT_NOTE, verb, parent_id = repo_url,
                                  obj_parent_type = xapi_settings.OBJECT_COLLECTION,
-                                 other_contexts = other_context_list)
+                                 other_contexts = other_context_list, platform_id = event.id)
 
         # Return the issue number for assignees & assigner data import
         # return issue['number']
@@ -721,29 +723,45 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
         return verb, val
 
 
-    def get_detail_values_by_fetch_results(self, result):
+    def get_detail_values_by_fetch_results(self, xapi_statements):
         all_rows = []
-        for row in result:
+        for stmt in xapi_statements:
             single_row = []
-            single_row.append(row[0]) # user name
-            single_row.append(self.get_activity_type_from_context(row[2])) # Get GitHub event type (or status)
-            single_row.append(row[3]) # date
-            single_row.append(self.get_object_values_from_context(row)) # object values
+            # user name
+            single_row.append(stmt['authority']['member'][0]['name'])
+            # verb or original action type (E.g. Trello action type)
+            other_context_activities = stmt['context']['contextActivities']['other']
+            single_row.append(self.get_activity_type_from_context(other_context_activities))
+            # Date
+            dt = Utility.convert_to_datetime_object(stmt['timestamp'])
+            date_str = str(dt.year) + ',' + str(dt.month) + ',' + str(dt.day)
+            # calculate month for JavaScript
+            single_row.append(Utility.format_date(date_str, ',', ',', True))
+
+            # Value of an object
+            single_row.append(self.get_object_values_from_context(stmt))
             all_rows.append(single_row)
 
         return all_rows
-        
+
+
     def get_activity_type_from_context(self, json):
         return json[0]['definition']['name']['en-US']
 
 
-    def get_object_values_from_context(self, row):
-        action = self.get_activity_type_from_context(row[2])
-        if len(row[2]) <= 1:
-            return row[4]
+    def get_object_values_from_context(self, stmt):
+        # action = self.get_activity_type_from_context(row[2])
+        # if len(row[2]) <= 1:
+        #     return row[4]
 
-        object_val = row[4]
-        contexts = row[2]
+        other_context_activities = stmt['context']['contextActivities']['other']
+        action = self.get_activity_type_from_context(other_context_activities)
+        object_val = stmt['object']['definition']['name']['en-US']
+        if len(other_context_activities) <= 1:
+            return object_val
+
+        object_val = object_val
+        contexts = other_context_activities
         value = ''
         index = 1
         if action == self.EVENT_TYPE_COMMIT:

@@ -346,8 +346,12 @@ def insert_updated_object(user, object_id, object_message, obj_update_time, unit
 
 
 def insert_closedopen_object(user, object_id, object_message, obj_update_time, unit, platform, platform_url, 
-                          obj_type, verb, parent_id=None, obj_parent_type=None, other_contexts = []):
-    if check_ifnotinlocallrs(unit, platform, object_id):
+                          obj_type, verb, parent_id=None, obj_parent_type=None, other_contexts = [], platform_id = None):
+    check_id = object_id
+    if platform_id:
+        check_id = platform_id
+        
+    if check_ifnotinlocallrs(unit, platform, check_id):
         lrs_client = LRS_Auth(provider_id = unit.get_lrs_id())
         account_name = user.userprofile.get_username_for_platform(platform)
         statement_id = get_uuid4()

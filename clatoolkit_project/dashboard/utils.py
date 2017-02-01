@@ -1369,16 +1369,15 @@ def get_object_values(platform, course_id):
     result = settings.DATAINTEGRATION_PLUGINS[platform].get_detail_values_by_fetch_results(
                                                             getter.get_xapi_statements(course_id, None, filters))
 
-    print result
-
     username = ''
     series = {}
     verb = '' # This may not be verb. It could be something else such as Trello action type.
     dates = []
     values = []
     for row in result:
-        hyphen = '-'
-        date_string = Utility.format_date(row[2], hyphen, hyphen, True)
+        # hyphen = '-'
+        comma = ','
+        date_string = Utility.format_date(row[2], comma, comma, True)
         if username == '' or username != row[0]:
             if username != '':
                 # Save previous all verbs and its values of the user
@@ -1601,3 +1600,87 @@ def get_object_count(unit, group_by_name, platform = None, user = None, verb = N
 
     return records.values(group_by_name).annotate(count=Count(group_by_name))
 
+
+
+def get_issue_list(course_id):
+
+    # Get issues assigned to the users in the course
+    unit = UnitOffering.objects.get(id = course_id)
+    filters = xapi_filter()
+    filters.platform = xapi_settings.PLATFORM_GITHUB
+    filters.course = unit.code
+    getter = xapi_getter()
+    stmts = getter.get_xapi_statements(course_id, None, filters)
+
+    assigned_users = get_assigned_users(stmts)
+    issue_status = get_issue_status(stmts)
+
+    for issue_url in issue_status:
+        status = xapi_settings.VERB_OPENED
+        issue = issue_status[issue_url]
+
+        # Count the number of opened/closed
+        count_open = issue.count(xapi_settings.VERB_OPENED)
+        count_close = issue.count(xapi_settings.VERB_CLOSED)
+        if count_open == count_close:
+            status = xapi_settings.VERB_CLOSED
+            
+        for assignee in assigned_users:
+            issue_objs = assigned_users[assignee]
+            for issue in issue_objs:
+                if issue.get(issue_url) is not None:
+                    issue[issue_url] = status
+                    
+    ret = OrderedDict([
+        ('assigned_users', assigned_users),
+    ])
+
+    return ret
+
+
+def get_issue_status(xapi_statements):
+
+    issues = {}
+    for statement in xapi_statements:
+        # Ignore other activities
+        verb = statement['verb']['display']['en-US']
+        if not (verb == xapi_settings.VERB_OPENED or verb == xapi_settings.VERB_CLOSED) \
+            or statement['object']['definition']['type'] != xapi_settings.get_object_iri(xapi_settings.OBJECT_NOTE):
+            continue
+
+        issue_url = statement['object']['id']
+        # Save verb in the array to count the number of opened/closed to determine whether the issue is opened/closed
+        if issue_url not in issues:
+            issues[issue_url] = [verb]
+        else:
+            issues[issue_url].append(verb)
+
+
+def get_assigned_users(xapi_statements):
+# def get_assigned_issues(course_id):
+
+    assigned_users = {}
+    for statement in xapi_statements:
+        # Ignore other activities
+        if statement['verb']['display']['en-US'] != xapi_settings.VERB_ADDED \
+            or statement['object']['definition']['type'] != xapi_settings.get_object_iri(xapi_settings.OBJECT_PERSON):
+            continue
+
+        assignee = statement['object']['definition']['name']['en-US']
+        issue_url = statement['context']['contextActivities']['parent'][0]['id']
+
+        if assignee not in assigned_users:
+            # Save the status of the issue as open temporarily. 
+            # The status will be upudated later
+            assigned_users[assignee] = [{issue_url: xapi_settings.VERB_OPENED}]
+        else:
+            issue_objs = assigned_users[assignee]
+            for issue in issue_objs:
+                if issue.get(issue_url) is None:
+                    # Save the status of the issue as open temporarily. 
+                    # The status will be upudated later
+                    issue_objs.append({issue_url: xapi_settings.VERB_OPENED})
+                    # assigned_users[assignee] = issue_objs
+                    break
+
+    return assigned_users

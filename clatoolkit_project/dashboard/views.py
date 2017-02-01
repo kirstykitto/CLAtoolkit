@@ -306,13 +306,6 @@ def cadashboard(request):
 
     if UnitOfferingMembership.is_admin(request.user, unit):
         title = "Content Analysis Dashboard: %s (Platform: %s)" % (unit.code, platform)
-        # show_dashboardnav = True
-
-        # TODO: fix get_timeseries() method
-        # posts_timeline = get_timeseries('created', platform, unit)
-        # shares_timeline = get_timeseries('shared', platform, unit)
-        # likes_timeline = get_timeseries('liked', platform, unit)
-        # comments_timeline = get_timeseries('commented', platform, unit)
 
         # timeline_data = get_verb_timeline_data(unit, None)
         timeline_data = get_verb_timeline_data(unit, platform, None)
@@ -762,8 +755,8 @@ def remove_attached_repo(request):
 @login_required
 def get_github_contribution(request):
     # Get all issues and issues that each user was assigned to.
-    course_code = request.GET.get('course_code')
-    contribution = get_issue_list(course_code)
+    course_id = request.GET.get('course_id')
+    contribution = get_issue_list(course_id)
     
     return JsonResponse(contribution, status=status.HTTP_200_OK)
 

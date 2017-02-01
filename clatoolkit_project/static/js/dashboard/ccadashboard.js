@@ -1208,24 +1208,32 @@ CLABarChart.prototype.initializeContribution = function(data) {
 };
 
 CLABarChart.prototype.createContributionChartData = function(data) {
-	var assigned_issues = data["assigned_issues"];
+	var assigned_users = data["assigned_users"];
 	var categories = [];
 	var openIssueData = [];
 	var closeIssueData = [];
-	for(key in assigned_issues) {
-		details = assigned_issues[key];
-		categories.push(details["assignee"]);
+
+	for(userName in assigned_users) {
+		userIssues = assigned_users[userName];
+		categories.push(userName);
+
 		var openIssueCount = 0;
 		var closeIssueCount = 0;
-		for(issueKey in details["issues"]) {
-			issue = details["issues"][issueKey];
-			if(issue["status"] == "opened") {
-				openIssueCount++;
-			} else {
-				closeIssueCount++;
+
+		var i = userIssues.length;
+		var issue = null;
+		do {
+			issue = userIssues[i];
+			for (var key in issue) {
+				if(issue[key] == "opened") {
+					openIssueCount++;
+				} else {
+					closeIssueCount++;
+				}
 			}
-		}
-		// Adding data...
+		} while (i--);
+
+		// Adding data
 		openIssueData.push(openIssueCount);
 		closeIssueData.push(closeIssueCount);
 	}

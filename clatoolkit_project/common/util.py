@@ -23,7 +23,7 @@ class Utility(object):
 		if date_str is None or date_str == '':
 			return ret
 
-		# If isMonthSubtract, then subtract 1 from month (to avoid calculation in JavaScript)
+		# If isMonthSubtract is True, then subtract 1 from month (to avoid calculation in JavaScript)
 		# isMonthSubtract = True is recommended
 		month_subtract = 1 if isMonthSubtract else 0
 		dateAry = date_str.split(splitter)
