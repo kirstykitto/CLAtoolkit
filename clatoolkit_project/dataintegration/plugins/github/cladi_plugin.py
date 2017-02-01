@@ -735,8 +735,7 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
             # Date
             dt = Utility.convert_to_datetime_object(stmt['timestamp'])
             date_str = str(dt.year) + ',' + str(dt.month) + ',' + str(dt.day)
-            # calculate month for JavaScript
-            single_row.append(Utility.format_date(date_str, ',', ',', True))
+            single_row.append(date_str)
 
             # Value of an object
             single_row.append(self.get_object_values_from_context(stmt))
@@ -750,10 +749,6 @@ class GithubPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
 
     def get_object_values_from_context(self, stmt):
-        # action = self.get_activity_type_from_context(row[2])
-        # if len(row[2]) <= 1:
-        #     return row[4]
-
         other_context_activities = stmt['context']['contextActivities']['other']
         action = self.get_activity_type_from_context(other_context_activities)
         object_val = stmt['object']['definition']['name']['en-US']

@@ -1655,6 +1655,7 @@ def get_issue_status(xapi_statements):
         else:
             issues[issue_url].append(verb)
 
+    return issues
 
 def get_assigned_users(xapi_statements):
 # def get_assigned_issues(course_id):

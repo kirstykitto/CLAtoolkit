@@ -1154,28 +1154,6 @@ CLAPieChartOptions.calculateChartAreaWidth = function(categories) {
 };
 
 
-$(document).ready(function(){
-	Common.initialise();
-	// Draw the navigator
-	var url = "/dashboard/api/get_platform_timeseries_data/?course_id=" + course_id + "&platform=" + platform;
-	var navChart = new CLANavigatorChart("chartNavigator", url);
-	url = "/dashboard/api/get_platform_activities/?course_id=" + course_id + "&platform=" + platform;
-	var barChart = new CLABarChart("activityColumn", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NORMAL, url);
-	var pieChart = new CLAPieChart("activityPie", CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE, url);
-	Common.saveChartObject(barChart);
-	Common.saveChartObject(pieChart);
-	barChart.draw();
-	pieChart.draw();
-	navChart.draw();
-
-	if(platform.indexOf('GitHub') != -1) {
-		url = "/dashboard/api/get_github_contribution/?course_id=" + course_id
-		var contribBar = new CLABarChart("contribution", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NONE, url);
-		contribBar.drawContribution();
-	}
-});
-
-
 CLABarChart.prototype.drawContribution = function() {
 	var self = this;
 	$.ajax({
@@ -1253,3 +1231,25 @@ CLABarChart.prototype.createContributionChartData = function(data) {
 
 	return { "categories": categories, "series": series };
 };
+
+
+$(document).ready(function(){
+	Common.initialise();
+	// Draw the navigator
+	var url = "/dashboard/api/get_platform_timeseries_data/?course_id=" + course_id + "&platform=" + platform;
+	var navChart = new CLANavigatorChart("chartNavigator", url);
+	url = "/dashboard/api/get_platform_activities/?course_id=" + course_id + "&platform=" + platform;
+	var barChart = new CLABarChart("activityColumn", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NORMAL, url);
+	var pieChart = new CLAPieChart("activityPie", CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE, url);
+	Common.saveChartObject(barChart);
+	Common.saveChartObject(pieChart);
+	barChart.draw();
+	pieChart.draw();
+	navChart.draw();
+
+	if(platform.indexOf('GitHub') != -1) {
+		url = "/dashboard/api/get_github_contribution/?course_id=" + course_id
+		var contribBar = new CLABarChart("contribution", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NONE, url);
+		contribBar.drawContribution();
+	}
+});
