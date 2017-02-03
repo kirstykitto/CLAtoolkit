@@ -442,17 +442,17 @@ def studentdashboard(request):
     activity_pie_series = get_verb_pie_data(unit, platform = platform, user = user)
     platformactivity_pie_series = get_platform_pie_data(unit, user = user)
     
-    #print "SNA", datetime.datetime.now()
-    if course_code == 'IFN614':
-        sna_json = sna_buildjson(platform, course_code, 
-                start_date='15-06-2016', end_date='20-12-2016', 
-                relationshipstoinclude = "'%s', '%s', '%s', '%s'" % (xapi_settings.VERB_MENTIONED, xapi_settings.VERB_LIKED, \
-                                                                     xapi_settings.VERB_SHARED, xapi_settings.VERB_COMMENTED))
-    else:
-        # sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
-        sna_json = sna_buildjson(platform, unit, 
-            relationshipstoinclude = "'%s', '%s', '%s', '%s'" % (xapi_settings.VERB_MENTIONED, xapi_settings.VERB_LIKED, \
-                                                                 xapi_settings.VERB_SHARED, xapi_settings.VERB_COMMENTED))
+    # #print "SNA", datetime.datetime.now()
+    # if course_code == 'IFN614':
+    #     sna_json = sna_buildjson(platform, course_code, 
+    #             start_date='15-06-2016', end_date='20-12-2016', 
+    #             relationshipstoinclude = "'%s', '%s', '%s', '%s'" % (xapi_settings.VERB_MENTIONED, xapi_settings.VERB_LIKED, \
+    #                                                                  xapi_settings.VERB_SHARED, xapi_settings.VERB_COMMENTED))
+    # else:
+    #     # sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
+    sna_json = sna_buildjson(platform, unit, 
+        relationshipstoinclude = "'%s', '%s', '%s', '%s'" % (xapi_settings.VERB_MENTIONED, xapi_settings.VERB_LIKED, \
+                                                             xapi_settings.VERB_SHARED, xapi_settings.VERB_COMMENTED))
 
     # Centrality data
     centrality = get_centrality(sna_json)
