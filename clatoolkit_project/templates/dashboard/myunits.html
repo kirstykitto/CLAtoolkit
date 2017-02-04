@@ -203,6 +203,10 @@
                                 <p>
                                     <a href="/dashboard/mydashboard?course_id={{ membership.unit.id }}&platform=all">Go
                                         to My Social Media Dashboard</a><br/>
+                                    <br/>
+                                    {% if membership.unit.get_cca_dashboard_params != '' %}
+                                        <a href="/dashboard/ccadashboard/?course_id={{ membership.unit.id }}&platform={{ membership.unit.get_cca_dashboard_params }}">CCA Dashboard</a>
+                                    {% endif %}
                                     {% if membership.unit.enable_coi_classifier %}
                                         <br/>
                                         {% if unit.code == 'IFN614' %}
