@@ -1400,6 +1400,7 @@ def get_object_values(platform, course_id):
                     series[verb] = obj
                 data[username] = series
 
+
             # Initialise all variables
             username = row[0]
             series = {}

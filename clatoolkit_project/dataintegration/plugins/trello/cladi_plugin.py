@@ -227,6 +227,7 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         checklist_items = checklist['checkItems']
                     except Exception:
                         print 'Could not retrieve checklist..'
+                        continue
 
                     object_data = data['checklist']['name']
                     for item in checklist_items:
@@ -433,7 +434,13 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         for stmt in xapi_statements:
             single_row = []
             # user name
-            single_row.append(stmt['authority']['member'][0]['name'])
+            name = ''
+            if 'name' in stmt['authority']['member'][0]:
+                name = stmt['authority']['member'][0]['name']
+            else:
+                name = stmt['authority']['member'][1]['name']
+
+            single_row.append(name)
             # verb or original action type 
             other_context_activities = stmt['context']['contextActivities']['other']
             single_row.append(self.get_action_type_from_context(other_context_activities))
