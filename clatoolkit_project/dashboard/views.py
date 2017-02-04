@@ -820,7 +820,13 @@ def get_learning_records(request):
                     pass
 
         obj = {}
-        obj['username'] = stmt['authority']['member'][0]['name']
+        name = ''
+        if 'name' in stmt['authority']['member'][0]:
+            name = stmt['authority']['member'][0]['name']
+        else:
+            name = stmt['authority']['member'][1]['name']
+
+        obj['username'] = name
         obj['parentusername'] = parent_username
         obj['message'] = stmt['object']['definition']['name'][lang]
         obj['verb'] = stmt['verb']['display'][lang]
