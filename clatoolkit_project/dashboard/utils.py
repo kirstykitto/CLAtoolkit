@@ -1375,7 +1375,6 @@ def get_object_values(platform, course_id):
     dates = []
     values = []
     for row in result:
-        # hyphen = '-'
         comma = ','
         date_string = Utility.format_date(row[2], comma, comma, True)
         if username == '' or username != row[0]:
@@ -1388,11 +1387,11 @@ def get_object_values(platform, course_id):
                 ])
 
                 # Multiple Trello actions belong to the same verb 
-                #   (e.g. In Trello data, update checklist status and move card belong to updated)
-                # The two action may be processed one after another in this loop (It depends on what user did in Trello).
-                # For instance, 1. user update checklist status, 2. move a card, 3. update another checklist status, 4. move another card...
+                #   (e.g. "update checklist status" and "move card" belong to updated)
+                # The two action may be processed one after another in this loop.
+                # For instance, 1. user update checklist status, 2. create a card, 3. update another checklist status, and so on.
                 # In this case, variable "series" already has an element named updateCheckItemStateOnCard when the loop reaches No.3.
-                # Then, date and values in "series" need to be extended (inside if case), not replaced.
+                # Then, the date and the values in "series" variable needs to be extended.
                 if series.has_key(verb):
                     existing = series[verb]
                     existing['date'].extend(obj['date'])
@@ -1438,10 +1437,15 @@ def get_object_values(platform, course_id):
         ('date', copy.deepcopy(dates)), 
         ('values', copy.deepcopy(values))
     ])
-    series[verb] = obj
+    if series.has_key(verb):
+        existing = series[verb]
+        existing['date'].extend(obj['date'])
+        existing['values'].extend(obj['values'])
+    else:
+        series[verb] = obj
+
     data[username] = series
     return categories, data
-
 
 def retrieve_data_from_rows(result):
     categories = []
