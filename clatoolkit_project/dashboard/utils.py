@@ -1446,6 +1446,8 @@ def get_object_values(platform, course_id):
         series[verb] = obj
 
     data[username] = series
+    # Sort category
+    categories.sort()
     return categories, data
 
 def retrieve_data_from_rows(result):
