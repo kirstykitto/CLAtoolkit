@@ -1,0 +1,130 @@
+{% extends "clatoolkit/base_clatoolkit.html" %}
+{% load static %}
+{% load field_type %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block heading %}{% endblock %}
+
+{% block body %}
+<div class="row">
+    <div class="col-md-6 col-md-offset-3">
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                {{ verb }} Unit Offering
+            </div>
+            <div class="panel-body">
+                <form role="form" id="user_form" method="post">
+                    {% csrf_token %}
+
+                    <div class="form-errors">
+                        {% for field in form %}
+                            {% if field.errors %}
+                                {% for error in field.errors %}
+                                    <li><strong>{{ field.name }}: {{ error|escape }}</strong></li>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    {% for field in form %}
+                        <div class="form-group">
+                            {{ field.label_tag }}
+                            <br>
+                            {% if field|field_type == "Textarea" %}
+                                <textarea class="form-control" name="{{ field.name }}">{% if field.value %}{{ field.value }}{% endif %}</textarea>
+                            {% else %}
+                                {% if field.name == "provider" %}
+                                    <input class="form-control" id="id_provider" name="provider" type="text" value="{{ field.value }}" readonly>
+                                    <!-- <br> -->
+                                    <a class="lrs-link" onclick="javascript:getLRSList();">Select your own LRS</a>
+                                    <div id="lrs-list" class="lrs"></div>
+                                {% elif field.name == "start_date" %}
+                                    <input type="hidden" id="startDate" value="{{field.value}}">
+                                    <input class="form-control" id="id_start_date" name="start_date" type="text" value="{% if field.value %}{{ field.value }}{% endif %}">
+                                {% elif field.name == "end_date" %}
+                                    <input type="hidden" id="endDate" value="{{field.value}}">
+                                    <input class="form-control" id="id_end_date" name="end_date" type="text" value="{% if field.value %}{{ field.value }}{% endif %}">
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <button type="submit" class="btn btn-primary btn-lg btn-block">{{ verb }} offering</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    div .form_control {
+        line-height: 3;
+        font-weight: bold;
+    }
+    .lrs {
+        font-size: 16px;
+        margin-top: 10px;
+    }
+    div .lrs-link {
+        cursor: pointer;
+    }
+</style>
+{% autoescape off %}
+<script>
+    function getLRSList(course_code) {
+        if($("#lrs-list").html() != '') {
+            return;
+        }
+        $("#lrs-list").html("Loading.....");
+        $.ajax({
+            url: "/clatoolkit/api/getLRSlist",
+            type: 'GET',
+            success: function (response) {
+                var lrsList = $("#lrs-list");
+                lrsList.css('border', 'solid 1px #CCCCCC');
+                lrsList.css('padding', '3px');
+                lrsList.html('<p>Click the LRS name you would like to use.</p>');
+                $.each(response["result"], function(key, val) {
+                    var url = val["protocol"] + "://" + val["domain"] + ":" + val["port"];
+                    var app = '<a class="lrs-link" onclick="javascript:selectLRS(\'' + val["provider"] + '\');">' + val["provider"] + "</a>: " + url;
+                    lrsList.append('<p>' + app + '</p>');
+                });
+            }
+        });
+    }
+    function selectLRS(providerName) {
+        $("#id_provider").val(providerName);
+    }
+
+    function initialise() {
+        // jQuery.js will be loaded AFTER this template html file is loaded, so initialisation process must be delayed.
+        setTimeout( function() {
+            var dateFormat = 'DD / MM / YYYY';
+            if($('#startDate').val() != 'None'){
+                var startDate = new Date($('#startDate').val());
+                var endDate = new Date($('#endDate').val());
+                $('#id_start_date').datetimepicker({ format: dateFormat });
+                $('#id_end_date').datetimepicker({ format: dateFormat });
+                $('#id_start_date').val(toString(startDate));
+                $('#id_end_date').val(toString(endDate));
+            } else {
+                $('#id_start_date').datetimepicker({ format: dateFormat });
+                $('#id_end_date').datetimepicker({ format: dateFormat });
+            }
+        }, 2000);
+    }
+    function toString( date ) {
+        return [
+                ("00" + (date.getDate())).slice(-2), 
+                ("00" + (date.getMonth() + 1)).slice(-2), 
+                date.getFullYear()
+               ].join(' / ');
+    }
+// Initialise datetime picker
+initialise();
+</script>
+{% endautoescape %}
+{% endblock %}

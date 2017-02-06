@@ -113,6 +113,10 @@
             </div>
             <!-- /.panel-heading -->
             <div class="panel-body">
+                <div id="popup" title="Centrality">
+                  <table class="table table-striped table-bordered table-hover" id="centrality-popup">
+                  </table>
+                </div>
                 <div id="mynetwork" style="height: 350px;"></div>
                 <div id="relationships""></div>
             </div>
@@ -159,18 +163,39 @@
         <!-- /.col-lg-12 -->
 </div>
 <!-- /.row -->
+<div class="row">
+    <div class="col-lg-12">
+
+        <div class="panel panel-default">
+          <div class="panel-heading">
+              <i class="fa fa-bar-chart-o fa-fw"></i>Centrality
+          </div>
+          <!-- /.panel-heading -->
+          <div class="panel-body">
+            <div class="dataTable_wrapper">
+                <table class="table table-striped table-bordered table-hover" id="dctable">
+                </table>
+            </div>
+          </div>
+          <!-- /.panel-body -->
+        </div>
+        <!-- /.panel -->
+    </div>
+</div>
+
 {% endblock %}
 
 {% block js_block %}
 {% autoescape off %}
 <script src="{% static 'js/vis.js'%}"></script>
-<script src="http://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.js"></script>
+<script src="//mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.js"></script>
 <script>
 var sna_data = {{sna_json}};
 var wordcloud_data = {{tags|safe}};
 var platform = "{{platform}}";
 var username = "{{username}}";
 var start_date, end_date;
+var centrality = {{centrality}};
 
 function update_data(chartid)
 {
@@ -188,8 +213,9 @@ function render_wordcloud(tag_freqs)
 
 function update_wordcloud(start_date, end_date)
 {
-  $('#wordcloudselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
-  restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date};
+  $('#wordcloudselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")");
+  restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", 
+                user_id:"{{ user_id }}", start_date:start_date, end_date:end_date};
   $.getJSON("/clatoolkit/wordcloud", restparams,
     function(data){
       wordcloud_data = data;
@@ -204,7 +230,7 @@ function update_snadata(start_date, end_date)
   $('#selectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
   //console.log("start_date:" + start_date)
   //console.log("end_date:" + end_date)
-  $.get("/clatoolkit/sna", { course_code:"{{course_code}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date, relationshipstoinclude:"'mentioned','liked','shared','commented'"},
+  $.get("/clatoolkit/sna", { course_id:"{{course_id}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date, relationshipstoinclude:"'mentioned','liked','shared','commented'"},
     function(data){
       //console.log("SNA: " + data);
       sna_data = data;
@@ -258,7 +284,61 @@ function render_sna(data)
         params.event = "[original event]";
         document.getElementById('relationships').innerHTML = '<h2>Click event:</h2>' + JSON.stringify(params, null, 4);
         update_messages(params.nodes,params.edges);
+        showCentralityPopup(params);
   });
+}
+
+function showCentralityPopup(params)
+{
+  data = getCentralityDataSetByUser(params);
+  if(data.length == 0) {
+    return;
+  }
+  // console.log("centrality data in pop-up table:");
+  // console.log(data);
+  
+  $('#centrality-popup').dataTable().fnDestroy();
+  $('#centrality-popup').DataTable( {
+        bFilter: false,
+        bInfo: false,
+        bPaginate: false,
+        bLengthChange: false,
+        data: data,
+        columns: [
+            { title: "Measure"},
+            { title: "Value" }
+        ]
+    } );
+  
+  $('#popup').dialog("open");
+  $('#popup').dialog("option", "width", 300);
+}
+
+
+function getCentralityDataSetByUser(params)
+{
+  label = getnodelabel(params.nodes[0])
+
+  var ret = [];
+  for(var i = 0; i < centrality.label.length; i++)
+  {
+    if (centrality.label[i] == label) {
+      var datarow = ["In degree", centrality.inDegree[i]];
+      ret.push(datarow);
+      datarow = ["Out degree", centrality.outDegree[i]];
+      ret.push(datarow);
+      datarow = ["Betweenness", centrality.betweenness[i]];
+      ret.push(datarow);
+      datarow = ["In Closeness", centrality.inCloseness[i]];
+      ret.push(datarow);
+      datarow = ["Out Closeness", centrality.outCloseness[i]];
+      ret.push(datarow);
+      datarow = ["Eigenvector", centrality.eigenvector[i]];
+      ret.push(datarow);
+      break;
+    }
+  }
+  return ret;
 }
 
 function update_messages(nodes, edges)
@@ -277,16 +357,19 @@ function update_messages(nodes, edges)
   {
     // get node label
     username = getnodelabel(nodes[0])
+    // get node (user) ID
+    uid = getNodeUid(nodes[0]);
+
     $('#relationships').html('<h3>Selected User: ' + username + '</h3>');
-    console.log("Selected User:" + username)
-    resturl = "/api/learningrecord";
+    console.log("Selected User:" + username);
+    resturl = '/dashboard/api/get_learning_records';
     if (platform!="all")
     {
-      restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
     else
     {
-      restparams = {format: "json", course_code:"{{course_code}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", course_id:"{{course_id}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
   }
   else
@@ -296,6 +379,16 @@ function update_messages(nodes, edges)
     fromusername = usernames[0]
     tousername = usernames[1]
     link_label = usernames[2]
+
+    if(fromusername == null && tousername == null) {
+      $('#relationships').html('');
+      return;
+    }
+
+    uids = getNodeUids(edges[0]);
+    from_user = uids[0];
+    to_user = uids[1];
+    link_label = uids[2];
     if (link_label == "mention")
     {
       verb = "mentioned";
@@ -317,33 +410,77 @@ function update_messages(nodes, edges)
     resturl = "/api/socialrelationship";
     if (platform!="all")
     {
-      restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
     else
     {
-      restparams = {format: "json", course_code:"{{course_code}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", course_id:"{{course_id}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
   }
   console.log(resturl);
   $.getJSON(resturl, restparams,
     function(data){
-      console.log(data.results);
-      datatable_array = []
+      datatable_array = [];
+      // console.log(data.results);
+      if(data.results.error) {
+        // When error occur (e.g. User clicks a non-registered user/an object)
+        // console.log(data.results.error);
+        render_messages(datatable_array);
+        return;
+      }
+      
       for (i=0;i<data.results.length;i++)
       {
         var datarow;
         if (typeofrequest == "Node")
         {
-          datarow = [data.results[i].username, data.results[i].parentusername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
+          var parentUsername = data.results[i].parentusername == null ? "" : data.results[i].parentusername;
+          datarow = [data.results[i].username, parentUsername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
         }
         else {
-          datarow = [data.results[i].fromusername, data.results[i].tousername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
+          var fromUsername = data.results[i].fromusername == null ? "" : data.results[i].fromusername;
+          var toUserName = data.results[i].tousername == null ? "" : data.results[i].tousername;
+
+          datarow = [fromUsername, toUserName, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
         }
         datatable_array.push(datarow)
       }
       render_messages(datatable_array);
     });
 
+}
+
+function getNodeUid(node_id)
+{
+  var uid;
+  for (i=0;i<sna_data.nodes.length;i++)
+  {
+    if (sna_data.nodes[i].id == node_id)
+    {
+      uid = sna_data.nodes[i].uid;
+      break;
+    }
+  }
+  return uid;
+}
+
+function getNodeUids(edge_id)
+{
+  var fromid, toid, fromuser, touser, verb;
+  // console.log(sna_data.edges)
+  for (i=0;i<sna_data.edges.length;i++)
+  {
+    if (sna_data.edges[i].id == edge_id)
+    {
+      fromid = sna_data.edges[i].from;
+      toid = sna_data.edges[i].to;
+      verb = sna_data.edges[i].label;
+      break;
+    }
+  }
+  fromuser = getNodeUid(fromid);
+  touser = getNodeUid(toid);
+  return [fromuser, touser, verb]
 }
 
 function getnodelabel(node_id)
@@ -400,12 +537,28 @@ function render_messages(dataSet)
     } );
 }
 
+function getCentralityDataSet(centr)
+{
+  var ret = [];
+  var index = 0;
+  for(var i = 0; i < centr.ids.length; i++)
+  {
+    var datarow = [centr.ids[i], centr.label[i], centr.inDegree[i], 
+          centr.outDegree[i], centr.totalDegree[i], centr.betweenness[i],
+          centr.inCloseness[i], centr.outCloseness[i], centr.totalCloseness[i],
+          centr.eigenvector[i]
+        ];
+    ret.push(datarow);
+  }
+  return ret;
+}
+
 $(function() {
   // Create Platform Activity Chart
   $('#platform_pageview_chart').highcharts('StockChart', {
 
       rangeSelector : {
-          selected : 1
+          selected : 'all'
       },
 
       tooltip: {
@@ -441,19 +594,40 @@ $(function() {
           name : 'YouTube',
           data : [{{ youtube_timeline }}],
           id : 'dataseries3'
-      },
-      {
+      },{
           name : 'Blog',
           data : [{{ blog_timeline }}],
           id : 'dataseries5'
+      },{
+          name : 'GitHub',
+          data : [{{ github_timeline }}],
+          id : 'dataseries6'
+      },{
+          name : 'Trello',
+          data : [{{ trello_timeline }}],
+          id : 'dataseries7'
       }]
+  }, function (chart) {
+      // Show series in the navigator (the mini-chart)
+      for(var i = 0; i < chart.options.series.length; i++) {
+        chart.addSeries({
+            data: chart.options.series[i].data,
+            isInternal: true,
+            xAxis: 1,
+            yAxis: 1,
+            name: null, 
+            enableMouseTracking: false, 
+            showInLegend: false,
+            color: chart.series[i].color
+        });
+      }
   });
 
   // Create Activity Chart
   $('#pageview_chart').highcharts('StockChart', {
 
       rangeSelector : {
-          selected : 1
+          selected : 'all'
       },
 
       tooltip: {
@@ -490,6 +664,20 @@ $(function() {
           data : [{{ comments_timeline }}],
           id : 'dataseries3'
       }]
+  }, function (chart) {
+      // Show series in the navigator (the mini-chart)
+      for(var i = 0; i < chart.options.series.length; i++) {
+        chart.addSeries({
+            data: chart.options.series[i].data,
+            isInternal: true,
+            xAxis: 1,
+            yAxis: 1,
+            name: null, 
+            enableMouseTracking: false, 
+            showInLegend: false,
+            color: chart.series[i].color
+        });
+      }
   });
 
   //$('#dataTables-topcontent').DataTable({responsive: true});
@@ -657,6 +845,44 @@ $(function() {
               { title: "Date" }
           ]
       } );
+
+    // This table always shows the same data regardless of the dates users select
+    dc = getCentralityDataSet(centrality);
+    $('#dctable').DataTable( {
+          data: dc,
+          columns: [
+              { title: "ids", "bVisible": false },
+              { title: "Users" },
+              { title: "In Degree" },
+              { title: "Out Degree" },
+              { title: "Total Degree" },
+              { title: "Betweenness" },
+              { title: "In Closeness" },
+              { title: "Out Closeness" },
+              { title: "Total Closeness" },
+              { title: "Eigenvector" }
+          ]
+      } );
+    var density = centrality.density;
+    $("#dctable_filter").append("<div id='density'></div>");
+    $("#density").html("Density: " + density + " ");
+    $("#density").css("font-weight", "bold");
+    $("#density").css("font-size", "16px");
+    $('#popup').dialog({
+        autoOpen: false,
+        buttons: {
+          "OK": function(){
+            $(this).dialog('close');
+          }
+        }
+    });
+    $('#centrality-popup').DataTable({
+          data: [],
+          columns: [
+              { title: "measure"},
+              { title: "value" }
+          ]
+    });
 });
 </script>
 {% endautoescape %}

@@ -4,10 +4,9 @@ from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from oauth2client.client import OAuth2WebServerFlow
 import httplib2
+import os
 from apiclient.discovery import build
 
-CLIENT_ID = '775313004373-6nt8n91ih4g5qku95us9ceskbdlb6ure.apps.googleusercontent.com'
-CLIENT_SECRET = 'MJHbk5HdDWmqyptU_ZZtBQNP'
 SCOPE_YOUTUBE = 'https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtubepartner'
 REDIRECT_URI = 'http://127.0.0.1:8000/dataintegration/ytAuthCallback'
 
@@ -20,8 +19,8 @@ STR_OBJ_TYPE_VIDEO = 'Video'
 
 # For YouTube OAuth authentication
 FLOW_YOUTUBE = OAuth2WebServerFlow(
-    client_id=CLIENT_ID,
-    client_secret=CLIENT_SECRET,
+    client_id=os.environ.get("YOUTUBE_CLIENT_ID"),
+    client_secret=os.environ.get("YOUTUBE_CLIENT_SECRET"),
     scope=SCOPE_YOUTUBE,
     redirect_uri=REDIRECT_URI
 )

@@ -1,58 +1,71 @@
+import datetime
+import random
+import requests
+from .utils import *
+from functools import wraps
 from django.shortcuts import render
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from django.http import HttpResponse
-from django.db import connection
-from utils import *
-from clatoolkit.models import OauthFlowTemp, UnitOffering, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserTrelloCourseBoardMap
+from django.http import HttpResponse, HttpResponseServerError
+from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-from functools import wraps
-from django.db.models import Q
-import datetime
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
+from django.db import connection
 from django.db.models import Count
-import random
+from django.db.models import Q
+from clatoolkit.models import OfflinePlatformAuthToken, UserProfile, OauthFlowTemp, UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, Classification, UserClassification, GroupMap, UserPlatformResourceMap
 from rest_framework import status
-from django.http import JsonResponse
-
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-import requests
+from xapi.models import ClientApp, UserAccessToken_LRS
+from xapi.statement.xapi_settings import xapi_settings
+from xapi.statement.xapi_filter import xapi_filter
+from xapi.statement.xapi_getter import xapi_getter
 
-#Attach trello board
+
+
+#API endpoint to grab a list of trello boards to attach to course
 @login_required
 @api_view()
 def get_trello_boards(request):
     user_profile = UserProfile.objects.get(user=request.user)
     trello_member_id = user_profile.trello_account_name
-    token_qs = OauthFlowTemp.objects.get(googleid=trello_member_id)
-    token = token_qs.transferdata
-    key = request.GET.get('key')
-    course_code = request.GET.get('course_code')
+    token_qs = None
+    try:
+        token_qs = OfflinePlatformAuthToken.objects.get(user_smid=trello_member_id)
+    except ObjectDoesNotExist:
+        # When user smid is not found (This occurs when user hasn't registered their Trello ID yet)
+        token_qs = None
 
-    print key + ' >>>>> ' + token
+    # Return error message to the client
+    if token_qs is None:
+        html_tags = '<p class="no-trello-id">Your Trello account is incorrect or not found.<br>'
+        html_tags = html_tags + 'Register your account in Social Media Accounts update page before attaching a Trello board.<br>'
+        html_tags = html_tags + '(Click your name (top right corner) - Social Media Accounts)</p>'
+        return Response(('').join([html_tags]))
 
+    token = token_qs.token
+    key = os.environ.get('TRELLO_API_KEY')
+    course_id = request.GET.get('course_id')
     trello_boardsList_url = 'https://api.trello.com/1/member/me/boards?key=%s&token=%s' % (key,token)
-
+    
     r = requests.get(trello_boardsList_url)
-    print "got response %s" % r.json()
-
-    print 'course_code: %s' % (course_code)
+    #print "got response %s" % r.json()
     boardsList = r.json()
-
     board_namesList = []
     board_namesList.append('<ul>')
 
     for board in boardsList:
         board_namesList.append('<li>')
         #board = json.load(board)
+
         #format to something nice :)
         board_name = board['name']
         board_url = board['url']
         board_id = board['id']
-
-        html_resp = '<a href="#" class="board_choice" onclick="javascript:add_board(\''+course_code+'\',\''+board_id+'\')">'+board_name+'</a>'
+        html_resp = '<a href="#" class="board_choice" onclick="javascript:add_board(\''+course_id+'\',\''+board_id+'\',\'Trello\')">'+board_name+'</a>'
 
         board_namesList.append(html_resp)
         board_namesList.append('</li>')
@@ -62,12 +75,10 @@ def get_trello_boards(request):
 
 @login_required
 @api_view()
+#API endpoint to allow students to attach a board to course
 def add_board_to_course(request):
-    course = UnitOffering.objects.get(code=request.GET.get('course_code'))
+    course = UnitOffering.objects.get(id=request.GET.get('course_id'))
     board_list = course.attached_trello_boards
-
-    print 'board list %s' % (board_list)
-    print 'board list is "": %s' % (board_list == '')
 
     if board_list == '':
         new_board_list = request.GET.get('id')
@@ -75,11 +86,10 @@ def add_board_to_course(request):
         new_board_list = board_list+','+request.GET.get('id')
 
     course.attached_trello_boards = new_board_list
-
     course.save()
 
-    trello_user_course_map = UserTrelloCourseBoardMap(user=request.user, course_code=course.code, board_id=request.GET.get('id'))
-
+    trello_user_course_map = UserPlatformResourceMap(
+        user=request.user, unit=course, resource_id=request.GET.get('id'), platform=xapi_settings.PLATFORM_TRELLO)
     trello_user_course_map.save()
 
     return Response('<b>Board successfully added to course - <a href="/dashboard/myunits/">Reload</a></b>')
@@ -97,11 +107,12 @@ def check_access(required_roles=None):
 
             if correct_role:
                 if request.method == 'POST':
-                    course_code = request.POST['course_code']
+                    course_id = request.POST['course_id']
                 else:
-                    course_code = request.GET.get('course_code')
+                    course_id = request.GET.get('course_id')
+
                 # Check that user is a member of the course
-                unit = UnitOffering.objects.filter(code=course_code, users=request.user.id)
+                unit = UnitOffering.objects.filter(id = course_id, users = request.user.id)
                 if (len(unit) != 0):
                     return view(request, *args, **kwargs)
                 else:
@@ -115,221 +126,265 @@ def check_access(required_roles=None):
 @login_required
 @api_view()
 def trello_remove_board(request):
-    course_code = request.GET.get('course_code')
+    course_id = request.GET.get('course_id')
 
-    trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, course_code=course_code)
-    unit = UnitOffering.objects.get(code=course_code)
+    trello_user_course_map = None
+    unit = None
+    try:
+        # trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, course_code=course_code)
+        trello_user_course_map = UserPlatformResourceMap.objects.filter(user=request.user, unit=course_id, 
+            platform=xapi_settings.PLATFORM_TRELLO)
+        unit = UnitOffering.objects.get(id=course_id)
+    except ObjectDoesNotExist:
+        return HttpResponseServerError('<h2>Internal Server Error (500)</h2><p>Could not remove Trello Board.</p>')
 
-    #pythonic code below removes the ID of the attached board being removed
-    unit.attached_trello_boards = ','.join([board for board in unit.attached_trello_boards.split(',')
-                           if board is not trello_user_course_map.board_id[0]])
+    new_board_list = []
+    same_board_list = []
+    for board in unit.attached_trello_boards.split(','):
+        if board != trello_user_course_map[0].resource_id:
+            new_board_list.append(board)
+        else:
+            same_board_list.append(board)
+
+    # Multiple users are likely to use the same Trello board. 
+    # So, two or more same board IDs are likely to be found in unit.attached_trello_boards column.
+    # Since we only want to delete the user's board ID, we remove one of the same board IDs from the column.
+    # 
+    # attached_trello_boards column only has board IDs.
+    # So, we cannot identify exactly which ID is the user's when multiple same IDs exist.
+    for index in range(1, len(same_board_list)):
+        # Start the for loop from 1 (not 0) to remove one of the same board IDs.
+        new_board_list.append(same_board_list[index])
+    unit.attached_trello_boards = ','.join(new_board_list)
 
     unit.save()
-
-    trello_user_course_map.delete()
-
+    trello_user_course_map.delete()        
     return myunits(request)
 
 @login_required
 @api_view()
 def trello_myunits_restview(request):
-        course_code = request.GET.get('course_code')
+        #Get course code, and match it with the user to obtain the board ID for the user for their specified course.
+        course_id = request.GET.get('course_id')
+        trello_user_course_map = UserPlatformResourceMap.objects.filter(
+            user=request.user, unit=course_id, platform=xapi_settings.PLATFORM_TRELLO)
 
-
-        trello_user_course_map = UserTrelloCourseBoardMap.objects.filter(user=request.user, course_code=course_code)
-
+        #If a board exists for the user and it's attached to the course
         if trello_user_course_map:
+            #Get user auth token for trello
+            token_qs = OfflinePlatformAuthToken.objects.filter(user_smid=request.user.userprofile.trello_account_name)
 
-            token_qs = OauthFlowTemp.objects.filter(googleid=request.user.userprofile.trello_account_name)
+            #if the token exists, grab the board from trello on behalf of the user
             if token_qs:
-                key = getPluginKey('trello')
-
-                http = 'https://api.trello.com/1/boards/%s?key=%s&token=%s' % (trello_user_course_map[0].board_id,key,token_qs[0].transferdata)
-
-                print http
-
+                key = os.environ.get("TRELLO_API_KEY")
+                http = 'https://api.trello.com/1/boards/%s?key=%s&token=%s' % (trello_user_course_map[0].resource_id, key, token_qs[0].token)
                 r = requests.get(http)
-
-                print 'result: %s' % (r.json())
-
                 board = r.json()
-
                 response = {'data': '<a href="'+board['url']+'""><i class="fa fa-trello" aria-hidden="true"></i>   '+board['name']+'</a> | '
-                            '<a href="/dashboard/removeBoard?course_code='+course_code+'">Remove</a>', 'course_code': course_code}
+                            '<a href="/dashboard/removeBoard?course_id='+course_id+'">Remove</a>', 'course_id': course_id}
 
                 return Response(response)
-        else:
-            response = {'data': '<a href="#" onclick="javascript:get_and_link_board(\''+course_code+'\')">Attach a Trello Board to plan your Work!</a>'
-                            '<div id="trello_board_display"></div>', 'course_code': course_code}
+
+        else: #Otherwise, we'll give the student the option to attach their trello board
+            response = {'data': '<a href="#" onclick="javascript:get_and_link_board(\''+course_id+'\')">Attach a Trello Board to plan your Work!</a>'
+                            '<div id="trello_board_display"></div>', 'course_id': course_id}
             return Response(response)
+
 
 @login_required
 def myunits(request):
     context = RequestContext(request)
-    # Only get units that the user is assigned to to
-    units = UnitOffering.objects.filter(users=request.user, enabled=True)
+
+    # Get a users memberships to unit offerings
+    memberships = UnitOfferingMembership.objects.filter(user=request.user, unit__enabled=True).select_related('unit')
+
     role = request.user.userprofile.role
-
     show_dashboardnav = False
-
     shownocontentwarning = False
-
     trello_attached = not request.user.userprofile.trello_account_name == ''
+    github_attached = False
+    tokens = OfflinePlatformAuthToken.objects.filter(
+        user_smid=request.user.userprofile.github_account_name, platform=xapi_settings.PLATFORM_GITHUB)
+    if len(tokens) == 1:
+        github_attached = True
 
-    print trello_attached
+    has_token_list = {}
+    for membership in memberships:
+        token = UserAccessToken_LRS.objects.filter(user = request.user, clientapp = membership.unit.lrs_provider)
+        has_user_token = True if len(token) == 1 else False
+        if len(token) > 1:
+            return HttpResponseServerError('More than one access token were found.')
 
-    #if student check if the student has imported data
-    if role=='Student':
-        username = request.user.username
-        if LearningRecord.objects.filter(username__iexact=username).count() == 0:
+        app = membership.unit.lrs_provider
+        has_token_list[membership.unit.code] = {'lrs': app.provider, 'has_user_token': has_user_token}
+
+    # if student check if the student has imported data
+    if role == 'Student':
+        if LearningRecord.objects.filter(user=request.user).count() == 0:
             shownocontentwarning = True
 
-    context_dict = {'title': "My Units", 'units': units, 'show_dashboardnav':show_dashboardnav, 'shownocontentwarning': shownocontentwarning, 'role': role,
-                     'trello_attached_to_acc': trello_attached}
+    context_dict = {'title': "My Units", 'memberships': memberships, 'show_dashboardnav': show_dashboardnav,
+                    'shownocontentwarning': shownocontentwarning, 'role': role,
+                    'trello_attached_to_acc': trello_attached, 'has_token_list': has_token_list,
+                    'github_attached': github_attached}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
 
-@check_access(required_roles=['Staff'])
+
 @login_required
 def dashboard(request):
     context = RequestContext(request)
 
-    course_code = request.GET.get('course_code')
-    platform = request.GET.get('platform')
+    unit_id = request.GET.get('unit')
+    unit = UnitOffering.objects.get(id=unit_id)
 
-    title = "Activity Dashboard: %s (Platform: %s)" % (course_code, platform)
-    show_dashboardnav = True
+    # If the user is an admin for the course
+    if UnitOfferingMembership.is_admin(request.user, unit):
+        # user = request.user
+        platform = request.GET.get('platform')
 
-    profiling = ""
-    profiling = profiling + "| Verb Timelines %s" % (str(datetime.datetime.now()))
-    posts_timeline = get_timeseries('created', platform, course_code)
-    shares_timeline = get_timeseries('shared', platform, course_code)
-    likes_timeline = get_timeseries('liked', platform, course_code)
-    comments_timeline = get_timeseries('commented', platform, course_code)
+        title = "Activity Dashboard: %s (Platform: %s)" % (unit.code, platform)
+        show_dashboardnav = True
 
-    show_allplatforms_widgets = False
-    twitter_timeline = ""
-    facebook_timeline = ""
-    forum_timeline = ""
-    youtube_timeline = ""
-    diigo_timeline = ""
-    blog_timeline = ""
-
-    profiling = profiling + "| Platform Timelines %s" % (str(datetime.datetime.now()))
-    platformclause = ""
-
-    #TODO: This will need to change upon implementation of teaching periods
-
-    if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
-    else:
-        twitter_timeline = get_timeseries_byplatform("Twitter", course_code)
-        facebook_timeline = get_timeseries_byplatform("Facebook", course_code)
-        forum_timeline = get_timeseries_byplatform("Forum", course_code)
-        youtube_timeline = get_timeseries_byplatform("YouTube", course_code)
-        diigo_timeline = get_timeseries_byplatform("Diigo", course_code)
-        blog_timeline = get_timeseries_byplatform("Blog", course_code)
+        # A flag for showing a platform activity time series and pie chart
         show_allplatforms_widgets = True
+        if platform != "all":
+            show_allplatforms_widgets = False
 
-    profiling = profiling + "| Pies %s" % (str(datetime.datetime.now()))
-    cursor = connection.cursor()
-    cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
-                        FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.course_code='%s' %s
-                        GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
-                    """ % (course_code, platformclause))
-    result = cursor.fetchall()
+        activity_pie_series = get_verb_pie_data(unit, platform = platform)
+        platformactivity_pie_series = get_platform_pie_data(unit)
 
-    activity_pie_series = ""
-    for row in result:
-        activity_pie_series = activity_pie_series + "['%s',  %s]," % (row[0],row[1])
+        # Activity Time line data (verbs and platform)
+        timeline_data = get_verb_timeline_data(unit, platform, None)
+        platform_timeline_data = get_platform_timeline_data(unit, platform, None)
 
-    cursor = connection.cursor()
-    cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'context'->>'platform' as platform, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
-                        FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.course_code='%s'
-                        GROUP BY clatoolkit_learningrecord.xapi->'context'->>'platform';
-                    """ % (course_code))
-    result = cursor.fetchall()
+        # p = platform if platform != "all" else None
+        activememberstable = get_active_members_table(unit, platform)
+        topcontenttable = get_cached_top_content(platform, unit)
 
-    platformactivity_pie_series = ""
-    for row in result:
-        platformactivity_pie_series = platformactivity_pie_series + "['%s',  %s]," % (row[0],row[1])
+        context_dict = {
+            'title': title, 'course_code':unit.code, 'platform':platform, 'show_dashboardnav':show_dashboardnav,
+            'activememberstable': activememberstable, 'unit': unit, 
+            'topcontenttable': topcontenttable, 'show_allplatforms_widgets': show_allplatforms_widgets,
+            
+            'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
+            'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 
-    #active members table
-    profiling = profiling + "| Active Members %s" % (str(datetime.datetime.now()))
-    activememberstable = get_active_members_table(platform, course_code) #get_cached_active_users(platform, course_code)
+            'twitter_timeline': platform_timeline_data[xapi_settings.PLATFORM_TWITTER], 
+            'facebook_timeline': platform_timeline_data[xapi_settings.PLATFORM_FACEBOOK], 
+            'youtube_timeline': platform_timeline_data[xapi_settings.PLATFORM_YOUTUBE], 
+            'blog_timeline': platform_timeline_data[xapi_settings.PLATFORM_BLOG], 
+            'trello_timeline': platform_timeline_data[xapi_settings.PLATFORM_TRELLO], 
+            'github_timeline': platform_timeline_data[xapi_settings.PLATFORM_GITHUB], 
+            'forum_timeline': [], 'diigo_timeline':[],
 
-    profiling = profiling + "| Top Content %s" % (str(datetime.datetime.now()))
-    topcontenttable = get_cached_top_content(platform, course_code) #get_top_content_table(platform, course_code)
-    profiling = profiling + "| End Top Content %s" % (str(datetime.datetime.now()))
+            'activity_pie_series': activity_pie_series, 'platformactivity_pie_series': platformactivity_pie_series
+            }
 
-    context_dict = {'profiling': profiling, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline': forum_timeline, 'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 'show_allplatforms_widgets': show_allplatforms_widgets, 'platformactivity_pie_series': platformactivity_pie_series,  'title': title, 'activememberstable': activememberstable, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline }
+        return render_to_response('dashboard/dashboard.html', context_dict, context)
 
-    return render_to_response('dashboard/dashboard.html', context_dict, context)
+    else:
+        raise PermissionDenied
 
-@check_access(required_roles=['Staff'])
+
 @login_required
 def cadashboard(request):
     context = RequestContext(request)
 
-    course_code = None
     platform = None
     no_topics = 3
 
     if request.method == 'POST':
-        course_code = request.POST['course_code']
+        unit_id = request.POST['unit']
         platform = request.POST['platform']
         no_topics = int(request.POST['no_topics'])
     else:
-        course_code = request.GET.get('course_code')
+        unit_id = request.GET.get('unit')
         platform = request.GET.get('platform')
 
-    title = "Content Analysis Dashboard: %s (Platform: %s)" % (course_code, platform)
-    show_dashboardnav = True
+    unit = UnitOffering.objects.get(id=unit_id)
 
-    posts_timeline = get_timeseries('created', platform, course_code)
-    shares_timeline = get_timeseries('shared', platform, course_code)
-    likes_timeline = get_timeseries('liked', platform, course_code)
-    comments_timeline = get_timeseries('commented', platform, course_code)
+    if UnitOfferingMembership.is_admin(request.user, unit):
+        title = "Content Analysis Dashboard: %s (Platform: %s)" % (unit.code, platform)
 
-    tags = get_wordcloud(platform, course_code)
+        # timeline_data = get_verb_timeline_data(unit, None)
+        timeline_data = get_verb_timeline_data(unit, platform, None)
+        # Word Cloud
+        tags = get_wordcloud(platform, unit)
+        # Sentiments pie chart
+        sentiments = getClassifiedCounts(platform, unit, classifier="VaderSentiment")
+        # Community of Inquiry
+        coi = getClassifiedCounts(platform, unit, classifier="NaiveBayes_t1.model")
 
-    sentiments = getClassifiedCounts(platform, course_code, classifier="VaderSentiment")
-    coi = getClassifiedCounts(platform, course_code, classifier="NaiveBayes_t1.model")
+        topic_model_output, sentimenttopic_piebubblesdataset = nmf(platform, no_topics, unit, start_date=None, end_date=None)
 
-    topic_model_output, sentimenttopic_piebubblesdataset = nmf(platform, no_topics, course_code, start_date=None, end_date=None)
+        context_dict = {'show_dashboardnav': True, 'unit': unit, 'platform': platform, 'title': title,
 
-    context_dict = {'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'sentiments': sentiments, 'coi': coi, 'tags': tags, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'no_topics': no_topics, 'topic_model_output': topic_model_output, 'sentimenttopic_piebubblesdataset':sentimenttopic_piebubblesdataset }
-    return render_to_response('dashboard/cadashboard.html', context_dict, context)
+                        'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
+                        'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 
-@check_access(required_roles=['Staff'])
+                        'sentiments': sentiments, 'coi': coi, 'tags': tags, 
+                        'no_topics': no_topics, 'topic_model_output': topic_model_output,
+                        'sentimenttopic_piebubblesdataset': sentimenttopic_piebubblesdataset}
+
+        return render_to_response('dashboard/cadashboard.html', context_dict, context)
+
+    else:
+        raise PermissionDenied
+
+
 @login_required
 def snadashboard(request):
     context = RequestContext(request)
 
-    course_code = request.GET.get('course_code')
-    platform = request.GET.get('platform')
+    unit_id = request.GET.get('unit')
+    unit = UnitOffering.objects.get(id=unit_id)
 
-    title = "SNA Dashboard: %s (Platform: %s)" % (course_code, platform)
-    show_dashboardnav = True
+    if UnitOfferingMembership.is_admin(request.user, unit):
 
-    posts_timeline = get_timeseries('created', platform, course_code)
-    shares_timeline = get_timeseries('shared', platform, course_code)
-    likes_timeline = get_timeseries('liked', platform, course_code)
-    comments_timeline = get_timeseries('commented', platform, course_code)
+        platform = request.GET.get('platform')
+        title = "SNA Dashboard: {} {} (Platform: {})".format(unit.code, unit.name, platform)
 
-    sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
-    #sna_neighbours = getNeighbours(sna_json)
-    centrality = getCentrality(sna_json)
-    context_dict = {
-        'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform, 
-        'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline, 
-        'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
-        'centrality': centrality
-    }
+        # Activity Time line data (verbs and platform)
+        timeline_data = get_verb_timeline_data(unit, platform, None)
 
-    return render_to_response('dashboard/snadashboard.html', context_dict, context)
+        sna_json = sna_buildjson(platform, unit, 
+            relationshipstoinclude = "'%s', '%s', '%s', '%s'" % (xapi_settings.VERB_MENTIONED, xapi_settings.VERB_LIKED, \
+                                                                 xapi_settings.VERB_SHARED, xapi_settings.VERB_COMMENTED))
+
+        #sna_neighbours = getNeighbours(sna_json)
+        centrality = get_centrality(sna_json)
+        context_dict = {'show_dashboardnav': True, 'unit': unit, 'platform': platform, 'title': title,
+                        'sna_json': sna_json, 'centrality': centrality, 'course_id': unit.id,
+
+                        'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
+                        'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments']}
+
+        return render_to_response('dashboard/snadashboard.html', context_dict, context)
+
+        # platform = request.GET.get('platform')
+
+        # title = "SNA Dashboard: {} {} (Platform: {})".format(unit.code, unit.name, platform)
+        # show_dashboardnav = True
+
+        # posts_timeline = get_timeseries('created', platform, unit)
+        # shares_timeline = get_timeseries('shared', platform, unit)
+        # likes_timeline = get_timeseries('liked', platform, unit)
+        # comments_timeline = get_timeseries('commented', platform, unit)
+
+        # sna_json = sna_buildjson(platform, unit, relationshipstoinclude="'mentioned','liked','shared','commented'")
+        # #sna_neighbours = getNeighbours(sna_json)
+        # centrality = get_centrality(sna_json)
+        # context_dict = {'show_dashboardnav': show_dashboardnav, 'unit': unit, 'platform': platform, 'title': title,
+        #                 'sna_json': sna_json, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline,
+        #                 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
+        #                 'centrality': centrality}
+
+        # return render_to_response('dashboard/snadashboard.html', context_dict, context)
+
+    else:
+        raise PermissionDenied
+
 
 @check_access(required_roles=['Staff'])
 @login_required
@@ -351,113 +406,82 @@ def pyldavis(request):
 
     return render_to_response('dashboard/pyldavis.html', context_dict, context)
 
+
 @check_access(required_roles=['Staff'])
 @login_required
 def studentdashboard(request):
     context = RequestContext(request)
 
-    course_code = None
-    platform = None
-    username = None
-
-    course_code = request.GET.get('course_code')
+    selected_user_id = request.GET.get('user')
+    course_id = request.GET.get('course_id')
     platform = request.GET.get('platform')
-    username = request.GET.get('username')
-    username_platform = request.GET.get('username_platform')
+    unit = None
+    user = None
+    try:
+        unit = UnitOffering.objects.get(id = course_id)
+        user = User.objects.get(id = selected_user_id)
+    except:
+        raise HttpResponseServerError('Unit or User not found.')
 
-    #userid = get_smids_fromusername(username)
-    twitter_id, fb_id, forum_id, github_id, trello_id, blog_id, diigo_id = get_smids_fromusername(username)
-    sm_usernames_dict = {'Twitter': twitter_id, 'Facebook': fb_id, 'Forum': forum_id}
-    sm_usernames = [twitter_id, fb_id, forum_id]
+    course_code = unit.code
+    username = user.username
 
-    sm_usernames_str = ','.join("'{0}'".format(x) for x in sm_usernames)
+    title = "Student Dashboard: %s, %s" % (course_code, username)
+    # show_dashboardnav = True
 
-    title = "Student Dashboard: %s, (Twitter: %s, Facebook: %s, Forum: %s)" % (course_code, twitter_id, fb_id, forum_id)
+    # Activity Time line data (verbs and platform)
+    timeline_data = get_verb_timeline_data(unit, platform, user)
+    platform_timeline_data = get_platform_timeline_data(unit, platform, user)
 
-    if course_code == 'IFN614':
-            title = "Student Dashboard: %s, (Twitter: %s, Blog: %s)" % (course_code, twitter_id, blog_id)
-
-
-    show_dashboardnav = True
-
-    #print "Verb timelines", datetime.datetime.now()
-    posts_timeline = get_timeseries('created', platform, course_code, username=username)
-    shares_timeline = get_timeseries('shared', platform, course_code, username=username)
-    likes_timeline = get_timeseries('liked', platform, course_code, username=username)
-    comments_timeline = get_timeseries('commented', platform, course_code, username=username)
-
-    #print "Activity by Platform", datetime.datetime.now()
-    cursor = connection.cursor()
-    #if course_code == 'IFN614':
-    #    cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
-    #                        FROM clatoolkit_learningrecord
-    #                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s' AND clatoolkit_learningrecord.datetimestamp > '%s'
-    #                        GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
-    #                """ % (course_code, username, '29-06-2016'))
-    #else:
-    cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US' as verb, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
-                    FROM clatoolkit_learningrecord
-                    WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
-                    GROUP BY clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US';
-            """ % (course_code, username))
-    result = cursor.fetchall()
-
-    activity_pie_series = ""
-    for row in result:
-        activity_pie_series = activity_pie_series + "['%s',  %s]," % (row[0],row[1])
-
-    show_allplatforms_widgets = False
-    twitter_timeline = ""
-    facebook_timeline = ""
-    forum_timeline = ""
-    youtube_timeline = ""
-    diigo_timeline = ""
-    blog_timeline = ""
-
-    #print "Platform timelines", datetime.datetime.now()
-    platformclause = ""
+    # A flag for showing a platform activity time series and pie chart
+    show_allplatforms_widgets = True
     if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.xapi->'context'->>'platform'='%s'" % (platform)
-    else:
-        twitter_timeline = get_timeseries_byplatform("Twitter", course_code, username)
-        facebook_timeline = get_timeseries_byplatform("Facebook", course_code, username)
-        forum_timeline = get_timeseries_byplatform("Forum", course_code, username)
-        youtube_timeline = get_timeseries_byplatform("YouTube", course_code, username)
-        diigo_timeline = get_timeseries_byplatform("Diggo", course_code, username)
-        blog_timeline = get_timeseries_byplatform("Blog", course_code, username)
-        show_allplatforms_widgets = True
+        show_allplatforms_widgets = False
 
-    cursor = connection.cursor()
-    cursor.execute("""SELECT clatoolkit_learningrecord.xapi->'context'->>'platform' as platform, count(clatoolkit_learningrecord.xapi->'verb'->'display'->>'en-US') as counts
-                        FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
-                        GROUP BY clatoolkit_learningrecord.xapi->'context'->>'platform';
-                    """ % (course_code, username))
-    result = cursor.fetchall()
+    # Get the number of verbs and platforms
+    activity_pie_series = get_verb_pie_data(unit, platform = platform, user = user)
+    platformactivity_pie_series = get_platform_pie_data(unit, user = user)
+    
+    # #print "SNA", datetime.datetime.now()
+    # if course_code == 'IFN614':
+    #     sna_json = sna_buildjson(platform, course_code, 
+    #             start_date='15-06-2016', end_date='20-12-2016', 
+    #             relationshipstoinclude = "'%s', '%s', '%s', '%s'" % (xapi_settings.VERB_MENTIONED, xapi_settings.VERB_LIKED, \
+    #                                                                  xapi_settings.VERB_SHARED, xapi_settings.VERB_COMMENTED))
+    # else:
+    #     # sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
+    sna_json = sna_buildjson(platform, unit, 
+        relationshipstoinclude = "'%s', '%s', '%s', '%s'" % (xapi_settings.VERB_MENTIONED, xapi_settings.VERB_LIKED, \
+                                                             xapi_settings.VERB_SHARED, xapi_settings.VERB_COMMENTED))
 
-    platformactivity_pie_series = ""
-    for row in result:
-        platformactivity_pie_series = platformactivity_pie_series + "['%s',  %s]," % (row[0],row[1])
+    # Centrality data
+    centrality = get_centrality(sna_json)
+    # Word cloud tags
+    tags = get_wordcloud(platform, unit, user = user)
+    # Sentiments pie chart
+    sentiments = getClassifiedCounts(platform, unit, user = user, classifier="VaderSentiment")
+    # Community of Inquiry
+    coi = getClassifiedCounts(platform, unit, user = user, classifier="nb_"+course_code+"_"+platform+".model")
 
-    #print "Top Content", datetime.datetime.now()
-    topcontenttable = get_top_content_table(platform, course_code, username=username)
+    context_dict = {
+        'title': title, 'course_code':course_code, 'course_id': unit.id, 'platform':platform, 
+        'username':username, 'unit': unit, 'user_id': user.id,
+        'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
+        'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 
-    #print "SNA", datetime.datetime.now()
-    if course_code == 'IFN614':
-        sna_json = sna_buildjson(platform, course_code, start_date='15-06-2016', end_date='20-12-2016', relationshipstoinclude="'mentioned','liked','shared','commented'")
-    else:
-        sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
+        'twitter_timeline': platform_timeline_data[xapi_settings.PLATFORM_TWITTER], 
+        'facebook_timeline': platform_timeline_data[xapi_settings.PLATFORM_FACEBOOK], 
+        'youtube_timeline': platform_timeline_data[xapi_settings.PLATFORM_YOUTUBE], 
+        'blog_timeline': platform_timeline_data[xapi_settings.PLATFORM_BLOG], 
+        'trello_timeline': platform_timeline_data[xapi_settings.PLATFORM_TRELLO], 
+        'github_timeline': platform_timeline_data[xapi_settings.PLATFORM_GITHUB], 
+        'forum_timeline': [], 'diigo_timeline':[], # These haven't been implemented
 
-
-    #print "Word Cloud", datetime.datetime.now()
-    tags = get_wordcloud(platform, course_code, username=username)
-
-    sentiments = getClassifiedCounts(platform, course_code, username=username, classifier="VaderSentiment")
-
-    coi = getClassifiedCounts(platform, course_code, username=username, classifier="nb_"+course_code+"_"+platform+".model")
-
-
-    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 'twitter_timeline': twitter_timeline, 'facebook_timeline': facebook_timeline, 'forum_timeline':forum_timeline, 'youtube_timeline':youtube_timeline, 'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 'platformactivity_pie_series':platformactivity_pie_series, 'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 'username':username, 'sna_json': sna_json,  'tags': tags, 'topcontenttable': topcontenttable, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi }
+        'activity_pie_series': activity_pie_series,
+        'platformactivity_pie_series':platformactivity_pie_series,
+        'sna_json': sna_json, 'tags': tags, 'sentiments': sentiments, 'coi': coi, 'centrality': centrality,
+        'show_allplatforms_widgets': show_allplatforms_widgets, 'show_dashboardnav':True
+    }
 
     return render_to_response('dashboard/studentdashboard.html', context_dict, context)
 
@@ -468,108 +492,108 @@ def mydashboard(request):
 
     course_code = None
     platform = None
-    username = request.user.username
-    uid = request.user.id
+    user = request.user
 
     if request.method == 'POST':
-        course_code = request.POST['course_code']
+        course_id = request.POST['course_id']
         platform = request.POST['platform']
-        #username = request.POST['username']
+        unit = UnitOffering.objects.get(id = course_id)
 
         # save reflection
         reflectiontext = request.POST['reflectiontext']
         rating = request.POST['rating']
-        reflect = DashboardReflection(strategy=reflectiontext,rating=rating,username=username)
+        reflect = DashboardReflection(strategy = reflectiontext, rating = rating, user = user, unit = unit)
         reflect.save()
-
+        
     else:
-        course_code = request.GET.get('course_code')
+        course_id = request.GET.get('course_id')
         platform = request.GET.get('platform')
         #username = request.GET.get('username')
 
-    twitter_id, fb_id, forum_id = get_smids_fromuid(uid)
-    sm_usernames = [twitter_id, fb_id, forum_id]
-    sm_usernames_str = ','.join("'{0}'".format(x) for x in sm_usernames)
+    unit = UnitOffering.objects.get(id = course_id)
+    course_code = unit.code
 
-    title = "Student Dashboard: %s, %s" % (course_code, username)
-    show_dashboardnav = True
+    title = "Student Dashboard: %s, %s" % (course_code, user.username)
 
-    posts_timeline = get_timeseries('created', platform, course_code, username=username)
-    shares_timeline = get_timeseries('shared', platform, course_code, username=username)
-    likes_timeline = get_timeseries('liked', platform, course_code, username=username)
-    comments_timeline = get_timeseries('commented', platform, course_code, username=username)
+    # Activity Time line data (verbs and platform)
+    timeline_data = get_verb_timeline_data(unit, platform, user)
+    platform_timeline_data = get_platform_timeline_data(unit, platform, user)
 
-    cursor = connection.cursor()
-    cursor.execute("""SELECT clatoolkit_learningrecord.verb as verb, count(clatoolkit_learningrecord.verb) as counts
-                        FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
-                        GROUP BY clatoolkit_learningrecord.verb;
-                    """ % (course_code, username))
-    result = cursor.fetchall()
-
-    activity_pie_series = ""
-    for row in result:
-        activity_pie_series = activity_pie_series + "['%s',  %s]," % (row[0],row[1])
-
-    show_allplatforms_widgets = False
-    twitter_timeline = ""
-    facebook_timeline = ""
-    forum_timeline = ""
-    youtube_timeline = ""
-    diigo_timeline = ""
-    blog_timeline = ""
-
-    platformclause = ""
+    # A flag for showing a platform activity time series and pie chart
+    show_allplatforms_widgets = True
     if platform != "all":
-        platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
-    else:
-        twitter_timeline = get_timeseries_byplatform("Twitter", course_code, username)
-        facebook_timeline = get_timeseries_byplatform("Facebook", course_code, username)
-        forum_timeline = get_timeseries_byplatform("Forum", course_code, username)
-        youtube_timeline = get_timeseries_byplatform("YouTube", course_code, username)
-        diigo_timeline = get_timeseries_byplatform("Diigo", course_code, username)
-        blog_timeline = get_timeseries_byplatform("Blog", course_code, username)
-        show_allplatforms_widgets = True
+        show_allplatforms_widgets = False
 
-    cursor = connection.cursor()
-    cursor.execute("""SELECT clatoolkit_learningrecord.platform as platform, count(clatoolkit_learningrecord.verb) as counts
-                        FROM clatoolkit_learningrecord
-                        WHERE clatoolkit_learningrecord.course_code='%s' AND clatoolkit_learningrecord.username='%s'
-                        GROUP BY clatoolkit_learningrecord.platform;
-                    """ % (course_code, username))
-    result = cursor.fetchall()
+    # Get the number of verbs and platforms
+    activity_pie_series = get_verb_pie_data(unit, platform = platform, user = user)
+    platformactivity_pie_series = get_platform_pie_data(unit, user = user)
 
-    platformactivity_pie_series = ""
-    for row in result:
-        platformactivity_pie_series = platformactivity_pie_series + "['%s',  %s]," % (row[0],row[1])
+    # Word cloud tags
+    tags = get_wordcloud(platform, unit, user = user)
+    # Sentiments pie chart
+    sentiments = getClassifiedCounts(platform, unit, user = user, classifier="VaderSentiment")
+    # Community of Inquiry
+    coi = getClassifiedCounts(platform, unit, user = user, classifier="nb_"+course_code+"_"+platform+".model")
+    # Dashboard reflection
+    reflections = DashboardReflection.objects.filter(user = user, unit = unit)
+    # SNA explorer data 
+    sna_json = sna_buildjson(platform, unit, 
+        # relationshipstoinclude="'mentioned','liked','shared','commented'")
+        relationshipstoinclude = "'%s', '%s', '%s', '%s'" % (xapi_settings.VERB_MENTIONED, xapi_settings.VERB_LIKED, \
+                                                             xapi_settings.VERB_SHARED, xapi_settings.VERB_COMMENTED))
+    
+    # Centrality data
+    centrality = get_centrality(sna_json)
 
-    #topcontenttable = get_top_content_table(platform, course_code, username=username)
+    # TODO: Fix get_timeseries() method 
+    # posts_timeline = get_timeseries('created', platform, course_code, username=username)
+    # shares_timeline = get_timeseries('shared', platform, course_code, username=username)
+    # likes_timeline = get_timeseries('liked', platform, course_code, username=username)
+    # comments_timeline = get_timeseries('commented', platform, course_code, username=username)
 
-    sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
-    centrality = getCentrality(sna_json)
-    tags = get_wordcloud(platform, course_code, username=username)
+    # show_allplatforms_widgets = False
+    # twitter_timeline = ""
+    # facebook_timeline = ""
+    # forum_timeline = ""
+    # youtube_timeline = ""
+    # diigo_timeline = ""
+    # blog_timeline = ""
 
-    sentiments = getClassifiedCounts(platform, course_code, username=username, classifier="VaderSentiment")
+    # platformclause = ""
+    # if platform != "all":
+    #     platformclause = " AND clatoolkit_learningrecord.platform='%s'" % (platform)
+    # else:
+    #     twitter_timeline = get_timeseries_byplatform("Twitter", course_code, username)
+    #     facebook_timeline = get_timeseries_byplatform("Facebook", course_code, username)
+    #     forum_timeline = get_timeseries_byplatform("Forum", course_code, username)
+    #     youtube_timeline = get_timeseries_byplatform("YouTube", course_code, username)
+    #     diigo_timeline = get_timeseries_byplatform("Diigo", course_code, username)
+    #     blog_timeline = get_timeseries_byplatform("Blog", course_code, username)
+    #     show_allplatforms_widgets = True
+    
+    context_dict = {
+        'title': title, 'course_code':course_code, 'course_id': unit.id, 'platform':platform, 
+        'username': user.username, 'unit': unit, 'user_id': user.id,
+        'posts_timeline': timeline_data['posts'], 'shares_timeline': timeline_data['shares'], 
+        'likes_timeline': timeline_data['likes'], 'comments_timeline': timeline_data['comments'],
 
-    coi = getClassifiedCounts(platform, course_code, username=username, classifier="nb_"+course_code+"_"+platform+".model")
+        'twitter_timeline': platform_timeline_data[xapi_settings.PLATFORM_TWITTER], 
+        'facebook_timeline': platform_timeline_data[xapi_settings.PLATFORM_FACEBOOK], 
+        'youtube_timeline': platform_timeline_data[xapi_settings.PLATFORM_YOUTUBE], 
+        'blog_timeline': platform_timeline_data[xapi_settings.PLATFORM_BLOG], 
+        'trello_timeline': platform_timeline_data[xapi_settings.PLATFORM_TRELLO], 
+        'github_timeline': platform_timeline_data[xapi_settings.PLATFORM_GITHUB], 
+        'forum_timeline': [], 'diigo_timeline':[], # These haven't been implemented
 
-
-    reflections = DashboardReflection.objects.filter(username=username)
-    context_dict = {'show_allplatforms_widgets': show_allplatforms_widgets, 
-        'forum_timeline': forum_timeline, 'twitter_timeline': twitter_timeline, 
-        'facebook_timeline': facebook_timeline, 'youtube_timeline': youtube_timeline, 
-        'diigo_timeline':diigo_timeline, 'blog_timeline':blog_timeline, 
+        'activity_pie_series': activity_pie_series,
         'platformactivity_pie_series':platformactivity_pie_series, 
-        'show_dashboardnav':show_dashboardnav, 'course_code':course_code, 
-        'platform':platform, 'title': title, 'course_code':course_code, 'platform':platform, 
-        'username':username, 'reflections':reflections, 'sna_json': sna_json,
-        'tags': tags, 'activity_pie_series': activity_pie_series, 'posts_timeline': posts_timeline, 
-        'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 
-        'comments_timeline': comments_timeline, 'sentiments': sentiments, 'coi': coi,
-        'centrality': centrality
-    }
+        'show_allplatforms_widgets': show_allplatforms_widgets, 'show_dashboardnav': True,
+        'sna_json': sna_json, 'tags': tags, 'centrality': centrality,
+        'sentiments': sentiments, 'coi': coi, 'reflections':reflections
+        }
 
     return render_to_response('dashboard/mydashboard.html', context_dict, context)
+
 
 @login_required
 def myclassifications(request):
@@ -610,44 +634,204 @@ def myclassifications(request):
 def ccadashboard(request):
     context = RequestContext(request)
 
-    course_code = request.GET.get('course_code')
+    course_id = request.GET.get('course_id')
     platform = request.GET.get('platform')
+    unit = UnitOffering.objects.get(id = course_id)
 
-    title = "CCA Dashboard: %s (Platform: %s)" % (course_code, platform)
-    
-    """
-    show_dashboardnav = True
-
-    posts_timeline = get_timeseries('created', platform, course_code)
-    shares_timeline = get_timeseries('shared', platform, course_code)
-    likes_timeline = get_timeseries('liked', platform, course_code)
-    comments_timeline = get_timeseries('commented', platform, course_code)
-
-    sna_json = sna_buildjson(platform, course_code, relationshipstoinclude="'mentioned','liked','shared','commented'")
-    centrality = getCentrality(sna_json)
-    context_dict = {
-        'show_dashboardnav':show_dashboardnav,'course_code':course_code, 'platform':platform, 
-        'title': title, 'sna_json': sna_json, 'posts_timeline': posts_timeline, 
-        'shares_timeline': shares_timeline, 'likes_timeline': likes_timeline, 'comments_timeline': comments_timeline,
-        'centrality': centrality
-    }
-    """
-    context_dict = {'course_code':course_code, 'platform':platform, 'title': title, }
+    title = "CCA Dashboard: %s (Platform: %s)" % (unit.code, platform)
+    context_dict = {'course_id':course_id, 'platform':platform, 'title': title, }
     
     return render_to_response('dashboard/ccadashboard.html', context_dict, context)
 
 
 @login_required
-def ccadata(request):
-
-    # print request.GET.get('course_code')
-    # print request.GET.get('platform')
-
-    result = getCCAData(request.user, request.GET.get('course_code'), request.GET.get('platform'))
-    
-    #print result
-
-    response = JsonResponse(result, status=status.HTTP_200_OK)
-
+def get_platform_timeseries_data(request):
+    # context = RequestContext(request)
+    # TODO: Get available platforms in the course dynamically
+    # platform_names = ["Trello", "GitHub"]
+    platform_names = request.GET.get('platform').split(',')
+    val = get_platform_timeseries_dataset(request.GET.get('course_id'), platform_names = platform_names)
+    response = JsonResponse(val, status=status.HTTP_200_OK)
     return response
 
+
+@login_required
+def get_platform_activities(request):
+    # context = RequestContext(request)
+    # platform_names = []
+    platform_names = request.GET.get('platform').split(',')
+    
+    val = get_platform_activity_dataset(request.GET.get('course_id'), platform_names)
+    response = JsonResponse(val, status=status.HTTP_200_OK)
+    return response
+
+
+def get_user_acitivities(request):
+    platform_names = request.GET.get('platform').split(',')
+    val = get_user_acitivities_dataset(request.GET.get('course_code'), platform_names)
+    response = JsonResponse(val, status=status.HTTP_200_OK)
+    return response
+
+
+@login_required
+def get_all_repos(request):
+    course_id = request.GET.get('course_id')
+    tokens = OfflinePlatformAuthToken.objects.filter(
+        user_smid=request.user.userprofile.github_account_name, platform=xapi_settings.PLATFORM_GITHUB)
+    if len(tokens) == 0 or len(tokens) > 1:
+        return []
+
+    val = get_all_reponames(tokens[0].token, course_id)
+    return JsonResponse(val, status=status.HTTP_200_OK)
+
+
+@login_required
+def add_repo_to_course(request):
+    course_id = request.GET.get('course_id')
+    course = UnitOffering.objects.get(id=course_id)
+    repo_name = request.GET.get('repo')
+    ret = {'result': 'success'}
+
+    resource_map = UserPlatformResourceMap.objects.filter(
+        user=request.user, unit=course_id, platform=xapi_settings.PLATFORM_GITHUB)
+    # If the same record exist, update the repository name
+    if len(resource_map) == 1:
+        resource_map[0].resource_id = repo_name
+        resource_map[0].save()
+    elif len(resource_map) > 1:
+        # When more than one records were found (Usually this doesn't happen)
+        ret = {'result': 'error', 'message': 'More than one records were found. Could not update repository name.'}
+    else:
+        # Add a new record
+        resource_map = UserPlatformResourceMap(
+            user=request.user, unit=course, resource_id=repo_name, platform=xapi_settings.PLATFORM_GITHUB)
+        resource_map.save()
+
+    return JsonResponse(ret, status=status.HTTP_200_OK)
+
+
+@login_required
+def get_github_attached_repo(request):
+    course_id = request.GET.get('course_id')
+    if course_id is None or course_id == '':
+        return JsonResponse({'result': 'error', 'message': 'Course ID not found.', 
+            'course_id': course_id}, status=status.HTTP_200_OK)
+
+    resource_map = UserPlatformResourceMap.objects.filter(
+        user=request.user, unit=course_id, platform=xapi_settings.PLATFORM_GITHUB)
+
+    if len(resource_map) == 0:
+        return JsonResponse({'result': 'error', 'message': 'No records found.', 
+            'course_id': course_id}, status=status.HTTP_200_OK)
+
+    resource = resource_map[0]
+    gh_settings = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_GITHUB]
+    obj = OrderedDict([
+        ('result', 'success'),
+        ('name', resource.resource_id),
+        ('url', gh_settings.platform_url + resource.resource_id),
+        ('course_id', course_id),
+    ])
+
+    return JsonResponse(obj, status=status.HTTP_200_OK)
+
+
+@login_required
+def remove_attached_repo(request):
+    course_id = request.GET.get('course_id')
+    if course_id is None or course_id == '':
+        return JsonResponse({'result': 'error', 'message': 'Course ID not found.'}, status=status.HTTP_200_OK)
+
+    resource_map = UserPlatformResourceMap.objects.filter(
+        user=request.user, unit=course_id, platform=xapi_settings.PLATFORM_GITHUB)
+    if len(resource_map) > 1:
+        return JsonResponse({'result': 'error', 'message': 'More than one records were found.'}, status=status.HTTP_200_OK)
+
+    resource_map.delete()
+    ret = {'result': 'success'}
+    return JsonResponse(ret, status=status.HTTP_200_OK)
+
+
+@login_required
+def get_github_contribution(request):
+    # Get all issues and issues that each user was assigned to.
+    course_id = request.GET.get('course_id')
+    contribution = get_issue_list(course_id)
+    
+    return JsonResponse(contribution, status=status.HTTP_200_OK)
+
+
+@login_required
+def get_learning_records(request):
+    course_id = request.GET.get('course_id')
+    user_id = request.GET.get('user')
+    platform = request.GET.get('platform')
+    start_date = request.GET.get('datetimestamp_min')
+    end_date = request.GET.get('datetimestamp_max')
+    unit = None
+    user = None
+
+    try:
+        unit = UnitOffering.objects.get(id = course_id)
+        if user_id and user_id != '':
+            user = User.objects.get(id = user_id)
+        else:
+            raise User.DoesNotExist
+
+    except UnitOffering.DoesNotExist:
+        # raise HttpResponseServerError('Unit or user not found.')
+        # A selected user in SNA Explorer could be non-registered user.
+        # So, instead of raising an error, return JSON error message
+        return JsonResponse({'results': {'error': 'Unit not found.'}}, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return JsonResponse({'results': {'error': 'User not found.'}}, status=status.HTTP_200_OK)
+
+    # Get xAPI statements
+    filters = xapi_filter()
+    filters.course = unit.code
+    if platform is not None and platform != 'all' and platform != '':
+        filters.platform = platform
+
+    if start_date and start_date != '':
+        filters.since = start_date
+
+    if end_date and end_date != '':
+        filters.until = end_date
+        
+    getter = xapi_getter()
+    statements = getter.get_xapi_statements(unit.id, user_id, filters)
+    lang = 'en-US'
+    results = []
+    for stmt in statements:
+        parent_username = None
+        learning_record = None
+        try:
+            learning_record = LearningRecord.objects.get(statement_id = stmt['id'])
+            parent_user = User.objects.get(id = learning_record.parent_user_id)
+            parent_username = parent_user.username
+        except:
+            # Get parent user (external user) from social relationship table
+            if learning_record is not None:
+                try:
+                    sr = SocialRelationship.objects.get(platformid = learning_record.platformid,
+                        unit = unit, user = user, verb = learning_record.verb, platform = learning_record.platform)
+                    parent_username = sr.to_external_user
+                except:
+                    pass
+
+        obj = {}
+        name = ''
+        if 'name' in stmt['authority']['member'][0]:
+            name = stmt['authority']['member'][0]['name']
+        else:
+            name = stmt['authority']['member'][1]['name']
+
+        obj['username'] = name
+        obj['parentusername'] = parent_username
+        obj['message'] = stmt['object']['definition']['name'][lang]
+        obj['verb'] = stmt['verb']['display'][lang]
+        obj['platform'] = stmt['context']['platform']
+        obj['datetimestamp'] = stmt['timestamp']
+        results.append(obj)
+
+    return JsonResponse({'results': results}, status=status.HTTP_200_OK)

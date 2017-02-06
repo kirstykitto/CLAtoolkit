@@ -2,7 +2,10 @@ try:
     from importlib import import_module
 except ImportError:
     # Python 2.6 fallback
-    from django.utils.importlib import import_module
+    try:
+        from django.utils.importlib import import_module
+    except ImportError as e:
+        print e
 
 from dataintegration.core.plugins.base import DIPluginDashboardMixin, DIAuthomaticPluginMixin
 

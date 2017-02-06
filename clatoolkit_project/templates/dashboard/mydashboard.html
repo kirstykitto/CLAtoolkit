@@ -220,9 +220,9 @@
                     {% endfor %}
                     <form method="post" action="/dashboard/mydashboard/">
                       {% csrf_token %}
-                      <input type="hidden" name="course_code" value="{{course_code}}" />
+                      <input type="hidden" name="course_id" value="{{course_id}}" />
                       <input type="hidden" name="platform" value="{{platform}}" />
-                      <input type="hidden" name="username" value="{{username}}" />
+                      <!-- <input type="hidden" name="username" value="{{username}}" /> -->
                       <div class="form-group">
                           <label>How will you improve your community contribution?</label>
                           <textarea name="reflectiontext" class="form-control" rows="3"></textarea>
@@ -257,7 +257,7 @@
 {% block js_block %}
 {% autoescape off %}
 <script src="{% static 'js/vis.js'%}"></script>
-<script src="http://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.js"></script>
+<script src="//mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.js"></script>
 <script>
   var sna_data = {{sna_json}};
   var wordcloud_data = {{tags|safe}};
@@ -283,7 +283,8 @@
   function update_wordcloud(start_date, end_date)
   {
     $('#wordcloudselectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
-    restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date};
+    restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", 
+                  user_id:"{{ user_id }}", start_date:start_date, end_date:end_date};
     $.getJSON("/clatoolkit/wordcloud", restparams,
       function(data){
         wordcloud_data = data;
@@ -298,7 +299,7 @@
     $('#selectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
     //console.log("start_date:" + start_date)
     //console.log("end_date:" + end_date)
-    $.get("/clatoolkit/sna", { course_code:"{{course_code}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date, relationshipstoinclude:"'mentioned','liked','shared','commented'"},
+    $.get("/clatoolkit/sna", { course_id:"{{course_id}}", platform:"{{platform}}", username:"{{username}}", start_date:start_date, end_date:end_date, relationshipstoinclude:"'mentioned','liked','shared','commented'"},
       function(data){
         //console.log("SNA: " + data);
         sna_data = data;
@@ -398,18 +399,20 @@
 
     if (typeofrequest == "Node")
     {
-      // get node label
+      // get node (user) ID
       username = getnodelabel(nodes[0])
+      uid = getNodeUid(nodes[0]);
+
       $('#relationships').html('<h3>Selected User: ' + username + '</h3>');
-      console.log("Selected User:" + username)
-      resturl = "/api/learningrecord";
-      if (platform!="all")
+      console.log("Selected User :" + uid)
+      resturl = '/dashboard/api/get_learning_records';
+      if (platform !="all")
       {
-        restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
       else
       {
-        restparams = {format: "json", course_code:"{{course_code}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        restparams = {format: "json", course_id:"{{course_id}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
     }
     else
@@ -419,6 +422,16 @@
       fromusername = usernames[0]
       tousername = usernames[1]
       link_label = usernames[2]
+
+      if(fromusername == null && tousername == null) {
+        $('#relationships').html('');
+        return;
+      }
+
+      uids = getNodeUids(edges[0]);
+      from_user = uids[0];
+      to_user = uids[1];
+      link_label = uids[2];
       if (link_label == "mention")
       {
         verb = "mentioned";
@@ -440,27 +453,42 @@
       resturl = "/api/socialrelationship";
       if (platform!="all")
       {
-        restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
       else
       {
-        restparams = {format: "json", course_code:"{{course_code}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+        restparams = {format: "json", course_id:"{{course_id}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
       }
     }
     console.log(resturl);
     $.getJSON(resturl, restparams,
       function(data){
-        console.log(data.results);
-        datatable_array = []
+        datatable_array = [];
+        // console.log(data.results);
+        if(data.results.error) {
+          // When error occur (e.g. User clicks a non-registered user/an object)
+          // console.log(data.results.error);
+          render_messages(datatable_array);
+          return;
+        }
+        
         for (i=0;i<data.results.length;i++)
         {
           var datarow;
           if (typeofrequest == "Node")
           {
-            datarow = [data.results[i].username, data.results[i].parentusername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
+            var parentUsername = data.results[i].parentusername == null ? "" : data.results[i].parentusername;
+
+            datarow = [data.results[i].username, parentUsername, data.results[i].message, 
+                       data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
           }
-          else {
-            datarow = [data.results[i].fromusername, data.results[i].tousername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
+          else
+          {
+            var fromUsername = data.results[i].fromusername == null ? "" : data.results[i].fromusername;
+            var toUserName = data.results[i].tousername == null ? "" : data.results[i].tousername;
+
+            datarow = [fromUsername, toUserName, data.results[i].message, data.results[i].verb, 
+                       data.results[i].platform, data.results[i].datetimestamp]
           }
           datatable_array.push(datarow)
         }
@@ -468,6 +496,40 @@
       });
 
   }
+
+  function getNodeUid(node_id)
+  {
+    var uid;
+    for (i=0;i<sna_data.nodes.length;i++)
+    {
+      if (sna_data.nodes[i].id == node_id)
+      {
+        uid = sna_data.nodes[i].uid;
+        break;
+      }
+    }
+    return uid;
+  }
+
+  function getNodeUids(edge_id)
+  {
+    var fromid, toid, fromuser, touser, verb;
+    // console.log(sna_data.edges)
+    for (i=0;i<sna_data.edges.length;i++)
+    {
+      if (sna_data.edges[i].id == edge_id)
+      {
+        fromid = sna_data.edges[i].from;
+        toid = sna_data.edges[i].to;
+        verb = sna_data.edges[i].label;
+        break;
+      }
+    }
+    fromuser = getNodeUid(fromid);
+    touser = getNodeUid(toid);
+    return [fromuser, touser, verb]
+  }
+
 
   function getnodelabel(node_id)
   {
@@ -491,7 +553,7 @@
   function getnodelabels(edge_id)
   {
     var fromid, toid, fromuser, touser, verb;
-    console.log(sna_data.edges)
+    // console.log(sna_data.edges)
     for (i=0;i<sna_data.edges.length;i++)
     {
       if (sna_data.edges[i].id == edge_id)
@@ -572,7 +634,7 @@ $(function() {
   $('#platform_pageview_chart').highcharts('StockChart', {
 
       rangeSelector : {
-          selected : 1
+          selected : 'all'
       },
 
       tooltip: {
@@ -608,19 +670,40 @@ $(function() {
           name : 'YouTube',
           data : [{{ youtube_timeline }}],
           id : 'dataseries3'
-      },
-      {
+      },{
           name : 'Blog',
           data : [{{ blog_timeline }}],
+          id : 'dataseries4'
+      },{
+          name : 'Trello',
+          data : [{{ trello_timeline }}],
           id : 'dataseries5'
+      },{
+          name : 'GitHub',
+          data : [{{ github_timeline }}],
+          id : 'dataseries6'
       }]
+  }, function (chart) {
+      // Show series in the navigator (the mini-chart)
+      for(var i = 0; i < chart.options.series.length; i++) {
+        chart.addSeries({
+            data: chart.options.series[i].data,
+            isInternal: true,
+            xAxis: 1,
+            yAxis: 1,
+            name: null, 
+            enableMouseTracking: false, 
+            showInLegend: false,
+            color: chart.series[i].color
+        });
+      }
   });
 
   // Create Activity Chart
   $('#pageview_chart').highcharts('StockChart', {
 
       rangeSelector : {
-          selected : 1
+          selected : 'all'
       },
 
       tooltip: {
@@ -657,6 +740,20 @@ $(function() {
           data : [{{ comments_timeline }}],
           id : 'dataseries3'
       }]
+  }, function (chart) {
+      // Show series in the navigator (the mini-chart)
+      for(var i = 0; i < chart.options.series.length; i++) {
+        chart.addSeries({
+            data: chart.options.series[i].data,
+            isInternal: true,
+            xAxis: 1,
+            yAxis: 1,
+            name: null, 
+            enableMouseTracking: false, 
+            showInLegend: false,
+            color: chart.series[i].color
+        });
+      }
   });
   //$('#dataTables-topcontent').DataTable({responsive: true});
 
@@ -821,8 +918,9 @@ $(function() {
           ]
     } );
 
+    // This table always shows the same data regardless of the dates users select
     dc = getCentralityDataSet(centrality);
-    console.log(dc);
+    // console.log(dc);
     $("#dctable").DataTable( {
         data: dc,
         columns: [

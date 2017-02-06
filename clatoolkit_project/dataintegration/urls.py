@@ -22,5 +22,7 @@ urlpatterns = patterns(
     url(r'^refreshgithub/$', views.refreshgithub, name='refreshgithub'),
     url(r'^process_trello/$', views.process_trello, name='processtrello'),
     url(r'^refreshtrello/$', views.refreshtrello, name='refreshtrello'),
+    url(r'^github_auth/$', views.github_auth, name='github_auth'),
+    url(r'^github_client_auth/$', views.github_client_auth, name='github_client_auth'),
     #url(r'^ytAuthCallback/(?P<course_id>\d+)/$', views.ytAuthCallback, name='ytAuthCallback'),
 )

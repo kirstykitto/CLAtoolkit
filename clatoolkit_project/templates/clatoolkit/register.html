@@ -19,191 +19,241 @@
   Agreeing to participate will lead to the creation of an account in a learning record store for you. You will then associate various social media accounts with that account (as your instructor suggests and you choose). This will allow for data to be gathered from your participation in learning activities using social media that you undertake in your class. You will then be able to see data and reports about your own engagement in the learning activities. This will give you information on your learning that you can use to gain a greater self-awareness of your learning.
 </p>
 <div class="row">
-  <div class="col-lg-6">
-      <div class="panel panel-info">
-          <div class="panel-heading">
-              Register
-          </div>
-          <div class="panel-body">
-            <p>
-              By registering you give consent for us to make use of your educational data (both in the learning record store, and when examining your assessment outcomes for this unit). Even upon doing this, you can chose which social media accounts you will link up to this account, and your social media data will only be harvested for those accounts.
-            </p>
-            {# Figure out how to display IDs on register page #}
-            <form role="form" id="user_form" method="post" action="/clatoolkit/register/">
-
-                {% csrf_token %}
-
-                {{ user_form.non_field_errors }}
-                {{ profile_form.non_field_errors }}
-                <div class="form-group">
-                  <p class="help-block">{{ user_form.username.errors }}</p>
-                  <label for="id_username">Username:</label> (required) <br />
-                  {{ user_form.username }}
-                </div>
-                <div class="form-group">
-                  <p class="help-block">{{ user_form.email.errors }}</p>
-                  <label for="id_email">Email:</label> (required)<br />
-                  {{ user_form.email }}
-                </div>
-                <div class="form-group">
-                  <p class="help-block">{{ user_form.password.errors }}</p>
-                  <label for="id_password">Password:</label> (required)<br />
-                  {{ user_form.password }}
-                </div>
-                <div class="form-group">
-                  <label>Unit Enrollment:</label><br />
-                  {% if show_units  %}
-                  Please select a unit. (required)
-                  {{ user_form.units }}
-                  {% else  %}
-                    {{course.code}}: {{course.name}}<input type="hidden" id="id_units" name="units" value="{{ selected_unit }}" /> <input type="hidden" name="course_code" value="{{course.code}}" />
-                    <br/>
-                    Your data will be imported from the following locations:
-                      {% if course.twitter_hashtags_as_list|length > 0 %}
-                      <br/>
-                      Twitter Hashtags: {% for hashtag in course.twitter_hashtags_as_list %} <a href="https://twitter.com/hashtag/{{hashtag}}" target="_blank">{{hashtag}}</a>  {% endfor %}
-                      {% endif %}
-                      {% if course.facebook_groups_as_list|length > 0 %}
-                      <br/>
-                      Facebook Groups: {% for grp in course.facebook_groups_as_list %} <a href="https://www.facebook.com/groups/{{grp}}" target="_blank">{{grp}}</a>  {% endfor %}
-                      {% endif %}
-                      {% if course.youtube_channelIds_as_list|length > 0 %}
-                      <br/>
-                      YouTube Channels: {% for channel in course.youtube_channelIds_as_list %} <a href="https://www.youtube.com/channel/{{channel}}" target="_blank">{{channel}}</a>  {% endfor %}
-                      {% endif %}
-                  {% endif  %}
-                </div>
-                <div class="form-group">
-                  <p class="help-block">At least 1 social media account is required.</p>
-                </div>
-
-                {% if course.code == 'IFN614'  %}
-                <div class="form-group">
-                  <p class="help-block">{{ profile_form.forum_id.errors }}</p>
-                  <label for="id_forum_id">IFN614 Site Username:</label> (Only required for IFN614 Students.)<br />
-                  {{ profile_form.forum_id }}
-                  <p>
-
-                    Data for IFN614 students will be retrieved from <a href="http://2016.informationprograms.info" target="_blank">2016.informationprograms.info</a>
-
-                  </p>
-                </div>
-                {% else  %}
-
-                <!-- Twitter -->
-                {% if 'twitter' in req_platforms %}
-                <div><a href="#" class="form_control" handle="twitter">Attach Twitter Account</a></div>
-                <div id="twitter_input" class="form-group">
-                  <p class="help-block">{{ profile_form.twitter_id.errors }}</p>
-                  <label for="id_twitter_id">Twitter Username:</label> (Don't include the @ prefix.)<br />
-                  {{ profile_form.twitter_id }}
-                </div>
-                {% endif %}
-
-                <!-- Facebook -->
-                {% if 'facebook' in req_platforms %}
-                <div><a href="#" class="form_control" handle="facebook">Attach Facebook Account</a></div>
-                <div id="facebook_input" class="form-group">
-                  <p class="help-block">{{ profile_form.fb_id.errors }}</p>
-                  <label for="id_fb_id">Facebook ID:</label><br />
-                  {{ profile_form.fb_id }}
-                  <p>
-                      <!---->
-
-                    <a href='/dataintegration/get_social/?context={"platform": "facebook"}' target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
-
-
-                  </p>
-                </div>
-                {% endif %}
-
-                <!-- Youtube -->
-                {% if 'youtube' in req_platforms %}
-                <div><a href="#" class="form_control" handle="youtube">Attach YouTube Account</a></div>
-                <div id="youtube_input" class="form-group">
-                  <p class="help-block">{{ profile_form.google_account_name.errors }}</p>
-                  <label for="id_google_account_name">Youtube Channel URL:</label><br />
-                  {{ profile_form.google_account_name }}
-                  <p>
-                    <a href="/dataintegration/get_youtubechannel" target="_blank">Click here to get your YouTube Channel ID - you will need to be logged into YouTube (opens in new tab)</a>
-                  </p>
-                </div>
-                {% endif %}
-
-                <!-- Diigo -->
-                {% if 'diigo' in req_platforms %}
-                <div><a href="#" class="form_control" handle="diigo"">Attach Diigo Account</a></div>
-                <div id="diigo_input" class="form-group">
-                  <p class="help-block">{{ profile_form.diigo_username.errors }}</p>
-                  <label for="id_diigo_username">Diigo Username:</label><br />
-                  {{ profile_form.diigo_username }}
-                </div>
-                {% endif %}
-
-                <!-- Blog -->
-
-                {% if course.code == 'IFN614' %}
-
-                <div><a href="#" class="form_control" handle="blog">Attach Blog (RSS-Compatible blogs only)</a></div>
-                <div id="blog_input" class="form-group">
-                  <p class="help-block">{{ profile_form.blog_id.errors }}</p>
-                  <label for="id_blog_id">Blog Username:</label><br />
-                  {{ profile_form.blog_id }}
-                </div>
-                {% endif %}
-
-                <!-- Github -->
-                {% if 'github' in req_platforms %}
-		        <div class="form-group">
-                  <p class="help-block">{{ profile_form.github_account_name.errors }}</p>
-                  <label for="id_github_account_name">GitHub Account:</label><br />
-                  {{ profile_form.github_account_name }}
-                </div>
-                {% endif %}
-
-                <!-- Trello -->
-
-                {% if course.code == 'UXH314' %}
-
-                <div class="form-group">
-                  <p class="help-block">{{ profile_form.trello_account.errors }}</p>
-                  <label for="id_trello_account_name">Trello:</label><br />
-                  {{ profile_form.trello_account_name }}
-
-                  <p>
-                      <a id="trellolink" href="#" onclick="javascript:get_and_link_trello();" target="_blank">Click here to link your trello profile</a>
-                  </p>
-                </div>
-                {% else %}
-                <div class="form-group">
-                  <p class="help-block">Attaching a Trello account is optional, it can be used to help plan and track your workload for your course. <br/>
-                      {{ profile_form.trello_account.errors }}</p>
-                  <label for="id_trello_account_name">Trello:</label><br />
-                  {{ profile_form.trello_account_name }}
-
-                  <p>
-                      <a id="trellolink" href="#" onclick="javascript:get_and_link_trello();" target="_blank">Click here to link your trello profile</a>
-                  </p>
-                </div>
-
-                 
-                {% endif %}
-
-
-                    {% endif %}
-                <p>
-                By clicking the register button below, you are indicating that you:
+    <div class="col-lg-6">
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                Register
+            </div>
+            <div class="panel-body">
+                Unit: {{ course.code }} {{ course.name }}
+                <br/>
+                <br/>
+                Your data will be imported from the following locations:
                 <ul>
-                  <li>Have read and understood the information document regarding this project.</li>
-                  <li>Have had any questions answered to your satisfaction.</li>
-                  <li>Understand that if you have any additional questions you can contact the research team.</li>
-                  <li>Understand that you are free to withdraw at any time without comment or penalty.</li>
-                  <li>Understand that you can contact the Research Ethics Unit on 07 3138 5123 or email ethicscontact@qut.edu.au if you have concerns about the ethical conduct of the project.</li>
-                  <li>Agree to participate in the project.</li>
+                    {% if course.twitter_hashtags_as_list|length > 0 %}
+                        <li>Twitter Hashtags:
+                            {% for hashtag in course.twitter_hashtags_as_list %}
+                                <a href="https://twitter.com/hashtag/{{ hashtag }}" target="_blank">#{{ hashtag }}</a>
+                            {% endfor %}
+                        </li>
+                    {% endif %}
+                    {% if course.facebook_groups_as_list|length > 0 %}
+                        <li>
+                            Facebook Groups:
+                            {% for grp in course.facebook_groups_as_list %}
+                                <a href="https://www.facebook.com/groups/{{ grp }}" target="_blank">{{ grp }}</a>
+                            {% endfor %}
+                        </li>
+                    {% endif %}
+                    {% if course.youtube_channelIds_as_list|length > 0 %}
+                        <li>
+                            YouTube Channels:
+                            {% for channel in course.youtube_channelIds_as_list %}
+                                <a href="https://www.youtube.com/channel/{{ channel }}"
+                                   target="_blank">{{ channel }}</a>
+                            {% endfor %}
+                        </li>
+                    {% endif %}
                 </ul>
+                <br>
+                <p>
+                    By registering you give consent for us to make use of your educational data (both in the learning
+                    record store, and when examining your assessment outcomes for this unit). Even upon doing this, you
+                    can chose which social media accounts you will link up to this account, and your social media data
+                    will only be harvested for those accounts.
                 </p>
-                <button type="submit" class="btn btn-primary btn-lg btn-block">Register</button>
-            </form>
+                {% if user %}
+                    <br>
+                    <div class="btn-group btn-group-justified" role="group">
+                        <a class="btn btn-primary btn-lg btn-block" style="color:white;text-decoration: none" href="{% url "auth_logout_next" request.path %}">Create new account</a>
+                        <a class="btn btn-success btn-lg btn-block" style="color:white;text-decoration: none" href="{% url "register_existing" course.id %}">Continue as {{ user.first_name }}</a>
+                    </div>
+                {% else %}
+                    <form role="form" id="user_form" method="post">
+
+                        {% csrf_token %}
+
+                        {{ user_form.non_field_errors }}
+                        {{ profile_form.non_field_errors }}
+                        <div class="form-group">
+                            <p class="help-block">{{ user_form.first_name.errors }}</p>
+                            <label for="id_first_name">First name:</label> (required) <br/>
+                            {{ user_form.first_name }}
+                        </div>
+                        <div class="form-group">
+                            <p class="help-block">{{ user_form.last_name.errors }}</p>
+                            <label for="id_last_name">Last name:</label> (required) <br/>
+                            {{ user_form.last_name }}
+                        </div>
+                        <div class="form-group">
+                            <p class="help-block">{{ user_form.username.errors }}</p>
+                            <label for="id_username">Username:</label> (required) <br/>
+                            {{ user_form.username }}
+                        </div>
+                        <div class="form-group">
+                            <p class="help-block">{{ user_form.email.errors }}</p>
+                            <label for="id_email">Email:</label> (required)<br/>
+                            {{ user_form.email }}
+                        </div>
+                        <div class="form-group">
+                            <p class="help-block">{{ user_form.password.errors }}</p>
+                            <label for="id_password">Password:</label> (required)<br/>
+                            {{ user_form.password }}
+                        </div>
+                        <div class="form-group">
+                            <p class="help-block">At least 1 social media account is required.</p>
+                        </div>
+
+                        {% if course.code == 'IFN614' %}
+                            <div class="form-group">
+                                <p class="help-block">{{ profile_form.forum_id.errors }}</p>
+                                <label for="id_forum_id">IFN614 Site Username:</label> (Only required for IFN614
+                                Students.)<br/>
+                                {{ profile_form.forum_id }}
+                                <p>
+
+                                    Data for IFN614 students will be retrieved from <a
+                                        href="http://2016.informationprograms.info" target="_blank">2016.informationprograms.info</a>
+
+                                </p>
+                            </div>
+                        {% else %}
+
+                            <!-- Twitter -->
+                            {% if 'twitter' in req_platforms %}
+                                <div><a href="#" class="form_control" handle="twitter">Attach Twitter Account</a></div>
+                                <div id="twitter_input" class="form-group">
+                                    <p class="help-block">{{ profile_form.twitter_id.errors }}</p>
+                                    <label for="id_twitter_id">Twitter Username:</label> (Don't include the @
+                                    prefix.)<br/>
+                                    {{ profile_form.twitter_id }}
+                                </div>
+                            {% endif %}
+
+                            <!-- Facebook -->
+                            {% if 'facebook' in req_platforms %}
+                                <div><a href="#" class="form_control" handle="facebook">Attach Facebook Account</a>
+                                </div>
+                                <div id="facebook_input" class="form-group">
+                                    <p class="help-block">{{ profile_form.fb_id.errors }}</p>
+                                    <label for="id_fb_id">Facebook ID:</label><br/>
+                                    {{ profile_form.fb_id }}
+                                    <p>
+                                        <!---->
+
+                                        <a href='/dataintegration/get_social/?context={"platform":"Facebook"}'
+                                           target="_blank">Click here to get your Facebook ID - you will need to be
+                                            logged into Facebook (opens in new tab)</a>
+
+
+                                    </p>
+                                </div>
+                            {% endif %}
+
+                            <!-- Youtube -->
+                            {% if 'youtube' in req_platforms %}
+                                <div><a href="#" class="form_control" handle="youtube">Attach YouTube Account</a></div>
+                                <div id="youtube_input" class="form-group">
+                                    <p class="help-block">{{ profile_form.google_account_name.errors }}</p>
+                                    <label for="id_google_account_name">Youtube Channel URL:</label><br/>
+                                    {{ profile_form.google_account_name }}
+                                    <p>
+                                        <a href="/dataintegration/get_youtubechannel" target="_blank">Click here to get
+                                            your YouTube Channel ID - you will need to be logged into YouTube (opens in
+                                            new tab)</a>
+                                    </p>
+                                </div>
+                            {% endif %}
+
+                            <!-- Diigo -->
+                            {% if 'diigo' in req_platforms %}
+                                <div><a href="#" class="form_control" handle="diigo"">Attach Diigo Account</a></div>
+                                <div id="diigo_input" class="form-group">
+                                    <p class="help-block">{{ profile_form.diigo_username.errors }}</p>
+                                    <label for="id_diigo_username">Diigo Username:</label><br/>
+                                    {{ profile_form.diigo_username }}
+                                </div>
+                            {% endif %}
+
+                            <!-- Blog -->
+
+                            {% if course.code == 'IFN614' %}
+
+                                <div><a href="#" class="form_control" handle="blog">Attach Blog (RSS-Compatible blogs
+                                    only)</a></div>
+                                <div id="blog_input" class="form-group">
+                                    <p class="help-block">{{ profile_form.blog_id.errors }}</p>
+                                    <label for="id_blog_id">Blog Username:</label><br/>
+                                    {{ profile_form.blog_id }}
+                                </div>
+                            {% endif %}
+
+                            <!-- Github -->
+                            {% if 'github' in req_platforms %}
+                                <div class="form-group">
+                                    <p class="help-block">{{ profile_form.github_account_name.errors }}</p>
+                                    <label for="id_github_account_name">GitHub Account:</label><br/>
+                                    {{ profile_form.github_account_name }}
+                                    <a id="github_auth_link" href="#" onclick="javascript:getGitHubUserID();" target="_blank">Click here to link your GitHub profile</a>
+                                    <p id="github-auth-msg" class="github-auth-msg"></p>
+                                </div>
+                            {% endif %}
+
+                            <!-- Trello -->
+
+                            {% if course.code == 'UXH314' %}
+
+                                <div class="form-group">
+                                    <p class="help-block">{{ profile_form.trello_account.errors }}</p>
+                                    <label for="id_trello_account_name">Trello:</label><br/>
+                                    {{ profile_form.trello_account_name }}
+
+                                    <p>
+                                        <a id="trellolink" href="#" onclick="javascript:get_and_link_trello();"
+                                           target="_blank">Click here to link your trello profile</a>
+                                    </p>
+                                </div>
+                            {% else %}
+                                <div class="form-group">
+                                    <p class="help-block">Attaching a Trello account is optional, it can be used to help
+                                        plan and track your workload for your course. <br/>
+                                        {{ profile_form.trello_account.errors }}</p>
+                                    <label for="id_trello_account_name">Trello:</label><br/>
+                                    {{ profile_form.trello_account_name }}
+
+                                    <p>
+                                        <a id="trellolink" href="#" onclick="javascript:get_and_link_trello();"
+                                           target="_blank">Click here to link your trello profile</a>
+                                    </p>
+                                </div>
+
+
+                            {% endif %}
+
+
+                        {% endif %}
+                        <p>
+                            By clicking the register button below, you are indicating that you:
+                        <ul>
+                            <li>Have read and understood the information document regarding this project.</li>
+                            <li>Have had any questions answered to your satisfaction.</li>
+                            <li>Understand that if you have any additional questions you can contact the research
+                                team.
+                            </li>
+                            <li>Understand that you are free to withdraw at any time without comment or penalty.</li>
+                            <li>Understand that you can contact the Research Ethics Unit on 07 3138 5123 or email
+                                ethicscontact@qut.edu.au if you have concerns about the ethical conduct of the project.
+                            </li>
+                            <li>Agree to participate in the project.</li>
+                        </ul>
+                        </p>
+                        <button type="submit" class="btn btn-primary btn-lg btn-block">Register</button>
+                    </form>
+                    <br>
+                    <p style="text-align:center">OR</p>
+                    <a class="btn btn-success btn-lg btn-block" style="color:white;text-decoration: none" href="existing">Login</a>
+                {% endif %}
+            {# Figure out how to display IDs on register page #}
           </div>
       </div>
   </div>
@@ -372,13 +422,9 @@
 {% endblock %}
 
 {% block js_block %}
-    <script src="https://trello.com/1/client.js?key=c908d424dda56c79d373f780a1ae26c7"></script>
+    <script src="https://trello.com/1/client.js?key={{ trello_api_key }}"></script>
     <script>
-
-
     function get_and_link_trello() {
-        var key = "c908d424dda56c79d373f780a1ae26c7";
-
         Trello.authorize({
             type: "popup",
             expiration: "never",
@@ -386,26 +432,23 @@
             persist: "true",
             success: function() {
                 $.ajax({
-                url: "/dataintegration/process_trello/?token="+Trello.token()+"&key="+key,
-                type: 'GET',
-                success: function(response) {
-                    $('#id_trello_account_name').val(response)
-                }
+                    url: "/dataintegration/process_trello/?token="+Trello.token(),
+                    type: 'GET',
+                    success: function(response) {
+                        $('#id_trello_account_name').val(response);;
+                        var o = document.getElementById('trellolink');
+                        o.innerHTML = "Trello account linked!";
+                    }
                 });
-
-                var o = document.getElementById('trellolink');
-                o.innerHTML = "Trello account linked!";
-
-                //id_trello_account_name
-
             },
             error: function() {  console.log('Trello Auth failed.'); },
             scope: { read: true, write: true },
         });
-
     }
 
-
+    function getGitHubUserID() {
+        window.open('/dataintegration/github_auth', 'github_auth_window', 'menubar=no, resizable=yes, toolbar=no, scrollbars=yes');
+    }
     </script>
 
     <script type="text/javascript">

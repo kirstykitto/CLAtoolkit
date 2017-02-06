@@ -159,7 +159,7 @@ function update_snadata(start_date, end_date)
   $('#selectedrange').text("(Date Range: " + start_date + " - " + end_date + ")")
   //console.log("start_date:" + start_date)
   //console.log("end_date:" + end_date)
-  $.get("/clatoolkit/sna", { course_code:"{{course_code}}", platform:"{{platform}}", start_date:start_date, end_date:end_date, relationshipstoinclude:relationshipstoinclude},
+  $.get("/clatoolkit/sna", { course_id:"{{course_id}}", platform:"{{platform}}", start_date:start_date, end_date:end_date, relationshipstoinclude:relationshipstoinclude},
     function(data){
       sna_data = data;
       render_sna(sna_data);
@@ -187,15 +187,17 @@ function update_messages(nodes,edges)
   {
     // get node label
     username = getnodelabel(nodes[0])
+    uid = getNodeUid(nodes[0]);
+
     console.log("Selected User:" + username)
-    resturl = "/api/learningrecord";
+    resturl = '/dashboard/api/get_learning_records';
     if (platform!="all")
     {
-      restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
     else
     {
-      restparams = {format: "json", course_code:"{{course_code}}", username:username, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", course_id:"{{course_id}}", user:uid, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
     $('#relationships').html('<h3>Selected User: ' + username + '</h3>');
 
@@ -207,6 +209,16 @@ function update_messages(nodes,edges)
     fromusername = usernames[0]
     tousername = usernames[1]
     link_label = usernames[2]
+
+    if(fromusername == null && tousername == null) {
+      $('#relationships').html('');
+      return;
+    }
+
+    uids = getNodeUids(edges[0]);
+    from_user = uids[0];
+    to_user = uids[1];
+    link_label = uids[2];
     if (link_label == "mention")
     {
       verb = "mentioned";
@@ -228,27 +240,40 @@ function update_messages(nodes,edges)
     resturl = "/api/socialrelationship";
     if (platform!="all")
     {
-      restparams = {format: "json", course_code:"{{course_code}}", platform:"{{platform}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", course_id:"{{course_id}}", platform:"{{platform}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
     else
     {
-      restparams = {format: "json", course_code:"{{course_code}}", fromusername:fromusername, tousername:tousername, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
+      restparams = {format: "json", course_id:"{{course_id}}", from_user:from_user, to_user:to_user, verb:verb, datetimestamp_min:start_date, datetimestamp_max:end_date};
     }
   }
   console.log(resturl);
   $.getJSON(resturl, restparams,
     function(data){
-      console.log(data.results);
-      datatable_array = []
+      datatable_array = [];
+      // console.log(data.results);
+      if(data.results.error) {
+        // When error occur (e.g. User clicks a non-registered user/an object)
+        // console.log(data.results.error);
+        render_messages(datatable_array);
+        return;
+      }
+      
       for (i=0;i<data.results.length;i++)
       {
         var datarow;
         if (typeofrequest == "Node")
         {
-          datarow = [data.results[i].username, data.results[i].parentusername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
+          var parentUsername = data.results[i].parentusername == null ? "" : data.results[i].parentusername;
+
+          datarow = [data.results[i].username, parentUsername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
         }
-        else {
-          datarow = [data.results[i].fromusername, data.results[i].tousername, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
+        else
+        {
+          var fromUsername = data.results[i].fromusername == null ? "" : data.results[i].fromusername;
+          var toUserName = data.results[i].tousername == null ? "" : data.results[i].tousername;
+
+          datarow = [fromUsername, toUserName, data.results[i].message, data.results[i].verb, data.results[i].platform, data.results[i].datetimestamp]
         }
         datatable_array.push(datarow)
       }
@@ -256,6 +281,40 @@ function update_messages(nodes,edges)
       $('#message_loading').hide();
     });
 }
+
+function getNodeUid(node_id)
+{
+  var uid;
+  for (i=0;i<sna_data.nodes.length;i++)
+  {
+    if (sna_data.nodes[i].id == node_id)
+    {
+      uid = sna_data.nodes[i].uid;
+      break;
+    }
+  }
+  return uid;
+}
+
+function getNodeUids(edge_id)
+{
+  var fromid, toid, fromuser, touser, verb;
+  // console.log(sna_data.edges)
+  for (i=0;i<sna_data.edges.length;i++)
+  {
+    if (sna_data.edges[i].id == edge_id)
+    {
+      fromid = sna_data.edges[i].from;
+      toid = sna_data.edges[i].to;
+      verb = sna_data.edges[i].label;
+      break;
+    }
+  }
+  fromuser = getNodeUid(fromid);
+  touser = getNodeUid(toid);
+  return [fromuser, touser, verb]
+}
+
 
 function getnodelabel(node_id)
 {
@@ -321,7 +380,7 @@ function render_sna(data)
         params.event = "[original event]";
         //document.getElementById('relationships').innerHTML = '<h2>Click event:</h2>' + JSON.stringify(params, null, 4);
         update_messages(params.nodes,params.edges);
-        showCentralityPopup(params)
+        showCentralityPopup(params);
   });
 }
 
@@ -331,7 +390,8 @@ function showCentralityPopup(params)
   if(data.length == 0) {
     return;
   }
-  //console.log(data);
+  console.log("centrality data in pop-up table:");
+  console.log(data);
   
   $('#centrality-popup').dataTable().fnDestroy();
   $('#centrality-popup').DataTable( {
@@ -350,8 +410,6 @@ function showCentralityPopup(params)
   $('#popup').dialog("option", "width", 300);
   //$('#popup').dialog( "option", "position", { my: "left top", at: "left bottom", of: button } );
 }
-
-
 
 function getDrawOption()
 {
@@ -454,7 +512,7 @@ $(function() {
         }
       },
       rangeSelector : {
-          selected : 1
+          selected : 'all'
       },
 
       tooltip: {
@@ -491,6 +549,20 @@ $(function() {
           data : [{{ comments_timeline }}],
           id : 'dataseries2'
       }]
+  }, function (chart) {
+      // Show series in the navigator (the mini-chart)
+      for(var i = 0; i < chart.options.series.length; i++) {
+        chart.addSeries({
+            data: chart.options.series[i].data,
+            isInternal: true,
+            xAxis: 1,
+            yAxis: 1,
+            name: null, 
+            enableMouseTracking: false, 
+            showInLegend: false,
+            color: chart.series[i].color
+        });
+      }
   });
 
   $('#message_loading').hide();

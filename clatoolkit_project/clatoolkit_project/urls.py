@@ -11,5 +11,7 @@ urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
     url(r'^dataintegration/', include('dataintegration.urls')),
     url(r'^dashboard/', include('dashboard.urls')),
-    url(r'^logout/$', 'django.contrib.auth.views.logout', {'next_page': '/'})
+    url(r'^xapi/', include('xapi.urls')),
+    url(r'^logout/(?P<next_page>.*)/$', 'django.contrib.auth.views.logout', name='auth_logout_next'),
+    url(r'^logout/$', 'django.contrib.auth.views.logout', {'next_page': '/'}),
 )

@@ -1,0 +1,36 @@
+{% extends "clatoolkit/base_clatoolkit.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block heading %}
+    {{ unit.code }} {{ unit.name }} {{ verb }} successfully
+{% endblock %}
+
+{% block body %}
+<div class="row">
+    <div>
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                {{ unit.code }} {{ unit.name }} Details
+            </div>
+            <div class="panel-body">
+                Your unit offering has been {{ verb }}.
+
+                Please get students to visit the link below to register for your unit on the CLAToolkit.
+                <br>
+                <br>
+                <a href="{% url 'register' unit.id %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' unit.id %}</a>
+                <br>
+                <br>
+                <a href="/dashboard/myunits">Done</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% autoescape off %}
+
+{% endautoescape %}
+{% endblock %}
+
