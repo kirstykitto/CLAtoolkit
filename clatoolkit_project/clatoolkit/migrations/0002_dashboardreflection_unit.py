@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import migrations, models
+from django.db import models, migrations
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('xapi', '0002_clientapp'),
+        ('clatoolkit', '0001_initial'),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='clientapp',
-            name='provider',
-            field=models.CharField(default='default_lrs', unique=True, max_length=256),
+            model_name='dashboardreflection',
+            name='unit',
+            field=models.ForeignKey(default=4, to='clatoolkit.UnitOffering'),
             preserve_default=False,
         ),
     ]

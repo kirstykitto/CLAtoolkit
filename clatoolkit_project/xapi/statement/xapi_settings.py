@@ -25,6 +25,7 @@ class xapi_settings(object):
     VERB_DELETED = 'deleted'
     VERB_OPENED = 'opened'
     VERB_CLOSED = 'closed'
+    VERB_MENTIONED = 'mentioned'
 
     # Objects
     OBJECT_NOTE = 'Note'
@@ -38,6 +39,7 @@ class xapi_settings(object):
     OBJECT_CHECKLIST = 'Checklist'
     OBJECT_CHECKLIST_ITEM = 'Checklist-item'
     OBJECT_PERSON = 'Person'
+    OBJECT_REVIEW = 'Review'
 
     VERB_IRI_MAPPER = {
         VERB_CREATED: 'http://www.w3.org/ns/activitystreams#Create',
@@ -64,8 +66,8 @@ class xapi_settings(object):
         OBJECT_TASK: 'http://activitystrea.ms/specs/json/schema/activity-schema.html#task',
         OBJECT_CHECKLIST: 'http://id.tincanapi.com/activitytype/checklist',
         OBJECT_CHECKLIST_ITEM: 'http://id.tincanapi.com/activitytype/checklist-item',
-        OBJECT_PERSON: 'http://activitystrea.ms/head/activity-schema.html#person'
-
+        OBJECT_PERSON: 'http://activitystrea.ms/head/activity-schema.html#person',
+        OBJECT_REVIEW: 'http://activitystrea.ms/schema/1.0/review',
     }
 
     @classmethod
@@ -75,3 +77,10 @@ class xapi_settings(object):
     @classmethod
     def get_object_iri(self, obj):
         return self.OBJECT_IRI_MAPPER.get(obj)
+
+    @classmethod
+    def get_verb_by_iri(self, verb_iri):
+        for verb, iri in self.VERB_IRI_MAPPER.items():
+            if iri == verb_iri:
+                return verb
+

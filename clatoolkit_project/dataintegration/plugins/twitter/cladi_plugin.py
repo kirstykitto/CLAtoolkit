@@ -10,14 +10,17 @@ from xapi.statement.builder import * #Formerly dataintegration.core.socialmediab
 import dateutil.parser
 from twython import Twython
 import os
+from xapi.statement.xapi_settings import xapi_settings
+
 
 class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
-    platform = "Twitter"
-    platform_url = "http://www.twitter.com/"
+    platform = xapi_settings.PLATFORM_TWITTER
+    platform_url = "https://twitter.com/"
 
-    xapi_verbs = ['created', 'shared', 'liked', 'commented']
-    xapi_objects = ['Note']
+    xapi_verbs = [xapi_settings.VERB_CREATED, xapi_settings.VERB_SHARED, 
+                  xapi_settings.VERB_LIKED, xapi_settings.VERB_COMMENTED]
+    xapi_objects = [xapi_settings.OBJECT_NOTE]
 
     user_api_association_name = 'Twitter Username' # eg the username for a signed up user that will appear in data extracted via a social API
     unit_api_association_name = 'Hashtags' # eg hashtags or a group name
@@ -25,8 +28,9 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
     config_json_keys = ['app_key', 'app_secret', 'oauth_token', 'oauth_token_secret']
 
     #from DIPluginDashboardMixin
-    xapi_objects_to_includein_platformactivitywidget = ['Note']
-    xapi_verbs_to_includein_verbactivitywidget = ['created', 'shared', 'liked', 'commented']
+    xapi_objects_to_includein_platformactivitywidget = [xapi_settings.OBJECT_NOTE]
+    xapi_verbs_to_includein_verbactivitywidget = [xapi_settings.VERB_CREATED, xapi_settings.VERB_SHARED, 
+                                                  xapi_settings.VERB_LIKED, xapi_settings.VERB_COMMENTED]
 
     def __init__(self):
         pass

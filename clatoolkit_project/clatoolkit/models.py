@@ -1,9 +1,9 @@
+import os
 from django.db import models
 from django.contrib.auth.models import User
 from django_pgjson.fields import JsonField
 from django.core.exceptions import ObjectDoesNotExist
-import os
-
+from xapi.statement.xapi_settings import xapi_settings
 from xapi.models import ClientApp
 
 class UserProfile(models.Model):
@@ -67,21 +67,10 @@ class UserProfile(models.Model):
 
         return platform_map[platform.lower()]
 
-class UserTrelloCourseBoardMap(models.Model):
-    user = models.ForeignKey(User)
-    course_code = models.CharField(max_length=1000, blank=False)
-    board_id = models.CharField(max_length=5000, blank=False)
-
 class OfflinePlatformAuthToken(models.Model):
     user_smid = models.CharField(max_length=1000, blank=False)
     token = models.CharField(max_length=1000, blank=False)
     platform = models.CharField(max_length=1000, blank=False)
-
-class OauthFlowTemp(models.Model):
-    googleid = models.CharField(max_length=1000, blank=False)
-    platform = models.CharField(max_length=1000, blank=True)
-    course_code = models.CharField(max_length=1000, blank=True)
-    transferdata = models.CharField(max_length=1000, blank=True)
 
 class UnitOffering(models.Model):
     code = models.CharField(max_length=5000, blank=False, verbose_name="Unit Code", unique=True)
@@ -127,8 +116,11 @@ class UnitOffering(models.Model):
 
     # Determines which platforms should be utilized by COI classifier
     coi_platforms = models.TextField(blank=True)
-
-
+    # Unit start date
+    start_date = models.DateField(auto_now=False, auto_now_add=False, blank=False)
+    # Unit end date
+    end_date = models.DateField(auto_now=False, auto_now_add=False, blank=False)
+ 
     # LRS Integration - to send users data to unit LRS
     #ll_endpoint = models.CharField(max_length=60, blank=True)
     #ll_username = models.CharField(max_length=60, blank=True)
@@ -192,6 +184,11 @@ class UnitOffering(models.Model):
         else:
             return []
 
+    def github_member_count(self):
+        # Count the number of GitHub users in the course
+        resources = UserPlatformResourceMap.objects.filter(unit=self.id, platform=xapi_settings.PLATFORM_GITHUB)
+        return len(resources)
+
     def coi_platforms_as_list(self):
         if self.coi_platforms:
             return self.coi_platforms.split(',')
@@ -220,6 +217,35 @@ class UnitOffering(models.Model):
 
         return platforms
 
+    def get_lrs_id(self):
+        return self.lrs_provider.id
+
+    def get_lrs_key(self):
+        return self.lrs_provider.get_key()
+
+    def get_lrs_secret(self):
+        return self.lrs_provider.get_secret()
+
+    def get_lrs_access_token_url(self):
+        return self.lrs_provider.get_access_token_url()
+
+    def get_cca_dashboard_params(self):
+        params = []
+        if self.github_member_count() > 0:
+            params.append(xapi_settings.PLATFORM_GITHUB)
+        if len(self.trello_boards_as_list()) > 0:
+            params.append(xapi_settings.PLATFORM_TRELLO)
+
+        return ','.join(params)
+
+
+class OauthFlowTemp(models.Model):
+    googleid = models.CharField(max_length=1000, blank=False)
+    platform = models.CharField(max_length=1000, blank=True)
+    transferdata = models.CharField(max_length=1000, blank=True)
+    unit = models.ForeignKey(UnitOffering)
+    user = models.ForeignKey(User)
+
 
 class UnitOfferingMembership(models.Model):
     user = models.ForeignKey(User)
@@ -235,19 +261,21 @@ class UnitOfferingMembership(models.Model):
 
 
 class LearningRecord(models.Model):
-    xapi = JsonField()
-    unit = models.ForeignKey(UnitOffering)
-    platform = models.CharField(max_length=5000, blank=False)
-    verb = models.CharField(max_length=5000, blank=False)
-    user = models.ForeignKey(User)
+    statement_id = models.CharField(max_length=256, blank=False)
     platformid = models.CharField(max_length=5000, blank=True)
+    verb = models.CharField(max_length=50, blank=False)
+    platform = models.CharField(max_length=100, blank=False)
+    unit = models.ForeignKey(UnitOffering)
+    user = models.ForeignKey(User)
+    # xapi = JsonField()
     # TODO - Use foreign key to link to parent learning record
+    #        Store parent xAPI statement ID here?
     platformparentid = models.CharField(max_length=5000, blank=True)
     parent_user = models.ForeignKey(User, null=True, related_name="parent_user")
-    parent_user_external = models.CharField(max_length=5000, blank=True, null=True)
-    message = models.TextField(blank=True)
-    datetimestamp = models.DateTimeField(auto_now_add=True, null=True)
-    senttolrs = models.CharField(max_length=5000, blank=True)
+    # parent_user_external = models.CharField(max_length=5000, blank=True, null=True)
+    # message = models.TextField(blank=True)
+    datetimestamp = models.DateTimeField(auto_now_add=False, null=False)
+    # senttolrs = models.CharField(max_length=5000, blank=True)
 
 
 class SocialRelationship(models.Model):
@@ -292,13 +320,18 @@ class UserClassification(models.Model):
     trained = models.BooleanField(blank=False, default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+class UserPlatformResourceMap(models.Model):
+    user = models.ForeignKey(User)
+    unit = models.ForeignKey(UnitOffering)
+    resource_id = models.CharField(max_length=5000, blank=False)
+    platform = models.CharField(max_length=100, blank=False)
 
 class ApiCredentials(models.Model):
     platform_uid = models.CharField(max_length=5000, blank=False)
     credentials_json = JsonField()
 
 class DashboardReflection(models.Model):
-    username = models.CharField(max_length=5000, blank=False)
+    user = models.ForeignKey(User)
     strategy = models.TextField(blank=False)
 
     HAPPY = 'Happy'
@@ -311,6 +344,7 @@ class DashboardReflection(models.Model):
     )
     rating = models.CharField(max_length=50, choices=RATING_OPTIONS, default=SATISFIED)
     created_at = models.DateTimeField(auto_now_add=True)
+    unit = models.ForeignKey(UnitOffering)
 
     def __unicode__(self):
         return self.id + ": " + self.username

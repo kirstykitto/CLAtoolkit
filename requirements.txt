@@ -19,6 +19,7 @@ google-api-python-client==1.4.2
 gunicorn==19.3.0
 httplib2==0.9.2
 jsonschema==2.4.0
+isodate==0.4.6
 lxml==3.4.4
 networkx==1.10
 nltk==3.0.4

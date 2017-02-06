@@ -4,6 +4,8 @@ from django.db import connection
 from django.contrib.auth.models import User
 from clatoolkit.models import UserProfile, UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, Classification
 from django.db.models import Q, Count
+import uuid
+from common.util import Utility
 
 
 def get_user_from_screen_name(screen_name, platform):
@@ -22,7 +24,14 @@ def get_user_from_screen_name(screen_name, platform):
 
     kwargs = {platform_param_name: screen_name}
 
-    return UserProfile.objects.get(**kwargs).user
+    user = None
+    try:
+        user = UserProfile.objects.get(**kwargs).user
+    except UserProfile.DoesNotExist:
+        # print 'screen_name %s does not exist. Platform: %s' % (screen_name, platform)
+        pass
+        
+    return user
 
 
 def get_smid(user, platform):
@@ -183,10 +192,11 @@ def get_smids_fromuid(uid):
     twitter_id = user.userprofile.twitter_id
     fb_id = user.userprofile.fb_id
     forum_id = user.userprofile.forum_id
+    blog_id = user.userprofile.blog_id
     google_id = user.userprofile.google_account_name
     github_id = user.userprofile.github_account_name
     trello_id = user.userprofile.trello_account_name
-    return twitter_id, fb_id, forum_id, google_id, github_id, trello_id
+    return twitter_id, fb_id, forum_id, blog_id, google_id, github_id, trello_id
 
 def get_smids_fromusername(username):
     user = User.objects.get(username=username)
@@ -197,3 +207,13 @@ def get_smids_fromusername(username):
     github_id = user.userprofile.github_account_name
     return twitter_id, fb_id, forum_id, google_id, github_id
 
+def get_uuid4():
+    return str(uuid.uuid4())
+
+
+def get_youtube_callback_url(request):
+    return Utility.get_site_url(request) + '/dataintegration/ytAuthCallback'
+
+
+def get_youtube_user_channel_url(request):
+    return Utility.get_site_url(request) + '/dataintegration/showyoutubechannel'

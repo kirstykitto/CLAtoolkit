@@ -4,6 +4,7 @@ import requests
 import time
 import json
 from urllib import urlencode
+import urllib
 
 """
 AuthRequest: a quick wrapper class to create signed oauth requests to lrs
@@ -75,6 +76,7 @@ class AuthRequest():
         else: # Sending data to server
 
             statement_jsn = json.loads(data)
+
             statement_id = statement_jsn['id']
             params = {'statementId':statement_id}
 
@@ -109,8 +111,10 @@ class AuthRequest():
 
         # Add in extra params if they exist, right now we're only support 1 param (xapi filters)
         # TODO: Might have to handle multiple params
-        if extra_params and len(extra_params) == 1:
-            #print 'EXTRA_PARAMS: %s' % extra_params
+        # if extra_params and len(extra_params) == 1:
+        #     # print 'EXTRA_PARAMS: %s' % extra_params
+        #     params.update(extra_params)
+        if extra_params and len(extra_params) > 0:
             params.update(extra_params)
 
         # We can tell this in Auth-flow request by considering token, token_secret, callback and the http method
@@ -122,6 +126,7 @@ class AuthRequest():
         # we also need our access_token
         if self.token:
             params.update({'oauth_token':self.token})
+            # params.update({'oauth_token_secret':self.token_secret})
 
         # Get base string to encrypt for signed request
         http_base_sig = self.crypto.generate_base_string(url,params,method=method)
@@ -134,12 +139,16 @@ class AuthRequest():
         header = "OAuth "
         sorted_params = sorted(params.keys())
 
+        encode = urllib.quote_plus
+
         for i in range(len(sorted_params)):
-            header = header + str(sorted_params[i]) + "=\"" + str(params[sorted_params[i]]) + "\""
+            header = header + str(sorted_params[i]) + "=\"" + encode(str(params[sorted_params[i]]), "") + "\""
 
             if i < len(sorted_params) - 1:
                 header = header + ","
 
+        # print 'header-------------- '
+        # print header
         # Return the headers as a string
         return header
 
@@ -173,29 +182,36 @@ class Crytpo(object):
         return binascii.b2a_base64(hash.digest())[:-1]
 
     def generate_base_string(self, url, params, method="GET"):
-        import urllib
-
         #print "PARAMS: %s" % params
-
         encode = urllib.quote_plus
-
         basestring = method + "&" + encode(url) + "&"
-
         keys = sorted(params.keys())
 
         for i in range(len(keys)):
 
             if keys[i] == 'oauth_callback':
-                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + encode(encode(params[keys[i]]), "")
+                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") \
+                    + encode(encode(params[keys[i]]), "")
             elif keys[i] == 'statementId':
-                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + str(params[keys[i]][0])
+                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") \
+                    + encode(str(self.get_param_value(params[keys[i]])), "")
             else:
-                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") + encode(str(params[keys[i]]), "")
+                basestring = basestring + encode(unicode(keys[i]), "") + encode("=") \
+                    + self.escape(encode(str(self.get_param_value(params[keys[i]])), ""))
 
             if i < len(keys) - 1:
                 basestring = basestring + encode("&")
 
-        print basestring
         return basestring.encode('ascii')
 
 
+    def get_param_value(self, values):
+        if not isinstance(values, list):
+            return values
+
+        return ','.join(values)
+
+    @classmethod
+    def escape(self, s):
+        """Escape a URL including any /."""
+        return urllib.quote(s, safe='~')

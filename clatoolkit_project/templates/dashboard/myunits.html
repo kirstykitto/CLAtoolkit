@@ -6,20 +6,28 @@
 {% block heading %}{{ title }}{% endblock %}
 
 {% block body %}
-    <a href="http://localhost:8080/xapi/get_statement?statementId=71c25cb2-9058-4ea1-b298-a0c8480f5722">Test get Statements from LRS</a><br/>
-    <a href="http://localhost:8080/xapi/">Test Auth</a>
+    <link href="{% static 'css/dashboard/myunits.css'%}" rel="stylesheet">
     {% for membership in memberships %}
         <div class="row">
             <div class="col-lg-12">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        {{ membership.unit.code }}: {{ membership.unit.name }} ({{ membership.unit.semester }})
+                        {{ membership.unit.code }}: {{ membership.unit.name }} ({{ membership.unit.semester }}) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Period: {{ membership.unit.start_date|date:'d/m/Y' }} to {{ membership.unit.end_date|date:'d/m/Y' }}
 
                         <div id="{{ membership.unit.code }}_sm"></div>
                     </div>
                     <!-- /.panel-heading -->
                     <div class="panel-body">
-                        {{ membership.unit }}
+                        {% for key, value in has_token_list.items %} 
+                            {% if key == membership.unit.code and not value.has_user_token %}
+                            <div>
+                                <div class="alert alert-danger" role="alert">
+                                    <h4 class="no-token">Give permission</h4>
+                                    <p><a href="/xapi/get_lrs_access_token?provider_id={{ membership.unit.lrs_provider_id }}">Click here</a> to allow the CLA toolkit to import your social media content to LRS.</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
                         {% if role == "Staff" or membership.admin == True %}
                             <p>
                                 All Platforms [<a
@@ -54,7 +62,7 @@
                                         Analysis</a> |
                                     <a href="/dashboard/sna_dashboard?unit={{ membership.unit.id }}&platform=Facebook">Social
                                         Network Analysis</a>] |
-                                    <a href='/dataintegration/dipluginauthomaticlogin/?context={"platform": "facebook", "unit": "{{ membership.unit.id }}", "group": "{{ membership.unit.facebook_groups }}"}'>Refresh
+                                    <a href='/dataintegration/dipluginauthomaticlogin/?context={"platform": "Facebook", "unit": "{{ membership.unit.id }}", "group": "{{ membership.unit.facebook_groups }}"}'>Refresh
                                         Imported Data</a>
                                 {% endif %}
                                 {% if membership.unit.youtube_channelIds_as_list|length > 0 %}
@@ -62,26 +70,26 @@
                                     YouTube Channels: {% for channel in membership.unit.youtube_channelIds_as_list %}
                                     <a href="https://www.youtube.com/channel/{{ channel }}"
                                        target="_blank">{{ channel }}</a>  {% endfor %} [
-                                    <a href="/dashboard/?course_code={{ membership.unit.code }}&platform=YouTube">Activity</a>
+                                    <a href="/dashboard/?unit={{ membership.unit.id }}&platform=YouTube">Activity</a>
                                     |
-                                    <a href="/dashboard/ca_dashboard?course_code={{ membership.unit.code }}&platform=YouTube">Content
+                                    <a href="/dashboard/ca_dashboard?unit={{ membership.unit.id }}&platform=YouTube">Content
                                         Analysis</a> |
-                                    <a href="/dashboard/sna_dashboard?course_code={{ membership.unit.code }}&platform=YouTube">Social
+                                    <a href="/dashboard/sna_dashboard?unit={{ membership.unit.id }}&platform=YouTube">Social
                                         Network Analysis</a>] |
-                                    <a href="/dataintegration/refreshgoogleauthflow/?course_code={{ membership.unit.code }}&course_id={{ membership.unit.id }}&channelIds={{ membership.unit.youtube_channelIds|urlencode }}&platform=Youtube">Refresh
+                                    <a href="/dataintegration/refreshgoogleauthflow/?course_id={{ membership.unit.id }}&channel_ids={{ membership.unit.youtube_channelIds|urlencode }}&platform=YouTube">Refresh
                                         Imported Data</a>
                                 {% endif %}
                                 {% if membership.unit.code == 'IFN614' %}
                                     <br/>
 
                                     IFN614 Blog URLs: {{ membership.unit.blogmember_urls }} [
-                                    <a href="/dashboard/?course_code={{ membership.unit.code }}&platform=Blog">Activity</a>
+                                    <a href="/dashboard/?unit={{ membership.unit.id }}&platform=Blog">Activity</a>
                                     |
-                                    <a href="/dashboard/ca_dashboard?course_code={{ membership.unit.code }}&platform=Blog">Content
+                                    <a href="/dashboard/ca_dashboard?unit={{ membership.unit.id }}&platform=Blog">Content
                                         Analysis</a> |
-                                    <a href="/dashboard/sna_dashboard?course_code={{ membership.unit.code }}&platform=Blog">Social
+                                    <a href="/dashboard/sna_dashboard?unit={{ membership.unit.id }}&platform=Blog">Social
                                         Network Analysis</a>] |
-                                    <a href="/dataintegration/refreshforum/?course_code={{ membership.unit.code }}&forumurl={{ membership.unit.blogmember_urls|urlencode }}">Refresh
+                                    <a href="/dataintegration/refreshblog/?course_id={{ membership.unit.id }}&urls={{ membership.unit.blogmember_urls|urlencode }}">Refresh
                                         Imported Data</a>
 
                                 {% endif %}
@@ -90,34 +98,31 @@
                                     Diigo Tags: {% for tag in membership.unit.diigo_tags_as_list %}
                                     <a href="https://www.diigo.com/tag/{{ tag }}" target="_blank">{{ tag }}</a>
                                 {% endfor %}  [
-                                    <a href="/dashboard/?course_code={{ membership.unit.code }}&platform=Diigo">Activity</a>
+                                    <a href="/dashboard/?unit={{ membership.unit.id }}&platform=Diigo">Activity</a>
                                     |
-                                    <a href="/dashboard/ca_dashboard?course_code={{ membership.unit.code }}&platform=Diigo">Content
+                                    <a href="/dashboard/ca_dashboard?unit={{ membership.unit.id }}&platform=Diigo">Content
                                         Analysis</a> |
-                                    <a href="/dashboard/sna_dashboard?course_code={{ membership.unit.code }}&platform=Diigo">Social
+                                    <a href="/dashboard/sna_dashboard?unit={{ membership.unit.id }}&platform=Diigo">Social
                                         Network Analysis</a>] |
-                                    <a href="/dataintegration/refreshdiigo/?course_code={{ membership.unit.code }}&tags={{ membership.unit.diigo_tags|urlencode }}">Refresh
+                                    <a href="/dataintegration/refreshdiigo/?unit={{ membership.unit.id }}&tags={{ membership.unit.diigo_tags|urlencode }}">Refresh
                                         Imported Data</a>
                                 {% endif %}
                                 <br/>
-                                {% if membership.unit.github_urls_as_list|length > 0 %}
-                                    GitHub URLs: {% for url in membership.unit.github_urls_as_list %}
-                                    <a href="{{ url }}" target="_blank">{{ url }}</a>  {% endfor %} [
-                                    <a href="/dashboard/?course_code={{ membership.unit.code }}&platform=GitHub">Activity</a>
-                                    |
-                                    <a href="/dashboard/ca_dashboard?course_code={{ membership.unit.code }}&platform=GitHub">Content
-                                        Analysis</a> |
-                                    <a href="/dashboard/sna_dashboard?course_code={{ membership.unit.code }}&platform=GitHub">Social
-                                        Network Analysis</a>] |
-                                    <a href="/dataintegration/refreshgithub/?course_code={{ membership.unit.code }}&course_id={{ membership.unit.id }}&urls={{ membership.unit.github_urls|urlencode }}&platform=GitHub">Refresh
+                                {% if membership.unit.github_member_count > 0 %}
+                                    <br/>
+                                    GitHub signed up: {{ membership.unit.github_member_count }} || 
+                                    <a href="/dataintegration/refreshgithub/?course_id={{ membership.unit.id }}&platform=GitHub">Refresh
                                         Imported Data</a>
                                 {% endif %}
                                 <br/>
                                 {% if membership.unit.trello_boards_as_list|length > 0 %}
                                     Trello Boards signed up: {{ membership.unit.trello_boards_as_list|length }} ||
-                                    <a href="/dataintegration/refreshtrello/?course_code={{ membership.unit.code }}&course_id={{ membership.unit.id }}&boards={{ membership.unit.attached_trello_boards|urlencode }}&platform=trello">Refresh
+                                    <a href="/dataintegration/refreshtrello/?course_id={{ membership.unit.id }}&boards={{ membership.unit.attached_trello_boards|urlencode }}&platform=Trello">Refresh
                                         Imported Data</a>
                                     <div id="trello_import_sucess"></div>
+                                {% endif %}
+                                {% if membership.unit.get_cca_dashboard_params != '' %}
+                                    <a href="/dashboard/ccadashboard/?course_id={{ membership.unit.id }}&platform={{ membership.unit.get_cca_dashboard_params }}">CCA Dashboard</a>
                                 {% endif %}
 
                             {% if unit.enable_coi_classifier %}
@@ -158,28 +163,50 @@
                             <a href="{% url 'register' membership.unit.id %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' membership.unit.id %}</a>
                             </p>
                             <a href="{% url 'update_offering' membership.unit.id %}">Update unit offering</a>
+                            <br><br>
+                            Current LRS: {{ membership.unit.lrs_provider.provider }}&nbsp;
+                            <a href="/clatoolkit/updateclientapp?provider_id={{ membership.unit.lrs_provider.id }}">Update LRS</a>
                         {% else %}
                             {% if shownocontentwarning == True %}
                                 <div class="alert alert-warning">
                                     <strong>Note:</strong> Your social media content has not been imported. Imports are
                                     scheduled overnight. Please login and check tomorrow.
+                                    <br>
                                     {% if trello_attached_to_acc %}
                                         <!-- Need to add custom filter to perform this functionality (show user their attach board) TODO:-->
                                         <p>
                                         <hr/>
                                         <h5>Workload Management</h5>
-                                        <div id="{{ membership.unit.code }}" class="trello_board"></div>
+                                        <div id="{{ membership.unit.id }}" class="trello_board"></div>
                                         </p>
                                     {% else %}
+                                        <br>
                                         <a href="/clatoolkit/socialmediaaccounts/">Add Trello to your account to plan
                                             and monitor your workload</a>
+                                    {% endif %}
+                                    {% if github_attached %}
+                                        <p>
+                                            <h5>GitHub Workload Management</h5>
+                                            <span id="{{ membership.unit.id }}" class="getReposList" ></span>
+                                            <a id="get_repo_list{{ membership.unit.id }}" href="#">Attach a GitHub Repository to plan your Work!</a>
+                                            <p id="reposList{{ membership.unit.id }}"></p>
+                                        </p>
+                                    {% else %}
+                                        <p>
+                                            <a href="/clatoolkit/socialmediaaccounts/">Add GitHub to your account to plan
+                                            and monitor your workload</a>
+                                        </p>
                                     {% endif %}
                                 </div>
 
                             {% else %}
                                 <p>
-                                    <a href="/dashboard/mydashboard?course_code={{ membership.unit.code }}&platform=all">Go
+                                    <a href="/dashboard/mydashboard?course_id={{ membership.unit.id }}&platform=all">Go
                                         to My Social Media Dashboard</a><br/>
+                                    <br/>
+                                    {% if membership.unit.get_cca_dashboard_params != '' %}
+                                        <a href="/dashboard/ccadashboard/?course_id={{ membership.unit.id }}&platform={{ membership.unit.get_cca_dashboard_params }}">CCA Dashboard</a>
+                                    {% endif %}
                                     {% if membership.unit.enable_coi_classifier %}
                                         <br/>
                                         {% if unit.code == 'IFN614' %}
@@ -199,11 +226,24 @@
                                     <p>
                                     <hr/>
                                     <h5>Workload Management</h5>
-                                    <div id="{{ membership.unit.code }}" class="trello_board"></div>
+                                    <div id="{{ membership.unit.id }}" class="trello_board"></div>
                                     </p>
                                 {% else %}
                                     <a href="/clatoolkit/socialmediaaccounts/">Add Trello to your account to plan and
                                         monitor your workload</a>
+                                {% endif %}
+                                {% if github_attached %}
+                                    <p>
+                                        <h5>GitHub Workload Management</h5>
+                                        <span id="{{ membership.unit.id }}" class="getReposList" ></span>
+                                        <a id="get_repo_list{{ membership.unit.id }}" href="#">Attach a GitHub Repository to plan your Work!</a>
+                                        <p id="reposList{{ membership.unit.id }}"></p>
+                                    </p>
+                                {% else %}
+                                    <p>
+                                        <a href="/clatoolkit/socialmediaaccounts/">Add GitHub to your account to plan
+                                        and monitor your workload</a>
+                                    </p>
                                 {% endif %}
                             {% endif %}
 
@@ -221,55 +261,6 @@
 
 {% block js_block %}
 {% autoescape off %}
-<script>
-    function get_and_link_board(course_code) {
-        $.ajax({
-            url: "/dashboard/getBoards?key=c908d424dda56c79d373f780a1ae26c7&course_code=" + course_code,
-            type: 'GET',
-            success: function (response) {
-                document.getElementById('trello_board_display').innerHTML = response;
-            }
-        });
-    }
-
-    function add_board(course_code, id) {
-        $.ajax({
-            url: "/dashboard/addboardtocourse?course_code=" + course_code + "&id=" + id,
-            type: 'GET',
-            success: function (response) {
-                document.getElementById('trello_board_display').innerHTML = response;
-            }
-        });
-    }
-    $(document).ready(function (e) {
-        var boards = document.getElementsByClassName("trello_board");
-
-        console.log(boards);
-
-        for (var i = 0; i < boards.length; i++) {
-            boards[i].innerHTML = "Loading trello board...";
-
-            $.ajax({
-                url: "/dashboard/getAttachedBoard?course_code=" + boards[i].id,
-                type: 'GET',
-                success: function (resp) {
-
-                    resp_data = resp.data;
-                    resp_cc = resp.course_code;
-
-                    console.log(resp_cc);
-
-                    document.getElementById(resp_cc).innerHTML = resp_data;
-                }
-            });
-
-        }
-
-
-    });
-    // $('#trello_board_display').hide();
-
-
-</script>
+<script src="{% static 'js/dashboard/myunits.js'%}"></script>
 {% endautoescape %}
 {% endblock %}

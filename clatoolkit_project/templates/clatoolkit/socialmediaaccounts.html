@@ -6,6 +6,7 @@
 {% block heading %}User Profile{% endblock %}
 
 {% block body %}
+<link href="{% static 'css/clatoolkit/common.css'%}" rel="stylesheet">
 <div class="row">
   <div class="col-lg-6">
       <div class="panel panel-info">
@@ -32,7 +33,7 @@
                   {{ profile_form.fb_id }}
                   <p>
 
-                    <a href='/dataintegration/get_social/?context={"platform": "facebook"}' target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
+                    <a href='/dataintegration/get_social/?context={"platform":"Facebook"}' target="_blank">Click here to get your Facebook ID - you will need to be logged into Facebook (opens in new tab)</a>
                   </p>
                 </div>
                 {% if course.code == 'IFN614'  %}
@@ -52,7 +53,9 @@
                   <label for="id_google_account_name">Youtube Channel URL:</label><br />
                   {{ profile_form.google_account_name }}
                   <p>
-                    <a href="/dataintegration/get_youtubechannel" target="_blank">Click here to get your YouTube Channel ID - you will need to be logged into YouTube (opens in new tab)</a>
+                    <!-- <a href="/dataintegration/get_youtubechannel" target="_blank">Click here to get your YouTube Channel ID - you will need to be logged into YouTube (opens in new tab)</a> -->
+                     <a id="youtube_auth_link" href="#" onclick="javascript:getYouTubeUserChannelURL();" target="_blank">Click here to get your YouTube Channel ID - you will need to be logged into YouTube (opens in new tab)</a>
+                     <p id="youtube_channel_url_msg" class="auth-msg"></p>
                   </p>
                 </div>
                 <div class="form-group">
@@ -69,11 +72,12 @@
                   <p class="help-block">{{ profile_form.github_account_name.errors }}</p>
                   <label for="id_github_account_name">GitHub Account:</label><br />
                   {{ profile_form.github_account_name }}
+                  <a id="github_auth_link" href="#" onclick="javascript:getGitHubUserID();" target="_blank">Click here to link your GitHub profile</a>
+                  <p id="github-auth-msg" class="github-auth-msg"></p>
                 </div>
-
                 <div class="form-group">
                   <p class="help-block">{{ profile_form.trello_account_name.errors }}</p>
-                  <label for="id_github_account_name">Trello Account:</label><br />
+                  <label for="id_trello_account_name">Trello Account:</label><br />
                   {{ profile_form.trello_account_name }}
 
                     <p>
@@ -126,40 +130,37 @@
 
 {% block js_block %}
 {% autoescape off %}
-
-    <script src="https://trello.com/1/client.js?key=c908d424dda56c79d373f780a1ae26c7"></script>
-    <script>
-
-
+<script src="https://trello.com/1/client.js?key={{ trello_api_key }}"></script>
+<script>
     function get_and_link_trello() {
-        var key = "c908d424dda56c79d373f780a1ae26c7";
-
-        Trello.authorize({
-            type: "popup",
-            expiration: "never",
-            name: "CLAToolkit",
-            persist: "true",
-            success: function() {
-                $.ajax({
-                url: "/dataintegration/process_trello/?token="+Trello.token()+"&key="+key,
-                type: 'GET',
-                success: function(response) {
-                    $('#id_trello_account_name').val(response)
-                }
-                });
-
-                var o = document.getElementById('trellolink');
-                o.innerHTML = "Trello account linked!";
-
-                //id_trello_account_name
-
-            },
-            error: function() {  console.log('Trello Auth failed.'); },
-            scope: { read: true, write: true },
-        });
-
+      Trello.authorize({
+        type: "popup",
+        expiration: "never",
+        name: "CLAToolkit",
+        persist: "true",
+        success: function() {
+          $.ajax({
+            url: "/dataintegration/process_trello/?token="+Trello.token(),
+            type: 'GET',
+            success: function(response) {
+              $('#id_trello_account_name').val(response);
+              var o = document.getElementById('trellolink');
+              o.innerHTML = "Trello account linked!";
+            }
+          });
+        },
+        error: function() {  console.log('Trello Auth failed.'); },
+        scope: { read: true, write: true },
+      });
     }
 
+    function getGitHubUserID() {
+      window.open('/dataintegration/github_auth', 'github_auth_window', 'menubar=no, resizable=yes, toolbar=no, scrollbars=yes');
+    }
+
+    function getYouTubeUserChannelURL() {
+      window.open('/dataintegration/get_youtubechannel', 'youtube_auth_window', 'menubar=no, resizable=yes, toolbar=no, scrollbars=yes');
+    }
 
     </script>
 

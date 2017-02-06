@@ -1,0 +1,44 @@
+.no-token {
+	font-weight:bold;
+}
+
+.no-trello-id {
+	color: #ff0000;
+}
+.repo_list {
+	list-style-type:none;
+	padding: 10px;
+	padding-top: 0px;
+}
+.github_avatar {
+	width: 25px;
+	height: 25px;
+}
+.github_owner_span {
+	font-size: 12px;
+}
+.repo_icon {
+	content:url('/static/img/github/repo.svg');
+	padding-right: 5px;
+	width: 18px;
+}
+.repo_list li {
+	/*!
+	 * repo.png is lisenced under the SIL Open Font License 1.1
+	 * by https://octicons.github.com/
+	 */
+	background:url(/static/img/github/repo.svg) left no-repeat;
+	text-indent:18px;
+	padding: 3px;
+	background-size: 18px;
+}
+.jump_to_repo {
+	/*!
+	 * link-external.png is lisenced under the SIL Open Font License 1.1
+	 * by https://octicons.github.com/
+	 */
+	content:url('/static/img/github/link-external.svg');
+	text-indent:18px;
+	padding: 3px;
+	background-size: 12px;
+}
