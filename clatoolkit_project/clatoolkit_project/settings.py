@@ -15,11 +15,6 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# .env file has to be loaded in settings.py so that the toolkit will run properly on Nector server.
-# (manage.py won't be executed in environment where .wsgi file is used.)
-import dotenv
-dotenv.read_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"))
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
@@ -70,7 +65,8 @@ INSTALLED_APPS = (
     'clatoolkit',
     'dataintegration',
     'dashboard',
-    'common'
+    #'common',
+    'xapi'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -187,7 +183,14 @@ LOGIN_URL = "/"
 #MEDIA_ROOT = os.path.join(BASE_DIR, 'static')
 #MEDIA_URL = '/static/'
 
-#####################################################
+####################################################
+######## Lead System-Wide constants/configs
+###################################################
+#from clatoolkit_project.xapi.statement import xapi_settings
+
+#xapi_settings = xapi_settings
+
+###################################################
 ######### Load Social Media Data Integration plugins
 #####################################################
 
@@ -198,7 +201,7 @@ sys.path.append(DI_PATH)
 PLUGIN_PATH = os.path.join(DI_PATH,'plugins')
 pluginModules = [name for _, name, _ in pkgutil.iter_modules([PLUGIN_PATH])]
 from dataintegration.core.plugins.loader import load_dataintegration_plugins
-from dataintegration.core.plugins.registry import get_includeindashboardwidgets, get_plugins, get_includeindashboardwidgets_verbs, get_includeindashboardwidgets_platforms, get_includeauthomaticplugins_platforms
+from dataintegration.core.plugins.registry import get_plugins, get_includeindashboardwidgets_verbs, get_includeindashboardwidgets_platforms, get_includeauthomaticplugins_platforms
 load_dataintegration_plugins(pluginModules)
 
 DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_VERBS = get_includeindashboardwidgets_verbs()

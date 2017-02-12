@@ -20,7 +20,7 @@
                 Please get students to visit the link below to register for your unit on the CLAToolkit.
                 <br>
                 <br>
-                <a href="{% url 'register' course_code=unit.code %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' course_code=unit.code %}</a>
+                <a href="{% url 'register' unit.id %}">{% if request.is_secure %}https{% else %}http{% endif %}://{{ request.META.HTTP_HOST }}{% url 'register' unit.id %}</a>
                 <br>
                 <br>
                 <a href="/dashboard/myunits">Done</a>

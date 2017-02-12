@@ -1,7 +1,9 @@
 from dataintegration.core.plugins import registry
 from dataintegration.core.plugins.base import DIBasePlugin, DIPluginDashboardMixin
-from dataintegration.core.socialmediarecipebuilder import *
-from dataintegration.core.recipepermissions import *
+
+from dataintegration.core.di_utils import * #Formerly dataintegration.core.recipepermissions
+from xapi.statement.builder import * #Formerly dataintegration.core.socialmediabuilder
+
 import json
 import dateutil.parser
 import os

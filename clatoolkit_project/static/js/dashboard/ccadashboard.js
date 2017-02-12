@@ -1154,28 +1154,6 @@ CLAPieChartOptions.calculateChartAreaWidth = function(categories) {
 };
 
 
-$(document).ready(function(){
-	Common.initialise();
-	// Draw the navigator
-	var url = "/dashboard/api/get_platform_timeseries_data/?course_code=" + course_code + "&platform=" + platform;
-	var navChart = new CLANavigatorChart("chartNavigator", url);
-	url = "/dashboard/api/get_platform_activities/?course_code=" + course_code + "&platform=" + platform;
-	var barChart = new CLABarChart("activityColumn", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NORMAL, url);
-	var pieChart = new CLAPieChart("activityPie", CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE, url);
-	Common.saveChartObject(barChart);
-	Common.saveChartObject(pieChart);
-	barChart.draw();
-	pieChart.draw();
-	navChart.draw();
-
-	if(platform.indexOf('GitHub') != -1) {
-		url = "/dashboard/api/get_github_contribution/?course_code=" + course_code
-		var contribBar = new CLABarChart("contribution", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NONE, url);
-		contribBar.drawContribution();
-	}
-});
-
-
 CLABarChart.prototype.drawContribution = function() {
 	var self = this;
 	$.ajax({
@@ -1208,24 +1186,32 @@ CLABarChart.prototype.initializeContribution = function(data) {
 };
 
 CLABarChart.prototype.createContributionChartData = function(data) {
-	var assigned_issues = data["assigned_issues"];
+	var assigned_users = data["assigned_users"];
 	var categories = [];
 	var openIssueData = [];
 	var closeIssueData = [];
-	for(key in assigned_issues) {
-		details = assigned_issues[key];
-		categories.push(details["assignee"]);
+
+	for(userName in assigned_users) {
+		userIssues = assigned_users[userName];
+		categories.push(userName);
+
 		var openIssueCount = 0;
 		var closeIssueCount = 0;
-		for(issueKey in details["issues"]) {
-			issue = details["issues"][issueKey];
-			if(issue["status"] == "opened") {
-				openIssueCount++;
-			} else {
-				closeIssueCount++;
+
+		var i = userIssues.length;
+		var issue = null;
+		do {
+			issue = userIssues[i];
+			for (var key in issue) {
+				if(issue[key] == "opened") {
+					openIssueCount++;
+				} else {
+					closeIssueCount++;
+				}
 			}
-		}
-		// Adding data...
+		} while (i--);
+
+		// Adding data
 		openIssueData.push(openIssueCount);
 		closeIssueData.push(closeIssueCount);
 	}
@@ -1245,3 +1231,25 @@ CLABarChart.prototype.createContributionChartData = function(data) {
 
 	return { "categories": categories, "series": series };
 };
+
+
+$(document).ready(function(){
+	Common.initialise();
+	// Draw the navigator
+	var url = "/dashboard/api/get_platform_timeseries_data/?course_id=" + course_id + "&platform=" + platform;
+	var navChart = new CLANavigatorChart("chartNavigator", url);
+	url = "/dashboard/api/get_platform_activities/?course_id=" + course_id + "&platform=" + platform;
+	var barChart = new CLABarChart("activityColumn", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NORMAL, url);
+	var pieChart = new CLAPieChart("activityPie", CLAPieChartOptions.CHART_TYPE_DOUBLE_PIE, url);
+	Common.saveChartObject(barChart);
+	Common.saveChartObject(pieChart);
+	barChart.draw();
+	pieChart.draw();
+	navChart.draw();
+
+	if(platform.indexOf('GitHub') != -1) {
+		url = "/dashboard/api/get_github_contribution/?course_id=" + course_id
+		var contribBar = new CLABarChart("contribution", CLABarChartOptions.CHART_TYPE_COLUMN, CLABarChartOptions.STACK_TYPE_NONE, url);
+		contribBar.drawContribution();
+	}
+});

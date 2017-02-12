@@ -1,18 +1,31 @@
 from dataintegration.core.plugins import registry
 from dataintegration.core.plugins.base import DIBasePlugin, DIPluginDashboardMixin
+<<<<<<< HEAD
 from dataintegration.core.socialmediarecipebuilder import *
 from dataintegration.core.recipepermissions import *
+=======
+#from dataintegration.core.socialmediarecipebuilder import *
+#from dataintegration.core.recipepermissions import *
+
+from dataintegration.core.importer import *
+from dataintegration.core.di_utils import * #Formerly dataintegration.core.recipepermissions
+from xapi.statement.builder import * #Formerly dataintegration.core.socialmediabuilder
+
+>>>>>>> upstream_master
 import dateutil.parser
 from twython import Twython
 import os
+from xapi.statement.xapi_settings import xapi_settings
+
 
 class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
-    platform = "Twitter"
-    platform_url = "http://www.twitter.com/"
+    platform = xapi_settings.PLATFORM_TWITTER
+    platform_url = "https://twitter.com/"
 
-    xapi_verbs = ['created', 'shared', 'liked', 'commented']
-    xapi_objects = ['Note']
+    xapi_verbs = [xapi_settings.VERB_CREATED, xapi_settings.VERB_SHARED, 
+                  xapi_settings.VERB_LIKED, xapi_settings.VERB_COMMENTED]
+    xapi_objects = [xapi_settings.OBJECT_NOTE]
 
     user_api_association_name = 'Twitter Username' # eg the username for a signed up user that will appear in data extracted via a social API
     unit_api_association_name = 'Hashtags' # eg hashtags or a group name
@@ -20,13 +33,14 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
     config_json_keys = ['app_key', 'app_secret', 'oauth_token', 'oauth_token_secret']
 
     #from DIPluginDashboardMixin
-    xapi_objects_to_includein_platformactivitywidget = ['Note']
-    xapi_verbs_to_includein_verbactivitywidget = ['created', 'shared', 'liked', 'commented']
+    xapi_objects_to_includein_platformactivitywidget = [xapi_settings.OBJECT_NOTE]
+    xapi_verbs_to_includein_verbactivitywidget = [xapi_settings.VERB_CREATED, xapi_settings.VERB_SHARED, 
+                                                  xapi_settings.VERB_LIKED, xapi_settings.VERB_COMMENTED]
 
     def __init__(self):
         pass
 
-    def perform_import(self, retrieval_param, course_code):
+    def perform_import(self, retrieval_param, unit):
 
         # Setup Twitter API Keys
         app_key = os.environ.get("TWITTER_APP_KEY")
@@ -41,18 +55,18 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
         results = None
         while True:
             try:
-                if count==0:
-                    results = twitter.search(q=retrieval_param,count=100, result_type='mixed')
+                if count == 0:
+                    results = twitter.search(q=retrieval_param,count=100, result_type='recent')
                 else:
-                    results = twitter.search(q=retrieval_param,count=100,max_id=next_max_id, result_type='mixed')
+                    results = twitter.search(q=retrieval_param,count=100,max_id=next_max_id, result_type='recent')
 
                 for tweet in results['statuses']:
-                    self.insert_tweet(tweet, course_code)
+                    self.insert_tweet(tweet, unit)
 
                 if 'next_results' not in results['search_metadata']:
                         break
                 else:
-                    next_results_url_params    = results['search_metadata']['next_results']
+                    next_results_url_params = results['search_metadata']['next_results']
                     next_max_id = next_results_url_params.split('max_id=')[1].split('&')[0]
                 count += 1
             except KeyError:
@@ -60,7 +74,7 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     # loop and end the script.
                     break
 
-    def insert_tweet(self, tweet, course_code):
+    def insert_tweet(self, tweet, unit):
         message = tweet['text']
         timestamp = dateutil.parser.parse(tweet['created_at'])
         username = tweet['user']['screen_name']
@@ -86,14 +100,25 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
         for usermention in atmentions:
             mention = "@" + str(usermention['screen_name'])
             tags.append(mention)
-        #print post_id
-        #print twitterusername_exists(username, course_code)
-        if username_exists(username, course_code, self.platform):
-            usr_dict = get_userdetails(username, self.platform)
+
+        if username_exists(username, unit, self.platform):
+            user = get_user_from_screen_name(username, self.platform)
             if retweeted:
-                insert_share(usr_dict, post_id, retweeted_id, message,username,fullname, timestamp, course_code, self.platform, self.platform_url, tags=tags, shared_username=retweeted_username)
+                if username_exists(retweeted_username, unit, self.platform):
+                    parent_user = get_user_from_screen_name(retweeted_username, self.platform)
+                    insert_share(user, post_id, retweeted_id, message, timestamp, unit, self.platform, self.platform_url, tags=tags, parent_user=parent_user)
+                else:
+                    insert_share(user, post_id, retweeted_id, message, timestamp, unit, self.platform, self.platform_url, tags=tags, parent_external_user=retweeted_username)
             else:
-                insert_post(usr_dict, post_id,message,fullname,username, timestamp, course_code, self.platform, self.platform_url, tags=tags)
+                insert_post(user, post_id, message, timestamp, unit, self.platform, self.platform_url, tags=tags)
+
+
+    def get_verbs(self):
+        return self.xapi_verbs
+            
+    def get_objects(self):
+        return self.xapi_objects
+
 
 
     def get_verbs(self):

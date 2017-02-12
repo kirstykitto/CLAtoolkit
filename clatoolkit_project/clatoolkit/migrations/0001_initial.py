@@ -10,6 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ('xapi', '0001_initial'),
     ]
 
     operations = [
@@ -36,7 +37,6 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('htmltable', models.TextField()),
                 ('activitytable', models.TextField(blank=True)),
-                ('course_code', models.CharField(max_length=5000)),
                 ('platform', models.CharField(max_length=5000)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
             ],
@@ -54,10 +54,10 @@ class Migration(migrations.Migration):
             name='DashboardReflection',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('username', models.CharField(max_length=5000)),
                 ('strategy', models.TextField()),
                 ('rating', models.CharField(default=b'Satisfied', max_length=50, choices=[(b'Happy', b'Happy'), (b'Satisfied', b'Satisfied'), (b'Unhappy', b'Unhappy')])),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -73,18 +73,12 @@ class Migration(migrations.Migration):
             name='LearningRecord',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('xapi', django_pgjson.fields.JsonField()),
-                ('course_code', models.CharField(max_length=5000)),
-                ('platform', models.CharField(max_length=5000)),
-                ('verb', models.CharField(max_length=5000)),
-                ('username', models.CharField(max_length=5000, blank=True)),
+                ('statement_id', models.CharField(max_length=256)),
                 ('platformid', models.CharField(max_length=5000, blank=True)),
+                ('verb', models.CharField(max_length=50)),
+                ('platform', models.CharField(max_length=100)),
                 ('platformparentid', models.CharField(max_length=5000, blank=True)),
-                ('parentusername', models.CharField(max_length=5000, blank=True)),
-                ('parentdisplayname', models.CharField(max_length=5000, blank=True)),
-                ('message', models.TextField(blank=True)),
-                ('datetimestamp', models.DateTimeField(null=True, blank=True)),
-                ('senttolrs', models.CharField(max_length=5000, blank=True)),
+                ('parent_user', models.ForeignKey(related_name='parent_user', to=settings.AUTH_USER_MODEL, null=True)),
             ],
         ),
         migrations.CreateModel(
@@ -93,7 +87,6 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('googleid', models.CharField(max_length=1000)),
                 ('platform', models.CharField(max_length=1000, blank=True)),
-                ('course_code', models.CharField(max_length=1000, blank=True)),
                 ('transferdata', models.CharField(max_length=1000, blank=True)),
             ],
         ),
@@ -110,14 +103,14 @@ class Migration(migrations.Migration):
             name='SocialRelationship',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('course_code', models.CharField(max_length=5000)),
                 ('platform', models.CharField(max_length=5000)),
                 ('verb', models.CharField(max_length=5000)),
-                ('fromusername', models.CharField(max_length=5000, blank=True)),
-                ('tousername', models.CharField(max_length=5000, blank=True)),
+                ('to_external_user', models.CharField(max_length=5000, null=True, blank=True)),
                 ('platformid', models.CharField(max_length=5000, blank=True)),
                 ('message', models.TextField()),
                 ('datetimestamp', models.DateTimeField(blank=True)),
+                ('from_user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('to_user', models.ForeignKey(related_name='to_user', to=settings.AUTH_USER_MODEL, null=True)),
             ],
         ),
         migrations.CreateModel(
@@ -142,9 +135,7 @@ class Migration(migrations.Migration):
                 ('github_urls', models.TextField(verbose_name=b'GitHub Repos', blank=True)),
                 ('attached_trello_boards', models.TextField(verbose_name=b'Trello Boards', blank=True)),
                 ('coi_platforms', models.TextField(blank=True)),
-                ('ll_endpoint', models.CharField(max_length=60, blank=True)),
-                ('ll_username', models.CharField(max_length=60, blank=True)),
-                ('ll_password', models.CharField(max_length=60, blank=True)),
+                ('lrs_provider', models.ForeignKey(to='xapi.ClientApp')),
             ],
         ),
         migrations.CreateModel(
@@ -171,6 +162,16 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
+            name='UserPlatformResourceMap',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('resource_id', models.CharField(max_length=5000)),
+                ('platform', models.CharField(max_length=100)),
+                ('unit', models.ForeignKey(to='clatoolkit.UnitOffering')),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+            ],
+        ),
+        migrations.CreateModel(
             name='UserProfile',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
@@ -186,24 +187,44 @@ class Migration(migrations.Migration):
                 ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
             ],
         ),
-        migrations.CreateModel(
-            name='UserPlatformResourceMap',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('resource_id', models.CharField(max_length=5000)),
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
-                ('unit', models.ForeignKey(to='clatoolkit.UnitOffering')),
-                ('platform', models.CharField(max_length=100)),
-            ],
-        ),
         migrations.AddField(
             model_name='unitoffering',
             name='users',
             field=models.ManyToManyField(related_name='usersinunitoffering', through='clatoolkit.UnitOfferingMembership', to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
+            model_name='socialrelationship',
+            name='unit',
+            field=models.ForeignKey(to='clatoolkit.UnitOffering'),
+        ),
+        migrations.AddField(
+            model_name='oauthflowtemp',
+            name='unit',
+            field=models.ForeignKey(to='clatoolkit.UnitOffering'),
+        ),
+        migrations.AddField(
+            model_name='oauthflowtemp',
+            name='user',
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
+        ),
+        migrations.AddField(
+            model_name='learningrecord',
+            name='unit',
+            field=models.ForeignKey(to='clatoolkit.UnitOffering'),
+        ),
+        migrations.AddField(
+            model_name='learningrecord',
+            name='user',
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
+        ),
+        migrations.AddField(
             model_name='classification',
             name='xapistatement',
             field=models.ForeignKey(to='clatoolkit.LearningRecord'),
+        ),
+        migrations.AddField(
+            model_name='cachedcontent',
+            name='unit',
+            field=models.ForeignKey(to='clatoolkit.UnitOffering'),
         ),
     ]
