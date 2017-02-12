@@ -1,0 +1,64 @@
+{% extends "clatoolkit/base_clatoolkit.html" %}
+{% load static %}
+{% load field_type %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block heading %}{% endblock %}
+
+{% block body %}
+<div class="row">
+    <div class="col-md-6 col-md-offset-3">
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                {{ verb }} Client Application
+            </div>
+            <div class="panel-body">
+            {% if registered %}
+                <h4> Client application has been {{ verb }}.</h4>
+                <a href="/dashboard/myunits/">Go back to dashboard</a>
+            {% else %}
+                <form role="form" id="user_form" method="post">
+                    {% csrf_token %}
+                    <div class="form-errors">
+                        {% for field in form %}
+                            {% if field.errors %}
+                                {% for error in field.errors %}
+                                    <li><strong>{{ field.name }}: {{ error|escape }}</strong></li>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% for field in form %}
+                        <div class="form-group">
+                            {% if field.name == 'provider' and field.value %}
+                                {{ field.label_tag }}
+                                <br>
+                                <input class="form-control" id="id_provider" name="provider" type="text" value="{{ field.value }}" readonly>
+                            {% else %}
+                                {{ field.label_tag }}
+                                <br>
+                                {{ field }}
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <button type="submit" class="btn btn-primary btn-lg btn-block">{{ verb }} Client App</button>
+                </form>
+            {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    div .form_control {
+        line-height: 3;
+        font-weight: bold;
+    }
+</style>
+{% autoescape off %}
+
+{% endautoescape %}
+{% endblock %}
+
