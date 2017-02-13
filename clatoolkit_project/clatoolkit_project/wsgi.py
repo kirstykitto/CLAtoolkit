@@ -11,9 +11,6 @@ import os
 import dotenv
 
 from django.core.wsgi import get_wsgi_application
-# .env file has to be loaded in settings.py so that the toolkit will run properly on Nector server.
-# (manage.py won't be executed in environment where .wsgi file is used.)
-#dotenv.read_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env'))
 
 dotenv.read_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env'))
 
