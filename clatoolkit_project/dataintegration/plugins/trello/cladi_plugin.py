@@ -18,46 +18,27 @@ from trello import TrelloClient
 #OAuth for trello
 from requests_oauthlib import OAuth1Session
 from common.ClaUserUtil import ClaUserUtil
-<<<<<<< HEAD
-from common.CLRecipe import CLRecipe
-=======
->>>>>>> upstream_master
 
 
 class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
-<<<<<<< HEAD
-    platform = "Trello"
-    platform_url = "http://www.trello.com/"
-=======
     platform = xapi_settings.PLATFORM_TRELLO
     platform_url = "https://trello.com"
->>>>>>> upstream_master
 
     #created for "create" actions
     #added for "add" actions
     #updated for "update" actions
     #commented for card "comment" actions
     # xapi_verbs = ['created', 'added', 'updated', 'commented', 'closed', 'opened']
-<<<<<<< HEAD
-    xapi_verbs = [CLRecipe.VERB_CREATED, CLRecipe.VERB_ADDED, CLRecipe.VERB_UPDATED, 
-                CLRecipe.VERB_COMMENTED, CLRecipe.VERB_CLOSED, CLRecipe.VERB_OPENED]
-=======
     xapi_verbs = [xapi_settings.VERB_CREATED, xapi_settings.VERB_ADDED, xapi_settings.VERB_UPDATED, 
                 xapi_settings.VERB_COMMENTED, xapi_settings.VERB_CLOSED, xapi_settings.VERB_OPENED]
->>>>>>> upstream_master
 
     #Note for "commented" actions
     #Task for "created", "added", "updated", and "commented" actions
     #Collection for any "created", "added", "updated" List actions (tentative use)
     # xapi_objects = ['Note', 'Task', 'Collection', 'Person', 'File', 'checklist-item', 'checklist']
-<<<<<<< HEAD
-    xapi_objects = [CLRecipe.OBJECT_NOTE, CLRecipe.OBJECT_TASK, CLRecipe.OBJECT_COLLECTION, 
-                    CLRecipe.OBJECT_PERSON, CLRecipe.OBJECT_FILE, CLRecipe.OBJECT_CHECKLIST_ITEM, CLRecipe.OBJECT_CHECKLIST]
-=======
     xapi_objects = [xapi_settings.OBJECT_NOTE, xapi_settings.OBJECT_TASK, xapi_settings.OBJECT_COLLECTION, 
                     xapi_settings.OBJECT_PERSON, xapi_settings.OBJECT_FILE, xapi_settings.OBJECT_CHECKLIST_ITEM, xapi_settings.OBJECT_CHECKLIST]
->>>>>>> upstream_master
 
     user_api_association_name = 'Trello UID' # eg the username for a signed up user that will appear in data extracted via a social API
     unit_api_association_name = 'Board ID' # eg hashtags or a group name
@@ -65,15 +46,9 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     config_json_keys = ['consumer_key', 'consumer_secret']
 
     #from DIPluginDashboardMixin
-<<<<<<< HEAD
-    xapi_objects_to_includein_platformactivitywidget = [CLRecipe.OBJECT_NOTE]
-    xapi_verbs_to_includein_verbactivitywidget = [CLRecipe.VERB_CREATED, CLRecipe.VERB_SHARED, 
-                                                CLRecipe.VERB_LIKED, CLRecipe.VERB_COMMENTED]
-=======
     xapi_objects_to_includein_platformactivitywidget = [xapi_settings.OBJECT_NOTE]
     xapi_verbs_to_includein_verbactivitywidget = [xapi_settings.VERB_CREATED, xapi_settings.VERB_SHARED, 
                                                 xapi_settings.VERB_LIKED, xapi_settings.VERB_COMMENTED]
->>>>>>> upstream_master
 
     #for OAuth1 authentication
     token_request_url = ''
@@ -93,21 +68,12 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
     ACTION_TYPE_OPEN_CARD = 'openCard'
 
     VERB_OBJECT_MAPPER = {
-<<<<<<< HEAD
-        CLRecipe.VERB_CREATED: [ACTION_TYPE_CREATE_CARD],
-        CLRecipe.VERB_ADDED: [ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, ACTION_TYPE_ADD_CHECKLIST_TO_CARD, ACTION_TYPE_ADD_MEMBER_TO_CARD],
-        CLRecipe.VERB_UPDATED: [ACTION_TYPE_MOVE_CARD, ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD],
-        CLRecipe.VERB_COMMENTED: [ACTION_TYPE_COMMENT_CARD],
-        CLRecipe.VERB_CLOSED: [ACTION_TYPE_CLOSE_CARD],
-        CLRecipe.VERB_OPENED: [ACTION_TYPE_OPEN_CARD]
-=======
         xapi_settings.VERB_CREATED: [ACTION_TYPE_CREATE_CARD],
         xapi_settings.VERB_ADDED: [ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, ACTION_TYPE_ADD_CHECKLIST_TO_CARD, ACTION_TYPE_ADD_MEMBER_TO_CARD],
         xapi_settings.VERB_UPDATED: [ACTION_TYPE_MOVE_CARD, ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD],
         xapi_settings.VERB_COMMENTED: [ACTION_TYPE_COMMENT_CARD],
         xapi_settings.VERB_CLOSED: [ACTION_TYPE_CLOSE_CARD],
         xapi_settings.VERB_OPENED: [ACTION_TYPE_OPEN_CARD]
->>>>>>> upstream_master
     }
 
     SEPARATOR_COLON = ": "
@@ -130,21 +96,12 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         #Get boards activity/action feed
         trello_board.fetch_actions('all') #fetch_actions() collects actions feed and stores to trello_board.actions
-<<<<<<< HEAD
-        self.import_TrelloActivity(trello_board.actions, course_code)
-=======
         self.import_TrelloActivity(trello_board.actions, unit)
 
->>>>>>> upstream_master
 
     def import_TrelloActivity(self, feed, unit):
         #User needs to sign up username and board (board can be left out but is needed)
-<<<<<<< HEAD
-        #TODO: RP
-        print 'Beginning trello import!'
-=======
         print 'Beginning Trello import!'
->>>>>>> upstream_master
 
         for action in list(feed):
             #We need to connect this with our user profile somewhere when they initially auth
@@ -159,110 +116,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
             #Get all 'commented' verb actions
             if (type == self.ACTION_TYPE_COMMENT_CARD):
-<<<<<<< HEAD
-                #do stuff
-                target_obj_id = data['card']['id']
-                #date
-                comment_from_uid = u_id
-                comment_from_name = author
-                comment_message = data['text']
-                comment_id = action['id']
-                card_name = data['card']['name']
-                
-                if username_exists(comment_from_uid, course_code, self.platform.lower()):
-                    # Create "other" contextActivity object to store original activity in xAPI
-                    card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id'])
-                    usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
-                    insert_comment(usr_dict, target_obj_id, comment_id,
-                                   comment_message, comment_from_uid,
-                                   comment_from_name, date, course_code,
-                                   self.platform, self.platform_url,
-                                   shared_username = card_name, shared_displayname = card_name,
-                                   parent_name = data['card']['name'])
-
-                    # print 'Inserted comment!'
-
-            #print 'is action card creation? %s' % (type == 'createCard')
-            #Get all 'create' verb actions
-            if (type == self.ACTION_TYPE_CREATE_CARD):
-                action_id = action['id']
-                card_name = data['card']['name']
-
-                if username_exists(u_id, course_code, self.platform.lower()):
-                    # Create "other" contextActivity object to store original activity in xAPI
-                    card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id'])
-                    usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
-
-                    insert_task(usr_dict, action_id, card_name, u_id, author, date,
-                                course_code, self.platform, self.platform_url, 
-                                parent_id = data['list']['id'], parent_name = data['list']['name'], 
-                                parent_object_type = CLRecipe.OBJECT_COLLECTION)
-
-                    #TODO: RP
-                    # print 'Inserted created card!'
-
-            #Get all 'add' verbs (you tecnically aren't *creating* an attachment on
-            #a card so....)
-            #print 'is action an add event? %s' % (type in
-            #    ['addAttachmentToCard', 'addMemberToBoard',
-            #     'emailCard', 'addChecklistToCard'
-            #     , 'addMemberToCard'])
-            if (type in [self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD, 
-                        self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD, 
-                        self.ACTION_TYPE_ADD_MEMBER_TO_CARD]):
-
-                # Get user details from Util class
-                usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
-                
-                # Create "other" contextActivity object to store original activity in xAPI
-                other_context_list = []
-                card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id'])
-
-                if type == self.ACTION_TYPE_ADD_ATTACHMENT_TO_CARD and usr_dict is not None:
-
-                    target_id = data['card']['id']
-                    attachment = data['attachment']
-                    attachment_id = action['id']
-                    attachment_data = attachment['name']
-                    object_type = CLRecipe.OBJECT_FILE
-                    shared_displayname = '%sc/%s' % (self.platform_url, target_id)
-                    
-                    # Extensions
-                    extensions = get_file_extensions(url = attachment['url'])
-                    insert_added_object(usr_dict, target_id, attachment_id, attachment_data,
-                                        u_id, author, date, course_code, self.platform, self.platform_url,
-                                        object_type, shared_displayname=shared_displayname,
-                                        parent_name = data['card']['name'], extensions = extensions)
-
-                    #TODO: RP
-                    # print 'Added attachment!'
-
-                if type == self.ACTION_TYPE_ADD_MEMBER_TO_CARD and usr_dict is not None: #or 'addMemberToBoard':
-
-                    target_id = data['card']['id']
-                    object_id = action['id']
-                    object_data = action['member']['username']
-                    object_type = CLRecipe.OBJECT_PERSON
-                    shared_displayname = '%sc/%s' % (self.platform_url, target_id)
-
-                    insert_added_object(usr_dict, target_id, object_id, object_data, u_id, author, date,
-                                        course_code, self.platform, self.platform_url, object_type,
-                                        shared_displayname = shared_displayname, parent_name = data['card']['name'])
-
-                    # Put the card name in other context
-
-                    #TODO: RP
-                    # print 'Added add member to card!'
-
-                if type == self.ACTION_TYPE_ADD_CHECKLIST_TO_CARD and usr_dict is not None:
-
-                    target_id = data['card']['id']
-                    object_id = action['id']
-                    object_data = None
-                    checklist_items = None
-                    object_type = CLRecipe.OBJECT_COLLECTION
-                    shared_displayname = '%sc/%s' % (self.platform_url, target_id)
-=======
                 target_obj_id = self.create_card_url(data)
                 comment_from_uid = u_id
                 comment_from_name = author
@@ -367,7 +220,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     checklist_items = None
                     object_type = xapi_settings.OBJECT_COLLECTION
                     parent_user_external = '%sc/%s' % (self.platform_url, card_url)
->>>>>>> upstream_master
 
                     #get checklist contents
                     try:
@@ -375,48 +227,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         checklist_items = checklist['checkItems']
                     except Exception:
                         print 'Could not retrieve checklist..'
-<<<<<<< HEAD
-
-                    object_data = data['checklist']['name']
-                    def_type = CLRecipe.get_object_iri(CLRecipe.OBJECT_CHECKLIST_ITEM)
-                    ext_items = []
-                    for item in checklist_items:
-                        ext_items.append(get_object_extension_dict(
-                            def_type = def_type, obj_id = item['id'], obj_name = item['name']))
-
-                    # Extensions
-                    extensions = get_collection_extensions(ext_items)
-                    insert_added_object(usr_dict, target_id, object_id, object_data, u_id, author, date,
-                                        course_code, self.platform, self.platform_url, object_type,
-                                        shared_displayname=shared_displayname,
-                                        parent_name = data['card']['name'], extensions = extensions)
-
-                    #TODO: RP
-                    # print 'added add checklist to card!'
-
-            #print 'is action type an update? %s' % (type in
-            #    ['updateCheckItemStateOnCard', 'updateBoard',
-            #     'updateCard', 'updateCheckList',
-            #     'updateList', 'updateMember'])
-            #Get all 'updated' verbs
-            if (type in [self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD, self.ACTION_TYPE_UPDATE_CARD]):
-                usr_dict = ClaUserUtil.get_user_details_by_smid(u_id, self.platform)
-                card_details = self.TrelloCient.fetch_json('/cards/' + data['card']['id']);
-                #many checklist items will be bugged - we require webhooks!
-
-                if type == self.ACTION_TYPE_UPDATE_CHECKITEM_STATE_ON_CARD and usr_dict is not None:
-                    # Import check item ID & its state
-                    obj_val = data['checkItem']['state']
-                    insert_updated_object(usr_dict, action['id'], obj_val,
-                                          u_id, author, date, course_code,
-                                          self.platform, self.platform_url,
-                                          CLRecipe.OBJECT_CHECKLIST_ITEM, 
-                                          obj_parent = data['checklist']['id'],
-                                          obj_parent_type = CLRecipe.OBJECT_CHECKLIST,
-                                          parent_name = data['checkItem']['name'])
-                    #TODO: RP
-                    # print 'add update checklist!'
-=======
                         continue
 
                     object_data = data['checklist']['name']
@@ -463,7 +273,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                           obj_parent_type = xapi_settings.OBJECT_CHECKLIST,
                                           other_contexts = other_context_list)
 
->>>>>>> upstream_master
 
                 #up to us to figure out what's being updated
                 if type == self.ACTION_TYPE_UPDATE_CARD:
@@ -475,27 +284,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     except Exception:
                        print 'Error occurred getting changes...'
 
-<<<<<<< HEAD
-                    #TODO: Remove Print
-                    # print 'got changes: %s' % (change)
-                    if change[0] == 'pos':
-                        # When user moves card within the list (changed order)
-                        object_text = data['card']['name']
-                        # Extensions
-                        extensions = get_move_extensions(
-                            data['card']['id'], data['card']['name'], CLRecipe.OBJECT_TASK, 
-                            data['card']['id'], data['card']['name'], CLRecipe.OBJECT_TASK, 
-                            old_pos = str(data['old']['pos']), new_pos = str(data['card']['pos']))
-                        insert_updated_object(usr_dict, action['id'],
-                                              object_text, u_id, author, date, course_code,
-                                              self.platform, self.platform_url,
-                                              CLRecipe.OBJECT_TASK, obj_parent=data['list']['id'],
-                                              obj_parent_type = CLRecipe.OBJECT_COLLECTION,
-                                              parent_name = data['list']['name'], extensions = extensions)
-
-                        #TODO: RP
-                        # print 'added closed card!'
-=======
                     # Use action ID as an object ID to avoid ID conflict. 
                     object_id = self.create_card_url(data) + '/' + action['id']
 
@@ -524,33 +312,10 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                                               obj_parent_type = xapi_settings.OBJECT_COLLECTION,
                                               other_contexts = other_context_list)
 
->>>>>>> upstream_master
                     else:
                         # When user moves card from a list to another
                         if data.has_key('listBefore'):
                             object_text = data['card']['name']
-<<<<<<< HEAD
-                            # Extensions
-                            extensions = get_move_extensions(
-                                data['listBefore']['id'], 
-                                data['listBefore']['name'], 
-                                CLRecipe.OBJECT_COLLECTION, 
-                                new_obj_id = data['listAfter']['id'], 
-                                new_obj_name = data['listAfter']['name'], 
-                                new_obj_type = CLRecipe.OBJECT_COLLECTION)
-
-                            insert_updated_object(usr_dict, action['id'],
-                                                  object_text, u_id, author, date, course_code,
-                                                  self.platform, self.platform_url,
-                                                  CLRecipe.OBJECT_TASK, obj_parent=data['listAfter']['id'],
-                                                  obj_parent_type = CLRecipe.OBJECT_COLLECTION,
-                                                  parent_name = data['listAfter']['name'], extensions = extensions)
-
-                        # When user closes (archives)/opens card
-                        elif data['old'][change[0]] is False or data['old'][change[0]] is True:
-                            verb = CLRecipe.VERB_CLOSED
-                            verb_iri = CLRecipe.get_verb_iri(verb)
-=======
                             # object_text = 'from %s to %s' % (data['listBefore']['name'], data['listAfter']['name'])
                             # object_text = card_name + object_text
                             
@@ -574,26 +339,11 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
                         elif data['old'][change[0]] is False or data['old'][change[0]] is True:
                             verb = xapi_settings.VERB_CLOSED
                             verb_iri = xapi_settings.get_verb_iri(verb)
->>>>>>> upstream_master
                             action_type = self.ACTION_TYPE_CLOSE_CARD
                             object_text = data['card']['name']
 
                             # When card is opened
                             if data['old'][change[0]] is True:
-<<<<<<< HEAD
-                                verb = CLRecipe.VERB_OPENED
-                                verb_iri = CLRecipe.get_verb_iri(verb)
-                                action_type = self.ACTION_TYPE_OPEN_CARD
-
-                            insert_closedopen_object(usr_dict, action['id'],
-                                                 object_text, u_id, author, date, course_code,
-                                                 self.platform, self.platform_url,
-                                                 CLRecipe.OBJECT_TASK, verb, obj_parent = data['list']['id'],
-                                                 obj_parent_type = CLRecipe.OBJECT_COLLECTION,
-                                                 parent_name = data['list']['name'])
-                            #TODO: RP
-                            # print 'added closed/opened card!'
-=======
                                 verb = xapi_settings.VERB_OPENED
                                 verb_iri = xapi_settings.get_verb_iri(verb)
                                 action_type = self.ACTION_TYPE_OPEN_CARD
@@ -620,7 +370,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
     def create_checklist_url(self, data):
         return self.platform_url + '/b/' + str(data['board']['id']) + '/' + str(data['checklist']['id'])
->>>>>>> upstream_master
 
     def get_verbs(self):
         return self.xapi_verbs
@@ -678,20 +427,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         else:
             return 'Unknown action type'
 
-<<<<<<< HEAD
-    def get_detail_values_by_fetch_results(self, result):
-        all_rows = []
-        for row in result:
-            single_row = []
-            single_row.append(row[0]) # user name
-            single_row.append(self.get_action_type_from_context(row[2])) # verb or Trello action type
-            single_row.append(row[3]) # date
-            single_row.append(self.get_object_values_from_context(row)) # object values
-            all_rows.append(single_row)
-
-        return all_rows
-        
-=======
 
     def get_detail_values_by_fetch_results(self, xapi_statements):
         all_rows = []
@@ -721,20 +456,10 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
         return all_rows
         
 
->>>>>>> upstream_master
     def get_action_type_from_context(self, json):
         return json[0]['definition']['name']['en-US']
 
 
-<<<<<<< HEAD
-    def get_object_values_from_context(self, row):
-        action = self.get_action_type_from_context(row[2])
-        if len(row[2]) <= 1:
-            return row[4]
-
-        object_val = row[4]
-        contexts = row[2]
-=======
     def get_object_diaplay_value(self, stmt):
         other_context_activities = stmt['context']['contextActivities']['other']
         action = self.get_action_type_from_context(other_context_activities)
@@ -744,7 +469,6 @@ class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         object_val = object_val
         contexts = other_context_activities
->>>>>>> upstream_master
         value = ''
         index = 1
         if action == self.ACTION_TYPE_CREATE_CARD:

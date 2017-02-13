@@ -116,33 +116,6 @@ def get_userdetails(screen_name, platform):
             usr_dict['email'] = 'test@gmail.com'
     return usr_dict
 
-<<<<<<< HEAD:clatoolkit_project/dataintegration/core/recipepermissions.py
-def username_exists(screen_name, course_code, platform):
-    tw_id_exists = False
-    platform_param_name = None
-    if platform.lower()=='youtube':
-        platform_param_name = "google_account_name__iexact"
-    elif platform == 'github':
-        platform_param_name = "github_account_name__iexact"
-    elif platform == 'trello':
-        platform_param_name = "trello_account_name__iexact"
-    elif platform == 'facebook':
-        platform_param_name = "fb_id__iexact"
-    else:
-        platform_param_name = "%s_id__iexact" % (platform.lower())
-
-    kwargs = {platform_param_name:screen_name}
-    usrs = UserProfile.objects.filter(**kwargs)
-    if len(usrs) > 0:
-        usr_prof = usrs[0]
-        usr = usr_prof.user
-        user_in_course = check_ifuserincourse(usr, course_code)
-        if user_in_course:
-            tw_id_exists = True
-        else:
-            tw_id_exists = False
-    return tw_id_exists
-=======
 
 # TODO - Update all usages to use unit instead
 def username_exists(screen_name, unit, platform):
@@ -154,7 +127,6 @@ def username_exists(screen_name, unit, platform):
 
     return True
 
->>>>>>> upstream_master:clatoolkit_project/dataintegration/core/di_utils.py
 
 def get_uid_fromsmid(username, platform):
     userprofile = None
@@ -190,9 +162,9 @@ def get_username_fromsmid(sm_id, platform):
         userprofile = UserProfile.objects.filter(forum_id__iexact=sm_id)
     elif platform == "youtube":
             userprofile = UserProfile.objects.filter(google_account_name__iexact=sm_id)
-    elif platform == "GitHub":
+    elif platform == "github":
         userprofile = UserProfile.objects.filter(github_account_name__iexact=sm_id)
-    elif platform == 'Trello':
+    elif platform == 'trello':
         userprofile = UserProfile.objects.filter(trello_account_name__iexact=sm_id)
     elif platform.lower() == 'blog':
         userprofile = UserProfile.objects.filter(blog_id__iexact=sm_id)

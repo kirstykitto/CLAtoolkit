@@ -1,9 +1,5 @@
 from dataintegration.core.plugins import registry
 from dataintegration.core.plugins.base import DIBasePlugin, DIPluginDashboardMixin
-<<<<<<< HEAD
-from dataintegration.core.socialmediarecipebuilder import *
-from dataintegration.core.recipepermissions import *
-=======
 #from dataintegration.core.socialmediarecipebuilder import *
 #from dataintegration.core.recipepermissions import *
 
@@ -11,7 +7,6 @@ from dataintegration.core.importer import *
 from dataintegration.core.di_utils import * #Formerly dataintegration.core.recipepermissions
 from xapi.statement.builder import * #Formerly dataintegration.core.socialmediabuilder
 
->>>>>>> upstream_master
 import dateutil.parser
 from twython import Twython
 import os
@@ -111,14 +106,6 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     insert_share(user, post_id, retweeted_id, message, timestamp, unit, self.platform, self.platform_url, tags=tags, parent_external_user=retweeted_username)
             else:
                 insert_post(user, post_id, message, timestamp, unit, self.platform, self.platform_url, tags=tags)
-
-
-    def get_verbs(self):
-        return self.xapi_verbs
-            
-    def get_objects(self):
-        return self.xapi_objects
-
 
 
     def get_verbs(self):

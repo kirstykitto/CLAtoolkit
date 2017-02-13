@@ -1,11 +1,7 @@
 # example/simple/views.py
 from __future__ import absolute_import
 
-<<<<<<< HEAD
-from django.http import HttpResponse, HttpResponseServerError
-=======
 from django.http import HttpResponse, Http404, HttpResponseServerError
->>>>>>> upstream_master
 from django.shortcuts import render, render_to_response
 from authomatic import Authomatic
 from authomatic.adapters import DjangoAdapter
@@ -37,10 +33,6 @@ from django.contrib.sites.shortcuts import get_current_site
 
 import os
 import requests
-from common.CLRecipe import CLRecipe
-from rest_framework import status
-from django.http import JsonResponse
-from django.shortcuts import redirect
 
 from xapi.statement.xapi_settings import xapi_settings
 from common.util import Utility
@@ -62,24 +54,15 @@ def process_trello(request):
     member_json = r.json()
     member_id = member_json['id']
 
-<<<<<<< HEAD
-    tokens = OfflinePlatformAuthToken.objects.filter(user_smid=member_id, platform=CLRecipe.PLATFORM_TRELLO)
-    if len(tokens) == 1:
-=======
     tokens = OfflinePlatformAuthToken.objects.filter(user_smid=member_id, platform=xapi_settings.PLATFORM_TRELLO)
     if len(tokens) == 1:
         # Update token
->>>>>>> upstream_master
         token_storage = tokens[0]
         token_storage.token = token
     elif len(tokens) > 1:
         return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>More than one records were found.</p>')
     else:
-<<<<<<< HEAD
-        token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform=CLRecipe.PLATFORM_TRELLO)
-=======
         token_storage = OfflinePlatformAuthToken(user_smid=member_id, token=token, platform=xapi_settings.PLATFORM_TRELLO)
->>>>>>> upstream_master
     token_storage.save()
     return Response(member_id)
 
@@ -91,43 +74,24 @@ def process_trello(request):
 @api_view()
 def refreshtrello(request):
     course_id = request.GET.get('course_id')
-<<<<<<< HEAD
-    course_code = UnitOffering.objects.get(id = course_id).code
-    trello_courseboard_ids = request.GET.get('boards')
-    trello_courseboard_ids = trello_courseboard_ids.split(',')
-
-    trello_plugin = settings.DATAINTEGRATION_PLUGINS[CLRecipe.PLATFORM_TRELLO]
-=======
     unit = UnitOffering.objects.get(id = course_id)
     trello_courseboard_ids = request.GET.get('boards')
     trello_courseboard_ids = trello_courseboard_ids.split(',')
     user_count = len(trello_courseboard_ids)
 
     trello_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_TRELLO]
->>>>>>> upstream_master
     diag_count = 0
     # remove deplicated board IDs
     trello_courseboard_ids = list(set(trello_courseboard_ids))
     for board_id in trello_courseboard_ids:
         trello_user_course_map = UserPlatformResourceMap.objects.filter(
-<<<<<<< HEAD
-            unit=course_id, platform=CLRecipe.PLATFORM_TRELLO).filter(resource_id=board_id)[0]
-        #print 'got trello user course board map: %s' % (trello_user_course_map)
-=======
             unit=unit, platform=xapi_settings.PLATFORM_TRELLO).filter(resource_id=board_id)[0]
->>>>>>> upstream_master
 
         user = trello_user_course_map.user
         usr_profile = UserProfile.objects.get(user=user)
         usr_offline_auth = OfflinePlatformAuthToken.objects.get(user_smid=usr_profile.trello_account_name)
 
         #print 'Performing Trello Board Import for User: %s' % (user)
-<<<<<<< HEAD
-        trello_plugin.perform_import(board_id, course_code, token=usr_offline_auth.token)
-        diag_count = diag_count + 1
-
-    post_smimport(course_code, CLRecipe.PLATFORM_TRELLO)
-=======
         trello_plugin.perform_import(board_id, unit, token = usr_offline_auth.token)
         diag_count = diag_count + 1
 
@@ -138,7 +102,6 @@ def refreshtrello(request):
     html_response.write('<b>Trello refresh complete: %s users updated.</b>' % (str(user_count)))
     html_response.write('<p><a href="/dashboard/myunits/">Go back to dashboard</a></p>')
     return html_response
->>>>>>> upstream_master
 
 
 ##############################################
@@ -148,10 +111,6 @@ def refreshgithub(request):
 
     html_response = HttpResponse()
     course_id = request.GET.get('course_id')
-<<<<<<< HEAD
-    course_code = request.GET.get('course_code')
-    resources = UserPlatformResourceMap.objects.filter(unit=course_id, platform=CLRecipe.PLATFORM_GITHUB)
-=======
     unit = None
     try:
         unit = UnitOffering.objects.get(id=course_id)
@@ -159,45 +118,29 @@ def refreshgithub(request):
         raise Http404
     
     resources = UserPlatformResourceMap.objects.filter(unit=course_id, platform=xapi_settings.PLATFORM_GITHUB)
->>>>>>> upstream_master
 
     id_list = []
     details = []
     for resource in resources:
         # Save the repo name to avoid retrieving the same data again and again
         # If the repository name (resource_id) is in the id_list, the repo is already processed, so skip the process.
-<<<<<<< HEAD
-        # if resource.resource_id in id_list:
-        #     continue
-=======
         if resource.resource_id in id_list:
             continue
->>>>>>> upstream_master
 
         # Get user's token
         user = User.objects.get(pk=resource.user_id)
         token = OfflinePlatformAuthToken.objects.get(
-<<<<<<< HEAD
-            user_smid=user.userprofile.github_account_name, platform=CLRecipe.PLATFORM_GITHUB)
-=======
             user_smid=user.userprofile.github_account_name, platform=xapi_settings.PLATFORM_GITHUB)
->>>>>>> upstream_master
         obj = {'repo_name': resource.resource_id, 'token': token.token}
         details.append(obj)
         id_list.append(resource.resource_id)
 
-<<<<<<< HEAD
-    github_plugin = settings.DATAINTEGRATION_PLUGINS[CLRecipe.PLATFORM_GITHUB]
-    github_plugin.perform_import(details, course_code)
-    post_smimport(course_code, CLRecipe.PLATFORM_GITHUB)
-=======
     github_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_GITHUB]
     github_plugin.perform_import(details, unit)
     post_smimport(unit, xapi_settings.PLATFORM_GITHUB)
 
     return render(request, 'dataintegration/githubresult.html')
 
->>>>>>> upstream_master
 
 
 
@@ -205,11 +148,6 @@ def refreshgithub(request):
 # Data Extraction for YouTube
 ##############################################
 def refreshgoogleauthflow(request):
-<<<<<<< HEAD
-    course_code = request.GET.get('course_code')
-    channelIds = request.GET.get('channelIds')
-    platform = request.GET.get('platform')
-=======
     course_id = request.GET.get('course_id')
     channel_ids = request.GET.get('channel_ids')
     platform = request.GET.get('platform')
@@ -218,20 +156,12 @@ def refreshgoogleauthflow(request):
         unit = UnitOffering.objects.get(id=course_id)
     except UnitOffering.DoesNotExist:
         raise Http404
->>>>>>> upstream_master
 
     user = request.user
     platform_plugin = settings.DATAINTEGRATION_PLUGINS[platform]
 
-<<<<<<< HEAD
-    #print 'Got youtube plugin: %s' % (youtube_plugin)
-    #print 'With client ID and Secret key: %s and %s' % (youtube_plugin.api_config_dict['CLIENT_ID'], youtube_plugin.api_config_dict['CLIENT_SECRET'])
-
-    redirecturl= 'http://' + get_current_site(request).domain + '/dataintegration/ytAuthCallback'
-=======
     #print 'Got youtube plugin: %s' % (platform_plugin)
     #print 'With client ID and Secret key: %s and %s' % (platform_plugin.api_config_dict['CLIENT_ID'], platform_plugin.api_config_dict['CLIENT_SECRET'])
->>>>>>> upstream_master
 
     # store request data in temp table
     # there is no other way to send these with the url (in querystring) as the return url must be registered
@@ -574,10 +504,7 @@ def assigngroups(request):
     html_response.write('Groups Assigned')
     return html_response
 
-<<<<<<< HEAD
-=======
 
->>>>>>> upstream_master
 def github_auth(request):
     # Redirect to GitHub OAuth authentication page
     url = "https://github.com/login/oauth/authorize?"
@@ -609,32 +536,19 @@ def github_client_auth(request):
     if not user_json.has_key('id'):
         return HttpResponseServerError('<h3>Error has occurred.</h3><p>Message: %s</p>' % (user_json['message']))
     # Save GitHub token
-<<<<<<< HEAD
-    # token_storage = OfflinePlatformAuthToken.objects.get(user_smid=user_json['id'], platform=CLRecipe.PLATFORM_GITHUB)
-    # if token_storage:
-    #     token_storage.token = token
-    # else:
-    #     token_storage = OfflinePlatformAuthToken(user_smid=user_json['id'], token=token, platform=CLRecipe.PLATFORM_GITHUB)
-    tokens = OfflinePlatformAuthToken.objects.filter(user_smid=user_json['id'], platform=CLRecipe.PLATFORM_GITHUB)
-=======
     # token_storage = OfflinePlatformAuthToken.objects.get(user_smid=user_json['id'], platform=xapi_settings.PLATFORM_GITHUB)
     # if token_storage:
     #     token_storage.token = token
     # else:
     #     token_storage = OfflinePlatformAuthToken(user_smid=user_json['id'], token=token, platform=xapi_settings.PLATFORM_GITHUB)
     tokens = OfflinePlatformAuthToken.objects.filter(user_smid=user_json['id'], platform=xapi_settings.PLATFORM_GITHUB)
->>>>>>> upstream_master
     if len(tokens) == 1:
         token_storage = tokens[0]
         token_storage.token = token
     elif len(tokens) > 1:
         return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>More than one records were found.</h1>')
     else:
-<<<<<<< HEAD
-        token_storage = OfflinePlatformAuthToken(user_smid=user_json['id'], token=token, platform=CLRecipe.PLATFORM_GITHUB)
-=======
         token_storage = OfflinePlatformAuthToken(user_smid=user_json['id'], token=token, platform=xapi_settings.PLATFORM_GITHUB)
->>>>>>> upstream_master
     token_storage.save()
 
     # Set user ID and access token in social media ID register or update page
