@@ -29,6 +29,7 @@
     "vue": "^2.1.10",
     "vue-resource": "^1.2.0",
     "hello": "^1.14.0",
-    "raphael": "2.1.4"
+    "raphael": "2.1.4",
+    "bootstrap-datetimepicker": "^0.0.11"
   }
 }

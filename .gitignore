@@ -70,3 +70,6 @@ ehthumbs.db
 Thumbs.db
 
 .env
+
+# bower component
+bower_components/
