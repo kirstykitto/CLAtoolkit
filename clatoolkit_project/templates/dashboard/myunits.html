@@ -32,7 +32,7 @@
                             <p>
                                 All Platforms [
                                 <a href="/dashboard/?unit={{ membership.unit.id }}&platform=all">Activity</a>
-                                {% include "dashboard/parts/analysis_link.html" with unit=membership.unit platform="all" %}
+                                {% include "dashboard/include/analysis_link.html" with unit=membership.unit platform="all" %}
                                 ]
                                 {% if membership.unit.twitter_hashtags_as_list|length > 0 %}
                                     <br/>
@@ -41,7 +41,7 @@
                                         <a href="https://twitter.com/hashtag/{{ hashtag }}" target="_blank">{{ hashtag }}</a>
                                     {% endfor %}  [
                                     <a href="/dashboard/?unit={{ membership.unit.id }}&platform=Twitter">Activity</a>
-                                    {% include "dashboard/parts/analysis_link.html" with unit=membership.unit platform="Twitter" %} | 
+                                    {% include "dashboard/include/analysis_link.html" with unit=membership.unit platform="Twitter" %} | 
                                     <a href="/dataintegration/refreshtwitter/?unit={{ membership.unit.id }}&hashtags={{ membership.unit.twitter_hashtags|urlencode }}">Refresh
                                         Imported Data</a>
                                     ]
@@ -53,7 +53,7 @@
                                         <a href="https://www.facebook.com/groups/{{ grp }}" target="_blank">{{ grp }}</a>
                                     {% endfor %}  [
                                     <a href="/dashboard/?unit={{ membership.unit.id }}&platform=Facebook">Activity</a>
-                                    {% include "dashboard/parts/analysis_link.html" with unit=membership.unit platform="Facebook" %} | 
+                                    {% include "dashboard/include/analysis_link.html" with unit=membership.unit platform="Facebook" %} | 
                                     <a href='/dataintegration/dipluginauthomaticlogin/?context={"platform": "Facebook", "unit": "{{ membership.unit.id }}", "group": "{{ membership.unit.facebook_groups }}"}'>Refresh Imported Data</a>
                                     ]
                                 {% endif %}
@@ -64,7 +64,7 @@
                                         <a href="https://www.youtube.com/channel/{{ channel }}" target="_blank">{{ channel }}</a>
                                     {% endfor %} [
                                     <a href="/dashboard/?unit={{ membership.unit.id }}&platform=YouTube">Activity</a>
-                                    {% include "dashboard/parts/analysis_link.html" with unit=membership.unit platform="YouTube" %} | 
+                                    {% include "dashboard/include/analysis_link.html" with unit=membership.unit platform="YouTube" %} | 
                                     <a href="/dataintegration/refreshgoogleauthflow/?course_id={{ membership.unit.id }}&channel_ids={{ membership.unit.youtube_channelIds|urlencode }}&platform=YouTube">Refresh Imported Data</a>
                                     ]
                                 {% endif %}
@@ -73,7 +73,7 @@
                                     IFN614 Blog URLs: 
                                     {{ membership.unit.blogmember_urls }} [
                                     <a href="/dashboard/?unit={{ membership.unit.id }}&platform=Blog">Activity</a>
-                                    {% include "dashboard/parts/analysis_link.html" with unit=membership.unit platform="Blog" %} | 
+                                    {% include "dashboard/include/analysis_link.html" with unit=membership.unit platform="Blog" %} | 
                                     <a href="/dataintegration/refreshblog/?course_id={{ membership.unit.id }}&urls={{ membership.unit.blogmember_urls|urlencode }}">Refresh Imported Data</a>
                                     ]
                                 {% endif %}
@@ -84,7 +84,7 @@
                                         <a href="https://www.diigo.com/tag/{{ tag }}" target="_blank">{{ tag }}</a>
                                     {% endfor %}  [
                                     <a href="/dashboard/?unit={{ membership.unit.id }}&platform=Diigo">Activity</a>
-                                    {% include "dashboard/parts/analysis_link.html" with unit=membership.unit platform="Diigo" %} | 
+                                    {% include "dashboard/include/analysis_link.html" with unit=membership.unit platform="Diigo" %} | 
                                     <a href="/dataintegration/refreshdiigo/?unit={{ membership.unit.id }}&tags={{ membership.unit.diigo_tags|urlencode }}">Refresh Imported Data</a>
                                 {% endif %}
                                 <br/>
