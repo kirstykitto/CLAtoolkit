@@ -471,7 +471,7 @@ def create_offering(request):
 
     # if a GET (or any other method) we'll create a blank form
     else:
-        form = CreateOfferingForm(initial = {'provider': 'default_lrs'})
+        form = CreateOfferingForm(initial = {'provider': os.environ.get('DEFAULT_LRS_NAME')})
 
     return render(request, 'clatoolkit/createoffering.html', {'verb': 'Create', 'form': form})
 
