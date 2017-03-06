@@ -29,7 +29,6 @@ urlpatterns = patterns('',
     url(r'^api/get_user_acitivities/$', views.get_user_acitivities, name='get_user_acitivities'),
     url(r'^api/get_github_contribution/$', views.get_github_contribution, name='get_github_contribution'),
     url(r'^api/get_learning_records/$', views.get_learning_records, name='get_learning_records'),
-
     url(r'^api/addSlackTeamToCourse/$', views.add_slack_team_to_course, name='add_slack_team_to_course'),
     url(r'^api/getAttachedSlackTeam/$', views.get_attached_slack_team, name='get_attached_slack_team'),
     url(r'^api/removeAttachedSlackTeam$', views.remove_attached_slack_team, name='remove_attached_slack_team'),

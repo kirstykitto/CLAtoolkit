@@ -30,6 +30,8 @@
     "vue-resource": "^1.2.0",
     "hello": "^1.14.0",
     "raphael": "2.1.4",
-    "eonasdan-bootstrap-datetimepicker": "^4.17.45"
+    "eonasdan-bootstrap-datetimepicker": "^4.17.45",
+    "jquery-ui": "^1.12.1",
+    "vis": "^4.18.1"
   }
 }

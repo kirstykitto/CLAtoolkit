@@ -6,6 +6,7 @@
 {% block heading %}{{title}}{% endblock %}
 
 {% block body %}
+<link href="{% static 'css/dashboard/centrality_popup.css'%}" rel="stylesheet">
 <div class="alert alert-warning">
     You can filter the social network diagram by date. Select the timeframe using the
     "Activity Timeseries" chart and then click on the "Filter widgets by date selection" button.
@@ -57,9 +58,22 @@
               <div class="alert alert-warning">
                   Click on your node to view the messages you have posted. Click on a link (or relationship) to view the messages that were shared or commented on by another user.
               </div>
-              <div id="popup" title="Centrality">
+              <!-- <div id="popup" title="Centrality">
                 <table class="table table-striped table-bordered table-hover" id="centrality-popup">
                 </table>
+              </div> -->
+              <div id="popup" class="modal">
+                  <div id="popup_root" class="modal-dialog">
+                      <div class="modal-content">
+                          <div class="modal-header">
+                              <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                              <h4 class="modal-title">Centrality</h4>
+                          </div>
+                          <div class="modal-body">
+                              <table class="table table-striped table-bordered table-hover" id="centrality-popup"></table>
+                          </div>
+                      </div>
+                  </div>
               </div>
               <div id="mynetwork" style="height: 500px;"></div>
 
@@ -123,7 +137,8 @@
 
 {% block js_block %}
 {% autoescape off %}
-<script src="{% static 'js/vis.js'%}"></script>
+<!-- <script src="{% static 'js/vis.js'%}"></script> -->
+<script src="{% static 'bower_components/vis/dist/vis.js'%}"></script>
 <script>
 
 var sna_data = {{sna_json}};
@@ -406,9 +421,14 @@ function showCentralityPopup(params)
         ]
     } );
   
-  $('#popup').dialog("open");
-  $('#popup').dialog("option", "width", 300);
-  //$('#popup').dialog( "option", "position", { my: "left top", at: "left bottom", of: button } );
+  // $('#popup').dialog("open");
+  // $('#popup').dialog("option", "width", 300);
+  $('#popup').modal('show');
+  $('.modal').css('position', 'absolute');
+  $('.modal-open').css('overflow-y', 'auto');
+  $('.modal-backdrop').css('opacity', 0.0);
+  $('.modal-backdrop').css('margin-right', 0);
+  $('.modal-backdrop').css('margin-left', 0);
 }
 
 function getDrawOption()
@@ -610,14 +630,14 @@ $(function() {
   $("#density").html("Density: " + density + " ");
   $("#density").css("font-weight", "bold");
   $("#density").css("font-size", "16px");
-  $('#popup').dialog({
-      autoOpen: false,
-      buttons: {
-        "OK": function(){
-          $(this).dialog('close');
-        }
-      }
-  });
+  // $('#popup').dialog({
+  //     autoOpen: false,
+  //     buttons: {
+  //       "OK": function(){
+  //         $(this).dialog('close');
+  //       }
+  //     }
+  // });
   $('#centrality-popup').DataTable( {
         data: [],
         columns: [
@@ -625,7 +645,11 @@ $(function() {
             { title: "value" }
         ]
     } );
-
+  $("#popup").draggable({
+    handle: ".modal-header",
+    backdrop: false,
+    show: false
+  });
 });
 
 </script>

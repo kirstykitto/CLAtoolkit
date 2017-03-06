@@ -12,6 +12,7 @@
 {% endblock %}
 
 {% block body %}
+<link href="{% static 'css/dashboard/centrality_popup.css'%}" rel="stylesheet">
 <div class="row">
 <div class="alert alert-warning">
     You can filter the wordcloud and social network diagram by date. Select the timeframe using the
@@ -185,7 +186,8 @@
 
 {% block js_block %}
 {% autoescape off %}
-<script src="{% static 'js/vis.js'%}"></script>
+<!-- <script src="{% static 'js/vis.js'%}"></script> -->
+<script src="{% static 'bower_components/vis/dist/vis.js'%}"></script>
 <script src="//mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.js"></script>
 <script>
   var sna_data = null;
@@ -318,9 +320,14 @@
           ]
       } );
     
-    $('#popup').dialog("open");
-    $('#popup').dialog("option", "width", 300);
-    //$('#popup').dialog( "option", "position", { my: "left top", at: "left bottom", of: button } );
+    // $('#popup').dialog("open");
+    // $('#popup').dialog("option", "width", 300);
+    $('#popup').modal('show');
+    $('.modal').css('position', 'absolute');
+    $('.modal-open').css('overflow-y', 'auto');
+    $('.modal-backdrop').css('opacity', 0.0);
+    $('.modal-backdrop').css('margin-right', 0);
+    $('.modal-backdrop').css('margin-left', 0);
   }
 
 
@@ -891,14 +898,14 @@ $(function() {
       $("#density").html("Density: " + density + " ");
       $("#density").css("font-weight", "bold");
       $("#density").css("font-size", "16px");
-      $('#popup').dialog({
-          autoOpen: false,
-          buttons: {
-            "OK": function(){
-              $(this).dialog('close');
-            }
-          }
-      });
+      // $('#popup').dialog({
+      //     autoOpen: false,
+      //     buttons: {
+      //       "OK": function(){
+      //         $(this).dialog('close');
+      //       }
+      //     }
+      // });
       $('#centrality-popup').DataTable( {
             data: [],
             columns: [
@@ -906,6 +913,11 @@ $(function() {
                 { title: "value" }
             ]
         } );
+      $("#popup").draggable({
+        handle: ".modal-header",
+        backdrop: false,
+        show: false
+      });
     {% endif %}
 
 });
