@@ -12,6 +12,7 @@ class xapi_settings(object):
     PLATFORM_BLOG = 'Blog'
     PLATFORM_GITHUB = 'GitHub'
     PLATFORM_TRELLO = 'Trello'
+    PLATFORM_SLACK = 'Slack'
 
     # Verbs
     VERB_CREATED = 'created'
@@ -26,6 +27,8 @@ class xapi_settings(object):
     VERB_OPENED = 'opened'
     VERB_CLOSED = 'closed'
     VERB_MENTIONED = 'mentioned'
+    VERB_BOOKMARKED = 'bookmarked'
+    VERB_ATTACHED = 'attached'
 
     # Objects
     OBJECT_NOTE = 'Note'
@@ -53,6 +56,9 @@ class xapi_settings(object):
         VERB_DELETED: 'http://www.w3.org/ns/activitystreams#Delete',
         VERB_OPENED: 'http://activitystrea.ms/schema/1.0/open',
         VERB_CLOSED: 'http://activitystrea.ms/schema/1.0/close',
+        VERB_MENTIONED: 'http://id.tincanapi.com/verb/mentioned',
+        VERB_BOOKMARKED: 'http://id.tincanapi.com/verb/bookmarked',
+        VERB_ATTACHED: 'http://activitystrea.ms/schema/1.0/attach',
     }
 
     OBJECT_IRI_MAPPER = {

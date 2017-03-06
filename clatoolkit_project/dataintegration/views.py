@@ -12,7 +12,7 @@ from dataintegration.tasks import *
 from .forms import FacebookGatherForm
 import json
 from pprint import pprint
-from clatoolkit.models import UserProfile, OfflinePlatformAuthToken, UserPlatformResourceMap, ApiCredentials, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp
+from clatoolkit.models import UserProfile, OfflinePlatformAuthToken, UserPlatformResourceMap, ApiCredentials, UnitOffering, DashboardReflection, LearningRecord, SocialRelationship, CachedContent, GroupMap, OauthFlowTemp, UnitOfferingMembership
 from django.db import connection
 import dateutil.parser
 from dashboard.utils import *
@@ -562,3 +562,96 @@ def github_client_auth(request):
     html_response = HttpResponse()
     html_response.write(html_resp)
     return html_response
+
+
+def slack_auth(request):
+    # Redirect to Slack OAuth authentication page.
+    # See details of scope here: https://api.slack.com/docs/oauth-scopes
+    url = "https://slack.com/oauth/authorize?"
+    url = url + "client_id=%s" % (os.environ.get('SLACK_CLIENT_ID'))
+    url = url + "&redirect_uri=%s" % (os.environ.get('SLACK_AUTH_REDIRECT_URL'))
+    url = url + "&scope=channels:history channels:read files:read pins:read stars:read team:read users:read"
+    return redirect(url)
+
+
+def slack_client_auth(request):
+    code = request.GET.get('code')
+    url = "https://slack.com/api/oauth.access?"
+    # url = url + "scope=user public_repo repo read:org"
+    url = url + "client_id=%s" % (os.environ.get('SLACK_CLIENT_ID'))
+    url = url + "&client_secret=%s" % (os.environ.get('SLACK_CLIENT_SECRET'))
+    url = url + "&code=%s" % (code)
+    url = url + "&redirect_uri=%s" % (os.environ.get('SLACK_AUTH_REDIRECT_URL'))
+    
+    res = requests.get(url)
+    json_val = json.loads(res.text)
+    access_token = json_val['access_token']
+    # print 'access_token = %s ' % json_val['access_token']
+    # print 'user_id = %s ' % json_val['user_id']
+
+    if not json_val.has_key('access_token'):
+        return HttpResponseServerError('<h3>Error has occurred.%s' % json_val)
+
+    tokens = OfflinePlatformAuthToken.objects.filter(user_smid=json_val['user_id'], platform=xapi_settings.PLATFORM_SLACK)
+    if len(tokens) == 1:
+        token_storage = tokens[0]
+        token_storage.token = access_token
+    elif len(tokens) > 1:
+        return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>More than one records were found.</h1>')
+    else:
+        token_storage = OfflinePlatformAuthToken(
+            user_smid=json_val['user_id'], token=access_token, platform=xapi_settings.PLATFORM_SLACK)
+    token_storage.save()
+
+    # Set user ID and access token in social media ID register or update page
+    script_set_id = 'window.opener.$("#id_slack_account_name").val("%s");' % (json_val['user_id'])
+    script_set_msg = 'window.opener.$("#slack-auth-msg").html("%s");' % ('Slack user ID linked!')
+    script_set_msg = script_set_msg + 'window.opener.$("#slack-auth-msg").show();'
+    script_set_msg = script_set_msg + 'window.opener.$("#slack_auth_link").hide();'
+
+    html_resp = '<script>' + script_set_id + script_set_msg + 'window.close();</script>'
+    html_response = HttpResponse()
+    html_response.write(html_resp)
+    return html_response
+
+
+def refreshslack(request):
+    html_response = HttpResponse()
+    course_id = request.GET.get('course_id')
+    unit = None
+    try:
+        unit = UnitOffering.objects.get(id=course_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
+    
+    members = UnitOfferingMembership.objects.filter(unit=course_id)
+    details = []
+    for member in members:
+        # Get user's access token
+        token_obj = None
+        try:
+            user = User.objects.get(pk = member.user_id)
+            if user.userprofile.slack_account_name is None or user.userprofile.slack_account_name == '':
+                # When a user has not linked their Slack ID to the toolkit yet, ignore the user.
+                continue
+
+            token_obj = OfflinePlatformAuthToken.objects.get(
+                user_smid=user.userprofile.slack_account_name, platform=xapi_settings.PLATFORM_SLACK)
+        except User.DoesNotExist:
+            return HttpResponseServerError('User not found. user id = %s ' % member.user_id)
+        except OfflinePlatformAuthToken:
+            return HttpResponseServerError('Access token not found. user id = %s ' % member.user_id)
+
+        slack_id = user.userprofile.slack_account_name
+        obj = {'slack_id': slack_id, 'access_token': token_obj.token}
+        details.append(obj)
+        token_obj = None
+
+    slack_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_SLACK]
+    slack_plugin.perform_import(details, unit)
+    post_smimport(unit, xapi_settings.PLATFORM_SLACK)
+
+    context = {'platform': xapi_settings.PLATFORM_SLACK}
+    return render(request, 'dataintegration/dataimport_complete.html', context)
+
+

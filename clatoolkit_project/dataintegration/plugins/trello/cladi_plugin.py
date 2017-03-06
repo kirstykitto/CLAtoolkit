@@ -18,6 +18,7 @@ from trello import TrelloClient
 #OAuth for trello
 from requests_oauthlib import OAuth1Session
 from common.ClaUserUtil import ClaUserUtil
+from common.util import Utility
 
 
 class TrelloPlugin(DIBasePlugin, DIPluginDashboardMixin):

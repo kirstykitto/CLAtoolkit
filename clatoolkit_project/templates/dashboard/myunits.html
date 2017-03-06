@@ -88,6 +88,15 @@
                                     <a href="/dataintegration/refreshdiigo/?unit={{ membership.unit.id }}&tags={{ membership.unit.diigo_tags|urlencode }}">Refresh Imported Data</a>
                                 {% endif %}
                                 <br/>
+                                {% if membership.unit.slack_member_count > 0 %}
+                                    Slack signed up: {{ membership.unit.slack_member_count }}
+                                    [
+                                    <a href="/dashboard/?unit={{ membership.unit.id }}&platform=Slack">Activity</a>
+                                    {% include "dashboard/include/analysis_link.html" with unit=membership.unit platform="Slack" %} | 
+                                    <a href="/dataintegration/refreshslack/?course_id={{ membership.unit.id }}&platform=Slack">Refresh Imported Data</a>
+                                    ]
+                                {% endif %}
+                                <br/>
                                 {% if membership.unit.github_member_count > 0 %}
                                     <br/>
                                     GitHub signed up: {{ membership.unit.github_member_count }} || 
@@ -164,6 +173,19 @@
                                             and monitor your workload</a>
                                         </p>
                                     {% endif %}
+                                    {% if slack_attached %}
+                                        <p>
+                                            <h5>Slack Workload Management</h5>
+                                            <span id="{{ membership.unit.id }}" class="getSlackTeamList" ></span>
+                                            <a id="slack_team_list{{ membership.unit.id }}" href="#">Attach a Slack Team to plan your Work!</a>
+                                            <p id="teamList{{ membership.unit.id }}"></p>
+                                        </p>
+                                    {% else %}
+                                        <p>
+                                            <a href="/clatoolkit/socialmediaaccounts/">Add Slack to your account to plan
+                                            and monitor your workload</a>
+                                        </p>
+                                    {% endif %}
                                 </div>
 
                             {% else %}
@@ -209,6 +231,19 @@
                                 {% else %}
                                     <p>
                                         <a href="/clatoolkit/socialmediaaccounts/">Add GitHub to your account to plan
+                                        and monitor your workload</a>
+                                    </p>
+                                {% endif %}
+                                {% if slack_attached %}
+                                    <p>
+                                        <h5>Slack Workload Management</h5>
+                                        <span id="{{ membership.unit.id }}" class="getSlackTeamList" ></span>
+                                        <a id="slack_team_list{{ membership.unit.id }}" href="#">Attach a Slack Team to plan your Work!</a>
+                                        <p id="teamList{{ membership.unit.id }}"></p>
+                                    </p>
+                                {% else %}
+                                    <p>
+                                        <a href="/clatoolkit/socialmediaaccounts/">Add Slack to your account to plan
                                         and monitor your workload</a>
                                     </p>
                                 {% endif %}

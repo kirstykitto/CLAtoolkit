@@ -100,13 +100,14 @@ class SocialMediaUpdateForm(forms.ModelForm):
     blog_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     github_account_name = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     trello_account_name = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    slack_account_name = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
 
     def clean(self):
         if not ((self.cleaned_data.get('fb_id'))
             or (self.cleaned_data.get('twitter_id')) or (self.cleaned_data.get('forum_id'))
             or (self.cleaned_data.get('blog_id')) or (self.cleaned_data.get('google_account_name'))
             or (self.cleaned_data.get('diigo_username')) or (self.cleaned_data.get('github_account_name'))
-            or (self.cleaned_data.get('trello_account_name'))
+            or (self.cleaned_data.get('trello_account_name')) or (self.cleaned_data.get('slack_account_name'))
             ):
 
             raise ValidationError("At least one social media account must be added.")
@@ -114,7 +115,8 @@ class SocialMediaUpdateForm(forms.ModelForm):
 
     class Meta:
         model = UserProfile
-        fields = ('fb_id', 'twitter_id', 'forum_id', 'google_account_name', 'diigo_username', 'blog_id', 'github_account_name', 'trello_account_name')
+        fields = ('fb_id', 'twitter_id', 'forum_id', 'google_account_name', 'diigo_username', 
+            'blog_id', 'github_account_name', 'trello_account_name', 'slack_account_name')
 
 class UserProfileForm(forms.ModelForm):
     fb_id = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))

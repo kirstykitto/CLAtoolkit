@@ -35,7 +35,43 @@ $(document).ready(function (e) {
     }
     // Set click event on a link to attach a GitHub repository
     getGitHubAttachedRepo();
+    // Slack
+    getAttachedSlackTeam();
 });
+
+function getAttachedSlackTeam() {
+    if($(".getSlackTeamList").length == 0) return;
+    // Loop till all units' links are processed
+    var courseIds = $(".getSlackTeamList");
+    for(var i = 0; i < courseIds.length; i++) {
+
+        var courseId = courseIds[i].id;
+        var teamListName = "#teamList" + courseId;
+        var slack_team_list = "#slack_team_list" + courseId;
+        $(teamListName).html("Loading.....");
+        $.ajax({
+            url: "/dashboard/api/getAttachedSlackTeam?course_id=" + courseId,
+            type: 'GET',
+            success: function (data) {
+                // Create html ID using course code sent included in the response data
+                teamListName = "#teamList" + data["course_id"];
+                slack_team_list = "#slack_team_list" + data["course_id"];
+
+                if(data["result"] != "success") {
+                    $(teamListName).hide();
+                    return;
+                }
+                var htmlStr = "<a target='_blank' href='" + data["url"] + "'><img class='slack_icon'>" + data["name"] + "</a>";
+                htmlStr += " | <a href='#' onclick='javascript:removeAttachedSlackTeam(\"" + data["course_id"] + "\");'>Remove</a>"
+
+                $(slack_team_list).hide();
+                $(teamListName).html(htmlStr);
+
+            }
+        });
+        attachSlackTeamLinkClickEventHandler(courseId);
+    }
+}
 
 function getGitHubAttachedRepo() {
     if($(".getReposList").length == 0) return;
@@ -69,6 +105,25 @@ function getGitHubAttachedRepo() {
         });
         attachGitHubLinkClickEventHandler(courseId);
     }
+}
+
+function attachSlackTeamLinkClickEventHandler(courseId) {
+    var teamListName = "#teamList" + courseId;
+    var slack_team_listName = "#slack_team_list" + courseId;
+
+    if($(slack_team_listName).length == 0) return;
+    // $.ajax({
+    //     url: "/dashboard/api/getSlackTeamUrl?course_id=" + courseId,
+    //     type: 'GET',
+    //     success: function (data) {
+    //         // Slack team url
+    //         $('#slack_team_url').html('<a href="' + data["url"] + '">' + data["domain"] + '</a>')
+    //     }
+    // });
+
+    $(slack_team_listName).click(function() {
+        addSlackTeam(courseId);
+    });
 }
 
 function attachGitHubLinkClickEventHandler(courseId) {
@@ -112,6 +167,27 @@ function createRepoList(data) {
     $(reposListName).html(htmlStr);
 }
 
+function addSlackTeam(courseId) {
+    // var course_id = $(".getReposList")[0].id;
+    var teamListName = "#teamList" + courseId;
+    var slack_team_listName = "#slack_team_list" + courseId;
+    
+    $.ajax({
+        url: "/dashboard/api/addSlackTeamToCourse?course_id=" + courseId,
+        type: 'GET',
+        success: function (data) {
+            if(data["result"] == "success") {
+                var htmlStr = "Team successfully added to course - <a href='/dashboard/myunits/'>Reload</a>"
+                $(teamListName).html(htmlStr);
+                $(slack_team_listName).hide();
+            } else {
+                $(teamListName).html(data["message"]);
+            }
+            $(teamListName).show();
+        }
+    });
+}
+
 function addRepository(repoName, courseId) {
     // var course_id = $(".getReposList")[0].id;
     var reposListName = "#reposList" + courseId;
@@ -126,6 +202,24 @@ function addRepository(repoName, courseId) {
                 $(reposListName).html(htmlStr);
                 $(get_repo_listName).hide();
             } else {
+                $(reposListName).html(data["message"]);
+            }
+        }
+    });
+}
+
+function removeAttachedSlackTeam(courseId) {
+    var reposListName = "#teamList" + courseId;
+    var slack_team_listName = "#slack_team_list" + courseId;
+    $.ajax({
+        url: "/dashboard/api/removeAttachedSlackTeam?course_id=" + courseId,
+        type: 'GET',
+        success: function (data) {
+            if(data["result"] == "success") {
+                $(reposListName).hide();
+                $(slack_team_listName).show();
+            } else {
+                $(slack_team_listName).hide();
                 $(reposListName).html(data["message"]);
             }
         }

@@ -188,31 +188,30 @@ $(function() {
           name : 'Forum',
           data : [{{ forum_timeline }}],
           id : 'dataseries2'
-      },
-      {
+      },{
           name : 'YouTube',
           data : [{{ youtube_timeline }}],
           id : 'dataseries3'
-      },
-      {
+      },{
           name : 'Diigo',
           data : [{{ diigo_timeline }}],
           id : 'dataseries4'
-      },
-      {
+      },{
           name : 'Blog',
           data : [{{ blog_timeline }}],
           id : 'dataseries5'
-      },
-      {
-          name : 'GitHub',
-          data : [{{ github_timeline }}],
-          id : 'dataseries6'
-      },
-      {
+      },{
           name : 'Trello',
           data : [{{ trello_timeline }}],
+          id : 'dataseries6'
+      },{
+          name : 'GitHub',
+          data : [{{ github_timeline }}],
           id : 'dataseries7'
+      },{
+          name : 'Slack',
+          data : [{{ slack_timeline }}],
+          id : 'dataseries8'
       }]
   }, function (chart) {
       // Show series in the navigator (the mini-chart)

@@ -203,10 +203,15 @@ def myunits(request):
     shownocontentwarning = False
     trello_attached = not request.user.userprofile.trello_account_name == ''
     github_attached = False
+    slack_attached = False
     tokens = OfflinePlatformAuthToken.objects.filter(
         user_smid=request.user.userprofile.github_account_name, platform=xapi_settings.PLATFORM_GITHUB)
     if len(tokens) == 1:
         github_attached = True
+    tokens = OfflinePlatformAuthToken.objects.filter(
+        user_smid=request.user.userprofile.slack_account_name, platform=xapi_settings.PLATFORM_SLACK)
+    if len(tokens) == 1:
+        slack_attached = True
 
     has_token_list = {}
     for membership in memberships:
@@ -226,7 +231,7 @@ def myunits(request):
     context_dict = {'title': "My Units", 'memberships': memberships, 'show_dashboardnav': show_dashboardnav,
                     'shownocontentwarning': shownocontentwarning, 'role': role,
                     'trello_attached_to_acc': trello_attached, 'has_token_list': has_token_list,
-                    'github_attached': github_attached}
+                    'github_attached': github_attached, 'slack_attached': slack_attached}
 
     return render_to_response('dashboard/myunits.html', context_dict, context)
 
@@ -275,6 +280,7 @@ def dashboard(request):
             'blog_timeline': platform_timeline_data[xapi_settings.PLATFORM_BLOG],
             'trello_timeline': platform_timeline_data[xapi_settings.PLATFORM_TRELLO],
             'github_timeline': platform_timeline_data[xapi_settings.PLATFORM_GITHUB],
+            'slack_timeline': platform_timeline_data[xapi_settings.PLATFORM_SLACK],
             'forum_timeline': [], 'diigo_timeline':[],
 
             'activity_pie_series': activity_pie_series, 'platformactivity_pie_series': platformactivity_pie_series
@@ -451,6 +457,7 @@ def studentdashboard(request):
         'blog_timeline': platform_timeline_data[xapi_settings.PLATFORM_BLOG],
         'trello_timeline': platform_timeline_data[xapi_settings.PLATFORM_TRELLO],
         'github_timeline': platform_timeline_data[xapi_settings.PLATFORM_GITHUB],
+        'slack_timeline': platform_timeline_data[xapi_settings.PLATFORM_SLACK],
         'forum_timeline': [], 'diigo_timeline':[], # These haven't been implemented
 
         'activity_pie_series': activity_pie_series,
@@ -458,7 +465,7 @@ def studentdashboard(request):
         'sna_json': sna_json, 'tags': tags, 'sentiments': sentiments, 'coi': coi, 'centrality': centrality,
         'show_allplatforms_widgets': show_allplatforms_widgets, 'show_dashboardnav':True
     }
-
+    print context_dict
     return render_to_response('dashboard/studentdashboard.html', context_dict, context)
 
 @login_required
@@ -553,6 +560,7 @@ def mydashboard(request):
         'blog_timeline': platform_timeline_data[xapi_settings.PLATFORM_BLOG],
         'trello_timeline': platform_timeline_data[xapi_settings.PLATFORM_TRELLO],
         'github_timeline': platform_timeline_data[xapi_settings.PLATFORM_GITHUB],
+        'slack_timeline': platform_timeline_data[xapi_settings.PLATFORM_SLACK],
         'forum_timeline': [], 'diigo_timeline':[], # These haven't been implemented
 
         'activity_pie_series': activity_pie_series,
@@ -805,3 +813,116 @@ def get_learning_records(request):
         results.append(obj)
 
     return JsonResponse({'results': results}, status=status.HTTP_200_OK)
+
+
+@login_required
+def add_slack_team_to_course(request):
+    course_id = request.GET.get('course_id')
+    course = UnitOffering.objects.get(id=course_id)
+    ret = {'result': 'success'}
+
+    # A linked access token only belongs to a single slack team.
+    # To obtain team name, access Slack API and get team info.
+    from slackclient import SlackClient
+    tokens = None
+    try:
+        tokens = OfflinePlatformAuthToken.objects.get(user_smid=request.user.userprofile.slack_account_name)
+    except:
+        return HttpResponseServerError('<h2>Internal Server Error (500)</h2><p>Could not found access token.</p>')
+
+    sc = SlackClient(tokens.token)
+    sl_settings = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_SLACK]
+    team_info = sl_settings.get_team_info(sc)
+    team_domain_name = team_info['team']['domain']
+
+    resource_map = UserPlatformResourceMap.objects.filter(
+        user=request.user, unit=course_id, platform=xapi_settings.PLATFORM_SLACK)
+    # If the same record exist, update the repository name
+    if len(resource_map) == 1:
+        resource_map[0].resource_id = team_domain_name
+        resource_map[0].save()
+    elif len(resource_map) > 1:
+        # When more than one records were found (Usually this doesn't happen)
+        ret = {'result': 'error', 'message': 'More than one records were found. Could not update repository name.'}
+    else:
+        # Add a new record
+        resource_map = UserPlatformResourceMap(
+            user=request.user, unit=course, resource_id=team_domain_name, platform=xapi_settings.PLATFORM_SLACK)
+        resource_map.save()
+
+    return JsonResponse(ret, status=status.HTTP_200_OK)
+
+
+@login_required
+def get_attached_slack_team(request):
+    course_id = request.GET.get('course_id')
+    if course_id is None or course_id == '':
+        return JsonResponse({'result': 'error', 'message': 'Course ID not found.',
+            'course_id': course_id}, status=status.HTTP_200_OK)
+
+    resource_map = UserPlatformResourceMap.objects.filter(
+        user=request.user, unit=course_id, platform=xapi_settings.PLATFORM_SLACK)
+
+    if len(resource_map) == 0:
+        return JsonResponse({'result': 'error', 'message': 'No records found.',
+            'course_id': course_id}, status=status.HTTP_200_OK)
+
+    resource = resource_map[0]
+    sl_settings = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_SLACK]
+    obj = OrderedDict([
+        ('result', 'success'),
+        ('name', resource.resource_id),
+        ('url', sl_settings.get_team_url(resource.resource_id)),
+        ('course_id', course_id),
+    ])
+
+    return JsonResponse(obj, status=status.HTTP_200_OK)
+
+
+@login_required
+def remove_attached_slack_team(request):
+    course_id = request.GET.get('course_id')
+    if course_id is None or course_id == '':
+        return JsonResponse({'result': 'error', 'message': 'Course ID not found.'}, status=status.HTTP_200_OK)
+
+    resource_map = UserPlatformResourceMap.objects.filter(
+        user=request.user, unit=course_id, platform=xapi_settings.PLATFORM_SLACK)
+    if len(resource_map) > 1:
+        return JsonResponse({'result': 'error', 'message': 'More than one records were found.'}, status=status.HTTP_200_OK)
+
+    resource_map.delete()
+    ret = {'result': 'success'}
+    return JsonResponse(ret, status=status.HTTP_200_OK)
+
+
+@login_required
+def get_slack_team_url(request):
+    
+    course_id = request.GET.get('course_id')
+    if course_id is None or course_id == '':
+        return JsonResponse({'result': 'error', 'message': 'Course ID not found.',
+            'course_id': course_id}, status=status.HTTP_200_OK)
+
+    from slackclient import SlackClient
+    tokens = None
+    try:
+        tokens = OfflinePlatformAuthToken.objects.get(user = request.user)
+    except:
+        return HttpResponseServerError('<h2>Internal Server Error (500)</h2><p>Could not found access token.</p>')
+
+    sc = SlackClient(tokens.token)
+    sl_settings = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_SLACK]
+    team_info = sl_settings.get_team_info(sc)
+    team_domain_name = team_info['team']['domain']
+
+    if len(resource_map) == 0:
+        return JsonResponse({'result': 'error', 'message': 'No records found.',
+            'course_id': course_id}, status=status.HTTP_200_OK)
+
+    obj = OrderedDict([
+        ('result', 'success'),
+        ('url', sl_settings.get_team_url(team_domain_name)),
+        ('domain', team_domain_name)
+    ])
+
+    return JsonResponse(obj, status=status.HTTP_200_OK)

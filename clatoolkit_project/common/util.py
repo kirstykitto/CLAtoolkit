@@ -1,5 +1,8 @@
 from django.http import HttpResponse
+
+from datetime import datetime
 from isodate.isodatetime import parse_datetime
+
 
 class Utility(object):
 	@classmethod
@@ -28,3 +31,8 @@ class Utility(object):
 		month_subtract = 1 if isMonthSubtract else 0
 		dateAry = date_str.split(splitter)
 		return dateAry[0] + connector + str(int(dateAry[1]) - month_subtract).zfill(2) + connector + dateAry[2]
+
+	@classmethod
+	def convert_unixtime_to_datetime(self, unix_time):
+		unix_time = float(unix_time)
+		return datetime.fromtimestamp(unix_time)

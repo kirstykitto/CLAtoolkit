@@ -55,6 +55,9 @@ class UserProfile(models.Model):
     #Trello user ID
     trello_account_name = models.CharField(max_length=255, blank=True)
 
+    #Slack user ID
+    slack_account_name = models.CharField(max_length=255, blank=True)
+
     def get_username_for_platform(self,platform):
         platform_map = {
             'twitter':self.twitter_id,
@@ -63,7 +66,8 @@ class UserProfile(models.Model):
             'youtube':self.google_account_name,
             'blog':self.blog_id,
             'github':self.github_account_name,
-            'trello':self.trello_account_name
+            'trello':self.trello_account_name,
+            'slack':self.slack_account_name
         }
 
         return platform_map[platform.lower()]
@@ -72,6 +76,7 @@ class OfflinePlatformAuthToken(models.Model):
     user_smid = models.CharField(max_length=1000, blank=False)
     token = models.CharField(max_length=1000, blank=False)
     platform = models.CharField(max_length=1000, blank=False)
+    user = models.ForeignKey(User)
 
 class UnitOffering(models.Model):
     code = models.CharField(max_length=5000, blank=False, verbose_name="Unit Code", unique=True)
@@ -198,6 +203,11 @@ class UnitOffering(models.Model):
     def github_member_count(self):
         # Count the number of GitHub users in the course
         resources = UserPlatformResourceMap.objects.filter(unit=self.id, platform=xapi_settings.PLATFORM_GITHUB)
+        return len(resources)
+
+    def slack_member_count(self):
+        # Count the number of Slack users in the course
+        resources = UserPlatformResourceMap.objects.filter(unit=self.id, platform=xapi_settings.PLATFORM_SLACK)
         return len(resources)
 
     def coi_platforms_as_list(self):

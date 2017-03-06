@@ -10,6 +10,7 @@ import funcy as fp
 import numpy as np
 import subprocess
 import jgraph
+import igraph
 from pprint import pprint
 from collections import OrderedDict
 from django.conf import settings
@@ -1335,6 +1336,7 @@ def get_verb_count(platform, course_id):
 
     result = cursor.fetchall()
     categories, data, series_names = retrieve_data_from_rows(result)
+    categories.sort()
     return categories, data
 
 
@@ -1344,22 +1346,6 @@ def get_object_values(platform, course_id):
     data = {}
     if platform is None or platform == '' or course_id is None or course_id == '':
         return categories, data
-
-    # cursor = connection.cursor()
-    # cursor.execute("""select username
-    #     , verb
-    #     , xapi->'context'->'contextActivities'->'other' as other_context
-    #     , to_char(to_date(clatoolkit_learningrecord.xapi->>'timestamp', 'YYYY-MM-DD'), 'YYYY,MM,DD') as date_imported
-    #     , clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US' as val
-    #     from clatoolkit_learningrecord
-    #     where platform = %s
-    #     and unit_id = %s
-    #     order by username, verb, date_imported asc
-    # """, [platform, course_id])
-
-    # result = cursor.fetchall()
-    # platform_setting = settings.DATAINTEGRATION_PLUGINS[platform]
-    # result = platform_setting.get_detail_values_by_fetch_results(result)
 
     unit = UnitOffering.objects.get(id = course_id)
     filters = xapi_filter()
@@ -1570,10 +1556,12 @@ def get_platform_timeline_data(unit, platform = None, user = None):
     yt_series = get_timeseries(unit, None, xapi_settings.PLATFORM_YOUTUBE, user)
     tr_series = get_timeseries(unit, None, xapi_settings.PLATFORM_TRELLO, user)
     gh_series = get_timeseries(unit, None, xapi_settings.PLATFORM_GITHUB, user)
+    sl_series = get_timeseries(unit, None, xapi_settings.PLATFORM_SLACK, user)
 
     return {xapi_settings.PLATFORM_TWITTER: tw_series, xapi_settings.PLATFORM_FACEBOOK: fb_series, 
             xapi_settings.PLATFORM_BLOG: bl_series, xapi_settings.PLATFORM_YOUTUBE: yt_series,
-            xapi_settings.PLATFORM_TRELLO: tr_series, xapi_settings.PLATFORM_GITHUB: gh_series}
+            xapi_settings.PLATFORM_TRELLO: tr_series, xapi_settings.PLATFORM_GITHUB: gh_series,
+            xapi_settings.PLATFORM_SLACK: sl_series}
 
 
 def get_verb_pie_data(unit, platform = None, user = None):

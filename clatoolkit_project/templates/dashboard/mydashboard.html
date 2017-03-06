@@ -101,23 +101,23 @@
         </div>
         <!-- /.panel -->
     </div>
-    {% include "dashboard/parts/coi.html" with unit=unit cla_size=6 %}
+    {% include "dashboard/include/coi.html" with unit=unit cla_size=6 %}
     {% if unit.enable_coi_classifier == False %}
-        {% include "dashboard/parts/wordcloud.html" with unit=unit title="My Word Cloud" cla_size=6 %}
+        {% include "dashboard/include/wordcloud.html" with unit=unit title="My Word Cloud" cla_size=6 %}
     {% endif %}
 </div>
 <!-- /.row -->
 <div class="row">
     {% if unit.enable_coi_classifier == False%}
-        {% include "dashboard/parts/sna_explorer.html" with unit=unit title="My Social Network" show_alert=True cla_size=12 %}
+        {% include "dashboard/include/sna_explorer.html" with unit=unit title="My Social Network" show_alert=True cla_size=12 %}
     {% else %}
-        {% include "dashboard/parts/sna_explorer.html" with unit=unit title="My Social Network" show_alert=True cla_size=8 %}
+        {% include "dashboard/include/sna_explorer.html" with unit=unit title="My Social Network" show_alert=True cla_size=8 %}
     {% endif %}
     {% if unit.enable_coi_classifier %}
         {% if unit.sn_analysis == False %}
-            {% include "dashboard/parts/wordcloud.html" with unit=unit title="My Word Cloud" cla_size=12 %}
+            {% include "dashboard/include/wordcloud.html" with unit=unit title="My Word Cloud" cla_size=12 %}
         {% else %}
-            {% include "dashboard/parts/wordcloud.html" with unit=unit title="My Word Cloud" cla_size=4 %}
+            {% include "dashboard/include/wordcloud.html" with unit=unit title="My Word Cloud" cla_size=4 %}
         {% endif %}
     {% endif %}
 
@@ -125,10 +125,10 @@
 
 <!-- /.row -->
 <div class="row">
-    {% include "dashboard/parts/sna_table.html" with unit=unit cla_size=12 %}
+    {% include "dashboard/include/sna_table.html" with unit=unit cla_size=12 %}
 </div>
 <div class="row">
-    {% include "dashboard/parts/centrality.html" with unit=unit cla_size=12 %}
+    {% include "dashboard/include/centrality.html" with unit=unit cla_size=12 %}
 </div>
 <!-- /.row -->
 <div class="row">
@@ -610,17 +610,25 @@ $(function() {
           data : [{{ youtube_timeline }}],
           id : 'dataseries3'
       },{
+          name : 'Diigo',
+          data : [{{ diigo_timeline }}],
+          id : 'dataseries4'
+      },{
           name : 'Blog',
           data : [{{ blog_timeline }}],
-          id : 'dataseries4'
+          id : 'dataseries5'
       },{
           name : 'Trello',
           data : [{{ trello_timeline }}],
-          id : 'dataseries5'
+          id : 'dataseries6'
       },{
           name : 'GitHub',
           data : [{{ github_timeline }}],
-          id : 'dataseries6'
+          id : 'dataseries7'
+      },{
+          name : 'Slack',
+          data : [{{ slack_timeline }}],
+          id : 'dataseries8'
       }]
   }, function (chart) {
       // Show series in the navigator (the mini-chart)

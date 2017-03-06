@@ -42,3 +42,11 @@
 	padding: 3px;
 	background-size: 12px;
 }
+.slack_icon {
+	content: url(/static/img/slack/Slack_Mark.svg);
+	width: 35px;
+	margin: -10px;
+	margin-right: -5px;
+	margin-left: -12px;
+	margin-top: -14px;
+}

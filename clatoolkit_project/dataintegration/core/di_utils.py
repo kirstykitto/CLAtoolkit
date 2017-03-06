@@ -17,6 +17,8 @@ def get_user_from_screen_name(screen_name, platform):
         platform_param_name = "github_account_name__iexact"
     elif platform_name == 'trello':
         platform_param_name = "trello_account_name__iexact"
+    elif platform_name == 'slack':
+        platform_param_name = "slack_account_name__iexact"
     elif platform_name == 'facebook':
         platform_param_name = "fb_id__iexact"
     else:

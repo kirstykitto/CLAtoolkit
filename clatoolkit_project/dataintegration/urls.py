@@ -24,5 +24,9 @@ urlpatterns = patterns(
     url(r'^refreshtrello/$', views.refreshtrello, name='refreshtrello'),
     url(r'^github_auth/$', views.github_auth, name='github_auth'),
     url(r'^github_client_auth/$', views.github_client_auth, name='github_client_auth'),
-    #url(r'^ytAuthCallback/(?P<course_id>\d+)/$', views.ytAuthCallback, name='ytAuthCallback'),
+    url(r'^refreshslack/$', views.refreshslack, name='refreshslack'),
+
+    # Test code
+    url(r'^slack_auth/$', views.slack_auth, name='slack_auth'),
+    url(r'^slack_client_auth/$', views.slack_client_auth, name='slack_client_auth'),
 )
