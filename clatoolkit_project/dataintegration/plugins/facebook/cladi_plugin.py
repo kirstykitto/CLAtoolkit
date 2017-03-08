@@ -1,21 +1,27 @@
 from dataintegration.core.plugins import registry
 from dataintegration.core.plugins.base import DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMixin
-from dataintegration.core.socialmediarecipebuilder import *
-from dataintegration.core.recipepermissions import *
+
+from dataintegration.core.importer import *
+from dataintegration.core.di_utils import * #Formerly dataintegration.core.recipepermissions
+from xapi.statement.builder import * #Formerly dataintegration.core.socialmediabuilder
+
 import json
 import dateutil.parser
 from authomatic.providers import oauth2
 import requests
 import os
+from xapi.statement.xapi_settings import xapi_settings
 
 
 class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMixin):
 
-    platform = "facebook"
-    platform_url = "http://www.facebook.com/"
+    platform = xapi_settings.PLATFORM_FACEBOOK
+    platform_url = 'https://www.facebook.com/'
+    group_base_url = platform_url + 'groups/'
 
-    xapi_verbs = ['created', 'shared', 'liked', 'commented']
-    xapi_objects = ['Note']
+    xapi_verbs = [xapi_settings.VERB_CREATED, xapi_settings.VERB_SHARED, 
+                  xapi_settings.VERB_LIKED, xapi_settings.VERB_COMMENTED]
+    xapi_objects = [xapi_settings.OBJECT_NOTE]
 
     user_api_association_name = 'Facebook UID' # eg the username for a signed up user that will appear in data extracted via a social API
     unit_api_association_name = 'Group ID' # eg hashtags or a group name
@@ -23,38 +29,34 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
     config_json_keys = ['consumer_key', 'consumer_secret']
 
     #from DIPluginDashboardMixin
-    xapi_objects_to_includein_platformactivitywidget = ['Note']
-    xapi_verbs_to_includein_verbactivitywidget = ['created', 'shared', 'liked', 'commented']
+    xapi_objects_to_includein_platformactivitywidget = [xapi_settings.OBJECT_NOTE]
+    xapi_verbs_to_includein_verbactivitywidget = [xapi_settings.VERB_CREATED, xapi_settings.VERB_SHARED, 
+                                                  xapi_settings.VERB_LIKED, xapi_settings.VERB_COMMENTED]
 
     #from AuthomaticPluginMixin
     authomatic_config_json = {}
 
     authomatic_config_key = 'fb'
-    authomatic_secretkey = None
+    authomatic_secretkey = os.environ.get("FACEBOOK_AUTHOMATIC_SECRET_KEY")
 
     def __init__(self):
-        # Load api_config.json and convert to dict
-        config_file = os.path.join(os.path.dirname(__file__), 'api_config.json')
-        with open(config_file) as data_file:
-            self.api_config_dict = json.load(data_file)
-
         #from AuthomaticPluginMixin
         self.authomatic_config_json = {
             # Auth information for Facebook App
             'fb': {
                 'class_': oauth2.Facebook,
-                'consumer_key': self.api_config_dict['consumer_key'],
-                'consumer_secret': self.api_config_dict['consumer_secret'],
+                'consumer_key': os.environ.get("FACEBOOK_CONSUMER_KEY"),
+                'consumer_secret': os.environ.get("FACEBOOK_CONSUMER_SECRET"),
 
-                'scope': ['user_about_me', 'email', 'user_groups'],
+                'scope': ['user_about_me', 'email', 'user_managed_groups'],
                 },
             }
 
         self.authomatic_config_key = 'fb'
 
-        self.authomatic_secretkey = str(self.api_config_dict['authomatic_secretkey'])
+        self.authomatic_secretkey = str(os.environ.get("FACEBOOK_AUTHOMATIC_SECRET_KEY"))
 
-    def perform_import(self, retrieval_param, course_code, authomatic_result):
+    def perform_import(self, retrieval_param, unit, authomatic_result):
         """
         Sends formatted data to LRS
         1. Parses facebook feed
@@ -65,14 +67,21 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
         :param course_code: The unit offering code
         :return:
         """
+        # group URL
+        group_url = self.group_base_url + retrieval_param + '/'
 
-        url = 'https://graph.facebook.com/'+retrieval_param+'/feed'
-        access_response = result.provider.access(url)
+        # retrieval_param contains FB group ID
+        url = 'https://graph.facebook.com/v2.8/'+retrieval_param+'/feed'
+        params = {"fields": "created_time,from,message,likes,comments{created_time,from,message}"}
+        access_response = authomatic_result.provider.access(url, params=params)
         data = access_response.data.get('data')
+        
+        # print 'got facebook data: %s' % access_response.data
+        
         paging = access_response.data.get('paging')
         while True:
             try:
-                self.insert_facebook_lrs(fb_feed=data, course_code=course_code)
+                self.insert_facebook_lrs(data, unit, group_url)
                 fb_resp = requests.get(paging['next']).json()
                 data = fb_resp['data']
                 if 'paging' not in fb_resp:
@@ -84,47 +93,59 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
                 # loop and end the script.
                 break
 
-    def insert_facebook_lrs(self, fb_feed, course_code):
+    def insert_facebook_lrs(self, fb_feed, unit, group_url):
         """
         1. Parses facebook feed
         2. Uses construct_tincan_statement to format data ready to send for the LRS
         3. Sends to the LRS and Saves to postgres json field
         :param fb_feed: Facebook Feed as dict
-        :param course_code: The unit offering code
+        :param unit: A UnitOffering object
         :return:
         """
-        for pst in fb_feed:
-            if 'message' in pst:
-                post_type = pst['type']
-                created_time = dateutil.parser.parse(pst['created_time'])
-                from_uid = pst['from']['id']
-                from_name = pst['from']['name']
-                post_id = pst['actions'][0]['link']
-                message = pst['message']
-                if username_exists(from_uid, course_code, self.platform):
-                    usr_dict = get_userdetails(from_uid, self.platform)
-                    insert_post(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, self.platform, self.platform_url)
+        for post in fb_feed:
+            if 'message' in post:
+                created_time = dateutil.parser.parse(post['created_time'])
+                from_uid = post['from']['id']
+                post_id = post['id']
+                message = post['message']
 
-                if 'likes' in pst:
-                    for like in pst['likes']['data']:
-                        like_uid = like['id']
-                        like_name = like['name']
+                print("Post: {}".format(message))
 
-                        if username_exists(like_uid, course_code, self.platform):
-                            usr_dict = get_userdetails(like_uid, self.platform)
-                            insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, self.platform, self.platform_url, liked_username=from_uid)
+                if username_exists(from_uid, unit, self.platform):
+                    user = get_user_from_screen_name(from_uid, self.platform)
+                    # print("User {} exists".format(user.first_name))
 
-                if 'comments' in pst:
-                    for comment in pst['comments']['data']:
-                        comment_created_time = comment['created_time']
-                        comment_from_uid = comment['from']['id']
-                        comment_from_name = comment['from']['name']
-                        comment_message = comment['message']
-                        comment_id = comment['id']
-                        if username_exists(comment_from_uid, course_code, self.platform):
-                            usr_dict = get_userdetails(comment_from_uid, self.platform)
+                    # create IRI so xAPI can be accepted by LRS
+                    post_id = post_id.split('_')[1]
+                    post_id = group_url + post_id
+                    insert_post(user, post_id, message, created_time, unit, self.platform, self.platform_url)
 
-                            insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, self.platform, self.platform_url, shared_username=from_uid)
+                    # print 'object ID: %s' % post_id
+
+                    if 'likes' in post:
+                        for like in post['likes']['data']:
+                            like_uid = like['id']
+                            like_id = group_url + like_uid
+                            # print 'like ID: %s' % like_id
+
+                            if username_exists(like_uid, unit, self.platform):
+                                like_user = get_user_from_screen_name(from_uid, self.platform)
+                                insert_like(like_user, like_id, message, unit, self.platform, self.platform_url, 
+                                    post_id, xapi_settings.OBJECT_NOTE, created_time, parent_user=user)
+
+                    if 'comments' in post:
+                        for comment in post['comments']['data']:
+                            comment_created_time = comment['created_time']
+                            comment_from_uid = comment['from']['id']
+                            comment_message = comment['message']
+                            comment_id = comment['id']
+                            comment_id = group_url + comment_id
+                            # print 'comment ID: %s' % comment_id
+
+                            if username_exists(comment_from_uid, unit, self.platform):
+                                comment_user = get_user_from_screen_name(comment_from_uid, self.platform)
+                                insert_comment(comment_user, post_id, comment_id, comment_message, comment_created_time,
+                                               unit, self.platform, self.platform_url, parent_user=user)
 
 
 registry.register(FacebookPlugin)

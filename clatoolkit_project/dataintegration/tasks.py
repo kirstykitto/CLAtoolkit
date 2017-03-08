@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from clatoolkit.models import UserProfile, LearningRecord, UnitOffering
-import dataintegration.core.socialmediarecipebuilder as socialmediabuilder
+import xapi.statement.builder as socialmediabuilder #import dataintegration.core.socialmediarecipebuilder as socialmediabuilder
 from django.db import connections
 
 import json
@@ -67,566 +67,566 @@ def youtube_getpersonalchannel(request, http):
     #print ret
     return ret['items'][0]['id']
 
-#############################################################
-# Extract "like"d videos from YouTube and insert it into DB
-#############################################################
-def injest_youtube_like(course_code, http, loginUserInfo):
-    isFirstTime = True
-    nextPageToken = ""
-    vList = []
-    # The maxResults parameter specifies the maximum number of items that should be returned in the result set.(integer, 1-50)
-    maxResultsNum = 50
-
-    while isFirstTime or nextPageToken is not "":
-        idVal = "id,snippet"
-        myRatingVal = "like"
-        service = build('youtube', 'v3', http=http)
-
-        #Call videos API to get videos that user "like"d
-        if nextPageToken is not "":
-            ret = service.videos().list(
-                part = idVal,
-                maxResults = maxResultsNum,
-                myRating = myRatingVal,
-                pageToken = nextPageToken
-            ).execute()
-        else:
-            ret = service.videos().list(
-                part = idVal,
-                maxResults = maxResultsNum,
-                myRating = myRatingVal
-            ).execute()
-
-        #Check the number of result
-        if ret.get('nextPageToken'):
-            nextPageToken = ret['nextPageToken']
-        else:
-            nextPageToken = ""
-
-        #Loop to get all items
-        for item in ret['items']:
-            video = Video()
-            video.videoId = item['id']
-
-            #Check if the data already exists in DB
-            records = LearningRecord.objects.filter(
-                platform = STR_PLATFORM_NAME_YOUTUBE, course_code = course_code,
-                platformparentid = video.videoId, username = loginUserInfo.username, verb="liked")
-            if(len(records) > 0):
-                continue
-
-            video.videoUrl = STR_YT_VIDEO_BASE_URL + item['id']
-            #title = item['snippet']['title']
-            video.videoTitle = item['snippet']['title']
-            #Add video info to the list object
-            vList.append(video)
-
-        isFirstTime = False
-
-    usr_dict = {'google_account_name': loginUserInfo.userprofile.google_account_name }
-    usr_dict['email'] = loginUserInfo.email
-    like_name = None
-    for video in vList:
-        #Insert collected data into DB
-        insert_like(usr_dict, video.videoUrl, loginUserInfo.username, like_name,
-                    video.videoTitle, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE,
-                    STR_OBJ_TYPE_VIDEO, "", video.videoId)
-
-    return vList
-
-
-def injest_youtube_comment(course_code, channelIds, http, loginUserInfo, course_id):
-
-    channelCommList = injest_youtube_commentById(course_code, channelIds, http, loginUserInfo, False, course_id)
-    print "Channel ID comment extraction result: " + str(len(channelCommList))
-    #Don't think this code above works had to write another method to get the comment thread from a channel
-
-    # Retrieve all video IDs in registered channels, and then retrieve all user's comments in the videos.
-    channelIDList = channelIds.split('\r\n')
-    videoIds,playlists = getAllVideoIDsInChannel(channelIDList, http)
-    vidsinplaylist = getAllVideoIDsInPlaylist(playlists, http)
-    videoIds.extend(vidsinplaylist)
-    #channelcommentthreads = getChannelCommentThreads(channelIDList, http)
-    videoCommList = injest_youtube_commentById(course_code, videoIds, http, loginUserInfo, True, course_id)
-    channelCommList.extend(videoCommList)
-    print "Video ID comment extraction result: " + str(len(channelCommList))
-    return channelCommList
-
-#############################################################
-# Extract commented videos from YouTube and insert it into DB
-#############################################################
-def injest_youtube_commentById(course_code, allIds, http, loginUserInfo, isVideoIdSearch, course_id):
-    isFirstTime = True
-    nextPageToken = ""
-    commList = []
-    id_creator_dict = {}
-    id_creator_displayname_dict = {}
-
-    if not isinstance(allIds, list):
-        ids = allIds.split(os.linesep)
-    else:
-        ids = allIds
-
-    #Get all users in the unit(course)
-    usersInUnit = getAllUsersInCourseById(course_code) #course_id
-
-    for singleId in ids:
-        #Get comments by channel ID
-        while isFirstTime or nextPageToken is not "":
-            ret = extractCommentsById(singleId, nextPageToken, isVideoIdSearch, http)
-            #Check the number of result
-            if ret.get('nextPageToken'):
-                nextPageToken = ret['nextPageToken']
-            else:
-                nextPageToken = ""
-
-            # Retrieve comments from API response
-            #tempList = getCommentsFromResponse(ret, course_code,
-            #    loginUserInfo.username, loginUserInfo.userprofile.google_account_name, course_id)
-            tempList, id_creator_dict_temp, id_creator_displayname_dict_temp = getCommentsFromResponse(ret, course_code, loginUserInfo.username, usersInUnit)
-            id_creator_dict.update(id_creator_dict_temp)
-            id_creator_displayname_dict.update(id_creator_displayname_dict_temp)
-
-            commList.extend(tempList)
-            isFirstTime = False
-
-        # Initialize the flag for next loop
-        isFirstTime = True
-        nextPageToken = ""
-    #print id_creator_dict, id_creator_displayname_dict
-    #usr_dict = {'google_account_name': loginUserInfo.userprofile.google_account_name }
-    #usr_dict['email'] = loginUserInfo.email
-    for comment in commList:
-        #usr_dict['email'] = loginUserInfo.email
-        #comment_from_name = loginUserInfo.username
-        #print "comments stored in model", comment.__dict__
-        #print comment.authorChannelUrl, comment.authorDisplayName
-        if comment.commId in id_creator_dict:
-            if youtubeuserchannel_exists(comment.authorDispName, course_code):
-                userInfo = getUserDetailsByGoogleAccount(comment.authorDispName, usersInUnit)
-                userInfo['googleAcName'] = get_username_fromsmid(id_creator_dict[comment.commId], "YouTube")
-                usr_dict = {'googleAcName': userInfo['googleAcName'], 'email': userInfo['email']}
-                """
-                insert_comment(usr_dict, comment.parentId, comment.commId,
-                                comment.text, loginUserInfo.username, comment_from_name,
-                                comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE, comment.commId, "")
-                """
-                parentusername = ""
-                parentdisplayname = ""
-                postid = comment.commId
-                parentId = ""
-                #print "comment.isReply", comment.isReply
-                #print "comment.commId", comment.commId
-                #print "comment.parentId", comment.parentId
-                if (comment.isReply):
-                    #print "Is Reply - insert comment", comment.parentId
-                    #if comment.parentId in id_creator_dict:
-                    #there is an odd .xxxx in comments from YouTube
-                    '''
-                    if comment.parentId.index('.')==-1:
-                        parentdisplayname = id_creator_displayname_dict[comment.parentId]
-                        parentusername = get_username_fromsmid(id_creator_dict[comment.parentId], "YouTube")
-                    else:
-                        id_creator_key  = comment.commId[0:comment.parentId.index('.')]
-                        parentdisplayname = id_creator_displayname_dict[id_creator_key]
-                        parentusername = get_username_fromsmid(id_creator_dict[id_creator_key], "YouTube")
-                    '''
-                    parentId = comment.parentId
-                    if parentId in id_creator_displayname_dict:
-                        print "insert comment"
-                        parentdisplayname = id_creator_displayname_dict[parentId]
-                        parentusername = get_username_fromsmid(id_creator_dict[parentId], "YouTube")
-                        insert_comment(usr_dict, parentId, postid,
-                                        comment.text, userInfo['googleAcName'], userInfo['username'],
-                                        comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE, parentusername, parentdisplayname)
-                else:
-                    print "insert post"
-                    insert_post(usr_dict, postid, comment.text,userInfo['googleAcName'],userInfo['username'], comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE)
-
-    return commList
-
-def getUserDetailsByGoogleAccount(authorName, usersInUnit):
-    userInfo = {'googleAcName': "Unknown User" }
-    userInfo['email'] = "unknown"
-    userInfo['username'] = "Unknown"
-    for user in usersInUnit:
-        if user.userprofile is not None and authorName == user.userprofile.google_account_name:
-            userInfo = {'googleAcName': user.userprofile.google_account_name }
-            userInfo['email'] = user.email
-            userInfo['username'] = user.username
-    return userInfo
-
-
-##############################################
-# Get all video IDs in registered channels
-##############################################
-def getAllVideoIDsInChannel(channelIds, http):
-    ret = []
-    playlists = []
-    isFirstTime = True
-    nextPageToken = ""
-
-    #Create youtube API controller
-    service = build('youtube', 'v3', http=http)
-    idVal = "id"
-    resultOrder = "date"
-    maxResultsNum = 50
-
-    for cid in channelIds:
-        while isFirstTime or nextPageToken is not "":
-            if nextPageToken is not "":
-                searchRet = service.search().list(
-                    part = idVal,
-                    maxResults = maxResultsNum,
-                    order = resultOrder,
-                    channelId = cid,
-                    pageToken = nextPageToken
-                ).execute()
-            else:
-                searchRet = service.search().list(
-                    part = idVal,
-                    maxResults = maxResultsNum,
-                    order = resultOrder,
-                    channelId = cid
-                ).execute()
-
-            #When an error occurs
-            if searchRet.get('error'):
-                print "An error has occured in getAllVideoIDsInChannel() method."
-                return ret
-
-            if searchRet.get('nextPageToken'):
-                nextPageToken = str(searchRet['nextPageToken'])
-            else:
-                nextPageToken = ""
-
-            #Loop to get all items
-            for item in searchRet['items']:
-                #print "Video Ids"
-                #print item['id']
-                info = item['id']
-                if info.get('videoId'):
-                    ret.append(item['id']['videoId'])
-                    #print item['id']['videoId']
-                elif info.get('kind')=='youtube#playlist':
-                    playlists.append(info.get('playlistId'))
-
-            isFirstTime = False
-
-        # Initialize the flag for next loop
-        isFirstTime = True
-        nextPageToken = ""
-
-    return ret,playlists
-
-
-###################################################################################
-# Get comment threads directly linked to a channel (i.e., under the discussion tab)
-###################################################################################
-def getChannelCommentThreads(channelIds, http):
-    ret = []
-    isFirstTime = True
-    nextPageToken = ""
-
-    #Create youtube API controller
-    service = build('youtube', 'v3', http=http)
-    idVal = "id"
-    resultOrder = "time"
-    maxResultsNum = 50
-
-    for cid in channelIds:
-        while isFirstTime or nextPageToken is not "":
-            if nextPageToken is not "":
-                searchRet = service.commentThreads().list(
-                    part = idVal,
-                    maxResults = maxResultsNum,
-                    order = resultOrder,
-                    channelId = cid,
-                    pageToken = nextPageToken
-                ).execute()
-            else:
-                searchRet = service.commentThreads().list(
-                    part = idVal,
-                    maxResults = maxResultsNum,
-                    order = resultOrder,
-                    channelId = cid
-                ).execute()
-
-            #When an error occurs
-            if searchRet.get('error'):
-                print "An error has occured in getChannelCommentThreads() method."
-                return ret
-
-            if searchRet.get('nextPageToken'):
-                nextPageToken = str(searchRet['nextPageToken'])
-            else:
-                nextPageToken = ""
-
-            #Loop to get all items
-            for item in searchRet['items']:
-                #print "Video Ids"
-                #print item['id']
-                if item['id']:
-                    ret.append(item['id'])
-
-            isFirstTime = False
-
-        # Initialize the flag for next loop
-        isFirstTime = True
-        nextPageToken = ""
-
-    return ret
-
-
-##############################################
-# Get all video IDs from a playlist
-##############################################
-def getAllVideoIDsInPlaylist(playlistids, http):
-    #print "getAllVideoIDsInPlaylist called"
-    ret = []
-    isFirstTime = True
-    nextPageToken = ""
-
-    #Create youtube API controller
-    service = build('youtube', 'v3', http=http)
-    maxResultsNum = 50
-
-    for cid in playlistids:
-        while isFirstTime or nextPageToken is not "":
-            if nextPageToken is not "":
-                searchRet = service.playlistItems().list(
-                    part = 'contentDetails',
-                    maxResults = maxResultsNum,
-                    playlistId = cid,
-                    pageToken = nextPageToken
-                ).execute()
-            else:
-                searchRet = service.playlistItems().list(
-                    part = 'contentDetails',
-                    maxResults = maxResultsNum,
-                    playlistId = cid
-                ).execute()
-
-            #When an error occurs
-            if searchRet.get('error'):
-                print "An error has occured in getAllVideoIDsInPlaylist() method."
-                return ret
-
-            if searchRet.get('nextPageToken'):
-                nextPageToken = str(searchRet['nextPageToken'])
-            else:
-                nextPageToken = ""
-
-            #Loop to get all items
-            for item in searchRet['items']:
-                #print "Video Ids"
-                #print "vid in playlist", item['contentDetails']['videoId']
-                if item['contentDetails']['videoId']:
-                    ret.append(item['contentDetails']['videoId'])
-
-            isFirstTime = False
-
-        # Initialize the flag for next loop
-        isFirstTime = True
-        nextPageToken = ""
-
-    return ret
-
-################################################################
-# Extract comments by either channel ID or video ID from YouTube
-################################################################
-def extractCommentsById(singleId, nextPageToken, isVideoIdSearch, http):
-    #Create youtube API controller
-    service = build('youtube', 'v3', http=http)
-    idVal = "id,snippet,replies"
-    resultOrder = "time"
-    maxResultsNum = 100
-    ret = []
-
-    if isVideoIdSearch:
-        # Extract data from social media by video ID
-        if nextPageToken is not "":
-            ret = service.commentThreads().list(
-                part = idVal,
-                maxResults = maxResultsNum,
-                order = resultOrder,
-                videoId = singleId,
-                pageToken = nextPageToken
-            ).execute()
-        else:
-            ret = service.commentThreads().list(
-                part = idVal,
-                maxResults = maxResultsNum,
-                order = resultOrder,
-                videoId = singleId
-            ).execute()
-    else:
-        # Extract data from social media by channel ID
-        if nextPageToken is not "":
-            ret = service.commentThreads().list(
-                part = idVal,
-                maxResults = maxResultsNum,
-                order = resultOrder,
-                channelId = singleId,
-                pageToken = nextPageToken
-            ).execute()
-        else:
-            ret = service.commentThreads().list(
-                part = idVal,
-                maxResults = maxResultsNum,
-                order = resultOrder,
-                channelId = singleId
-            ).execute()
-    '''
-    if isVideoIdSearch == False:
-        print "channel comment", ret
-    '''
-    return ret
-
-
-#############################################################
-# Retrieve comments from YouTube API response
-#############################################################
-#def getCommentsFromResponse(apiResponse, course_code, userName, googleAcName, course_id):
-def getCommentsFromResponse(apiResponse, course_code, userName, usersInUnit):
-    commList = []
-    id_creator_dict = {}
-    id_creator_displayname_dict = {}
-
-    #When an error occurs
-    if apiResponse.get('error'):
-        return commList
-
-    #Loop to get all items
-    for item in apiResponse['items']:
-        #Check if the comment is already in DB
-        replies = None
-        #print 'item:',item
-        #for k in item:
-        #    print k
-        if u'replies' in item:
-            #print "setting replies"
-            replies = item[u'replies']
-            #print '1 replies', replies
-        else:
-            print "No replies"
-
-        '''
-        records = LearningRecord.objects.filter(
-            platform = STR_PLATFORM_NAME_YOUTUBE, course_code = course_code,
-            platformid = item['id'])
-        if(len(records) > 0):
-            continue
-        '''
-
-        author = item['snippet']['topLevelComment']['snippet']['authorDisplayName']
-        authorChannelUrl = item['snippet']['topLevelComment']['snippet']['authorChannelUrl']
-        #print author, authorChannelUrl
-        # Check if the author of the comment is the same as the login user's google account name.
-        #if author == googleAcName:
-        #if matchCommentAuthorName(authorChannelUrl, usersInUnit):
-        comm = Comment()
-        comm.commId = item['id']
-        # Top level comment's parent ID is the same as ID
-        comm.parentId = item['id'] # Todo - This is incorrect and should not be assigned here
-        comm.authorDispName = authorChannelUrl #author
-        #comm.parentUsername = authorChannelUrl
-        #comm.authorChannelUrl = authorChannelUrl
-        comm.isReply = False
-
-        snippet = item['snippet']
-        secondSnippet = item['snippet']['topLevelComment']['snippet']
-        if secondSnippet.get('textOriginal'):
-            comm.text = secondSnippet['textOriginal']
-        else:
-            comm.text = secondSnippet['textDisplay']
-
-        if snippet.get('videoId'):
-            comm.videoId = snippet['videoId']
-            comm.videoUrl = STR_YT_VIDEO_BASE_URL + comm.videoId
-        if snippet.get('channelId'):
-            comm.channelId = snippet['channelId']
-            comm.channelUrl = STR_YT_CHANNEL_BASE_URL + comm.channelId
-
-        # Timestamp that the comment was published.
-        # UpdatedAt is the same as publishedAt when the comment isn't updated.
-        comm.updatedAt = secondSnippet['updatedAt']
-        commList.append(comm)
-        id_creator_dict[item['id']] = authorChannelUrl
-        id_creator_displayname_dict[item['id']] = author
-
-        #Check if replies exist
-        '''
-        for k in item:
-            print k
-            for t in item[k]:
-                print '--',t
-        if 'replies' in item:
-            print "reply: ",item['replies']
-        else:
-            print "no replies"
-        '''
-        #tmp = json.dumps(item)
-        #newitem = json.loads(tmp)
-        #print "item:", item
-        #print "newitem: ", newitem
-        #if 'replies' in newitem:
-        #    print "reply: ",item['replies']
-
-        #if item.get('replies'):
-        #print "replies2", replies
-        if replies is not None:
-            #print "replies is not None"
-            for reply in replies[u'comments']:
-                #item['replies']['comments']:
-                #print "reply", reply
-                #Check if the comment is already in DB
-                '''
-                records = LearningRecord.objects.filter(
-                    platform = STR_PLATFORM_NAME_YOUTUBE, course_code = course_code,
-                    platformid = reply['id'])
-                if(len(records) > 0):
-                    continue
-                '''
-
-                author = reply['snippet']['authorDisplayName']
-                authorChannelUrl = reply['snippet']['authorChannelUrl']
-                # Check if the author of the comment is the same as the login user's google account name.
-                #if author == googleAcName:
-                #if matchCommentAuthorName(authorChannelUrl, usersInUnit):
-                replyComm = Comment()
-                replyComm.isReply = True
-                replyComm.commId = reply['id']
-                snippet = reply['snippet']
-                replyComm.authorDispName = snippet['authorChannelUrl'] #snippet['authorDisplayName']
-                id_creator_dict[reply['id']] = snippet['authorChannelUrl']
-                id_creator_displayname_dict[reply['id']] = author
-                #replyComm.authorDispName = snippet['authorDisplayName']
-                replyComm.parentId = snippet['parentId'] #snippet['parentId']
-
-                if snippet.get('textOriginal'):
-                    replyComm.text = snippet['textOriginal']
-                else:
-                    replyComm.text = snippet['textDisplay']
-
-                if snippet.get('videoId'):
-                    replyComm.videoId = snippet['videoId']
-                    replyComm.videoUrl = STR_YT_VIDEO_BASE_URL + replyComm.videoId
-                if snippet.get('channelId'):
-                    replyComm.channelId = snippet['channelId']
-                    replyComm.channelUrl = STR_YT_CHANNEL_BASE_URL + replyComm.channelId
-
-                replyComm.updatedAt = snippet['updatedAt']
-                #print "replyComm obj", replyComm.__dict__
-                commList.append(replyComm)
-
-    return commList,id_creator_dict,id_creator_displayname_dict
-
-
-def getAllUsersInCourseById(course_code):
-    unit = UnitOffering.objects.filter(code = course_code).get()
-    users = unit.users.all()
-    return users
+# #############################################################
+# # Extract "like"d videos from YouTube and insert it into DB
+# #############################################################
+# def injest_youtube_like(course_code, http, loginUserInfo):
+#     isFirstTime = True
+#     nextPageToken = ""
+#     vList = []
+#     # The maxResults parameter specifies the maximum number of items that should be returned in the result set.(integer, 1-50)
+#     maxResultsNum = 50
+
+#     while isFirstTime or nextPageToken is not "":
+#         idVal = "id,snippet"
+#         myRatingVal = "like"
+#         service = build('youtube', 'v3', http=http)
+
+#         #Call videos API to get videos that user "like"d
+#         if nextPageToken is not "":
+#             ret = service.videos().list(
+#                 part = idVal,
+#                 maxResults = maxResultsNum,
+#                 myRating = myRatingVal,
+#                 pageToken = nextPageToken
+#             ).execute()
+#         else:
+#             ret = service.videos().list(
+#                 part = idVal,
+#                 maxResults = maxResultsNum,
+#                 myRating = myRatingVal
+#             ).execute()
+
+#         #Check the number of result
+#         if ret.get('nextPageToken'):
+#             nextPageToken = ret['nextPageToken']
+#         else:
+#             nextPageToken = ""
+
+#         #Loop to get all items
+#         for item in ret['items']:
+#             video = Video()
+#             video.videoId = item['id']
+
+#             #Check if the data already exists in DB
+#             records = LearningRecord.objects.filter(
+#                 platform = STR_PLATFORM_NAME_YOUTUBE, course_code = course_code,
+#                 platformparentid = video.videoId, username = loginUserInfo.username, verb="liked")
+#             if(len(records) > 0):
+#                 continue
+
+#             video.videoUrl = STR_YT_VIDEO_BASE_URL + item['id']
+#             #title = item['snippet']['title']
+#             video.videoTitle = item['snippet']['title']
+#             #Add video info to the list object
+#             vList.append(video)
+
+#         isFirstTime = False
+
+#     usr_dict = {'google_account_name': loginUserInfo.userprofile.google_account_name }
+#     usr_dict['email'] = loginUserInfo.email
+#     like_name = None
+#     for video in vList:
+#         #Insert collected data into DB
+#         insert_like(usr_dict, video.videoUrl, loginUserInfo.username, like_name,
+#                     video.videoTitle, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE,
+#                     STR_OBJ_TYPE_VIDEO, "", video.videoId)
+
+#     return vList
+
+
+# def injest_youtube_comment(course_code, channelIds, http, loginUserInfo, course_id):
+
+#     channelCommList = injest_youtube_commentById(course_code, channelIds, http, loginUserInfo, False, course_id)
+#     print "Channel ID comment extraction result: " + str(len(channelCommList))
+#     #Don't think this code above works had to write another method to get the comment thread from a channel
+
+#     # Retrieve all video IDs in registered channels, and then retrieve all user's comments in the videos.
+#     channelIDList = channelIds.split('\r\n')
+#     videoIds,playlists = getAllVideoIDsInChannel(channelIDList, http)
+#     vidsinplaylist = getAllVideoIDsInPlaylist(playlists, http)
+#     videoIds.extend(vidsinplaylist)
+#     #channelcommentthreads = getChannelCommentThreads(channelIDList, http)
+#     videoCommList = injest_youtube_commentById(course_code, videoIds, http, loginUserInfo, True, course_id)
+#     channelCommList.extend(videoCommList)
+#     print "Video ID comment extraction result: " + str(len(channelCommList))
+#     return channelCommList
+
+# #############################################################
+# # Extract commented videos from YouTube and insert it into DB
+# #############################################################
+# def injest_youtube_commentById(course_code, allIds, http, loginUserInfo, isVideoIdSearch, course_id):
+#     isFirstTime = True
+#     nextPageToken = ""
+#     commList = []
+#     id_creator_dict = {}
+#     id_creator_displayname_dict = {}
+
+#     if not isinstance(allIds, list):
+#         ids = allIds.split(os.linesep)
+#     else:
+#         ids = allIds
+
+#     #Get all users in the unit(course)
+#     usersInUnit = getAllUsersInCourseById(course_code) #course_id
+
+#     for singleId in ids:
+#         #Get comments by channel ID
+#         while isFirstTime or nextPageToken is not "":
+#             ret = extractCommentsById(singleId, nextPageToken, isVideoIdSearch, http)
+#             #Check the number of result
+#             if ret.get('nextPageToken'):
+#                 nextPageToken = ret['nextPageToken']
+#             else:
+#                 nextPageToken = ""
+
+#             # Retrieve comments from API response
+#             #tempList = getCommentsFromResponse(ret, course_code,
+#             #    loginUserInfo.username, loginUserInfo.userprofile.google_account_name, course_id)
+#             tempList, id_creator_dict_temp, id_creator_displayname_dict_temp = getCommentsFromResponse(ret, course_code, loginUserInfo.username, usersInUnit)
+#             id_creator_dict.update(id_creator_dict_temp)
+#             id_creator_displayname_dict.update(id_creator_displayname_dict_temp)
+
+#             commList.extend(tempList)
+#             isFirstTime = False
+
+#         # Initialize the flag for next loop
+#         isFirstTime = True
+#         nextPageToken = ""
+#     #print id_creator_dict, id_creator_displayname_dict
+#     #usr_dict = {'google_account_name': loginUserInfo.userprofile.google_account_name }
+#     #usr_dict['email'] = loginUserInfo.email
+#     for comment in commList:
+#         #usr_dict['email'] = loginUserInfo.email
+#         #comment_from_name = loginUserInfo.username
+#         #print "comments stored in model", comment.__dict__
+#         #print comment.authorChannelUrl, comment.authorDisplayName
+#         if comment.commId in id_creator_dict:
+#             if youtubeuserchannel_exists(comment.authorDispName, course_code):
+#                 userInfo = getUserDetailsByGoogleAccount(comment.authorDispName, usersInUnit)
+#                 userInfo['googleAcName'] = get_username_fromsmid(id_creator_dict[comment.commId], "YouTube")
+#                 usr_dict = {'googleAcName': userInfo['googleAcName'], 'email': userInfo['email']}
+#                 """
+#                 insert_comment(usr_dict, comment.parentId, comment.commId,
+#                                 comment.text, loginUserInfo.username, comment_from_name,
+#                                 comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE, comment.commId, "")
+#                 """
+#                 parentusername = ""
+#                 parentdisplayname = ""
+#                 postid = comment.commId
+#                 parentId = ""
+#                 #print "comment.isReply", comment.isReply
+#                 #print "comment.commId", comment.commId
+#                 #print "comment.parentId", comment.parentId
+#                 if (comment.isReply):
+#                     #print "Is Reply - insert comment", comment.parentId
+#                     #if comment.parentId in id_creator_dict:
+#                     #there is an odd .xxxx in comments from YouTube
+#                     '''
+#                     if comment.parentId.index('.')==-1:
+#                         parentdisplayname = id_creator_displayname_dict[comment.parentId]
+#                         parentusername = get_username_fromsmid(id_creator_dict[comment.parentId], "YouTube")
+#                     else:
+#                         id_creator_key  = comment.commId[0:comment.parentId.index('.')]
+#                         parentdisplayname = id_creator_displayname_dict[id_creator_key]
+#                         parentusername = get_username_fromsmid(id_creator_dict[id_creator_key], "YouTube")
+#                     '''
+#                     parentId = comment.parentId
+#                     if parentId in id_creator_displayname_dict:
+#                         print "insert comment"
+#                         parentdisplayname = id_creator_displayname_dict[parentId]
+#                         parentusername = get_username_fromsmid(id_creator_dict[parentId], "YouTube")
+#                         insert_comment(usr_dict, parentId, postid,
+#                                         comment.text, userInfo['googleAcName'], userInfo['username'],
+#                                         comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE, parentusername, parentdisplayname)
+#                 else:
+#                     print "insert post"
+#                     insert_post(usr_dict, postid, comment.text,userInfo['googleAcName'],userInfo['username'], comment.updatedAt, course_code, STR_PLATFORM_NAME_YOUTUBE, STR_PLATFORM_URL_YOUTUBE)
+
+#     return commList
+
+# def getUserDetailsByGoogleAccount(authorName, usersInUnit):
+#     userInfo = {'googleAcName': "Unknown User" }
+#     userInfo['email'] = "unknown"
+#     userInfo['username'] = "Unknown"
+#     for user in usersInUnit:
+#         if user.userprofile is not None and authorName == user.userprofile.google_account_name:
+#             userInfo = {'googleAcName': user.userprofile.google_account_name }
+#             userInfo['email'] = user.email
+#             userInfo['username'] = user.username
+#     return userInfo
+
+
+# ##############################################
+# # Get all video IDs in registered channels
+# ##############################################
+# def getAllVideoIDsInChannel(channelIds, http):
+#     ret = []
+#     playlists = []
+#     isFirstTime = True
+#     nextPageToken = ""
+
+#     #Create youtube API controller
+#     service = build('youtube', 'v3', http=http)
+#     idVal = "id"
+#     resultOrder = "date"
+#     maxResultsNum = 50
+
+#     for cid in channelIds:
+#         while isFirstTime or nextPageToken is not "":
+#             if nextPageToken is not "":
+#                 searchRet = service.search().list(
+#                     part = idVal,
+#                     maxResults = maxResultsNum,
+#                     order = resultOrder,
+#                     channelId = cid,
+#                     pageToken = nextPageToken
+#                 ).execute()
+#             else:
+#                 searchRet = service.search().list(
+#                     part = idVal,
+#                     maxResults = maxResultsNum,
+#                     order = resultOrder,
+#                     channelId = cid
+#                 ).execute()
+
+#             #When an error occurs
+#             if searchRet.get('error'):
+#                 print "An error has occured in getAllVideoIDsInChannel() method."
+#                 return ret
+
+#             if searchRet.get('nextPageToken'):
+#                 nextPageToken = str(searchRet['nextPageToken'])
+#             else:
+#                 nextPageToken = ""
+
+#             #Loop to get all items
+#             for item in searchRet['items']:
+#                 #print "Video Ids"
+#                 #print item['id']
+#                 info = item['id']
+#                 if info.get('videoId'):
+#                     ret.append(item['id']['videoId'])
+#                     #print item['id']['videoId']
+#                 elif info.get('kind')=='youtube#playlist':
+#                     playlists.append(info.get('playlistId'))
+
+#             isFirstTime = False
+
+#         # Initialize the flag for next loop
+#         isFirstTime = True
+#         nextPageToken = ""
+
+#     return ret,playlists
+
+
+# ###################################################################################
+# # Get comment threads directly linked to a channel (i.e., under the discussion tab)
+# ###################################################################################
+# def getChannelCommentThreads(channelIds, http):
+#     ret = []
+#     isFirstTime = True
+#     nextPageToken = ""
+
+#     #Create youtube API controller
+#     service = build('youtube', 'v3', http=http)
+#     idVal = "id"
+#     resultOrder = "time"
+#     maxResultsNum = 50
+
+#     for cid in channelIds:
+#         while isFirstTime or nextPageToken is not "":
+#             if nextPageToken is not "":
+#                 searchRet = service.commentThreads().list(
+#                     part = idVal,
+#                     maxResults = maxResultsNum,
+#                     order = resultOrder,
+#                     channelId = cid,
+#                     pageToken = nextPageToken
+#                 ).execute()
+#             else:
+#                 searchRet = service.commentThreads().list(
+#                     part = idVal,
+#                     maxResults = maxResultsNum,
+#                     order = resultOrder,
+#                     channelId = cid
+#                 ).execute()
+
+#             #When an error occurs
+#             if searchRet.get('error'):
+#                 print "An error has occured in getChannelCommentThreads() method."
+#                 return ret
+
+#             if searchRet.get('nextPageToken'):
+#                 nextPageToken = str(searchRet['nextPageToken'])
+#             else:
+#                 nextPageToken = ""
+
+#             #Loop to get all items
+#             for item in searchRet['items']:
+#                 #print "Video Ids"
+#                 #print item['id']
+#                 if item['id']:
+#                     ret.append(item['id'])
+
+#             isFirstTime = False
+
+#         # Initialize the flag for next loop
+#         isFirstTime = True
+#         nextPageToken = ""
+
+#     return ret
+
+
+# ##############################################
+# # Get all video IDs from a playlist
+# ##############################################
+# def getAllVideoIDsInPlaylist(playlistids, http):
+#     #print "getAllVideoIDsInPlaylist called"
+#     ret = []
+#     isFirstTime = True
+#     nextPageToken = ""
+
+#     #Create youtube API controller
+#     service = build('youtube', 'v3', http=http)
+#     maxResultsNum = 50
+
+#     for cid in playlistids:
+#         while isFirstTime or nextPageToken is not "":
+#             if nextPageToken is not "":
+#                 searchRet = service.playlistItems().list(
+#                     part = 'contentDetails',
+#                     maxResults = maxResultsNum,
+#                     playlistId = cid,
+#                     pageToken = nextPageToken
+#                 ).execute()
+#             else:
+#                 searchRet = service.playlistItems().list(
+#                     part = 'contentDetails',
+#                     maxResults = maxResultsNum,
+#                     playlistId = cid
+#                 ).execute()
+
+#             #When an error occurs
+#             if searchRet.get('error'):
+#                 print "An error has occured in getAllVideoIDsInPlaylist() method."
+#                 return ret
+
+#             if searchRet.get('nextPageToken'):
+#                 nextPageToken = str(searchRet['nextPageToken'])
+#             else:
+#                 nextPageToken = ""
+
+#             #Loop to get all items
+#             for item in searchRet['items']:
+#                 #print "Video Ids"
+#                 #print "vid in playlist", item['contentDetails']['videoId']
+#                 if item['contentDetails']['videoId']:
+#                     ret.append(item['contentDetails']['videoId'])
+
+#             isFirstTime = False
+
+#         # Initialize the flag for next loop
+#         isFirstTime = True
+#         nextPageToken = ""
+
+#     return ret
+
+# ################################################################
+# # Extract comments by either channel ID or video ID from YouTube
+# ################################################################
+# def extractCommentsById(singleId, nextPageToken, isVideoIdSearch, http):
+#     #Create youtube API controller
+#     service = build('youtube', 'v3', http=http)
+#     idVal = "id,snippet,replies"
+#     resultOrder = "time"
+#     maxResultsNum = 100
+#     ret = []
+
+#     if isVideoIdSearch:
+#         # Extract data from social media by video ID
+#         if nextPageToken is not "":
+#             ret = service.commentThreads().list(
+#                 part = idVal,
+#                 maxResults = maxResultsNum,
+#                 order = resultOrder,
+#                 videoId = singleId,
+#                 pageToken = nextPageToken
+#             ).execute()
+#         else:
+#             ret = service.commentThreads().list(
+#                 part = idVal,
+#                 maxResults = maxResultsNum,
+#                 order = resultOrder,
+#                 videoId = singleId
+#             ).execute()
+#     else:
+#         # Extract data from social media by channel ID
+#         if nextPageToken is not "":
+#             ret = service.commentThreads().list(
+#                 part = idVal,
+#                 maxResults = maxResultsNum,
+#                 order = resultOrder,
+#                 channelId = singleId,
+#                 pageToken = nextPageToken
+#             ).execute()
+#         else:
+#             ret = service.commentThreads().list(
+#                 part = idVal,
+#                 maxResults = maxResultsNum,
+#                 order = resultOrder,
+#                 channelId = singleId
+#             ).execute()
+#     '''
+#     if isVideoIdSearch == False:
+#         print "channel comment", ret
+#     '''
+#     return ret
+
+
+# #############################################################
+# # Retrieve comments from YouTube API response
+# #############################################################
+# #def getCommentsFromResponse(apiResponse, course_code, userName, googleAcName, course_id):
+# def getCommentsFromResponse(apiResponse, course_code, userName, usersInUnit):
+#     commList = []
+#     id_creator_dict = {}
+#     id_creator_displayname_dict = {}
+
+#     #When an error occurs
+#     if apiResponse.get('error'):
+#         return commList
+
+#     #Loop to get all items
+#     for item in apiResponse['items']:
+#         #Check if the comment is already in DB
+#         replies = None
+#         #print 'item:',item
+#         #for k in item:
+#         #    print k
+#         if u'replies' in item:
+#             #print "setting replies"
+#             replies = item[u'replies']
+#             #print '1 replies', replies
+#         else:
+#             print "No replies"
+
+#         '''
+#         records = LearningRecord.objects.filter(
+#             platform = STR_PLATFORM_NAME_YOUTUBE, course_code = course_code,
+#             platformid = item['id'])
+#         if(len(records) > 0):
+#             continue
+#         '''
+
+#         author = item['snippet']['topLevelComment']['snippet']['authorDisplayName']
+#         authorChannelUrl = item['snippet']['topLevelComment']['snippet']['authorChannelUrl']
+#         #print author, authorChannelUrl
+#         # Check if the author of the comment is the same as the login user's google account name.
+#         #if author == googleAcName:
+#         #if matchCommentAuthorName(authorChannelUrl, usersInUnit):
+#         comm = Comment()
+#         comm.commId = item['id']
+#         # Top level comment's parent ID is the same as ID
+#         comm.parentId = item['id'] # Todo - This is incorrect and should not be assigned here
+#         comm.authorDispName = authorChannelUrl #author
+#         #comm.parentUsername = authorChannelUrl
+#         #comm.authorChannelUrl = authorChannelUrl
+#         comm.isReply = False
+
+#         snippet = item['snippet']
+#         secondSnippet = item['snippet']['topLevelComment']['snippet']
+#         if secondSnippet.get('textOriginal'):
+#             comm.text = secondSnippet['textOriginal']
+#         else:
+#             comm.text = secondSnippet['textDisplay']
+
+#         if snippet.get('videoId'):
+#             comm.videoId = snippet['videoId']
+#             comm.videoUrl = STR_YT_VIDEO_BASE_URL + comm.videoId
+#         if snippet.get('channelId'):
+#             comm.channelId = snippet['channelId']
+#             comm.channelUrl = STR_YT_CHANNEL_BASE_URL + comm.channelId
+
+#         # Timestamp that the comment was published.
+#         # UpdatedAt is the same as publishedAt when the comment isn't updated.
+#         comm.updatedAt = secondSnippet['updatedAt']
+#         commList.append(comm)
+#         id_creator_dict[item['id']] = authorChannelUrl
+#         id_creator_displayname_dict[item['id']] = author
+
+#         #Check if replies exist
+#         '''
+#         for k in item:
+#             print k
+#             for t in item[k]:
+#                 print '--',t
+#         if 'replies' in item:
+#             print "reply: ",item['replies']
+#         else:
+#             print "no replies"
+#         '''
+#         #tmp = json.dumps(item)
+#         #newitem = json.loads(tmp)
+#         #print "item:", item
+#         #print "newitem: ", newitem
+#         #if 'replies' in newitem:
+#         #    print "reply: ",item['replies']
+
+#         #if item.get('replies'):
+#         #print "replies2", replies
+#         if replies is not None:
+#             #print "replies is not None"
+#             for reply in replies[u'comments']:
+#                 #item['replies']['comments']:
+#                 #print "reply", reply
+#                 #Check if the comment is already in DB
+#                 '''
+#                 records = LearningRecord.objects.filter(
+#                     platform = STR_PLATFORM_NAME_YOUTUBE, course_code = course_code,
+#                     platformid = reply['id'])
+#                 if(len(records) > 0):
+#                     continue
+#                 '''
+
+#                 author = reply['snippet']['authorDisplayName']
+#                 authorChannelUrl = reply['snippet']['authorChannelUrl']
+#                 # Check if the author of the comment is the same as the login user's google account name.
+#                 #if author == googleAcName:
+#                 #if matchCommentAuthorName(authorChannelUrl, usersInUnit):
+#                 replyComm = Comment()
+#                 replyComm.isReply = True
+#                 replyComm.commId = reply['id']
+#                 snippet = reply['snippet']
+#                 replyComm.authorDispName = snippet['authorChannelUrl'] #snippet['authorDisplayName']
+#                 id_creator_dict[reply['id']] = snippet['authorChannelUrl']
+#                 id_creator_displayname_dict[reply['id']] = author
+#                 #replyComm.authorDispName = snippet['authorDisplayName']
+#                 replyComm.parentId = snippet['parentId'] #snippet['parentId']
+
+#                 if snippet.get('textOriginal'):
+#                     replyComm.text = snippet['textOriginal']
+#                 else:
+#                     replyComm.text = snippet['textDisplay']
+
+#                 if snippet.get('videoId'):
+#                     replyComm.videoId = snippet['videoId']
+#                     replyComm.videoUrl = STR_YT_VIDEO_BASE_URL + replyComm.videoId
+#                 if snippet.get('channelId'):
+#                     replyComm.channelId = snippet['channelId']
+#                     replyComm.channelUrl = STR_YT_CHANNEL_BASE_URL + replyComm.channelId
+
+#                 replyComm.updatedAt = snippet['updatedAt']
+#                 #print "replyComm obj", replyComm.__dict__
+#                 commList.append(replyComm)
+
+#     return commList,id_creator_dict,id_creator_displayname_dict
+
+
+# def getAllUsersInCourseById(course_code):
+#     unit = UnitOffering.objects.filter(code = course_code).get()
+#     users = unit.users.all()
+#     return users
 
 def matchCommentAuthorName(author, usersInUnit):
     for user in usersInUnit:
@@ -1028,128 +1028,128 @@ def get_oldtweets(course_code,hashtag):
     for row in result:
         insert_tweet(json.loads(row[0]), course_code)
 
-def check_ifnotinlocallrs(course_code, platform, platform_id):
-    lrs_matchingstatements = LearningRecord.objects.filter(course_code=course_code, platform=platform, platformid=platform_id)
-    #print lrs_matchingstatements
-    if len(lrs_matchingstatements)==0:
-        return True
-    else:
-        return False
+# def check_ifnotinlocallrs(course_code, platform, platform_id):
+#     lrs_matchingstatements = LearningRecord.objects.filter(course_code=course_code, platform=platform, platformid=platform_id)
+#     #print lrs_matchingstatements
+#     if len(lrs_matchingstatements)==0:
+#         return True
+#     else:
+#         return False
 
-def insert_post(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url, tags=[]):
-    if check_ifnotinlocallrs(course_code, platform, post_id):
-        stm = socialmediabuilder.socialmedia_builder(verb='created', platform=platform, account_name=from_uid, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_name, course_code=course_code, tags=tags)
-        jsn = ast.literal_eval(stm.to_json())
-        stm_json = socialmediabuilder.pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=get_username_fromsmid(from_uid, platform), platformid=post_id, message=message, datetimestamp=created_time)
-        lrs.save()
-        for tag in tags:
-            if tag[0]=="@":
-                socialrelationship = SocialRelationship(verb = "mentioned", fromusername=get_username_fromsmid(from_uid,platform), tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
-                socialrelationship.save()
+# def insert_post(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url, tags=[]):
+#     if check_ifnotinlocallrs(course_code, platform, post_id):
+#         stm = socialmediabuilder.socialmedia_builder(verb='created', platform=platform, account_name=from_uid, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_name, course_code=course_code, tags=tags)
+#         jsn = ast.literal_eval(stm.to_json())
+#         stm_json = socialmediabuilder.pretty_print_json(jsn)
+#         lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='created', platform=platform, username=get_username_fromsmid(from_uid, platform), platformid=post_id, message=message, datetimestamp=created_time)
+#         lrs.save()
+#         for tag in tags:
+#             if tag[0]=="@":
+#                 socialrelationship = SocialRelationship(verb = "mentioned", fromusername=get_username_fromsmid(from_uid,platform), tousername=get_username_fromsmid(tag[1:],platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
+#                 socialrelationship.save()
 
-def insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url, liked_username=None):
-    if check_ifnotinlocallrs(course_code, platform, post_id):
-        stm = socialmediabuilder.socialmedia_builder(verb='liked', platform=platform, account_name=like_uid, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, account_email=usr_dict['email'], user_name=like_name, course_code=course_code)
-        jsn = ast.literal_eval(stm.to_json())
-        stm_json = socialmediabuilder.pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='liked', platform=platform, username=get_username_fromsmid(like_uid, platform), platformid=post_id, message=message, platformparentid=post_id, parentusername=get_username_fromsmid(liked_username,platform), datetimestamp=created_time)
-        lrs.save()
-        socialrelationship = SocialRelationship(verb = "liked", fromusername=get_username_fromsmid(like_uid,platform), tousername=get_username_fromsmid(liked_username,platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
-        socialrelationship.save()
+# def insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url, liked_username=None):
+#     if check_ifnotinlocallrs(course_code, platform, post_id):
+#         stm = socialmediabuilder.socialmedia_builder(verb='liked', platform=platform, account_name=like_uid, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, account_email=usr_dict['email'], user_name=like_name, course_code=course_code)
+#         jsn = ast.literal_eval(stm.to_json())
+#         stm_json = socialmediabuilder.pretty_print_json(jsn)
+#         lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='liked', platform=platform, username=get_username_fromsmid(like_uid, platform), platformid=post_id, message=message, platformparentid=post_id, parentusername=get_username_fromsmid(liked_username,platform), datetimestamp=created_time)
+#         lrs.save()
+#         socialrelationship = SocialRelationship(verb = "liked", fromusername=get_username_fromsmid(like_uid,platform), tousername=get_username_fromsmid(liked_username,platform), platform=platform, message=message, datetimestamp=created_time, course_code=course_code, platformid=post_id)
+#         socialrelationship.save()
 
-def insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, shared_username=None, shared_displayname=None):
-    if check_ifnotinlocallrs(course_code, platform, comment_id):
-        stm = socialmediabuilder.socialmedia_builder(verb='commented', platform=platform, account_name=comment_from_uid, account_homepage=platform_url, object_type='Note', object_id=comment_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code )
-        jsn = ast.literal_eval(stm.to_json())
-        stm_json = socialmediabuilder.pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='commented', platform=platform, username=get_username_fromsmid(comment_from_uid, platform), platformid=comment_id, platformparentid=post_id, parentusername=get_username_fromsmid(shared_username,platform), parentdisplayname=shared_displayname, message=comment_message, datetimestamp=comment_created_time)
-        lrs.save()
-        socialrelationship = SocialRelationship(verb = "commented", fromusername=get_username_fromsmid(comment_from_uid,platform), tousername=get_username_fromsmid(shared_username,platform), platform=platform, message=comment_message, datetimestamp=comment_created_time, course_code=course_code, platformid=comment_id)
-        socialrelationship.save()
+# def insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, shared_username=None, shared_displayname=None):
+#     if check_ifnotinlocallrs(course_code, platform, comment_id):
+#         stm = socialmediabuilder.socialmedia_builder(verb='commented', platform=platform, account_name=comment_from_uid, account_homepage=platform_url, object_type='Note', object_id=comment_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code )
+#         jsn = ast.literal_eval(stm.to_json())
+#         stm_json = socialmediabuilder.pretty_print_json(jsn)
+#         lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='commented', platform=platform, username=get_username_fromsmid(comment_from_uid, platform), platformid=comment_id, platformparentid=post_id, parentusername=get_username_fromsmid(shared_username,platform), parentdisplayname=shared_displayname, message=comment_message, datetimestamp=comment_created_time)
+#         lrs.save()
+#         socialrelationship = SocialRelationship(verb = "commented", fromusername=get_username_fromsmid(comment_from_uid,platform), tousername=get_username_fromsmid(shared_username,platform), platform=platform, message=comment_message, datetimestamp=comment_created_time, course_code=course_code, platformid=comment_id)
+#         socialrelationship.save()
 
-def insert_share(usr_dict, post_id, share_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, tags=[], shared_username=None):
-    if check_ifnotinlocallrs(course_code, platform, share_id):
-        stm = socialmediabuilder.socialmedia_builder(verb='shared', platform=platform, account_name=comment_from_uid, account_homepage=platform_url, object_type='Note', object_id=share_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code, tags=tags )
-        jsn = ast.literal_eval(stm.to_json())
-        stm_json = socialmediabuilder.pretty_print_json(jsn)
-        lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='shared', platform=platform, username=get_username_fromsmid(comment_from_uid, platform), platformid=share_id, platformparentid=post_id, parentusername=get_username_fromsmid(shared_username,platform), message=comment_message, datetimestamp=comment_created_time)
-        lrs.save()
-        socialrelationship = SocialRelationship(verb = "shared", fromusername=get_username_fromsmid(comment_from_uid,platform), tousername=get_username_fromsmid(shared_username,platform), platform=platform, message=comment_message, datetimestamp=comment_created_time, course_code=course_code, platformid=share_id)
-        socialrelationship.save()
+# def insert_share(usr_dict, post_id, share_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, tags=[], shared_username=None):
+#     if check_ifnotinlocallrs(course_code, platform, share_id):
+#         stm = socialmediabuilder.socialmedia_builder(verb='shared', platform=platform, account_name=comment_from_uid, account_homepage=platform_url, object_type='Note', object_id=share_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code, tags=tags )
+#         jsn = ast.literal_eval(stm.to_json())
+#         stm_json = socialmediabuilder.pretty_print_json(jsn)
+#         lrs = LearningRecord(xapi=stm_json, course_code=course_code, verb='shared', platform=platform, username=get_username_fromsmid(comment_from_uid, platform), platformid=share_id, platformparentid=post_id, parentusername=get_username_fromsmid(shared_username,platform), message=comment_message, datetimestamp=comment_created_time)
+#         lrs.save()
+#         socialrelationship = SocialRelationship(verb = "shared", fromusername=get_username_fromsmid(comment_from_uid,platform), tousername=get_username_fromsmid(shared_username,platform), platform=platform, message=comment_message, datetimestamp=comment_created_time, course_code=course_code, platformid=share_id)
+#         socialrelationship.save()
 
-def updateLRS():
+# def updateLRS():
 
-    # for each unit that is enabled
-    units = UnitOffering.objects.filter(enabled=True)
+#     # for each unit that is enabled
+#     units = UnitOffering.objects.filter(enabled=True)
 
-    # get all xapi statements for course
-    for unit in units:
-        ll_endpoint = unit.ll_endpoint
-        ll_username = unit.ll_username
-        ll_password = unit.ll_password
-        unit_code = unit.code
-        #extract xapi data
-        cursor = connection.cursor()
-        cursor.execute("""SELECT clatoolkit_learningrecord.verb, clatoolkit_learningrecord.platform, clatoolkit_learningrecord.username, clatoolkit_learningrecord.platformid, clatoolkit_learningrecord.platformparentid, clatoolkit_learningrecord.parentusername, clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.xapi->>'timestamp', obj
-                          FROM clatoolkit_learningrecord, json_array_elements(clatoolkit_learningrecord.xapi->'context'->'contextActivities'->'other') obj
-                          WHERE clatoolkit_learningrecord.course_code='%s';
-                       """ % (unit_code))
-        result = cursor.fetchall()
-        # submit to LRS
-        for stm in result:
-            #construct xapi statement
-            verb = stm[0]
-            platform = stm[1]
-            platformusername = stm[2]
-            platformid = stm[3]
-            parentid = stm[4]
-            parentusername = stm[5]
-            message = stm[6]
-            timestamp = stm[7]
-            context_dict = stm[8]
-            atmentions = []
-            hashtags = []
-            #print context_dict
-            for item in context_dict:
-                if item == "definition":
-                    context_ref = context_dict[item]["name"]["en-US"]
-                    if context_ref[0] == "@":
-                        atmentions.append(context_ref)
-                    elif context_ref[0] == "#":
-                        hashtags.append(context_ref)
-            # construct statement using socialmediabuilder
-            if platform == "Twitter":
-                message = "Refer to object id to retrieve tweet."
-            #print verb, platform, platformusername, platformid, message, timestamp
-            #print atmentions
-            #print hashtags
-            userdict = {}
-            if platform == "Twitter":
-                usr_dict = get_userdetails_twitter(username)
-            elif platform == "Facebook":
-                usr_dict = get_userdetails(username)
-            elif platform == "Forum":
-                usr_dict = get_userdetails_forum(username)
+#     # get all xapi statements for course
+#     for unit in units:
+#         ll_endpoint = unit.ll_endpoint
+#         ll_username = unit.ll_username
+#         ll_password = unit.ll_password
+#         unit_code = unit.code
+#         #extract xapi data
+#         cursor = connection.cursor()
+#         cursor.execute("""SELECT clatoolkit_learningrecord.verb, clatoolkit_learningrecord.platform, clatoolkit_learningrecord.username, clatoolkit_learningrecord.platformid, clatoolkit_learningrecord.platformparentid, clatoolkit_learningrecord.parentusername, clatoolkit_learningrecord.xapi->'object'->'definition'->'name'->>'en-US', clatoolkit_learningrecord.xapi->>'timestamp', obj
+#                           FROM clatoolkit_learningrecord, json_array_elements(clatoolkit_learningrecord.xapi->'context'->'contextActivities'->'other') obj
+#                           WHERE clatoolkit_learningrecord.course_code='%s';
+#                        """ % (unit_code))
+#         result = cursor.fetchall()
+#         # submit to LRS
+#         for stm in result:
+#             #construct xapi statement
+#             verb = stm[0]
+#             platform = stm[1]
+#             platformusername = stm[2]
+#             platformid = stm[3]
+#             parentid = stm[4]
+#             parentusername = stm[5]
+#             message = stm[6]
+#             timestamp = stm[7]
+#             context_dict = stm[8]
+#             atmentions = []
+#             hashtags = []
+#             #print context_dict
+#             for item in context_dict:
+#                 if item == "definition":
+#                     context_ref = context_dict[item]["name"]["en-US"]
+#                     if context_ref[0] == "@":
+#                         atmentions.append(context_ref)
+#                     elif context_ref[0] == "#":
+#                         hashtags.append(context_ref)
+#             # construct statement using socialmediabuilder
+#             if platform == "Twitter":
+#                 message = "Refer to object id to retrieve tweet."
+#             #print verb, platform, platformusername, platformid, message, timestamp
+#             #print atmentions
+#             #print hashtags
+#             userdict = {}
+#             if platform == "Twitter":
+#                 usr_dict = get_userdetails_twitter(username)
+#             elif platform == "Facebook":
+#                 usr_dict = get_userdetails(username)
+#             elif platform == "Forum":
+#                 usr_dict = get_userdetails_forum(username)
 
-            lrs_stm = None
-            if verb == "created":
-                lrs_stm = socialmediabuilder.socialmedia_builder(verb='created', platform=platform, account_name=username, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_name, course_code=course_code, tags=tags)
-            elif verb == "liked":
-                lrs_stm = socialmediabuilder.socialmedia_builder(verb='liked', platform=platform, account_name=username, account_homepage=platform_url, object_type='Note', object_id='post_id', message=message, account_email=usr_dict['email'], user_name=like_name, course_code=course_code)
-            elif verb == "commented":
-                lrs_stm = socialmediabuilder.socialmedia_builder(verb='commented', platform=platform, account_name=username, account_homepage=platform_url, object_type='Note', object_id=comment_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code )
-            elif verb == "shared":
-                lrs_stm = socialmediabuilder.socialmedia_builder(verb='shared', platform=platform, account_name=username, account_homepage=platform_url, object_type='Note', object_id=share_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code, tags=tags )
+#             lrs_stm = None
+#             if verb == "created":
+#                 lrs_stm = socialmediabuilder.socialmedia_builder(verb='created', platform=platform, account_name=username, account_homepage=platform_url, object_type='Note', object_id=post_id, message=message, timestamp=created_time, account_email=usr_dict['email'], user_name=from_name, course_code=course_code, tags=tags)
+#             elif verb == "liked":
+#                 lrs_stm = socialmediabuilder.socialmedia_builder(verb='liked', platform=platform, account_name=username, account_homepage=platform_url, object_type='Note', object_id='post_id', message=message, account_email=usr_dict['email'], user_name=like_name, course_code=course_code)
+#             elif verb == "commented":
+#                 lrs_stm = socialmediabuilder.socialmedia_builder(verb='commented', platform=platform, account_name=username, account_homepage=platform_url, object_type='Note', object_id=comment_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code )
+#             elif verb == "shared":
+#                 lrs_stm = socialmediabuilder.socialmedia_builder(verb='shared', platform=platform, account_name=username, account_homepage=platform_url, object_type='Note', object_id=share_id, message=comment_message, parent_id=post_id, parent_object_type='Note', timestamp=comment_created_time, account_email=usr_dict['email'], user_name=comment_from_name, course_code=course_code, tags=tags )
 
-            # send xapi statement to LRS
+#             # send xapi statement to LRS
 
-            # if successful update senttolrs flag
-            '''
-            locallrs = LearningRecord(platformid=post_id)
-            locallrs.senttolrs = True
-            locallrs.save()
-            '''
+#             # if successful update senttolrs flag
+#             '''
+#             locallrs = LearningRecord(platformid=post_id)
+#             locallrs.senttolrs = True
+#             locallrs.save()
+#             '''
 
 '''
 // Expand all view conversations

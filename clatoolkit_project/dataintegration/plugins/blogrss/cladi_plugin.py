@@ -1,7 +1,10 @@
 from dataintegration.core.plugins import registry
 from dataintegration.core.plugins.base import DIBasePlugin, DIPluginDashboardMixin
-from dataintegration.core.socialmediarecipebuilder import *
-from dataintegration.core.recipepermissions import *
+
+from dataintegration.core.importer import *
+from dataintegration.core.di_utils import * #Formerly dataintegration.core.recipepermissions
+from xapi.statement.builder import * #Formerly dataintegration.core.socialmediabuilder
+
 import json
 from bs4 import BeautifulSoup
 from urllib2 import urlopen
@@ -10,6 +13,7 @@ import feedparser
 import urlparse
 import urllib
 import urllib2
+
 
 
 '''
@@ -56,18 +60,19 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
     def __init__(self):
         pass
 
-    def perform_import(self, retrieval_param, course_code):
+    def perform_import(self, retrieval_param, unit):
         memberblog_urls = self.get_allmemberblogurls(retrieval_param)
         displayname_username_dict = {}
         for memberblog_url in memberblog_urls:
             member_blogfeed = memberblog_url + 'feed/'
-            #print 'getting memberblog feed: ' + member_blogfeed
+            # print 'getting memberblog feed: ' + member_blogfeed
 
-            temp_dict = self.insert_blogposts(member_blogfeed, course_code)
+            temp_dict = self.insert_blogposts(member_blogfeed, unit)
             displayname_username_dict.update(temp_dict)
+
         for memberblog_url in memberblog_urls:
             member_commentfeed = memberblog_url + 'comments/feed/'
-            self.insert_blogcomments(member_commentfeed, course_code, displayname_username_dict)
+            self.insert_blogcomments(member_commentfeed, unit, displayname_username_dict)
 
     def get_allmemberblogurls(self, memberlist_url, max_pages=4):
 
@@ -106,7 +111,7 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
         #return ['http://2016.socialtechnologi.es/moonlo/']
         return memberblog_urls
 
-    def insert_blogposts(self, blogfeed, course_code):
+    def insert_blogposts(self, blogfeed, unit):
         d = feedparser.parse(blogfeed)
         displayname_username_dict = {}
         #print d
@@ -115,8 +120,7 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
             slash_pos = blogurl.rfind('/')
             blog_url_name = blogurl[slash_pos+1:]
 
-            #print username
-
+            # print 'blogurl   ' + blogurl
             #dict to stored blog display name with url name
 
             #print d.feed.subtitle
@@ -124,6 +128,10 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
             #print d.headers.get('content-type')
             #print len(d['entries'])
             for post in d.entries:
+                if not 'content' in post:
+                    # TODO: Find a way to get content when there is no content element in post object
+                    continue
+
                 link = post.link
                 message = post.title + " " + post.content[0]['value']
                 blog_display_name = post.author
@@ -138,18 +146,25 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     displayname_username_dict[blog_display_name] = blog_url_name
 
                 #print "Does " + blog_url_name + "exist in Toolkit?: " + username_exists(displayname_username_dict[blog_display_name], course_code, self.platform)
-                if username_exists(displayname_username_dict[blog_display_name], course_code, self.platform):
-                    usr_dict = get_userdetails(displayname_username_dict[blog_display_name], self.platform)
-                    insert_blogpost(usr_dict, link, message, get_username_fromsmid(blog_url_name,self.platform), blog_display_name, post_date, course_code, self.platform, self.platform_url, tags=tags)
+                if username_exists(displayname_username_dict[blog_display_name], unit, self.platform):
+                    user = get_user_from_screen_name(displayname_username_dict[blog_display_name], self.platform)
+                    insert_post(user, link, message, post_date, unit, self.platform, self.platform_url, tags=tags)
+
         except KeyError:
             pass
 
         return displayname_username_dict
 
-    def insert_blogcomments(self, member_commentfeed, course_code, displayname_username_dict):
+
+
+    def insert_blogcomments(self, member_commentfeed, unit, displayname_username_dict):
         d = feedparser.parse(member_commentfeed)
 
         for post in d.entries:
+            if not 'content' in post:
+                # TODO: Find a way to get content when there is no content element in post object
+                continue
+
             link = post.link
             slash_pos = post.link.rfind("/")
             parent_link = post.link[:slash_pos+1]
@@ -158,13 +173,26 @@ class BlogrssPlugin(DIBasePlugin, DIPluginDashboardMixin):
             message = post.title + " " + post.content[0]['value']
             author = post.author
             post_date = dateutil.parser.parse(post.published)
+
             if author != "Anonymous" and author in displayname_username_dict:
                 post_username = displayname_username_dict[author]
                 post_date = dateutil.parser.parse(post.published)
 
-                if username_exists(post_username, course_code, self.platform):
-                    usr_dict = get_userdetails(post_username, self.platform)
-                    insert_comment(usr_dict, parent_link, link, message, post_username, author, post_date, course_code, self.platform, self.platform_url, shared_username=parent_username)
+                if username_exists(post_username, unit, self.platform):
+                    user = get_user_from_screen_name(post_username, self.platform)
+                    parent_user = None
+                    try:
+                        parent_user = get_user_from_screen_name(parent_username, self.platform)
+                    except:
+                        pass
+
+                    if parent_user is not None:
+                        insert_comment(user, parent_link, link, message, post_date, unit, self.platform, self.platform_url, 
+                            parent_user = parent_user)
+                    else:
+                        insert_comment(user, parent_link, link, message, post_date, unit, self.platform, self.platform_url, 
+                            parent_user = parent_user, parent_user_external = post_username)
+
 
 registry.register(BlogrssPlugin)
 
