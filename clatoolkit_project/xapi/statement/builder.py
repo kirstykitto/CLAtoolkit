@@ -147,6 +147,12 @@ def socialmedia_builder(statement_id, verb, platform, account_name, account_home
             object_type=parent_object_type,
             )
         parentlist.append(parentobject)
+    elif platform == xapi_settings.PLATFORM_SLACK and (parent_id is not None and parent_object_type is not None):
+        parentobject = Activity(
+            id=parent_id,
+            object_type=parent_object_type,
+            )
+        parentlist.append(parentobject)
 
     courselist = []
     if unit is not None:

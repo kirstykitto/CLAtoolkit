@@ -1,6 +1,7 @@
 import os
 import urllib2
 import json
+import re
 from common.util import Utility
 from datetime import datetime
 from dataintegration.core.plugins import registry
@@ -26,7 +27,7 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
         parent_user = None
         parent_user_external = None
         datetime = None
-        other_context_list = None
+        other_context_list = []
 
         def __init__(self):
             pass
@@ -178,7 +179,7 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
             if user is None:
                 return
 
-            text = message['text']
+            text = self.replace_slack_user_id_with_name(slack, message['text'])
             timestamp = message['ts'] # Unix timestamp.
             created_time = Utility.convert_unixtime_to_datetime(timestamp) # Datetime converted from unix timestamp
             
@@ -197,7 +198,7 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
 
     def import_file_comment(self, message, unit, slack, team_domain_name, channel):
-        prop = self.get_file_comment_details(message, team_domain_name, channel)
+        prop = self.get_file_comment_details(message, slack, team_domain_name, channel)
         if prop.user is None:
             return
         insert_comment(prop.user, prop.parent_id, prop.object_id, prop.message, prop.datetime, unit, 
@@ -205,7 +206,7 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
 
     def import_file_share(self, message, unit, slack, team_domain_name, channel):
-        prop = self.get_shared_file_details(message, team_domain_name, channel)
+        prop = self.get_shared_file_details(message, slack, team_domain_name, channel)
         if prop.user is None:
             return
         insert_share(prop.user, prop.parent_id, prop.object_id, prop.message, prop.datetime, unit, 
@@ -214,7 +215,7 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
 
     def import_file_mention(self, message, unit, slack, team_domain_name, channel):
-        prop = self.get_shared_file_details(message, team_domain_name, channel)
+        prop = self.get_shared_file_details(message, slack, team_domain_name, channel)
         if prop.user is None:
             return
         insert_mention(prop.user, prop.parent_id, prop.object_id, prop.message, prop.datetime, unit, 
@@ -246,7 +247,7 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
         if 'initial_comment' in message['file']:
             other_context_list.append(get_other_contextActivity(
                 object_id, 'Object', message['file']['initial_comment']['comment'], 
-                xapi_settings.get_verb_iri(xapi_settings.OBJECT_NOTE)))
+                xapi_settings.get_object_iri(xapi_settings.OBJECT_NOTE)))
 
         insert_attach(user, parent_id, object_id, text, created_time, unit, 
                         xapi_settings.OBJECT_FILE, xapi_settings.OBJECT_COLLECTION,
@@ -265,7 +266,7 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
             self.import_file_share(message, unit, slack, team_domain_name, channel)
             
         elif message['item_type'] == self.PINNED_ITEM_FILE_COMMENT:
-            prop = self.get_file_comment_details(message, team_domain_name, channel)
+            prop = self.get_file_comment_details(message, slack, team_domain_name, channel)
             if prop.user is None:
                 return
             insert_share(prop.user, prop.parent_id, prop.object_id, prop.message, prop.datetime, unit, 
@@ -291,7 +292,7 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         elif message['item_type'] == self.PINNED_ITEM_FILE:
             # self.import_file_share(message, unit, slack, team_domain_name, channel)
-            prop = self.get_shared_file_details(message, team_domain_name, channel)
+            prop = self.get_shared_file_details(message, slack, team_domain_name, channel)
             if prop.user is None:
                 return
 
@@ -300,7 +301,7 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
             
         elif message['item_type'] == self.PINNED_ITEM_FILE_COMMENT:
-            prop = self.get_file_comment_details(message, team_domain_name, channel)
+            prop = self.get_file_comment_details(message, slack, team_domain_name, channel)
             if prop.user is None:
                 return
 
@@ -309,14 +310,13 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
 
     def import_message_share(self, message, unit, slack, team_domain_name, channel):
-        timestamp = message['ts'] # Unix timestamp.
         shared_msg_list = self.get_shared_message_list(message, slack, team_domain_name, channel)
 
         for shared_msg in shared_msg_list:
             if shared_msg.user is None:
                 continue
             insert_share(shared_msg.user, shared_msg.parent_id, shared_msg.object_id, shared_msg.message, 
-                         shared_msg.datetime, unit, shared_msg.object_id, shared_msg.parent_object_type, 
+                         shared_msg.datetime, unit, shared_msg.object_type, shared_msg.parent_object_type, 
                          self.platform, self.platform_url, parent_user = shared_msg.parent_user, 
                          parent_external_user = shared_msg.parent_user_external, 
                          other_contexts = shared_msg.other_context_list)
@@ -345,6 +345,8 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
                 text = None
                 object_id = None
                 object_type = None
+                parent_id = None
+                parent_object_type = None
 
                 # Starred a message
                 if star_item['type'] == self.STAR_ITEM_TYPE_MESSAGE:
@@ -352,18 +354,24 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     # Add user ID to prevent object id collision
                     object_id = star_item['message']['permalink'] + ('%s' % str(slack_user_id))
                     object_type = xapi_settings.OBJECT_NOTE
+                    parent_id = star_item['message']['permalink']
+                    parent_object_type = xapi_settings.OBJECT_NOTE
 
                 # Starred a file
                 elif star_item['type'] == self.STAR_ITEM_TYPE_FILE:
                     text = star_item['file']['title']
                     object_id = star_item['file']['permalink'] + ('%s' % str(slack_user_id))
                     object_type = xapi_settings.OBJECT_FILE
+                    parent_id = star_item['file']['permalink']
+                    parent_object_type = xapi_settings.OBJECT_FILE
 
                 # Starred a file comment
                 elif star_item['type'] == self.STAR_ITEM_TYPE_FILE_COMMENT:
                     text = star_item['comment']['comment']
                     object_id = star_item['file']['permalink'] + ('%s' % str(slack_user_id))
                     object_type = xapi_settings.OBJECT_NOTE
+                    parent_id = star_item['file']['permalink']
+                    parent_object_type = xapi_settings.OBJECT_NOTE
 
                 # Starred a channel
                 elif star_item['type'] == self.STAR_ITEM_TYPE_CHANNEL:
@@ -371,11 +379,15 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
                     text = channel_info['channel']['name']
                     object_id = self.get_team_channel_url(team_domain_name, channel_info['channel']['name']) + ('%s' % str(slack_user_id))
                     object_type = xapi_settings.OBJECT_COLLECTION
+                    parent_id = self.get_team_channel_url(team_domain_name, channel_info['channel']['name'])
+                    parent_object_type = xapi_settings.OBJECT_COLLECTION
 
-                print object_id
-                # insert_bookmark method checks the same data already is already imported using object_id, user, and verb
-                insert_bookmark(user, object_id, text, starred_datetime, unit, object_type,
-                                self.platform, self.platform_url)
+                # Convert Slack user IDs to user name
+                text = self.replace_slack_user_id_with_name(slack, text)
+
+                # Insert data into LRS
+                insert_bookmark(user, parent_id, object_id, text, starred_datetime, unit, 
+                                object_type, parent_object_type, self.platform, self.platform_url)
 
             paging_info = stars['paging']
             if int(paging_info['page']) < int(paging_info['pages']):
@@ -393,7 +405,7 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
         timestamp = message['ts'] # Unix timestamp.
         for attachment in message['attachments']:
             prop = self.XAPIProperty()
-            prop.message = attachment['text']
+            prop.message = self.replace_slack_user_id_with_name(slack, attachment['text'])
             prop.user = get_user_from_screen_name(message['user'], self.platform)
             prop.object_id = self.get_slack_archive_url(team_domain_name, channel['name'], timestamp)
             prop.parent_id = self.get_slack_archive_url(team_domain_name, attachment['channel_name'], attachment['ts'])
@@ -421,7 +433,7 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
         return msg_list
 
 
-    def get_shared_file_details(self, message, team_domain_name, channel):
+    def get_shared_file_details(self, message, slack, team_domain_name, channel):
 
         # Ignore files shared by bots
         if 'bot_id' in message and message['bot_id'] is not None:
@@ -430,17 +442,17 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
         prop = self.XAPIProperty()
         property_name = 'file'
         if 'item' in message:
-            # When item property is in message, that means the message is pinned item.
+            # When item property is in message, that means the parameter "message" is a pinned item.
             property_name = 'item'
 
-        prop.message = message[property_name]['title']
+        prop.message = self.replace_slack_user_id_with_name(slack, message[property_name]['title'])
         prop.user = get_user_from_screen_name(message['user'], self.platform)
         prop.object_id = self.get_slack_archive_url(team_domain_name, channel['name'], message['ts'])
 
         # When user shared/pinned a file, the parent user is the owner of the file shared/pinned, 
         # and parent id is the file's url.
         prop.parent_id = message[property_name]['permalink']
-        prop.object_type = xapi_settings.OBJECT_NOTE
+        prop.object_type = xapi_settings.OBJECT_FILE
         prop.parent_object_type = xapi_settings.OBJECT_FILE
         prop.parent_user = get_user_from_screen_name(message[property_name]['user'], self.platform)
         prop.parent_user_external = message[property_name]['user'] if prop.parent_user is None else None
@@ -449,14 +461,14 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
         return prop
 
 
-    def get_file_comment_details(self, message, team_domain_name, channel):
+    def get_file_comment_details(self, message, slack, team_domain_name, channel):
         prop = self.XAPIProperty()
         prop.datetime = Utility.convert_unixtime_to_datetime(message['ts']) # Datetime converted from unix timestamp
 
         if 'file' in message:
             # Left a comment on a file
             prop.user = get_user_from_screen_name(message['comment']['user'], self.platform)
-            prop.message = message['comment']['comment']
+            prop.message = self.replace_slack_user_id_with_name(slack, message['comment']['comment'])
             prop.object_id = self.get_slack_archive_url(team_domain_name, channel['name'], message['comment']['timestamp'])
             prop.parent_id = message['file']['permalink']
             prop.object_type = xapi_settings.OBJECT_NOTE
@@ -466,7 +478,7 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
         elif 'item' in message:
             # Pinned a comment that's on a file
             prop.user = get_user_from_screen_name(message['user'], self.platform)
-            prop.message = message['item']['comment']
+            prop.message = self.replace_slack_user_id_with_name(slack, message['item']['comment'])
             prop.object_id = self.get_slack_archive_url(team_domain_name, channel['name'], message['ts'])
             prop.parent_id = self.get_slack_archive_url(team_domain_name, channel['name'], message['item']['timestamp'])
             prop.object_type = xapi_settings.OBJECT_NOTE
@@ -488,6 +500,9 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
     def get_team_info(self, sclack):
         return sclack.api_call("team.info")
 
+    def get_slack_user_from_slackid(self, slack, slack_id):
+        return slack.api_call("users.info", user = slack_id)
+
     def get_channel_info(self, slack, channel_id):
         return slack.api_call("channels.info", channel = channel_id)
 
@@ -508,5 +523,30 @@ class SlackPlugin(DIBasePlugin, DIPluginDashboardMixin):
 
         return None
 
+    def replace_slack_user_id_with_name(self, slack, text):
+        regex_pattern = r'<@\w{9}>' # e.g. <@USER123ID>
+
+        if text is None or text == '':
+            return text
+
+        # Replace fixed strings
+        text = text.replace('<!here|@here>', '@here')
+        text = text.replace('<!everyone>', '@everyone')
+        text = text.replace('<!channel>', '@channel')
+
+        # Find all Slack user IDs in a text string
+        user_id_list = re.findall(regex_pattern, str(text))
+        if len(user_id_list) == 0:
+            return text
+
+        # user_id_list has IDs "e.g. ['<@USER123ID>', '<@USER456XY>' ...]"
+        for user_id in user_id_list:
+            user_info = self.get_slack_user_from_slackid(slack, str(user_id[2:len(user_id) - 1]))
+            if user_info['ok'] == True:
+                # Replace the Slack id in the text with the Slack user name
+                replace_with = '@%s' % user_info['user']['name']
+                text = text.replace(user_id, replace_with)
+
+        return text
 
 registry.register(SlackPlugin)
