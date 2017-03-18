@@ -39,6 +39,8 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
     authomatic_config_key = 'fb'
     authomatic_secretkey = os.environ.get("FACEBOOK_AUTHOMATIC_SECRET_KEY")
 
+    api_base_url = 'https://graph.facebook.com/v2.8/'
+
     def __init__(self):
         #from AuthomaticPluginMixin
         self.authomatic_config_json = {
@@ -71,17 +73,17 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
         group_url = self.group_base_url + retrieval_param + '/'
 
         # retrieval_param contains FB group ID
-        url = 'https://graph.facebook.com/v2.8/'+retrieval_param+'/feed'
+        url = self.api_base_url + retrieval_param + '/feed'
         params = {"fields": "created_time,from,message,likes,comments{created_time,from,message}"}
         access_response = authomatic_result.provider.access(url, params=params)
         data = access_response.data.get('data')
-        
+
         # print 'got facebook data: %s' % access_response.data
         
         paging = access_response.data.get('paging')
         while True:
             try:
-                self.insert_facebook_lrs(data, unit, group_url)
+                self.insert_facebook_lrs(data, unit, group_url, authomatic_result)
                 fb_resp = requests.get(paging['next']).json()
                 data = fb_resp['data']
                 if 'paging' not in fb_resp:
@@ -93,7 +95,8 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
                 # loop and end the script.
                 break
 
-    def insert_facebook_lrs(self, fb_feed, unit, group_url):
+    def insert_facebook_lrs(self, fb_feed, unit, group_url, authomatic_result):
+        comment_id_list = []
         """
         1. Parses facebook feed
         2. Uses construct_tincan_statement to format data ready to send for the LRS
@@ -133,6 +136,8 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
                                 insert_like(like_user, like_id, message, unit, self.platform, self.platform_url, 
                                     post_id, xapi_settings.OBJECT_NOTE, created_time, parent_user=user)
 
+                    # This is only to get top level comments. 
+                    # Another API needs to be access to get replies to each comment.
                     if 'comments' in post:
                         for comment in post['comments']['data']:
                             comment_created_time = comment['created_time']
@@ -143,10 +148,42 @@ class FacebookPlugin(DIBasePlugin, DIPluginDashboardMixin, DIAuthomaticPluginMix
                             # print 'comment ID: %s' % comment_id
 
                             if username_exists(comment_from_uid, unit, self.platform):
+                                # Save the comment id for retrieving its replies later
+                                comment_id_list.append({
+                                    'comment_id': comment['id'], 
+                                    'comment_author_id': comment_from_uid,
+                                    'comment_author_name': comment['from']['name']})
+
                                 comment_user = get_user_from_screen_name(comment_from_uid, self.platform)
                                 insert_comment(comment_user, post_id, comment_id, comment_message, comment_created_time,
                                                unit, self.platform, self.platform_url, parent_user=user)
 
+        # End of for post in fb_feed:
+        
+        # Import replies
+        for comment_data in comment_id_list:
+            url = self.api_base_url + comment_data['comment_id'] + '/comments' # comment id
+            access_response = authomatic_result.provider.access(url)
+            response = access_response.data
+
+            replies = response['data']
+            for rep in replies:
+                comment_created_time = rep['created_time']
+                comment_from_uid = rep['from']['id']
+                comment_message = rep['message']
+                comment_id = rep['id']
+                comment_id = group_url + comment_id
+
+                if username_exists(comment_from_uid, unit, self.platform):
+                    comment_user = get_user_from_screen_name(comment_from_uid, self.platform)
+                    parent_user = get_user_from_screen_name(comment_data['comment_author_id'], self.platform)
+                    parent_user_external = None if parent_user is not None else comment_data['comment_author_name']
+
+                    insert_comment(comment_user, post_id, comment_id, comment_message, comment_created_time,
+                                   unit, self.platform, self.platform_url, parent_user=parent_user,
+                                   parent_user_external = parent_user_external)
+
+            
 
 registry.register(FacebookPlugin)
 
