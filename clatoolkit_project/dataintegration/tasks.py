@@ -741,73 +741,73 @@ def insert_twitter_lrs(statuses, course_code):
     for tweet in statuses:
         insert_tweet(tweet, course_code)
 
-def injest_facebook(data, paging, course_code):
-    """
-    Sends formatted data to LRS
-    1. Parses facebook feed
-    2. Uses construct_tincan_statement to format data ready to send for the LRS
-    3. Sends to the LRS and Saves to postgres json field
-    :param data: Graph API query data
-    :param paging: Graph API query paging data: next page (if there is one)
-    :param course_code: The unit offering code
-    :return:
-    """
-    while True:
-        try:
-            insert_facebook_lrs(fb_feed=data, course_code=course_code)
-            fb_resp = requests.get(paging['next']).json()
-            data = fb_resp['data']
-            if 'paging' not in fb_resp:
-                break
-            else:
-                paging = fb_resp['paging']
-        except KeyError:
-            # When there are no more pages (['paging']['next']), break from the
-            # loop and end the script.
-            break
+# def injest_facebook(data, paging, course_code):
+#     """
+#     Sends formatted data to LRS
+#     1. Parses facebook feed
+#     2. Uses construct_tincan_statement to format data ready to send for the LRS
+#     3. Sends to the LRS and Saves to postgres json field
+#     :param data: Graph API query data
+#     :param paging: Graph API query paging data: next page (if there is one)
+#     :param course_code: The unit offering code
+#     :return:
+#     """
+#     while True:
+#         try:
+#             insert_facebook_lrs(fb_feed=data, course_code=course_code)
+#             fb_resp = requests.get(paging['next']).json()
+#             data = fb_resp['data']
+#             if 'paging' not in fb_resp:
+#                 break
+#             else:
+#                 paging = fb_resp['paging']
+#         except KeyError:
+#             # When there are no more pages (['paging']['next']), break from the
+#             # loop and end the script.
+#             break
 
-def insert_facebook_lrs(fb_feed, course_code):
-    """
-    1. Parses facebook feed
-    2. Uses construct_tincan_statement to format data ready to send for the LRS
-    3. Sends to the LRS and Saves to postgres json field
-    :param fb_feed: Facebook Feed as dict
-    :param course_code: The unit offering code
-    :return:
-    """
-    platform = "Facebook"
-    platform_url = "http://www.facebook.com/"
-    for pst in fb_feed:
-        if 'message' in pst:
-            post_type = pst['type']
-            created_time = dateutil.parser.parse(pst['created_time'])
-            from_uid = pst['from']['id']
-            from_name = pst['from']['name']
-            post_id = pst['actions'][0]['link']
-            message = pst['message']
-            if fbid_exists(from_uid, course_code):
-                usr_dict = get_userdetails(from_uid)
-                insert_post(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url)
+# def insert_facebook_lrs(fb_feed, course_code):
+#     """
+#     1. Parses facebook feed
+#     2. Uses construct_tincan_statement to format data ready to send for the LRS
+#     3. Sends to the LRS and Saves to postgres json field
+#     :param fb_feed: Facebook Feed as dict
+#     :param course_code: The unit offering code
+#     :return:
+#     """
+#     platform = "Facebook"
+#     platform_url = "http://www.facebook.com/"
+#     for pst in fb_feed:
+#         if 'message' in pst:
+#             post_type = pst['type']
+#             created_time = dateutil.parser.parse(pst['created_time'])
+#             from_uid = pst['from']['id']
+#             from_name = pst['from']['name']
+#             post_id = pst['actions'][0]['link']
+#             message = pst['message']
+#             if fbid_exists(from_uid, course_code):
+#                 usr_dict = get_userdetails(from_uid)
+#                 insert_post(usr_dict, post_id,message,from_name,from_uid, created_time, course_code, platform, platform_url)
 
-            if 'likes' in pst:
-                for like in pst['likes']['data']:
-                    like_uid = like['id']
-                    like_name = like['name']
+#             if 'likes' in pst:
+#                 for like in pst['likes']['data']:
+#                     like_uid = like['id']
+#                     like_name = like['name']
 
-                    if fbid_exists(like_uid, course_code):
-                        usr_dict = get_userdetails(like_uid)
-                        insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url, liked_username=from_uid)
+#                     if fbid_exists(like_uid, course_code):
+#                         usr_dict = get_userdetails(like_uid)
+#                         insert_like(usr_dict, post_id, like_uid, like_name, message, course_code, platform, platform_url, liked_username=from_uid)
 
-            if 'comments' in pst:
-                for comment in pst['comments']['data']:
-                    comment_created_time = comment['created_time']
-                    comment_from_uid = comment['from']['id']
-                    comment_from_name = comment['from']['name']
-                    comment_message = comment['message']
-                    comment_id = comment['id']
-                    if fbid_exists(comment_from_uid, course_code):
-                        usr_dict = get_userdetails(comment_from_uid)
-                        insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, parentusername=from_uid)
+#             if 'comments' in pst:
+#                 for comment in pst['comments']['data']:
+#                     comment_created_time = comment['created_time']
+#                     comment_from_uid = comment['from']['id']
+#                     comment_from_name = comment['from']['name']
+#                     comment_message = comment['message']
+#                     comment_id = comment['id']
+#                     if fbid_exists(comment_from_uid, course_code):
+#                         usr_dict = get_userdetails(comment_from_uid)
+#                         insert_comment(usr_dict, post_id, comment_id, comment_message, comment_from_uid, comment_from_name, comment_created_time, course_code, platform, platform_url, parentusername=from_uid)
 
 def twitterusername_exists(screen_name, course_code):
     tw_id_exists = False

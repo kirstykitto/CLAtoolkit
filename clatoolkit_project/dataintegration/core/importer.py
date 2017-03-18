@@ -36,7 +36,7 @@ def insert_share(user, post_id, share_id, comment_message, comment_created_time,
         stm = socialmedia_builder(statement_id=statement_id, verb=xapi_settings.VERB_SHARED, platform=platform, 
           account_name=account_name, account_homepage=platform_url, object_type=object_type, 
           object_id=share_id, message=comment_message, parent_id=post_id, parent_object_type=parent_object_type, 
-          timestamp=comment_created_time, unit=unit, tags=tags )
+          timestamp=comment_created_time, unit=unit, tags=tags, other_contexts = other_contexts)
         jsn = stm.to_json()
         #Transfer xapi to lrs TODO: Handle caching for failed sends
         # print 'Sending xapi..'
@@ -369,7 +369,7 @@ def insert_closedopen_object(user, object_id, object_message, obj_update_time, u
         status,content = lrs_client.transfer_statement(user.id, statement=jsn)
 
 
-def insert_mention(user, post_id, mention_id, message, mentioned_datetime, unit, object_type, parent_object_type, 
+def insert_mention(user, parent_id, mention_id, message, mentioned_datetime, unit, object_type, parent_object_type, 
                    platform, platform_url, tags=(), parent_user=None, parent_external_user=None, other_contexts = []):
     
     verb = xapi_settings.VERB_MENTIONED
@@ -380,14 +380,14 @@ def insert_mention(user, post_id, mention_id, message, mentioned_datetime, unit,
         statement_id = get_uuid4()
 
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, 
-                             platform=platform, user=user, platformid=mention_id, platformparentid=post_id,
+                             platform=platform, user=user, platformid=mention_id, platformparentid=parent_id,
                              parent_user=parent_user, datetimestamp=mentioned_datetime)
         lrs.save()
 
         #Send xapi to lrs or cache for later
         stm = socialmedia_builder(statement_id=statement_id, verb=verb, platform=platform, 
           account_name=account_name, account_homepage=platform_url, object_type=object_type, 
-          object_id=mention_id, message=message, parent_id=post_id, parent_object_type=parent_object_type, 
+          object_id=mention_id, message=message, parent_id=parent_id, parent_object_type=parent_object_type, 
           timestamp=mentioned_datetime, unit=unit, tags=tags, other_contexts = other_contexts)
 
         jsn = stm.to_json()
@@ -399,7 +399,7 @@ def insert_mention(user, post_id, mention_id, message, mentioned_datetime, unit,
         sr.save()
 
 
-def insert_attach(user, post_id, object_id, message, mentioned_datetime, unit, object_type, parent_object_type, 
+def insert_attach(user, parent_id, object_id, message, mentioned_datetime, unit, object_type, parent_object_type, 
                   platform, platform_url, tags=(), parent_user=None, parent_external_user=None, other_contexts = []):
 
     verb = xapi_settings.VERB_ATTACHED
@@ -409,21 +409,21 @@ def insert_attach(user, post_id, object_id, message, mentioned_datetime, unit, o
         statement_id = get_uuid4()
 
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, 
-                             platform=platform, user=user, platformid=object_id, platformparentid=post_id,
+                             platform=platform, user=user, platformid=object_id, platformparentid=parent_id,
                              parent_user=parent_user, datetimestamp=mentioned_datetime)
         lrs.save()
 
         stm = socialmedia_builder(statement_id=statement_id, verb=verb, platform=platform, 
           account_name=account_name, account_homepage=platform_url, object_type=object_type, 
-          object_id=object_id, message=message, parent_id=post_id, parent_object_type=parent_object_type, 
+          object_id=object_id, message=message, parent_id=parent_id, parent_object_type=parent_object_type, 
           timestamp=mentioned_datetime, unit=unit, tags=tags, other_contexts = other_contexts)
 
         jsn = stm.to_json()
         status,content = lrs_client.transfer_statement(user.id, statement=jsn)
 
 
-def insert_bookmark(user, object_id, message, bookmark_datetime, unit, object_type, platform, platform_url, 
-                    other_contexts = []):
+def insert_bookmark(user, parent_id, object_id, message, bookmark_datetime, unit, object_type, parent_object_type, 
+                    platform, platform_url, other_contexts = []):
 
     verb = xapi_settings.VERB_BOOKMARKED
     if check_ifnotinlocallrs(unit, platform, object_id, user, verb):
@@ -432,13 +432,13 @@ def insert_bookmark(user, object_id, message, bookmark_datetime, unit, object_ty
         statement_id = get_uuid4()
 
         lrs = LearningRecord(statement_id=statement_id, unit=unit, verb=verb, platform=platform, user=user, 
-                             platformid=object_id, datetimestamp=bookmark_datetime)
+                             platformid=object_id, platformparentid=parent_id, datetimestamp=bookmark_datetime)
         lrs.save()
 
         stm = socialmedia_builder(statement_id=statement_id, verb=verb, platform=platform, 
           account_name=account_name, account_homepage=platform_url, object_type=object_type, 
-          object_id=object_id, message=message, timestamp=bookmark_datetime, unit=unit, 
-          other_contexts = other_contexts)
+          object_id=object_id, message=message, parent_id=parent_id, parent_object_type=parent_object_type, 
+          timestamp=bookmark_datetime, unit=unit, other_contexts = other_contexts)
 
         jsn = stm.to_json()
         status,content = lrs_client.transfer_statement(user.id, statement=jsn)
