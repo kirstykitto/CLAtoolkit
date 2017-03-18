@@ -97,11 +97,8 @@ def refreshtrello(request):
 
     post_smimport(unit, xapi_settings.PLATFORM_TRELLO)
 
-    # return Response('<b>Trello refresh complete: %s users updated.</b>' % (str(user_count)))
-    html_response = HttpResponse()
-    html_response.write('<b>Trello refresh complete: %s users updated.</b>' % (str(user_count)))
-    html_response.write('<p><a href="/dashboard/myunits/">Go back to dashboard</a></p>')
-    return html_response
+    context = {'platform': xapi_settings.PLATFORM_TRELLO}
+    return render(request, 'dataintegration/dataimport_complete.html', context)
 
 
 ##############################################
@@ -139,7 +136,9 @@ def refreshgithub(request):
     github_plugin.perform_import(details, unit)
     post_smimport(unit, xapi_settings.PLATFORM_GITHUB)
 
-    return render(request, 'dataintegration/githubresult.html')
+    context = {'platform': xapi_settings.PLATFORM_GITHUB}
+    return render(request, 'dataintegration/dataimport_complete.html', context)
+
 
 
 
@@ -219,7 +218,8 @@ def ytAuthCallback(request):
     # Start data import
     youtube_plugin.perform_import(channel_ids, unit, http)
 
-    return render(request, 'dataintegration/ytresult.html', {})
+    context = {'platform': xapi_settings.PLATFORM_YOUTUBE}
+    return render(request, 'dataintegration/dataimport_complete.html', context)
 
 
 ##############################################
@@ -301,7 +301,8 @@ def refreshtwitter(request):
     # TODO
     # post_smimport(course_code, "Twitter")
 
-    return HttpResponse('Twitter Refreshed.')
+    context = {'platform': xapi_settings.PLATFORM_TWITTER}
+    return render(request, 'dataintegration/dataimport_complete.html', context)
 
 
 def refreshdiigo(request):
@@ -318,8 +319,8 @@ def refreshdiigo(request):
 
     post_smimport(course_code, "Diigo")
 
-    html_response.write('Diigo Refreshed.')
-    return html_response
+    context = {'platform': xapi_settings.PLATFORM_DIIGO}
+    return render(request, 'dataintegration/dataimport_complete.html', context)
 
 
 def refreshblog(request):
@@ -341,8 +342,8 @@ def refreshblog(request):
 
     post_smimport(unit, xapi_settings.PLATFORM_BLOG)
 
-    html_response.write('Blog Refreshed.<br><p><a href="/dashboard/myunits/">Go back to dashboard</a></p>')
-    return html_response
+    context = {'platform': xapi_settings.PLATFORM_BLOG}
+    return render(request, 'dataintegration/dataimport_complete.html', context)
 
 
 def dipluginauthomaticlogin(request):
@@ -404,11 +405,14 @@ def dipluginauthomaticlogin(request):
                         del request.session['unit']
                         del request.session['group_id']
 
-                        html_response.write('<h2>Facebook data import is complete.</h2>')
+                        # html_response.write('<h2>Facebook data import is complete.</h2>')
         else:
             html_response.write('Auth Returned no Response.')
+            return html_response
 
-    return html_response
+    # return html_response
+    context = {'platform': xapi_settings.PLATFORM_FACEBOOK}
+    return render(request, 'dataintegration/dataimport_complete.html', context)
 
 
 def get_social_media_id(request):
@@ -485,8 +489,8 @@ def refreshforum(request):
 
     post_smimport(course_code, "Forum")
 
-    html_response.write('Forum Refreshed.')
-    return html_response
+    context = {'platform': xapi_settings.PLATFORM_FORUM}
+    return render(request, 'dataintegration/dataimport_complete.html', context)
 
 def sendtolrs(request):
     html_response = HttpResponse()
