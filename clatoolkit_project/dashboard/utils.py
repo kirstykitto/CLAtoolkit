@@ -66,22 +66,22 @@ def train(course_code, platform):
         return e
     '''
 
-def get_uid_fromsmid(username, platform):
-    userprofile = None
-    if platform == "Twitter":
-        userprofile = UserProfile.objects.filter(twitter_id__iexact=username)
-    elif platform == "Facebook":
-        userprofile = UserProfile.objects.filter(fb_id__iexact=username)
-    elif platform == "Forum":
-        userprofile = UserProfile.objects.filter(forum_id__iexact=username)
-    elif platform == "YouTube":
-            userprofile = UserProfile.objects.filter(google_account_name__iexact=username)
-    else:
-        #platform must be = all
-        userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=username) | Q(fb_id__iexact=username) | Q(forum_id__iexact=username) | Q(google_account_name__iexact=username))
+# def get_uid_fromsmid(username, platform):
+#     userprofile = None
+#     if platform == "Twitter":
+#         userprofile = UserProfile.objects.filter(twitter_id__iexact=username)
+#     elif platform == "Facebook":
+#         userprofile = UserProfile.objects.filter(fb_id__iexact=username)
+#     elif platform == "Forum":
+#         userprofile = UserProfile.objects.filter(forum_id__iexact=username)
+#     elif platform == "YouTube":
+#             userprofile = UserProfile.objects.filter(google_account_name__iexact=username)
+#     else:
+#         #platform must be = all
+#         userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=username) | Q(fb_id__iexact=username) | Q(forum_id__iexact=username) | Q(google_account_name__iexact=username))
 
-    id = userprofile[0].user.id
-    return id
+#     id = userprofile[0].user.id
+#     return id
 
 def get_username_fromsmid(sm_id, platform):
     #print "sm_id", sm_id

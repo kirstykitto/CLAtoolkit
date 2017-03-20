@@ -130,28 +130,28 @@ def username_exists(screen_name, unit, platform):
     return True
 
 
-def get_uid_fromsmid(username, platform):
-    userprofile = None
-    if platform == "twitter":
-        userprofile = UserProfile.objects.filter(twitter_id__iexact=username)
-    elif platform == "facebook":
-        userprofile = UserProfile.objects.filter(fb_id__iexact=username)
-    elif platform == "forum":
-        userprofile = UserProfile.objects.filter(forum_id__iexact=username)
-    elif platform == "youtube":
-        userprofile = UserProfile.objects.filter(google_account_name__iexact=username)
-    elif platform == "github":
-        userprofile = UserProfile.objects.filter(github_account_name__iexact=username)
-    elif platform == "trello":
-        userprofile = UserProfile.objects.filter(trello_account_name__iexact=username)
-    elif platform == "blog":
-        userprofile = UserProfile.objects.filter(blog_id__iexact=username)
-    else:
-        #platform must be = all
-        userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=username) | Q(fb_id__iexact=username) | Q(forum_id__iexact=username) | Q(google_account_name__iexact=username))
+# def get_uid_fromsmid(username, platform):
+#     userprofile = None
+#     if platform == "twitter":
+#         userprofile = UserProfile.objects.filter(twitter_id__iexact=username)
+#     elif platform == "facebook":
+#         userprofile = UserProfile.objects.filter(fb_id__iexact=username)
+#     elif platform == "forum":
+#         userprofile = UserProfile.objects.filter(forum_id__iexact=username)
+#     elif platform == "youtube":
+#         userprofile = UserProfile.objects.filter(google_account_name__iexact=username)
+#     elif platform == "github":
+#         userprofile = UserProfile.objects.filter(github_account_name__iexact=username)
+#     elif platform == "trello":
+#         userprofile = UserProfile.objects.filter(trello_account_name__iexact=username)
+#     elif platform == "blog":
+#         userprofile = UserProfile.objects.filter(blog_id__iexact=username)
+#     else:
+#         #platform must be = all
+#         userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=username) | Q(fb_id__iexact=username) | Q(forum_id__iexact=username) | Q(google_account_name__iexact=username))
 
-    id = userprofile[0].user.id
-    return id
+#     id = userprofile[0].user.id
+#     return id
 
 def get_username_fromsmid(sm_id, platform):
     #print "sm_id", sm_id

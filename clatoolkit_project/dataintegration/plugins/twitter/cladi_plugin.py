@@ -99,7 +99,6 @@ class TwitterPlugin(DIBasePlugin, DIPluginDashboardMixin):
         if username_exists(username, unit, self.platform):
             user = get_user_from_screen_name(username, self.platform)
             if retweeted:
-                print retweeted_username
                 if username_exists(retweeted_username, unit, self.platform):
                     parent_user = get_user_from_screen_name(retweeted_username, self.platform)
                     insert_share(user, post_id, retweeted_id, message, timestamp, unit, 
