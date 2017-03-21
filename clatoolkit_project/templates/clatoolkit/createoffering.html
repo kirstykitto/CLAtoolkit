@@ -48,7 +48,13 @@
                                     {% if field.name != "co_analysis" and field.name != "sn_analysis" and field.name != "enable_coi_classifier" %}
                                         <br>
                                     {% endif %}
-                                    {{ field }}
+                                    {% if field.name == "enable_coi_classifier" %}
+                                        <!-- Disable COI until fixed -->
+                                        <input disabled id="id_enable_coi_classifier" name="enable_coi_classifier" type="checkbox" >
+                                    {% else %}
+                                        {{ field }}
+                                    {% endif %}
+                                    
                                 {% endif %}
                             {% endif %}
                         </div>

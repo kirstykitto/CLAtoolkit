@@ -465,7 +465,6 @@ def studentdashboard(request):
         'sna_json': sna_json, 'tags': tags, 'sentiments': sentiments, 'coi': coi, 'centrality': centrality,
         'show_allplatforms_widgets': show_allplatforms_widgets, 'show_dashboardnav':True
     }
-    print context_dict
     return render_to_response('dashboard/studentdashboard.html', context_dict, context)
 
 @login_required

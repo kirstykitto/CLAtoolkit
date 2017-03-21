@@ -26,7 +26,6 @@ urlpatterns = patterns(
     url(r'^github_client_auth/$', views.github_client_auth, name='github_client_auth'),
     url(r'^refreshslack/$', views.refreshslack, name='refreshslack'),
 
-    # Test code
     url(r'^slack_auth/$', views.slack_auth, name='slack_auth'),
     url(r'^slack_client_auth/$', views.slack_client_auth, name='slack_client_auth'),
 )

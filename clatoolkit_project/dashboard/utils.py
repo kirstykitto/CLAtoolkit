@@ -11,6 +11,7 @@ import numpy as np
 import subprocess
 import jgraph
 import igraph
+import datetime
 from pprint import pprint
 from collections import OrderedDict
 from django.conf import settings
@@ -66,22 +67,22 @@ def train(course_code, platform):
         return e
     '''
 
-def get_uid_fromsmid(username, platform):
-    userprofile = None
-    if platform == "Twitter":
-        userprofile = UserProfile.objects.filter(twitter_id__iexact=username)
-    elif platform == "Facebook":
-        userprofile = UserProfile.objects.filter(fb_id__iexact=username)
-    elif platform == "Forum":
-        userprofile = UserProfile.objects.filter(forum_id__iexact=username)
-    elif platform == "YouTube":
-            userprofile = UserProfile.objects.filter(google_account_name__iexact=username)
-    else:
-        #platform must be = all
-        userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=username) | Q(fb_id__iexact=username) | Q(forum_id__iexact=username) | Q(google_account_name__iexact=username))
+# def get_uid_fromsmid(username, platform):
+#     userprofile = None
+#     if platform == "Twitter":
+#         userprofile = UserProfile.objects.filter(twitter_id__iexact=username)
+#     elif platform == "Facebook":
+#         userprofile = UserProfile.objects.filter(fb_id__iexact=username)
+#     elif platform == "Forum":
+#         userprofile = UserProfile.objects.filter(forum_id__iexact=username)
+#     elif platform == "YouTube":
+#             userprofile = UserProfile.objects.filter(google_account_name__iexact=username)
+#     else:
+#         #platform must be = all
+#         userprofile = UserProfile.objects.filter(Q(twitter_id__iexact=username) | Q(fb_id__iexact=username) | Q(forum_id__iexact=username) | Q(google_account_name__iexact=username))
 
-    id = userprofile[0].user.id
-    return id
+#     id = userprofile[0].user.id
+#     return id
 
 def get_username_fromsmid(sm_id, platform):
     #print "sm_id", sm_id
@@ -217,51 +218,6 @@ def get_timeseries(unit, sm_verb = None, sm_platform = None, user = None, withou
         return ','.join(map(str, dataset_list))
 
 
-# def get_timeseries_byplatform(sm_platform, unit, username=None, without_date_utc=False):
-#     userclause = ""
-#     if username is not None:
-#         userclause = " AND clatoolkit_learningrecord.username='%s'" % (username)
-#         # sm_usernames_str = ','.join("'{0}'".format(x) for x in username)
-#         # userclause = " AND clatoolkit_learningrecord.username ILIKE any(array[%s])" % (sm_usernames_str)
-
-#     cursor = connection.cursor()
-#     cursor.execute("""
-#     with filled_dates as (
-#       select day, 0 as blank_count from
-#         generate_series('2015-06-01 00:00'::timestamptz, current_date::timestamptz, '1 day')
-#           as day
-#     ),
-#     daily_counts as (
-#     select date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) as day, count(*) as smcount
-#     FROM clatoolkit_learningrecord
-#     WHERE clatoolkit_learningrecord.xapi->'context'->>'platform'='%s' AND clatoolkit_learningrecord.unit_id='%s' %s
-#     group by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD'))
-#     order by date_trunc('day', to_timestamp(substring(CAST(clatoolkit_learningrecord.xapi->'timestamp' as text) from 2 for 11), 'YYYY-MM-DD')) asc
-#     )
-#     select filled_dates.day,
-#            coalesce(daily_counts.smcount, filled_dates.blank_count) as signups
-#       from filled_dates
-#         left outer join daily_counts on daily_counts.day = filled_dates.day
-#       order by filled_dates.day;
-#     """ % (sm_platform, unit.id, userclause))
-#     result = cursor.fetchall()
-#     dataset_list = []
-#     for row in result:
-#         curdate = row[0]  # parse(row[0])
-#         datapoint = ""
-#         if without_date_utc:
-#             datapoint = "%s,%s,%s,%s" % (curdate.year, curdate.month - 1, curdate.day, row[1])
-#         else:
-#             datapoint = "[Date.UTC(%s,%s,%s),%s]" % (curdate.year, curdate.month - 1, curdate.day, row[1])
-#         dataset_list.append(datapoint)
-
-#     if without_date_utc:
-#         return dataset_list
-#     else:
-#         dataset = ','.join(map(str, dataset_list))
-#         return dataset
-
-
 def get_active_members_table(unit, platform = None):
     users = User.objects.filter(learningrecord__unit = unit).distinct()
 
@@ -280,7 +236,9 @@ def get_active_members_table(unit, platform = None):
         num_comments = 0
         
         group_by_column = 'verb'
-        obj_counts = get_object_count(unit, group_by_column, platform, user)
+        start_date = unit.start_date.strftime('%Y-%m-%d')
+        end_date = unit.end_date.strftime('%Y-%m-%d')
+        obj_counts = get_object_count(unit, group_by_column, platform, user, start_date = start_date, end_date = end_date)
         
         for dict_obj in obj_counts:
             if dict_obj[group_by_column] == xapi_settings.VERB_CREATED:
@@ -590,7 +548,7 @@ def nmf(platform, no_topics, unit, start_date=None, end_date=None):
                 #print count
                 classification_dict[count['classification']] = count['classification__count']
             vals = "%d,%d,%d" % (classification_dict['Positive'],classification_dict['Negative'],classification_dict['Neutral'])
-            print vals
+            # print vals
             radius = classification_dict['Positive'] + classification_dict['Negative'] + classification_dict['Neutral']
             feature_matrix[topic,0] = classification_dict['Positive']
             feature_matrix[topic,1] = classification_dict['Negative']
@@ -1574,7 +1532,11 @@ def get_platform_pie_data(unit, user = None):
 
 def get_activity_pie_data(unit, get_verb_count = True, platform = None, user = None):
     value = 'verb' if get_verb_count else 'platform'
-    records = get_object_count(unit, value, platform, user)
+
+    start_date = unit.start_date.strftime('%Y-%m-%d')
+    end_date = unit.end_date.strftime('%Y-%m-%d')
+    records = get_object_count(unit, value, platform, user, start_date = start_date, end_date = end_date)
+
     pie_series = ''
     for row in records:
         pie_series = pie_series + "['%s', %s]," % (row[value], row['count'])
@@ -1582,7 +1544,9 @@ def get_activity_pie_data(unit, get_verb_count = True, platform = None, user = N
     return pie_series
 
 
-def get_object_count(unit, group_by_name, platform = None, user = None, verb = None):
+def get_object_count(unit, group_by_name, platform = None, user = None, verb = None,
+                    start_date = None, end_date = None):
+
     records = LearningRecord.objects.filter(unit = unit)
     if user is not None:
         records = records.filter(user = user)
@@ -1592,6 +1556,20 @@ def get_object_count(unit, group_by_name, platform = None, user = None, verb = N
 
     if verb is not None:
         records = records.filter(verb = verb)
+
+    if start_date is not None:
+        # format must be yyyy-mm-dd
+        date_array = start_date.split('-')
+        # Start date is included
+        d = datetime.datetime(int(date_array[0]), int(date_array[1]), int(date_array[2]), 0, 0, 0)
+        records = records.filter(datetimestamp__gte = d)
+        
+    if end_date is not None:
+        # format must be yyyy-mm-dd
+        date_array = end_date.split('-')
+        # End date is included
+        d = datetime.datetime(int(date_array[0]), int(date_array[1]), int(date_array[2]), 23, 59, 59)
+        records = records.filter(datetimestamp__lte = d)
 
     return records.values(group_by_name).annotate(count=Count(group_by_name))
 
