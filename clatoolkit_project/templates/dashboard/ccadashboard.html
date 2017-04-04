@@ -6,97 +6,78 @@
 {% block heading %}{{title}}{% endblock %}
 
 {% block body %}
-<style type="text/css">
-/*
-.node rect {
-  cursor: move;
-  fill-opacity: .9;
-  shape-rendering: crispEdges;
-}
- 
-.node text {
-  pointer-events: none;
-  text-shadow: 0 1px 0 #fff;
-}
- 
-.link {
-  fill: none;
-  stroke: #000;
-  stroke-opacity: .2;
-}
- 
-.link:hover {
-  stroke-opacity: .5;
-}
-
-div.scrollable {
-overflow-x: auto;
-white-space: nowrap;
-}
-*/
--->
-</style>
-
 <link href="{% static 'css/dashboard/ccadashboard.css'%}" rel="stylesheet">
 <span id="root">
 	<p id="message" class="message"></p>
-	<div class="row">
-	    <div class="col-lg-12">
-	        <div class="panel panel-default">
-	            <div class="panel-heading">
-	                <i class="fa fa-bar-chart-o fa-fw"></i> Platform Timeseries
-	            </div>
-	            <!-- /.panel-heading -->
-	            <div class="panel-body">
-	                <div id="platform_pageview_chart"></div>
-	            </div>
-	            <!-- /.panel-body -->
-	        </div>
-	        <!-- /.panel -->
-	    </div>
-	    <!-- /.col-lg-8 -->
-	</div>
-	<!-- /.row -->
-	<div class="row">
-	    <div class="col-lg-12">
-	        <div class="panel panel-default">
-	            <div class="panel-heading">
-	                <i class="fa fa-bar-chart-o fa-fw"></i> Trello
-	            </div>
-	            <!-- /.panel-heading -->
-	            <div class="panel-body scrollable">
-	                <div id="chart-trello"></div>
-	            </div>
-	            <div class="tableDiv">
-		            <table class="table table-striped table-bordered table-hover" id="datatable-trello"></table>
-	            </div>
-	            <!-- /.panel-body -->
-	        </div>
-	        <!-- /.panel -->
-	    </div>
-	    <!-- /.col-lg-8 -->
-	</div>
-	<!-- /.row -->
-	<div class="row">
-	    <div class="col-lg-12">
-	        <div class="panel panel-default">
-	            <div class="panel-heading">
-	                <i class="fa fa-bar-chart-o fa-fw"></i> GitHub
-	            </div>
-	            <!-- /.panel-heading -->
-	            <div class="panel-body scrollable">
-	                <div id="chart-GitHub"></div>
-	            </div>
-	            <div class="tableDiv">
-		            <table class="table table-striped table-bordered table-hover" id="datatable-GitHub"></table>
-	            </div>
-	            <!-- /.panel-body -->
-	        </div>
-	        <!-- /.panel -->
-	    </div>
-	    <!-- /.col-lg-8 -->
-	</div>
-	<!-- /.row -->
+	<span class="navigator">
+		<!-- <nav class="navbar navbar-default navbar-fixed-top"> -->
+		<div class="row">
+			<div id="wider" class="col-lg-12">
+				<div class="panel panel-default lessmargin">
+					<span class="navigator-title">Chart will be updated as you change the start and end date in the navigator.</span>
+					<span id="platform-changer" style="float: right;"></span>
+					<div id="chartNavigator"></div>
+				</div>
+			</div>
+		</div>
+		<!-- </nav> -->
+	</span>
+	<span id="activities" class="chartRoot">
+		<div class="row">
+			<div class="col-lg-12">
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Activities
+					</div>
+					<div class="panel-body">
+						<div class="panel-body scrollable">
+							<div id="activityColumn"></div>
+						</div>
+						<div class="panel-body scrollable">
+							<div id="activityBar"></div>
+						</div>
+						<div class="panel-body scrollable largeChart">
+							<div id="activityPie"></div>
+						</div>
+						<div class="panel-body scrollable">
+							<div id="activityHeatmap"></div>
+						</div>
+					</div>
+				</div>
+			<!-- /.panel -->
+			</div>
+		<!-- /.col-lg-8 -->
+		</div>
+		<div id="contributionRoot" class="row">
+			<div class="col-lg-12">
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						<i class="fa fa-bar-chart-o fa-fw"></i> User Contributions
+					</div>
+					<div class="panel-body">
+						<div class="panel-body scrollable">
+							<div id="contribution"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- <div class="row">
+			<div class="col-lg-12">
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Activities
+					</div>
+					<div class="panel-body">
+						<div class="dataTable_wrapper">
+							<table class="table table-striped table-bordered table-hover" id="activity-table">
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div> -->
+	</span>
 </span>
 {% endblock %}
 
@@ -106,13 +87,13 @@ white-space: nowrap;
 <script src="https://code.highcharts.com/modules/data.js"></script>
 <script>
 
-var course_code = "{{course_code}}";
+// var course_code = "{{course_code}}";
+var course_id = "{{course_id}}";
 var platform = "{{platform}}";
-var allPlatformData = {};
+var chartObjDict = {};
 // Date selected by user at the Platform Timeseries
-var startDate = "";
-var endDate = "";
-// var timer = new Date().getTime();
+var startUTCDate = 0;
+var endUTCDate = 0;
 
 </script>
 <script src="{% static 'js/dashboard/ccadashboard.js'%}"></script>

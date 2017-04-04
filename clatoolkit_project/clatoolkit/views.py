@@ -2,13 +2,13 @@ from django.shortcuts import render, render_to_response
 from django.shortcuts import redirect
 
 from django.contrib.auth import authenticate, login
-from django.http import HttpResponseRedirect, HttpResponse, Http404
+from django.http import HttpResponseRedirect, HttpResponse, Http404, HttpResponseServerError, JsonResponse
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 
 from django.contrib.auth.models import User
-from clatoolkit.forms import CreateOfferingForm, SignUpForm, UserForm, UserProfileForm
+from clatoolkit.forms import CreateOfferingForm, SignUpForm, UserForm, UserProfileForm, RegisterClientAppForm
 
 from django.template import RequestContext
 
@@ -23,16 +23,24 @@ from .forms import SocialMediaUpdateForm, LearningRecordFilter, SocialRelationsh
 
 
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 
+from xapi.models import ClientApp
+
 from dashboard.utils import *
 import json
+
+from hashlib import sha1
+import hmac
+import binascii
 
 # from fb_data.models import
 
 def home(request):
     context = RequestContext(request)
+
     return render_to_response('clatoolkit/home.html', {}, context)
 
 
@@ -45,7 +53,7 @@ def userlogin(request):
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
-        next_page = request.POST['next_page']
+        next_page = request.POST.get('next_page', '/')
 
         user = authenticate(username=username, password=password)
 
@@ -72,7 +80,7 @@ def userlogin(request):
         return redirect(next_page)
 
     else:
-        return render_to_response('clatoolkit/login.html', {"message": message, "next_page": next_page}, context)
+        return render_to_response('clatoolkit/index_new.html', {"message": message, "next_page": next_page}, context)
 
 
 #Unit management integration for staff - 13/05/16
@@ -166,8 +174,9 @@ def unitmanagement(request):
         context_dict, context
     )
 
-
 def register(request, unit_id):
+    import requests
+
     # Like before, get the request's context.
     context = RequestContext(request)
 
@@ -191,18 +200,69 @@ def register(request, unit_id):
     if request.method == 'POST':
         # Attempt to grab information from the raw form information.
         # Note that we make use of both UserForm and UserProfileForm.
-        user_form = UserForm(data=request.POST)
-        profile_form = UserProfileForm(data=request.POST)
+
+        # REQUIRED FIELDS:
+        # - username
+        # - email
+        # - password
+        # - social IDs
+
+        # TODO: Will need new forms (maybe with data filled from vue)
+        # TODO: Forms become meh with vue
+
+        data = json.loads(request.body)
+
+        # print 'Got request data %s' % data
+
+        user_form = UserForm(data=data['user_account'])
+        profile_form = UserProfileForm(data=data['user_profile'])
+
+        # print 'did the user form work? %s' % user_form.is_valid()
+
+        # print user_form.errors
+
+        # print 'did the user profile form work? %s' % profile_form.is_valid()
+
+        # print profile_form.errors
 
         # If the two forms are valid...
+        # TODO: Might do form validation on the client-side
+
         if user_form.is_valid() and profile_form.is_valid():
+            # Generate LRS Account
+            user = user_form.cleaned_data['username']
+            email = user_form.cleaned_data['email']
+            lrs = unit.get_lrs()
+
+            # Create a signature to authorise lrs account creation.
+            # We don't want randoms creating accounts arbitrarly!
+            hash = hmac.new(str(lrs.get_secret()), lrs.get_key(), sha1)
+
+            # Return ascii formatted signature in base64
+            signature = binascii.b2a_base64(hash.digest())[:-1]
+
+            payload = {
+                "user": user,
+                "mailbox": email,
+                "client": lrs.app_name,
+                "signature": signature
+            }
+
+            # TODO: Remove hardwired url (probs from client app model?)
+            # print lrs.get_reg_lrs_account_url()
+            r = requests.post(lrs.get_reg_lrs_account_url(), data=payload)
+
+            if not (str(r.status_code) == '200' and r.content == 'success'):
+                print 'Error: LRS account could not be created.'
+                return HttpResponse(r.content, status=503)
+
+            ### When an LRS account has been created, create the toolkit account.
             # Save the user's form data to the database.
             user = user_form.save()
 
             # Now we hash the password with the set_password method.
             # Once hashed, we can update the user object.
             user.set_password(user.password)
-
             user.save()
 
             m = UnitOfferingMembership(user=user, unit=unit, admin=False)
@@ -222,7 +282,10 @@ def register(request, unit_id):
             u = authenticate(username=user_form.cleaned_data["username"], password=user_form.cleaned_data["password"])
             login(request, u)
 
-            return HttpResponseRedirect("/")
+            return HttpResponse("/")
+        else:
+            return JsonResponse({'errors': {'user_form': user_form.errors, 'profile_form': profile_form.errors}}, status=400)
+        # return HttpResponse("HELLO")
 
     # Not a HTTP POST, so we render our form using two ModelForm instances.
     # These forms will be blank, ready for user input.
@@ -232,7 +295,7 @@ def register(request, unit_id):
 
     # Render the template depending on the context.
     return render_to_response(
-        'clatoolkit/register.html',
+        'clatoolkit/register_djano.html',
             {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, "course": unit, "req_platforms": platforms, "user": u}, context)
 
 
@@ -243,7 +306,7 @@ def register_existing(request, unit_id):
     except UnitOffering.DoesNotExist:
         raise Http404
 
-    if not unit.users.filter(user=request.user).exists():
+    if not unit.users.filter(id=request.user.id).exists():
         membership = UnitOfferingMembership(user=request.user, unit=unit, admin=False)
         membership.save()
 
@@ -255,6 +318,7 @@ def socialmediaaccounts(request):
     context = RequestContext(request)
     user_id = request.user.id
     usr_profile = UserProfile.objects.get(user_id=user_id)
+    trello_api_key = os.environ.get('TRELLO_API_KEY')
 
     if request.method == 'POST':
         profile_form = SocialMediaUpdateForm(data=request.POST,instance=usr_profile)
@@ -268,7 +332,6 @@ def socialmediaaccounts(request):
 
             print profile_form.errors
 
-
     # Not a HTTP POST, so we render our form using two ModelForm instances.
     # These forms will be blank, ready for user input.
     else:
@@ -278,7 +341,7 @@ def socialmediaaccounts(request):
     # Render the template depending on the context.
     return render_to_response(
         'clatoolkit/socialmediaaccounts.html',
-            {'profile_form': profile_form, 'units': units}, context)
+            {'profile_form': profile_form, 'units': units, 'trello_api_key': trello_api_key}, context)
 
 
 def eventregistration(request):
@@ -374,6 +437,32 @@ def create_offering(request):
         # check whether it's valid:
         if form.is_valid():
             unit = form.save(commit=False)
+            # Get provider ID and set it to unit
+            post_data = request.POST.copy()
+            provider = post_data.pop("provider")[0]
+            app = ClientApp.objects.get(provider = provider)
+            unit.lrs_provider = app
+            # Start & end date
+            start_date = post_data.pop("start_date")[0]
+            end_date = post_data.pop("end_date")[0]
+
+            from datetime import datetime as dt
+            client_format = '%d / %m / %Y'
+            database_format = '%Y-%m-%d'
+
+            # Create a Date object
+            start_date = dt.strptime(start_date, client_format)
+            end_date = dt.strptime(end_date, client_format)
+            # Get formatted date string
+            start_date = start_date.strftime(database_format)
+            end_date = end_date.strftime(database_format)
+            # Create a Date object whose format suits database column format
+            start_date = dt.strptime(start_date, database_format)
+            end_date = dt.strptime(end_date, database_format)
+
+            unit.start_date = start_date
+            unit.end_date = end_date
+
             unit.save()
 
             m = UnitOfferingMembership(user=request.user, unit=unit, admin=True)
@@ -383,7 +472,7 @@ def create_offering(request):
 
     # if a GET (or any other method) we'll create a blank form
     else:
-        form = CreateOfferingForm()
+        form = CreateOfferingForm(initial = {'provider': os.environ.get('DEFAULT_LRS_NAME')})
 
     return render(request, 'clatoolkit/createoffering.html', {'verb': 'Create', 'form': form})
 
@@ -399,11 +488,39 @@ def update_offering(request, unit_id):
         if request.method == "POST":
             form = CreateOfferingForm(request.POST, instance=unit)
             if form.is_valid():
+                # Get provider ID and set it to unit
+                post_data = request.POST.copy()
+                provider = post_data.pop("provider")[0]
+                app = ClientApp.objects.get(provider = provider)
+                unit.lrs_provider = app
+                # Start & end date
+                start_date = post_data.pop("start_date")[0]
+                end_date = post_data.pop("end_date")[0]
+
+                from datetime import datetime as dt
+                client_format = '%d / %m / %Y'
+                database_format = '%Y-%m-%d'
+
+                # Create a Date object
+                start_date = dt.strptime(start_date, client_format)
+                end_date = dt.strptime(end_date, client_format)
+                # Get formatted date string
+                start_date = start_date.strftime(database_format)
+                end_date = end_date.strftime(database_format)
+                # Create a Date object whose format suits database column format
+                start_date = dt.strptime(start_date, database_format)
+                end_date = dt.strptime(end_date, database_format)
+
+                unit.start_date = start_date
+                unit.end_date = end_date
                 unit = form.save()
                 return render(request, 'clatoolkit/createoffering_success.html', {'verb': 'updated', 'unit': unit})
+            else:
+                raise Http404
 
         else:
-            form = CreateOfferingForm(instance=unit)
+            # Get LRS provider and set it
+            form = CreateOfferingForm(instance=unit, initial = {'provider': unit.lrs_provider.provider})
 
             return render(request, "clatoolkit/createoffering.html", {'verb': 'Update', 'form': form})
     else:
@@ -422,6 +539,65 @@ def offering_members(request, unit_id):
         return render(request, "clatoolkit/offering_members.html", {"unit": unit, "members": members})
     else:
         raise PermissionDenied()
+
+
+@login_required
+def registerclientapp(request):
+    if request.method == 'POST':
+        form = RegisterClientAppForm(request.POST)
+        if form.is_valid():
+            app = form.save(commit=False)
+            app.protocol = form.cleaned_data["protocol"]
+            app.save()
+            return render(request, 'clatoolkit/registerclientapp.html',
+                {'registered': True, 'verb': 'registered', 'form': None})
+    else:
+        form = RegisterClientAppForm()
+
+    return render(request, 'clatoolkit/registerclientapp.html',
+        {'registered': False, 'verb': 'Register', 'form': form})
+
+
+@login_required
+def updateclientapp(request):
+    if request.method == 'POST':
+        post_data = request.POST.copy()
+        provider = post_data.pop("provider")[0]
+        app = ClientApp.objects.get(provider=provider)
+        form = RegisterClientAppForm(request.POST, instance=app)
+
+        if form.is_valid():
+            app = form.save(commit=False)
+            app.save()
+            return redirect('/dashboard/myunits')
+        else:
+            return HttpResponse("ERROR: %s" % (form.errors))
+
+    else:
+        provider_id = request.GET.get("provider_id")
+        try:
+            app = ClientApp.objects.get(id=provider_id)
+            form = RegisterClientAppForm(instance=app)
+        except ClientApp.DoesNotExist:
+            return HttpResponseServerError('Error: Provider id not found')
+
+        return render(request, 'clatoolkit/registerclientapp.html',
+            {'registered': False, 'verb': 'Update', 'form': form})
+
+
+def get_lrs_list(request):
+    all_apps = ClientApp.objects.all()
+    app_list = []
+    for app in all_apps:
+        obj = {}
+        obj['provider'] = app.provider
+        obj['protocol'] = app.protocol
+        obj['domain'] = app.domain
+        obj['port'] = app.port
+        app_list.append(obj)
+
+    ret = {'result': app_list}
+    return JsonResponse(ret, status=status.HTTP_200_OK)
 
 
 class DefaultsMixin(object):
@@ -482,18 +658,20 @@ class UserClassificationViewSet(DefaultsMixin, viewsets.ModelViewSet):
 class SNARESTView(DefaultsMixin, APIView):
 
     def get(self, request, *args, **kw):
-
-        course_code = request.GET.get('course_code', None)
+        course_id = request.GET.get('course_id', None)
         platform = request.GET.get('platform', None)
         start_date = request.GET.get('start_date', None)
         end_date = request.GET.get('end_date', None)
         username = request.GET.get('username', None)
         relationshipstoinclude = request.GET.get('relationshipstoinclude', None)
 
+        unit = UnitOffering.objects.get(id = course_id)
         # Any URL parameters get passed in **kw
         #myClass = CalcClass(get_arg1, get_arg2, *args, **kw)
         #print sna_buildjson(platform, course_code)
-        result = json.loads(sna_buildjson(platform, course_code, username=username, start_date=start_date, end_date=end_date, relationshipstoinclude=relationshipstoinclude))
+        sna_data = sna_buildjson(platform, unit, username=username, start_date=start_date,
+                                 end_date=end_date, relationshipstoinclude=relationshipstoinclude)
+        result = json.loads(sna_data)
         result["neighbours"] = json.loads(getNeighbours(json.dumps(result)))
         #{'nodes':["test sna","2nd test"]} #myClass.do_work()
         response = Response(result, status=status.HTTP_200_OK)
@@ -503,13 +681,15 @@ class WORDCLOUDView(DefaultsMixin, APIView):
 
     def get(self, request, *args, **kw):
 
-        course_code = request.GET.get('course_code', None)
+        course_id = request.GET.get('course_id', None)
         platform = request.GET.get('platform', None)
         start_date = request.GET.get('start_date', None)
         end_date = request.GET.get('end_date', None)
-        username = request.GET.get('username', None)
+        user_id = request.GET.get('user_id', None)
+        unit = UnitOffering.objects.get(id = course_id)
+        user = User.objects.get(id = user_id)
 
-        result = json.loads(get_wordcloud(platform, course_code, username=username, start_date=start_date, end_date=end_date))
+        result = json.loads(get_wordcloud(platform, unit, user = user, start_date=start_date, end_date=end_date))
         response = Response(result, status=status.HTTP_200_OK)
         return response
 

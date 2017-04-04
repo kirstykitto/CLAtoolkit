@@ -26,4 +26,7 @@ urlpatterns = patterns('',
     url(r'^unitofferings/(?P<unit_id>[a-zA-Z0-9]+)/members/$', views.offering_members, name='offering_members'),
     url(r'^unitofferings/(?P<unit_id>[a-zA-Z0-9]+)/register/existing/$', views.register_existing, name='register_existing'),
     url(r'^unitofferings/(?P<unit_id>[a-zA-Z0-9]+)/register/$', views.register, name='register'),
+    url(r'^registerclientapp$', views.registerclientapp, name='registerclientapp'),
+    url(r'^updateclientapp$', views.updateclientapp, name='updateclientapp'),
+    url(r'^api/getLRSlist$', views.get_lrs_list, name='get_lrs_list'),
 )

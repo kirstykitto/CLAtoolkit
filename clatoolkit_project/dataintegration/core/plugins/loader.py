@@ -7,7 +7,10 @@ try:
     from importlib import import_module
 except ImportError:
     # Python 2.6 fallback
-    from django.utils.importlib import import_module
+    try:
+        from django.utils.importlib import import_module
+    except Exception as e:
+        print e
 
 from django.conf import settings
 
@@ -40,4 +43,4 @@ def load(modname, verbose=False, failfast=False):
 def load_dataintegration_plugins(pluginfolders):
     #load('cladi_plugin', verbose=True, failfast=True)
     for plugin in pluginfolders:
-        get_module('dataintegration.plugins.' + plugin, 'cladi_plugin', verbose=True, failfast=True)
+        get_module('dataintegration.plugins.' + plugin, 'cladi_plugin', verbose=True, failfast=False)

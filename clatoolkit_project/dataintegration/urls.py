@@ -22,5 +22,10 @@ urlpatterns = patterns(
     url(r'^refreshgithub/$', views.refreshgithub, name='refreshgithub'),
     url(r'^process_trello/$', views.process_trello, name='processtrello'),
     url(r'^refreshtrello/$', views.refreshtrello, name='refreshtrello'),
-    #url(r'^ytAuthCallback/(?P<course_id>\d+)/$', views.ytAuthCallback, name='ytAuthCallback'),
+    url(r'^github_auth/$', views.github_auth, name='github_auth'),
+    url(r'^github_client_auth/$', views.github_client_auth, name='github_client_auth'),
+    url(r'^refreshslack/$', views.refreshslack, name='refreshslack'),
+
+    url(r'^slack_auth/$', views.slack_auth, name='slack_auth'),
+    url(r'^slack_client_auth/$', views.slack_client_auth, name='slack_client_auth'),
 )

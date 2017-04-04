@@ -35,22 +35,31 @@ if os.environ.get("ADMINS"):
 else:
     ADMINS = None
 
-if ADMINS:
+#if ADMINS:
+ #   EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # During development only
+    #EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#    SERVER_EMAIL = os.environ.get("SERVER_EMAIL")
 
-    SERVER_EMAIL = os.environ.get("SERVER_EMAIL")
+ #   EMAIL_HOST = os.environ.get("EMAIL_HOST")
+   # EMAIL_PORT = os.environ.get("EMAIL_PORT")
+  #  EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
+    #EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 
-    EMAIL_HOST = os.environ.get("EMAIL_HOST")
-    EMAIL_PORT = os.environ.get("EMAIL_PORT")
-    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
-    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+    #if os.environ.get("EMAIL_USE_TLS") == '1':
+     #   EMAIL_USE_TLS = True
 
-    if os.environ.get("EMAIL_USE_TLS") == '1':
-        EMAIL_USE_TLS = True
-
-    if os.environ.get("EMAIL_USE_SSL") == '1':
-        EMAIL_USE_SSL = True
+    #if os.environ.get("EMAIL_USE_SSL") == '1':
+     #   EMAIL_USE_SSL = True
+ALLOWED_HOSTS = []
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = 'test@gmail.com'
+SERVER_EMAIL = 'test@gmail.com'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # During development only
 
 # Application definition
 
@@ -65,7 +74,8 @@ INSTALLED_APPS = (
     'clatoolkit',
     'dataintegration',
     'dashboard',
-    'common'
+    #'common',
+    'xapi'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -182,7 +192,14 @@ LOGIN_URL = "/"
 #MEDIA_ROOT = os.path.join(BASE_DIR, 'static')
 #MEDIA_URL = '/static/'
 
-#####################################################
+####################################################
+######## Lead System-Wide constants/configs
+###################################################
+#from clatoolkit_project.xapi.statement import xapi_settings
+
+#xapi_settings = xapi_settings
+
+###################################################
 ######### Load Social Media Data Integration plugins
 #####################################################
 
@@ -193,7 +210,7 @@ sys.path.append(DI_PATH)
 PLUGIN_PATH = os.path.join(DI_PATH,'plugins')
 pluginModules = [name for _, name, _ in pkgutil.iter_modules([PLUGIN_PATH])]
 from dataintegration.core.plugins.loader import load_dataintegration_plugins
-from dataintegration.core.plugins.registry import get_includeindashboardwidgets, get_plugins, get_includeindashboardwidgets_verbs, get_includeindashboardwidgets_platforms, get_includeauthomaticplugins_platforms
+from dataintegration.core.plugins.registry import get_plugins, get_includeindashboardwidgets_verbs, get_includeindashboardwidgets_platforms, get_includeauthomaticplugins_platforms
 load_dataintegration_plugins(pluginModules)
 
 DATAINTEGRATION_PLUGINS_INCLUDEDASHBOARD_VERBS = get_includeindashboardwidgets_verbs()
