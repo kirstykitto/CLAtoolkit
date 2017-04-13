@@ -870,6 +870,9 @@ def sentiment_classifier(unit):
         getter = xapi_getter()
         filters.statement_id = sm_obj.statement_id
         stmt = getter.get_xapi_statements(sm_obj.unit_id, sm_obj.user_id, filters)
+        if stmt is None or len(stmt) == 0:
+            continue
+            
         message = stmt[0]['object']['definition']['name']['en-US']
         message  = message.encode('utf-8', 'replace')
 

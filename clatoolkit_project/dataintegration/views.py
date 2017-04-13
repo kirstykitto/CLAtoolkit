@@ -603,7 +603,7 @@ def slack_client_auth(request):
         return HttpResponseServerError('<h1>Internal Server Error (500)</h1><p>More than one records were found.</h1>')
     else:
         token_storage = OfflinePlatformAuthToken(
-            user_smid=json_val['user_id'], token=access_token, platform=xapi_settings.PLATFORM_SLACK)
+            user_smid=json_val['user_id'], token=access_token, platform=xapi_settings.PLATFORM_SLACK, user = request.user)
     token_storage.save()
 
     # Set user ID and access token in social media ID register or update page

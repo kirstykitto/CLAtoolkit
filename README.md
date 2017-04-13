@@ -13,15 +13,25 @@ The Connected Learning Analytics toolkit (new django architecture, superseeding 
 Local Installation using VirtualEnv
 ---------
 
-**CLAToolkit is built with Django. The installation is pretty standard but requires Postgres (for JSON document queries), Numpy and a range of Machine Learning Libraries such as Scikit Learn and Gensim**
-
+**CLAToolkit is built with Django. The installation is pretty standard but requires PostgreSQL, Numpy and a range of Machine Learning Libraries such as Scikit Learn and Gensim**  
+**CLAToolkit also requires Learning Record Store (LRS) to store/retrieve JSON data. You can see the instruction for installing LRS [here](https://github.com/zwaters/ADL_LRS)**  
 
 If you do not have VirtualEnv installed:
 ```bash
 $ pip install virtualenv
 $ pip install virtualenvwrapper
 $ mkdir ~/.virtualenvs
+```
+
+Add the following lines in .bashrc (or .bash_profile)
+```bash
 $ export WORKON_HOME=~/.virtualenvs
+$ source /usr/local/bin/virtualenvwrapper.sh
+```
+
+Apply the two lines
+```bash
+$ source .bashrc
 ```
 
 **Create a virtual environment for CLAToolkit:**
@@ -42,14 +52,21 @@ $ cd clatoolkit/clatoolkit_project/clatoolkit_project
 
 **Install Python and Django Requirements**
 
-
-A requirements.txt file is provided in the code repository. This will take a while especially the installation of numpy. If numpy fails you may have to find a platform specific deployment method eg using apt-get on ubuntu ($ sudo apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose).
-
+***Run these commands below before running requirements.txt.***  
+Install prerequisite libraries that are required to install libraries in requirements.txt
 ```bash
-$ sudo pip install -r requirements.txt
+$ sudo apt-get install python-dev libpq-dev libxml2-dev libxslt-dev libigraph0-dev
 ```
 
-**Install Postgres**
+**Install PostgreSQL**  
+Install postgreSQL9.4 on Ubuntu 14.04  
+PostgreSQL 9.3 is installed as default database on Ubuntu 14.04. However, the CLA toolkit uses PostgreSQL 9.4 or above.
+```bash
+$ sudo add-apt-repository "deb https://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main"
+$ wget --quiet -O - https://postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+$ sudo apt-get update
+$ sudo apt-get install postgresql-9.4 postgresql-contrib
+```
 
 On a Mac install postgres.app using these instructions: http://postgresapp.com/ 
 and add to path using:
@@ -57,26 +74,76 @@ and add to path using:
 export PATH="/Applications/Postgres.app/Contents/Versions/9.4/bin:$PATH"
 ```
 
+**Install requirements**  
+A requirements.txt file is provided in the code repository. This will take a while especially the installation of numpy. If numpy fails you may have to find a platform specific deployment method eg using apt-get on ubuntu ($ sudo apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose).
+
+```bash
+$ sudo pip install -r requirements.txt
+```
+
+**Create PostgreSQL database instance**  
 You can either create a new postgres database for your CLAToolkit Instance or use database with preloaded Social Media content. A preloaded database is available upon request which comes with a set of migrations.
 
-Instructions to create a new postgres database
+Create a superuser (if necessary)
+```bash
+$ sudo su - postgres
+$ createuser -P -s -e username
+```
+
 Follow http://killtheyak.com/use-postgresql-with-django-flask/ to create a user and database for django
 ```bash
-$ sudo createdb -U username --locale=en_US.utf-8 -E utf-8 -O username cladjangodb -T template0
+$ sudo -u username createdb --locale=en_US.utf-8 -E utf-8 -O username cladjangodb -T template0
 ```
 
 Load an existing database by first creating a new database and then importing data from backup database
 ```bash
-$ sudo createdb -U username --locale=en_US.utf-8 -E utf-8 -O username newdatabasename -T template0
+$ sudo -u username createdb --locale=en_US.utf-8 -E utf-8 -O username newdatabasename -T template0
 $ psql newdatabasename < backedupdbname.bak
 ```
 
-Edit ```.env``` and add secret key + DB details  
+**Configure CLAToolkit environment file (.env) with your database credentials and social media secret ID and password**
+```bash
+$ cp .env.example .env
+$ nano .env
+```
+Then, edit ```.env``` and add secret key and DB details  
 
+
+**Migration**  
 If a new database was created, you will need to setup the database tables and create a superuser.
 ```bash
 $ python manage.py migrate
 $ python manage.py createsuperuser
+```
+
+If you see an error saying that dotenv has no attribute 'read_dotenv' when you run migrate command, other types of dotenv are likely to conflict with django-dotenv. If so, uninstall them and (re)install django-dotenv if necessary.  
+Example error message:
+```bash
+Traceback (most recent call last):
+  File "manage.py", line 8, in <module>
+    dotenv.read_dotenv(os.path.join(BASE_DIR, ".env"))
+AttributeError: 'module' object has no attribute 'read_dotenv'
+```
+```bash
+$ sudo pip uninstall dotenv
+$ sudo pip uninstall python-dotenv
+$ sudo pip install django-dotenv==1.4.1
+```
+  
+
+**Insert the default data into database**  
+Default LRS data needs to be stored in the database in advance. Run the insert SQL below.
+```bash
+insert into xapi_clientapp values (1, 'CLAToolkit LRS', 'Connected Learning Analytics Toolkit', '<LRS access token key>', '<LRS access token secret>', 'http', 'lrs.beyondlms.org', 43, '/xapi/OAuth/initiate','/xapi/OAuth/token', '/xapi/OAuth/authorize', '/xapi/statements', '/regclatoolkitu/');
+```
+  
+
+**Install Bower Component**  
+To install bower, follow the instruction on [https://bower.io/](https://bower.io/)  
+  
+```bash
+$ cd clatoolkit_project/static
+$ sudo bower install --allow-root
 ```
 
 Now you can run the django webserver:
@@ -84,10 +151,13 @@ Now you can run the django webserver:
 $ python manage.py runserver
 ```
 
-If a new database was created go to http://localhost:8000/admin and login with superuser account
-Add a unit offering with hashtags (for twitter) and group id (for facebook)
-Add users with twitter id and facebook id
-Login is at http://localhost:8000/
+If a new database was created go to http://localhost:8000/admin and login with superuser account.  
+Edit the user's profile (admin home - Users - click the user).  
+
+Go to http://localhost:8000/ and login to the CLA toolkit. Create a unit via unit offering page (Click the username on the right top corner - Click Create Offering). Once a unit is created, it will be listed in user's dashboard.
+
+When a unit is created, there will be a link to the user registration page (e.g. https://localhost/clatoolkit/unitofferings/1/register/). To add other toolkit users to the unit, give them the link and let them login or create a new user.  
+
 
 Installation on Ubuntu using Apache
 -

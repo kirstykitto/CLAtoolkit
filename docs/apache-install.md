@@ -1,52 +1,12 @@
 # Setting up the CLA Toolkit with Apache
 How to setup the CLA Toolkit on Ubuntu 14.04 using the Apache server.  
 
-**Install dependancies:**
+**The CLA toolkit needs to be installed in advance. The instruction can be found [here](https://github.com/kojiagile/CLAtoolkit/blob/koji/README.md#local-installation-using-virtualenv)**  
+
+**Install Apache and dependancies**
 ```bash
 $ sudo apt-get update
-$ sudo apt-get install git python-pip python-dev apache2 libapache2-mod-wsgi postgresql postgresql-contrib python-psycopg2 libxml2-dev libxslt-dev libpq-dev
-```
-
-**Clone the CLAtoolkit repo locally:**
-```bash
-$ git clone https://github.com/kirstykitto/CLAtoolkit.git
-$ cd CLAtoolkit
-```
-
-**Setup virtualenv:**
-```bash
-$ sudo pip install virtualenv
-$ sudo pip install virtualenvwrapper
-$ mkvirtualenv clatoolkit
-```
-
-**Install Python dependancies:**
-```bash
-$ pip install -r requirements.txt
-```
-
-**Setup Postgres:**
-```bash
-$ sudo -u postgres createuser -P clatoolkit -s
-$ sudo createdb -U clatoolkit --locale=en_US.utf-8 -E utf-8 -O clatoolkit cladjangodb -T template0 -h 127.0.0.1 --username=clatoolkit
-```
-When prompted for a password, use the password for the Postgres user you just created
-
-**Configure clatoolkit environment with your database credentials:**
-```bash
-$ cp .env.example .env
-$ nano .env
-```
-Make sure to change the `DEBUG` flag to 0 if this instance is being used in production
-
-**Initialise the Database:**
-```bash
-$ python clatoolkit_project/manage.py migrate
-```
-
-**Create a superuser:**
-```bash
-$ python manage.py createsuperuser
+$ sudo apt-get install apache2 libapache2-mod-wsgi python-psycopg2
 ```
 
 **Edit the Apache configuration:**
