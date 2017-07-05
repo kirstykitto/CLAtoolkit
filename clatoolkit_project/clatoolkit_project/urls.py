@@ -6,6 +6,8 @@ from clatoolkit.urls import router
 
 urlpatterns = patterns('',
     url(r'^$', views.userlogin, name='userlogin'),
+    url(r'^aaf_login/', views.aaf_login, name='aaflogin'),
+    url(r'^aaf_auth/', views.aaf_auth_endpoint), #TODO: add to an /auth/ endpoint?
     url(r'^clatoolkit/', include('clatoolkit.urls')),
     url(r'^api/', include(router.urls)),
     url(r'^admin/', include(admin.site.urls)),
