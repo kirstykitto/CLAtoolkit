@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django_pgjson.fields import JsonField
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
 from xapi.statement.xapi_settings import xapi_settings
 from xapi.models import ClientApp
 #from dashboard.models import al2_classifier
@@ -301,7 +302,7 @@ class LearningRecord(models.Model):
     parent_user = models.ForeignKey(User, null=True, related_name="parent_user")
     # parent_user_external = models.CharField(max_length=5000, blank=True, null=True)
     # message = models.TextField(blank=True)
-    datetimestamp = models.DateTimeField(auto_now_add=False, null=False)
+    datetimestamp = models.DateTimeField(timezone.now())
     # senttolrs = models.CharField(max_length=5000, blank=True)
 
 

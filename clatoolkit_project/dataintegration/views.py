@@ -303,6 +303,22 @@ def refreshtwitter(request):
     return render(request, 'dataintegration/dataimport_complete.html', context)
 
 
+def refreshca(request):
+    unit_id = request.GET.get('unit')
+
+    try:
+        unit = UnitOffering.objects.get(id=unit_id)
+    except UnitOffering.DoesNotExist:
+        raise Http404
+
+    ca_plugin = settings.DATAINTEGRATION_PLUGINS[xapi_settings.PLATFORM_CA]
+
+    ca_plugin.perform_import(unit)
+
+    context = {'platform': xapi_settings.PLATFORM_CA}
+    return render(request, 'dataintegration/dataimport_complete.html', context)
+
+
 def refreshdiigo(request):
     html_response = HttpResponse()
 

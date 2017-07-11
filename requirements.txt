@@ -51,7 +51,7 @@ numexpr==2.4.3
 numpy==1.12.0
 oauth2==1.9.0.post1
 oauth2client==1.5.1
-oauthlib==0.7.2
+oauthlib==2.0.1
 openpyxl==2.3.0
 packaging==16.8
 pandas==0.19.2
@@ -76,7 +76,7 @@ pytz==2016.10
 rdflib==4.2.2
 redis==2.10.3
 requests==2.7.0
-requests-oauthlib==0.5.0
+requests-oauthlib==0.8.0
 rsa==3.4.2
 scikit-bio==0.2.3
 scikit-learn==0.16.1

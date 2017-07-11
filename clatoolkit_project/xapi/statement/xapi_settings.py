@@ -13,6 +13,7 @@ class xapi_settings(object):
     PLATFORM_GITHUB = 'GitHub'
     PLATFORM_TRELLO = 'Trello'
     PLATFORM_SLACK = 'Slack'
+    PLATFORM_CA = 'CICAround'
 
     # Verbs
     VERB_CREATED = 'created'
