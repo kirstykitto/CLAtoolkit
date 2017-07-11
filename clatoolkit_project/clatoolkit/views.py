@@ -13,19 +13,15 @@ from clatoolkit.forms import CreateOfferingForm, SignUpForm, UserForm, UserProfi
 from django.template import RequestContext
 
 from django.core.exceptions import PermissionDenied
-
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 from clatoolkit.models import UnitOffering, UnitOfferingMembership, DashboardReflection, LearningRecord, SocialRelationship, Classification, UserClassification, AccessLog
 
 from rest_framework import authentication, permissions, viewsets, filters
 from .serializers import LearningRecordSerializer, SocialRelationshipSerializer, ClassificationSerializer, UserClassificationSerializer
 
 from .forms import SocialMediaUpdateForm, LearningRecordFilter, SocialRelationshipFilter, ClassificationFilter, UserClassificationFilter
-
-
-from rest_framework.views import APIView
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
 
 from xapi.models import ClientApp
 
