@@ -1,17 +1,19 @@
 from django.shortcuts import render, render_to_response
 from django.shortcuts import redirect
-
+from django.conf import settings
 from django.contrib.auth import authenticate, login
 from django.http import HttpResponseRedirect, HttpResponse, Http404, HttpResponseServerError, JsonResponse
-
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import logout
-
 from django.contrib.auth.models import User
-from clatoolkit.forms import CreateOfferingForm, SignUpForm, UserForm, UserProfileForm, RegisterClientAppForm
-
 from django.template import RequestContext
-
+from django.core.exceptions import PermissionDenied
+from rest_framework import authentication, permissions, viewsets, filters
+from django.contrib.auth import logout
+from django.contrib.auth.models import User
+from django.template import RequestContext
 from django.core.exceptions import PermissionDenied
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -24,14 +26,11 @@ from .serializers import LearningRecordSerializer, SocialRelationshipSerializer,
 from .forms import SocialMediaUpdateForm, LearningRecordFilter, SocialRelationshipFilter, ClassificationFilter, UserClassificationFilter
 
 from xapi.models import ClientApp
-
 from dashboard.utils import *
 import json
-
 from hashlib import sha1
-import hmac
+import hmac, jwt, pwgen
 import binascii
-
 # from fb_data.models import
 
 def home(request):
@@ -39,6 +38,89 @@ def home(request):
 
     return render_to_response('clatoolkit/home.html', {}, context)
 
+def aaf_login(request):
+    # Get Custom endpoint for AAF Login (this endpoint is specified in the .env,
+    # and can be created by registering your webapp at AAF rapid connect
+    aaf_url = settings.AAF_URL
+    # Make sure we can return to the page we were at
+    redirect_to = request.META.get('HTTP_REFERER')
+    request.session['post-login-redirect'] = redirect_to
+
+    return redirect(aaf_url)
+
+def create_lrs_acc_if_not_exist(user):
+    import requests
+    # Default LRS
+    unit = UnitOffering.objects.get(id=1)
+
+    lrs = unit.get_lrs()
+
+    # Create a simple signature to authorise lrs account creation.
+    # We don't want randoms creating accounts arbitrarly!
+    hash = hmac.new(str(lrs.get_secret()), lrs.get_key(), sha1)
+    # Return ascii formatted signature in base64
+    signature = binascii.b2a_base64(hash.digest())[:-1]
+
+    payload = {
+        "user": user,
+        "mailbox": user.email,
+        "client": lrs.app_name,
+        "signature": signature
+    }
+    # print lrs.get_reg_lrs_account_url()
+    r = requests.post(lrs.get_reg_lrs_account_url(), data=payload)
+
+    if not (str(r.status_code) == '200' and r.content == 'success'):
+        print 'Error: LRS account could not be created.'
+        return HttpResponse(r.content, status=503)
+
+    return True
+
+@csrf_exempt
+@require_http_methods(["POST",])
+def aaf_auth_endpoint(request):
+    # Callback url for AAF login, sends post data with a jwt to be verified
+    try:
+        # Config contains our rapid connect config
+        config = settings.AAF_CONFIG
+
+        # Verify Signature and expiry time
+        ver_jwt = jwt.decode(request.POST['assertion'], settings.AAF_SECRET, audience=config['aaf.edu.au']['aud'])
+
+        if ver_jwt['aud'] == config['aaf.edu.au']['aud'] \
+            and ver_jwt['iss'] == config['aaf.edu.au']['iss']:
+
+            request.session['attributes'] = ver_jwt['https://aaf.edu.au/attributes']
+            request.session['jwt'] = ver_jwt
+            request.session['jws'] = request.POST['assertion']
+
+            user_email = request.session['attributes']['mail']
+
+            # AAF Accounts username will be their institutional email address
+            if not User.objects.filter(username=user_email).count() or not User.objects.filter(email=user_email).count():
+                u = User.objects.create(username=user_email, email=user_email, password=pwgen.pwgen(20, 1, no_symbols=True))
+            else:
+                u = User.objects.get(username=user_email)
+
+            # To create/login an account programmatically in Django you must set an account backend
+            u.backend = 'django.contrib.auth.backends.ModelBackend'
+            login(request, u)
+            # Create an LRS account for the user, if one doesn't already exist
+            create_lrs_acc_if_not_exist(u)
+
+            if request.session['post-login-redirect']:
+                r = request.session['post-login-redirect']
+                del request.session['post-login-redirect']
+                return redirect(r)
+
+            return redirect('/')
+        else:  # Something went wrong??
+            raise PermissionDenied
+
+    except Exception as e:
+        return HttpResponse('<p>' + str(e) + '</p>' +
+                        '<p>' + str(ver_jwt['aud']) + '</p>' +
+                        '<p>' + str(config['aaf.edu.au']['aud']) + '</p>')
 
 def userlogin(request):
     context = RequestContext(request)
